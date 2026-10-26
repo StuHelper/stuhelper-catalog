@@ -1,0 +1,26 @@
+id: catalog
+version: 0.1.0
+api: 1
+critical: false
+requires:
+  - id: platform
+    api: 1
+optional:
+  - id: campus-adapters
+    api: 1
+capabilities:
+  - catalog.read
+  - catalog.import
+  - catalog.enrollments
+capability_requires: {}
+scenario_tests:
+  CO-02:
+    - integration_test.go#TestImportRelationsClassificationAndMissingCredits
+  CO-04:
+    - integration_test.go#TestImportIdempotencyConcurrencyAndRollback
+  CO-05:
+    - integration_test.go#TestCourseTeacherJoinsAndEnrollmentAssignments
+  CO-07:
+    - integration_test.go#TestSchoolScopePublicProjectionAndBoundedHTTP
+  ACAD-33:
+    - integration_test.go#TestImportRelationsClassificationAndMissingCredits
