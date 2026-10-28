@@ -21,3 +21,12 @@ CREATE TABLE IF NOT EXISTS catalog.audit(id text PRIMARY KEY, data jsonb NOT NUL
 CREATE TABLE IF NOT EXISTS catalog.outbox(id text PRIMARY KEY, data jsonb NOT NULL, delivered boolean NOT NULL DEFAULT false);
 REVOKE ALL ON SCHEMA catalog FROM PUBLIC;
 REVOKE ALL ON ALL TABLES IN SCHEMA catalog FROM PUBLIC;
+
+CREATE TABLE IF NOT EXISTS catalog.redirects(alias_id text PRIMARY KEY REFERENCES catalog.objects(id),canonical_id text NOT NULL REFERENCES catalog.objects(id),reason text NOT NULL,created_at timestamptz NOT NULL);
+CREATE INDEX IF NOT EXISTS catalog_redirect_targets ON catalog.redirects(canonical_id,alias_id);
+CREATE OR REPLACE FUNCTION catalog.canonical(value text) RETURNS text LANGUAGE sql STABLE AS $$ SELECT COALESCE((SELECT canonical_id FROM catalog.redirects WHERE alias_id=value),value) $$;
+CREATE OR REPLACE FUNCTION catalog.public_object(value jsonb) RETURNS jsonb LANGUAGE sql STABLE AS $$
+ SELECT value || jsonb_build_object('course_id',catalog.canonical(COALESCE(value->>'course_id','')),'teacher_id',catalog.canonical(COALESCE(value->>'teacher_id','')),'term_course_id',catalog.canonical(COALESCE(value->>'term_course_id','')),'class_id',catalog.canonical(COALESCE(value->>'class_id','')))
+$$;
+REVOKE ALL ON TABLE catalog.redirects FROM PUBLIC;
+-- Invoker rights preserve each caller's table permissions.

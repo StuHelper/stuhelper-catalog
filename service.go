@@ -140,7 +140,9 @@ func (s *Service) Import(ctx context.Context, p Principal, key string, in Import
 		}
 		seen[o.ID] = true
 	}
-	h := digest(in)
+	withoutToken := in
+	withoutToken.PreviewToken = ""
+	h := digest(withoutToken)
 	rk := digest([]string{p.Subject, "import", in.SchoolID, key})
 	now := s.now()
 	err := s.Repo.Transaction(ctx, func(t Transaction) error {
@@ -156,6 +158,15 @@ func (s *Service) Import(ctx context.Context, p Principal, key string, in Import
 		}
 		if e != nil && !errors.Is(e, ErrNotFound) {
 			return e
+		}
+		if in.PreviewToken != "" {
+			token, e := importToken(t, in)
+			if e != nil {
+				return e
+			}
+			if token != in.PreviewToken {
+				return ErrConflict
+			}
 		}
 		out = ImportResult{ID: rk, Objects: len(in.Objects), Enrollments: len(in.Enrollments)}
 		// Resolve within a page in dependency order, independent of input order.
@@ -206,6 +217,9 @@ func (s *Service) Import(ctx context.Context, p Principal, key string, in Import
 					return e
 				}
 				out.PreservedCorrections += len(rec.Manual)
+				if _, ok := rec.Manual["inactive_reason"]; ok {
+					out.PreservedCorrections--
+				}
 				if e := relations(t, rec.Object); e != nil {
 					return e
 				}
@@ -282,6 +296,9 @@ func (s *Service) Import(ctx context.Context, p Principal, key string, in Import
 				return e
 			}
 		}
+		if _, e := t.MergeAliases("", "", in.SchoolID, now, "Canonical relation after import"); e != nil {
+			return e
+		}
 		if e := t.Event(Event{ID: rk, Subject: "import/" + rk, Type: "catalog.imported.v1", SchoolID: in.SchoolID, Actor: p.Subject, Revision: in.Revision, Time: now}); e != nil {
 			return e
 		}
@@ -298,7 +315,7 @@ func (s *Service) Get(ctx context.Context, id string) (Object, error) {
 	if !ValidID(id) {
 		return out, ErrInput
 	}
-	err := s.Repo.Transaction(ctx, func(t Transaction) error { r, e := t.Object(id); out = r.Object; return e })
+	err := s.Repo.Transaction(ctx, func(t Transaction) error { r, e := t.PublicObject(id); out = r; return e })
 	return out, err
 }
 func (s *Service) List(ctx context.Context, f Filter) (Page, error) {
@@ -312,6 +329,17 @@ func (s *Service) List(ctx context.Context, f Filter) (Page, error) {
 		}
 	}
 	err := s.Repo.Transaction(ctx, func(t Transaction) error {
+		for _, id := range []*string{&f.CourseID, &f.TeacherID, &f.TermCourseID, &f.ClassID} {
+			if *id != "" {
+				object, e := t.PublicObject(*id)
+				if e != nil {
+					return e
+				}
+				if object.CanonicalID != "" {
+					*id = object.CanonicalID
+				}
+			}
+		}
 		items, e := t.List(f)
 		if e != nil {
 			return e

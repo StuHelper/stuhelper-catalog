@@ -24,6 +24,8 @@ type Principal struct {
 	CanMaintain bool
 }
 type Object struct {
+	Inactive     bool      `json:"inactive,omitempty"`
+	CanonicalID  string    `json:"canonical_id,omitempty"`
 	ID           string    `json:"id"`
 	Kind         string    `json:"kind"`
 	SchoolID     string    `json:"school_id"`
@@ -68,12 +70,13 @@ type Enrollment struct {
 	Active         bool      `json:"active"`
 }
 type Import struct {
-	SchoolID    string       `json:"school_id"`
-	SourceID    string       `json:"source_id"`
-	Revision    int64        `json:"revision"`
-	FetchedAt   time.Time    `json:"fetched_at"`
-	Objects     []Object     `json:"objects"`
-	Enrollments []Enrollment `json:"enrollments"`
+	PreviewToken string       `json:"preview_token,omitempty"`
+	SchoolID     string       `json:"school_id"`
+	SourceID     string       `json:"source_id"`
+	Revision     int64        `json:"revision"`
+	FetchedAt    time.Time    `json:"fetched_at"`
+	Objects      []Object     `json:"objects"`
+	Enrollments  []Enrollment `json:"enrollments"`
 }
 type ImportResult struct {
 	ID                   string `json:"id"`
@@ -84,6 +87,7 @@ type ImportResult struct {
 type Filter struct {
 	Kind, SchoolID, DepartmentID, CategoryID, NatureID, CourseID, TermID, TeacherID, Query, After string
 	TermCourseID, ClassID                                                                         string
+	IncludeInactive                                                                               bool
 	Limit                                                                                         int
 }
 type Lookup struct {
@@ -129,6 +133,9 @@ type Repository interface {
 	Transaction(context.Context, func(Transaction) error) error
 }
 type Transaction interface {
+	PublicObject(string) (Object, error)
+	ResolveIDs(string) ([]string, error)
+	MergeAliases(string, string, string, time.Time, string) (int, error)
 	Lock(string) error
 	Object(string) (Record, error)
 	SaveObject(Record) error

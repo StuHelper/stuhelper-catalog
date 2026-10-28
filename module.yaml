@@ -30,3 +30,9 @@ scenario_tests:
     - directory_test.go#TestDirectorySummaryLookupAndOfferingContext
   ACAD-24:
     - directory_test.go#TestDirectorySummaryLookupAndOfferingContext
+  CO-08:
+    - operations_test.go#TestMergeKeepsOldLinksOfferingsAndEnrollmentsAndSupportsDeactivation
+  CO-09:
+    - operations_test.go#TestMergeKeepsOldLinksOfferingsAndEnrollmentsAndSupportsDeactivation
+  CO-10:
+    - operations_test.go#TestImportPreviewRollsBackAndRejectsChangedConfirmation

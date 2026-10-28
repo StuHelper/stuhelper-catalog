@@ -5,6 +5,9 @@ import "encoding/json"
 func applyManual(record *Record) error {
 	for field, value := range record.Manual {
 		switch field {
+		case "inactive_reason":
+		case "inactive":
+			record.Object.Inactive = value == "true"
 		case "name":
 			record.Object.Name = value
 		case "biography":

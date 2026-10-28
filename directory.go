@@ -44,14 +44,14 @@ func (s *Service) Summary(ctx context.Context, id string) (Summary, error) {
 		return out, ErrInput
 	}
 	err := s.Repo.Transaction(ctx, func(t Transaction) error {
-		record, err := t.Object(id)
+		object, err := t.PublicObject(id)
 		if err != nil {
 			return err
 		}
-		if record.Object.Kind != "course" && record.Object.Kind != "teacher" {
+		if object.Kind != "course" && object.Kind != "teacher" {
 			return ErrInput
 		}
-		out, err = t.Summary(record.Object)
+		out, err = t.Summary(object)
 		return err
 	})
 	return out, err

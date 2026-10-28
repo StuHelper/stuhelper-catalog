@@ -144,12 +144,29 @@ type Error struct {
 
 // Import defines model for Import.
 type Import struct {
-	Enrollments []Enrollment `json:"enrollments"`
-	FetchedAt   time.Time    `json:"fetched_at"`
-	Objects     []Object     `json:"objects"`
-	Revision    int          `json:"revision"`
-	SchoolId    string       `json:"school_id"`
-	SourceId    string       `json:"source_id"`
+	Enrollments  []Enrollment `json:"enrollments"`
+	FetchedAt    time.Time    `json:"fetched_at"`
+	Objects      []Object     `json:"objects"`
+	PreviewToken *string      `json:"preview_token,omitempty"`
+	Revision     int          `json:"revision"`
+	SchoolId     string       `json:"school_id"`
+	SourceId     string       `json:"source_id"`
+}
+
+// ImportChange defines model for ImportChange.
+type ImportChange struct {
+	Fields []string `json:"fields"`
+	Id     string   `json:"id"`
+	Kind   string   `json:"kind"`
+	State  string   `json:"state"`
+}
+
+// ImportPreview defines model for ImportPreview.
+type ImportPreview struct {
+	Changes      []ImportChange `json:"changes"`
+	Code         string         `json:"code"`
+	PreviewToken string         `json:"preview_token"`
+	Valid        bool           `json:"valid"`
 }
 
 // ImportResult defines model for ImportResult.
@@ -166,10 +183,28 @@ type Lookup struct {
 	MissingIds []string `json:"missing_ids"`
 }
 
+// MergeInput defines model for MergeInput.
+type MergeInput struct {
+	PreviewToken   *string `json:"preview_token,omitempty"`
+	Reason         string  `json:"reason"`
+	SourceRevision int     `json:"source_revision"`
+	TargetId       string  `json:"target_id"`
+	TargetRevision int     `json:"target_revision"`
+}
+
+// MergePreview defines model for MergePreview.
+type MergePreview struct {
+	Aliases      int    `json:"aliases"`
+	PreviewToken string `json:"preview_token"`
+	Source       Object `json:"source"`
+	Target       Object `json:"target"`
+}
+
 // Object defines model for Object.
 type Object struct {
 	Aliases      []string   `json:"aliases"`
 	Biography    *string    `json:"biography,omitempty"`
+	CanonicalId  *string    `json:"canonical_id,omitempty"`
 	CategoryId   *string    `json:"category_id,omitempty"`
 	ClassId      *string    `json:"class_id,omitempty"`
 	Code         *string    `json:"code,omitempty"`
@@ -177,6 +212,7 @@ type Object struct {
 	Credits      *float32   `json:"credits"`
 	DepartmentId *string    `json:"department_id,omitempty"`
 	Id           string     `json:"id"`
+	Inactive     *bool      `json:"inactive,omitempty"`
 	Kind         ObjectKind `json:"kind"`
 	Location     *string    `json:"location,omitempty"`
 	Name         string     `json:"name"`
@@ -193,10 +229,23 @@ type Object struct {
 // ObjectKind defines model for Object.Kind.
 type ObjectKind string
 
+// ObjectState defines model for ObjectState.
+type ObjectState struct {
+	Inactive bool   `json:"inactive"`
+	Reason   string `json:"reason"`
+	Revision int    `json:"revision"`
+}
+
 // Page defines model for Page.
 type Page struct {
 	Items []Object `json:"items"`
 	Next  string   `json:"next"`
+}
+
+// Resolution defines model for Resolution.
+type Resolution struct {
+	Ids    []string `json:"ids"`
+	Object Object   `json:"object"`
 }
 
 // Summary defines model for Summary.
@@ -240,6 +289,16 @@ type ImportCatalogParams struct {
 	IdempotencyKey string `json:"Idempotency-Key"`
 }
 
+// ConfirmImportParams defines parameters for ConfirmImport.
+type ConfirmImportParams struct {
+	IdempotencyKey string `json:"Idempotency-Key"`
+}
+
+// PreviewImportParams defines parameters for PreviewImport.
+type PreviewImportParams struct {
+	IdempotencyKey string `json:"Idempotency-Key"`
+}
+
 // MyEnrollmentsParams defines parameters for MyEnrollments.
 type MyEnrollmentsParams struct {
 	SchoolId *string `form:"school_id,omitempty" json:"school_id,omitempty"`
@@ -267,7 +326,8 @@ type ListObjectsParams struct {
 	TermCourseId *string `form:"term_course_id,omitempty" json:"term_course_id,omitempty"`
 
 	// ClassId Restrict relationships to this offering or teaching class.
-	ClassId *string `form:"class_id,omitempty" json:"class_id,omitempty"`
+	ClassId         *string `form:"class_id,omitempty" json:"class_id,omitempty"`
+	IncludeInactive *bool   `form:"include_inactive,omitempty" json:"include_inactive,omitempty"`
 }
 
 // LookupObjectsParams defines parameters for LookupObjects.
@@ -281,11 +341,41 @@ type CorrectObjectParams struct {
 	IdempotencyKey string `json:"Idempotency-Key"`
 }
 
+// MergeObjectParams defines parameters for MergeObject.
+type MergeObjectParams struct {
+	IdempotencyKey string `json:"Idempotency-Key"`
+}
+
+// PreviewMergeParams defines parameters for PreviewMerge.
+type PreviewMergeParams struct {
+	IdempotencyKey string `json:"Idempotency-Key"`
+}
+
+// SetObjectStateParams defines parameters for SetObjectState.
+type SetObjectStateParams struct {
+	IdempotencyKey string `json:"Idempotency-Key"`
+}
+
 // ImportCatalogJSONRequestBody defines body for ImportCatalog for application/json ContentType.
 type ImportCatalogJSONRequestBody = Import
 
+// ConfirmImportJSONRequestBody defines body for ConfirmImport for application/json ContentType.
+type ConfirmImportJSONRequestBody = Import
+
+// PreviewImportJSONRequestBody defines body for PreviewImport for application/json ContentType.
+type PreviewImportJSONRequestBody = Import
+
 // CorrectObjectJSONRequestBody defines body for CorrectObject for application/json ContentType.
 type CorrectObjectJSONRequestBody = Correction
+
+// MergeObjectJSONRequestBody defines body for MergeObject for application/json ContentType.
+type MergeObjectJSONRequestBody = MergeInput
+
+// PreviewMergeJSONRequestBody defines body for PreviewMerge for application/json ContentType.
+type PreviewMergeJSONRequestBody = MergeInput
+
+// SetObjectStateJSONRequestBody defines body for SetObjectState for application/json ContentType.
+type SetObjectStateJSONRequestBody = ObjectState
 
 // RequestEditorFn is the function signature for the RequestEditor callback function
 type RequestEditorFn func(ctx context.Context, req *http.Request) error
@@ -369,6 +459,22 @@ type ClientInterface interface {
 	// Takes a body of the `application/json` content type.
 	ImportCatalog(ctx context.Context, params *ImportCatalogParams, body ImportCatalogJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
+	// ConfirmImportWithBody performs a POST /api/v1/catalog/imports/confirm (the `ConfirmImport` operationId) request,
+	// with any type of body and a specified content type.
+	ConfirmImportWithBody(ctx context.Context, params *ConfirmImportParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// ConfirmImport performs a POST /api/v1/catalog/imports/confirm (the `ConfirmImport` operationId) request.
+	// Takes a body of the `application/json` content type.
+	ConfirmImport(ctx context.Context, params *ConfirmImportParams, body ConfirmImportJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// PreviewImportWithBody performs a POST /api/v1/catalog/imports/preview (the `PreviewImport` operationId) request,
+	// with any type of body and a specified content type.
+	PreviewImportWithBody(ctx context.Context, params *PreviewImportParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// PreviewImport performs a POST /api/v1/catalog/imports/preview (the `PreviewImport` operationId) request.
+	// Takes a body of the `application/json` content type.
+	PreviewImport(ctx context.Context, params *PreviewImportParams, body PreviewImportJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
 	// MyEnrollments performs a GET /api/v1/catalog/me/enrollments (the `MyEnrollments` operationId) request.
 	MyEnrollments(ctx context.Context, params *MyEnrollmentsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
@@ -388,6 +494,33 @@ type ClientInterface interface {
 	// CorrectObject performs a PATCH /api/v1/catalog/objects/{id} (the `CorrectObject` operationId) request.
 	// Takes a body of the `application/json` content type.
 	CorrectObject(ctx context.Context, id string, params *CorrectObjectParams, body CorrectObjectJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// MergeObjectWithBody performs a POST /api/v1/catalog/objects/{id}/merge (the `MergeObject` operationId) request,
+	// with any type of body and a specified content type.
+	MergeObjectWithBody(ctx context.Context, id string, params *MergeObjectParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// MergeObject performs a POST /api/v1/catalog/objects/{id}/merge (the `MergeObject` operationId) request.
+	// Takes a body of the `application/json` content type.
+	MergeObject(ctx context.Context, id string, params *MergeObjectParams, body MergeObjectJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// PreviewMergeWithBody performs a POST /api/v1/catalog/objects/{id}/merge-preview (the `PreviewMerge` operationId) request,
+	// with any type of body and a specified content type.
+	PreviewMergeWithBody(ctx context.Context, id string, params *PreviewMergeParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// PreviewMerge performs a POST /api/v1/catalog/objects/{id}/merge-preview (the `PreviewMerge` operationId) request.
+	// Takes a body of the `application/json` content type.
+	PreviewMerge(ctx context.Context, id string, params *PreviewMergeParams, body PreviewMergeJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// ResolveObject performs a GET /api/v1/catalog/objects/{id}/resolution (the `ResolveObject` operationId) request.
+	ResolveObject(ctx context.Context, id string, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// SetObjectStateWithBody performs a POST /api/v1/catalog/objects/{id}/state (the `SetObjectState` operationId) request,
+	// with any type of body and a specified content type.
+	SetObjectStateWithBody(ctx context.Context, id string, params *SetObjectStateParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// SetObjectState performs a POST /api/v1/catalog/objects/{id}/state (the `SetObjectState` operationId) request.
+	// Takes a body of the `application/json` content type.
+	SetObjectState(ctx context.Context, id string, params *SetObjectStateParams, body SetObjectStateJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// GetObjectSummary performs a GET /api/v1/catalog/objects/{id}/summary (the `GetObjectSummary` operationId) request.
 	GetObjectSummary(ctx context.Context, id string, reqEditors ...RequestEditorFn) (*http.Response, error)
@@ -411,6 +544,62 @@ func (c *Client) ImportCatalogWithBody(ctx context.Context, params *ImportCatalo
 // Takes a body of the `application/json` content type.
 func (c *Client) ImportCatalog(ctx context.Context, params *ImportCatalogParams, body ImportCatalogJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewImportCatalogRequest(c.Server, params, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// ConfirmImportWithBody performs a POST /api/v1/catalog/imports/confirm (the `ConfirmImport` operationId) request,
+// with any type of body and a specified content type.
+func (c *Client) ConfirmImportWithBody(ctx context.Context, params *ConfirmImportParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewConfirmImportRequestWithBody(c.Server, params, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// ConfirmImport performs a POST /api/v1/catalog/imports/confirm (the `ConfirmImport` operationId) request.
+// Takes a body of the `application/json` content type.
+func (c *Client) ConfirmImport(ctx context.Context, params *ConfirmImportParams, body ConfirmImportJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewConfirmImportRequest(c.Server, params, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// PreviewImportWithBody performs a POST /api/v1/catalog/imports/preview (the `PreviewImport` operationId) request,
+// with any type of body and a specified content type.
+func (c *Client) PreviewImportWithBody(ctx context.Context, params *PreviewImportParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewPreviewImportRequestWithBody(c.Server, params, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// PreviewImport performs a POST /api/v1/catalog/imports/preview (the `PreviewImport` operationId) request.
+// Takes a body of the `application/json` content type.
+func (c *Client) PreviewImport(ctx context.Context, params *PreviewImportParams, body PreviewImportJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewPreviewImportRequest(c.Server, params, body)
 	if err != nil {
 		return nil, err
 	}
@@ -501,6 +690,103 @@ func (c *Client) CorrectObject(ctx context.Context, id string, params *CorrectOb
 	return c.Client.Do(req)
 }
 
+// MergeObjectWithBody performs a POST /api/v1/catalog/objects/{id}/merge (the `MergeObject` operationId) request,
+// with any type of body and a specified content type.
+func (c *Client) MergeObjectWithBody(ctx context.Context, id string, params *MergeObjectParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewMergeObjectRequestWithBody(c.Server, id, params, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// MergeObject performs a POST /api/v1/catalog/objects/{id}/merge (the `MergeObject` operationId) request.
+// Takes a body of the `application/json` content type.
+func (c *Client) MergeObject(ctx context.Context, id string, params *MergeObjectParams, body MergeObjectJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewMergeObjectRequest(c.Server, id, params, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// PreviewMergeWithBody performs a POST /api/v1/catalog/objects/{id}/merge-preview (the `PreviewMerge` operationId) request,
+// with any type of body and a specified content type.
+func (c *Client) PreviewMergeWithBody(ctx context.Context, id string, params *PreviewMergeParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewPreviewMergeRequestWithBody(c.Server, id, params, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// PreviewMerge performs a POST /api/v1/catalog/objects/{id}/merge-preview (the `PreviewMerge` operationId) request.
+// Takes a body of the `application/json` content type.
+func (c *Client) PreviewMerge(ctx context.Context, id string, params *PreviewMergeParams, body PreviewMergeJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewPreviewMergeRequest(c.Server, id, params, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// ResolveObject performs a GET /api/v1/catalog/objects/{id}/resolution (the `ResolveObject` operationId) request.
+func (c *Client) ResolveObject(ctx context.Context, id string, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewResolveObjectRequest(c.Server, id)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// SetObjectStateWithBody performs a POST /api/v1/catalog/objects/{id}/state (the `SetObjectState` operationId) request,
+// with any type of body and a specified content type.
+func (c *Client) SetObjectStateWithBody(ctx context.Context, id string, params *SetObjectStateParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewSetObjectStateRequestWithBody(c.Server, id, params, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// SetObjectState performs a POST /api/v1/catalog/objects/{id}/state (the `SetObjectState` operationId) request.
+// Takes a body of the `application/json` content type.
+func (c *Client) SetObjectState(ctx context.Context, id string, params *SetObjectStateParams, body SetObjectStateJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewSetObjectStateRequest(c.Server, id, params, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
 // GetObjectSummary performs a GET /api/v1/catalog/objects/{id}/summary (the `GetObjectSummary` operationId) request.
 func (c *Client) GetObjectSummary(ctx context.Context, id string, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewGetObjectSummaryRequest(c.Server, id)
@@ -535,6 +821,112 @@ func NewImportCatalogRequestWithBody(server string, params *ImportCatalogParams,
 	}
 
 	operationPath := fmt.Sprintf("/api/v1/catalog/imports")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPost, queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	if params != nil {
+
+		var headerParam0 string
+
+		headerParam0, err = runtime.StyleParamWithOptions("simple", false, "Idempotency-Key", params.IdempotencyKey, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationHeader, Type: "string", Format: ""})
+		if err != nil {
+			return nil, err
+		}
+
+		req.Header.Set("Idempotency-Key", headerParam0)
+
+	}
+
+	return req, nil
+}
+
+// NewConfirmImportRequest calls the generic ConfirmImport builder with application/json body
+func NewConfirmImportRequest(server string, params *ConfirmImportParams, body ConfirmImportJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewConfirmImportRequestWithBody(server, params, "application/json", bodyReader)
+}
+
+// NewConfirmImportRequestWithBody constructs an http.Request for the ConfirmImport method, with any body, and a specified content type
+func NewConfirmImportRequestWithBody(server string, params *ConfirmImportParams, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/catalog/imports/confirm")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPost, queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	if params != nil {
+
+		var headerParam0 string
+
+		headerParam0, err = runtime.StyleParamWithOptions("simple", false, "Idempotency-Key", params.IdempotencyKey, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationHeader, Type: "string", Format: ""})
+		if err != nil {
+			return nil, err
+		}
+
+		req.Header.Set("Idempotency-Key", headerParam0)
+
+	}
+
+	return req, nil
+}
+
+// NewPreviewImportRequest calls the generic PreviewImport builder with application/json body
+func NewPreviewImportRequest(server string, params *PreviewImportParams, body PreviewImportJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewPreviewImportRequestWithBody(server, params, "application/json", bodyReader)
+}
+
+// NewPreviewImportRequestWithBody constructs an http.Request for the PreviewImport method, with any body, and a specified content type
+func NewPreviewImportRequestWithBody(server string, params *PreviewImportParams, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/catalog/imports/preview")
 	if operationPath[0] == '/' {
 		operationPath = "." + operationPath
 	}
@@ -853,6 +1245,18 @@ func NewListObjectsRequest(server string, params *ListObjectsParams) (*http.Requ
 
 		}
 
+		if params.IncludeInactive != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "include_inactive", *params.IncludeInactive, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "boolean", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
 		if encoded := queryValues.Encode(); encoded != "" {
 			rawQueryFragments = append(rawQueryFragments, encoded)
 		}
@@ -1011,6 +1415,220 @@ func NewCorrectObjectRequestWithBody(server string, id string, params *CorrectOb
 	return req, nil
 }
 
+// NewMergeObjectRequest calls the generic MergeObject builder with application/json body
+func NewMergeObjectRequest(server string, id string, params *MergeObjectParams, body MergeObjectJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewMergeObjectRequestWithBody(server, id, params, "application/json", bodyReader)
+}
+
+// NewMergeObjectRequestWithBody constructs an http.Request for the MergeObject method, with any body, and a specified content type
+func NewMergeObjectRequestWithBody(server string, id string, params *MergeObjectParams, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "id", id, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/catalog/objects/%s/merge", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPost, queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	if params != nil {
+
+		var headerParam0 string
+
+		headerParam0, err = runtime.StyleParamWithOptions("simple", false, "Idempotency-Key", params.IdempotencyKey, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationHeader, Type: "string", Format: ""})
+		if err != nil {
+			return nil, err
+		}
+
+		req.Header.Set("Idempotency-Key", headerParam0)
+
+	}
+
+	return req, nil
+}
+
+// NewPreviewMergeRequest calls the generic PreviewMerge builder with application/json body
+func NewPreviewMergeRequest(server string, id string, params *PreviewMergeParams, body PreviewMergeJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewPreviewMergeRequestWithBody(server, id, params, "application/json", bodyReader)
+}
+
+// NewPreviewMergeRequestWithBody constructs an http.Request for the PreviewMerge method, with any body, and a specified content type
+func NewPreviewMergeRequestWithBody(server string, id string, params *PreviewMergeParams, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "id", id, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/catalog/objects/%s/merge-preview", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPost, queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	if params != nil {
+
+		var headerParam0 string
+
+		headerParam0, err = runtime.StyleParamWithOptions("simple", false, "Idempotency-Key", params.IdempotencyKey, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationHeader, Type: "string", Format: ""})
+		if err != nil {
+			return nil, err
+		}
+
+		req.Header.Set("Idempotency-Key", headerParam0)
+
+	}
+
+	return req, nil
+}
+
+// NewResolveObjectRequest constructs an http.Request for the ResolveObject method
+func NewResolveObjectRequest(server string, id string) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "id", id, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/catalog/objects/%s/resolution", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewSetObjectStateRequest calls the generic SetObjectState builder with application/json body
+func NewSetObjectStateRequest(server string, id string, params *SetObjectStateParams, body SetObjectStateJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewSetObjectStateRequestWithBody(server, id, params, "application/json", bodyReader)
+}
+
+// NewSetObjectStateRequestWithBody constructs an http.Request for the SetObjectState method, with any body, and a specified content type
+func NewSetObjectStateRequestWithBody(server string, id string, params *SetObjectStateParams, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "id", id, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/catalog/objects/%s/state", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPost, queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	if params != nil {
+
+		var headerParam0 string
+
+		headerParam0, err = runtime.StyleParamWithOptions("simple", false, "Idempotency-Key", params.IdempotencyKey, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationHeader, Type: "string", Format: ""})
+		if err != nil {
+			return nil, err
+		}
+
+		req.Header.Set("Idempotency-Key", headerParam0)
+
+	}
+
+	return req, nil
+}
+
 // NewGetObjectSummaryRequest constructs an http.Request for the GetObjectSummary method
 func NewGetObjectSummaryRequest(server string, id string) (*http.Request, error) {
 	var err error
@@ -1099,6 +1717,26 @@ type ClientWithResponsesInterface interface {
 	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
 	ImportCatalogWithResponse(ctx context.Context, params *ImportCatalogParams, body ImportCatalogJSONRequestBody, reqEditors ...RequestEditorFn) (*ImportCatalogResponse, error)
 
+	// ConfirmImportWithBodyWithResponse performs a POST /api/v1/catalog/imports/confirm (the `ConfirmImport` operationId) request,
+	// with any type of body and a specified content type.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	ConfirmImportWithBodyWithResponse(ctx context.Context, params *ConfirmImportParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*ConfirmImportResponse, error)
+
+	// ConfirmImportWithResponse performs a POST /api/v1/catalog/imports/confirm (the `ConfirmImport` operationId) request.
+	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+	ConfirmImportWithResponse(ctx context.Context, params *ConfirmImportParams, body ConfirmImportJSONRequestBody, reqEditors ...RequestEditorFn) (*ConfirmImportResponse, error)
+
+	// PreviewImportWithBodyWithResponse performs a POST /api/v1/catalog/imports/preview (the `PreviewImport` operationId) request,
+	// with any type of body and a specified content type.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	PreviewImportWithBodyWithResponse(ctx context.Context, params *PreviewImportParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PreviewImportResponse, error)
+
+	// PreviewImportWithResponse performs a POST /api/v1/catalog/imports/preview (the `PreviewImport` operationId) request.
+	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+	PreviewImportWithResponse(ctx context.Context, params *PreviewImportParams, body PreviewImportJSONRequestBody, reqEditors ...RequestEditorFn) (*PreviewImportResponse, error)
+
 	// MyEnrollmentsWithResponse performs a GET /api/v1/catalog/me/enrollments (the `MyEnrollments` operationId) request.
 	//
 	// Returns a wrapper object for the known response body format(s).
@@ -1128,6 +1766,41 @@ type ClientWithResponsesInterface interface {
 	// CorrectObjectWithResponse performs a PATCH /api/v1/catalog/objects/{id} (the `CorrectObject` operationId) request.
 	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
 	CorrectObjectWithResponse(ctx context.Context, id string, params *CorrectObjectParams, body CorrectObjectJSONRequestBody, reqEditors ...RequestEditorFn) (*CorrectObjectResponse, error)
+
+	// MergeObjectWithBodyWithResponse performs a POST /api/v1/catalog/objects/{id}/merge (the `MergeObject` operationId) request,
+	// with any type of body and a specified content type.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	MergeObjectWithBodyWithResponse(ctx context.Context, id string, params *MergeObjectParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*MergeObjectResponse, error)
+
+	// MergeObjectWithResponse performs a POST /api/v1/catalog/objects/{id}/merge (the `MergeObject` operationId) request.
+	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+	MergeObjectWithResponse(ctx context.Context, id string, params *MergeObjectParams, body MergeObjectJSONRequestBody, reqEditors ...RequestEditorFn) (*MergeObjectResponse, error)
+
+	// PreviewMergeWithBodyWithResponse performs a POST /api/v1/catalog/objects/{id}/merge-preview (the `PreviewMerge` operationId) request,
+	// with any type of body and a specified content type.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	PreviewMergeWithBodyWithResponse(ctx context.Context, id string, params *PreviewMergeParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PreviewMergeResponse, error)
+
+	// PreviewMergeWithResponse performs a POST /api/v1/catalog/objects/{id}/merge-preview (the `PreviewMerge` operationId) request.
+	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+	PreviewMergeWithResponse(ctx context.Context, id string, params *PreviewMergeParams, body PreviewMergeJSONRequestBody, reqEditors ...RequestEditorFn) (*PreviewMergeResponse, error)
+
+	// ResolveObjectWithResponse performs a GET /api/v1/catalog/objects/{id}/resolution (the `ResolveObject` operationId) request.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	ResolveObjectWithResponse(ctx context.Context, id string, reqEditors ...RequestEditorFn) (*ResolveObjectResponse, error)
+
+	// SetObjectStateWithBodyWithResponse performs a POST /api/v1/catalog/objects/{id}/state (the `SetObjectState` operationId) request,
+	// with any type of body and a specified content type.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	SetObjectStateWithBodyWithResponse(ctx context.Context, id string, params *SetObjectStateParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*SetObjectStateResponse, error)
+
+	// SetObjectStateWithResponse performs a POST /api/v1/catalog/objects/{id}/state (the `SetObjectState` operationId) request.
+	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+	SetObjectStateWithResponse(ctx context.Context, id string, params *SetObjectStateParams, body SetObjectStateJSONRequestBody, reqEditors ...RequestEditorFn) (*SetObjectStateResponse, error)
 
 	// GetObjectSummaryWithResponse performs a GET /api/v1/catalog/objects/{id}/summary (the `GetObjectSummary` operationId) request.
 	//
@@ -1212,6 +1885,172 @@ func (r ImportCatalogResponse) StatusCode() int {
 
 // ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
 func (r ImportCatalogResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type ConfirmImportResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *ImportResult
+	// JSON400 the response for an HTTP 400 `application/json` response
+	JSON400 *Error
+	// JSON401 the response for an HTTP 401 `application/json` response
+	JSON401 *Error
+	// JSON403 the response for an HTTP 403 `application/json` response
+	JSON403 *Error
+	// JSON404 the response for an HTTP 404 `application/json` response
+	JSON404 *Error
+	// JSON409 the response for an HTTP 409 `application/json` response
+	JSON409 *Error
+	// JSON503 the response for an HTTP 503 `application/json` response
+	JSON503 *Error
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r ConfirmImportResponse) GetJSON200() *ImportResult {
+	return r.JSON200
+}
+
+// GetJSON400 returns the response for an HTTP 400 `application/json` response
+func (r ConfirmImportResponse) GetJSON400() *Error {
+	return r.JSON400
+}
+
+// GetJSON401 returns the response for an HTTP 401 `application/json` response
+func (r ConfirmImportResponse) GetJSON401() *Error {
+	return r.JSON401
+}
+
+// GetJSON403 returns the response for an HTTP 403 `application/json` response
+func (r ConfirmImportResponse) GetJSON403() *Error {
+	return r.JSON403
+}
+
+// GetJSON404 returns the response for an HTTP 404 `application/json` response
+func (r ConfirmImportResponse) GetJSON404() *Error {
+	return r.JSON404
+}
+
+// GetJSON409 returns the response for an HTTP 409 `application/json` response
+func (r ConfirmImportResponse) GetJSON409() *Error {
+	return r.JSON409
+}
+
+// GetJSON503 returns the response for an HTTP 503 `application/json` response
+func (r ConfirmImportResponse) GetJSON503() *Error {
+	return r.JSON503
+}
+
+// GetBody returns the raw response body bytes
+func (r ConfirmImportResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r ConfirmImportResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r ConfirmImportResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r ConfirmImportResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type PreviewImportResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *ImportPreview
+	// JSON400 the response for an HTTP 400 `application/json` response
+	JSON400 *Error
+	// JSON401 the response for an HTTP 401 `application/json` response
+	JSON401 *Error
+	// JSON403 the response for an HTTP 403 `application/json` response
+	JSON403 *Error
+	// JSON404 the response for an HTTP 404 `application/json` response
+	JSON404 *Error
+	// JSON409 the response for an HTTP 409 `application/json` response
+	JSON409 *Error
+	// JSON503 the response for an HTTP 503 `application/json` response
+	JSON503 *Error
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r PreviewImportResponse) GetJSON200() *ImportPreview {
+	return r.JSON200
+}
+
+// GetJSON400 returns the response for an HTTP 400 `application/json` response
+func (r PreviewImportResponse) GetJSON400() *Error {
+	return r.JSON400
+}
+
+// GetJSON401 returns the response for an HTTP 401 `application/json` response
+func (r PreviewImportResponse) GetJSON401() *Error {
+	return r.JSON401
+}
+
+// GetJSON403 returns the response for an HTTP 403 `application/json` response
+func (r PreviewImportResponse) GetJSON403() *Error {
+	return r.JSON403
+}
+
+// GetJSON404 returns the response for an HTTP 404 `application/json` response
+func (r PreviewImportResponse) GetJSON404() *Error {
+	return r.JSON404
+}
+
+// GetJSON409 returns the response for an HTTP 409 `application/json` response
+func (r PreviewImportResponse) GetJSON409() *Error {
+	return r.JSON409
+}
+
+// GetJSON503 returns the response for an HTTP 503 `application/json` response
+func (r PreviewImportResponse) GetJSON503() *Error {
+	return r.JSON503
+}
+
+// GetBody returns the raw response body bytes
+func (r PreviewImportResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r PreviewImportResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r PreviewImportResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r PreviewImportResponse) ContentType() string {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.Header.Get("Content-Type")
 	}
@@ -1633,6 +2472,338 @@ func (r CorrectObjectResponse) ContentType() string {
 	return ""
 }
 
+type MergeObjectResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *Object
+	// JSON400 the response for an HTTP 400 `application/json` response
+	JSON400 *Error
+	// JSON401 the response for an HTTP 401 `application/json` response
+	JSON401 *Error
+	// JSON403 the response for an HTTP 403 `application/json` response
+	JSON403 *Error
+	// JSON404 the response for an HTTP 404 `application/json` response
+	JSON404 *Error
+	// JSON409 the response for an HTTP 409 `application/json` response
+	JSON409 *Error
+	// JSON503 the response for an HTTP 503 `application/json` response
+	JSON503 *Error
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r MergeObjectResponse) GetJSON200() *Object {
+	return r.JSON200
+}
+
+// GetJSON400 returns the response for an HTTP 400 `application/json` response
+func (r MergeObjectResponse) GetJSON400() *Error {
+	return r.JSON400
+}
+
+// GetJSON401 returns the response for an HTTP 401 `application/json` response
+func (r MergeObjectResponse) GetJSON401() *Error {
+	return r.JSON401
+}
+
+// GetJSON403 returns the response for an HTTP 403 `application/json` response
+func (r MergeObjectResponse) GetJSON403() *Error {
+	return r.JSON403
+}
+
+// GetJSON404 returns the response for an HTTP 404 `application/json` response
+func (r MergeObjectResponse) GetJSON404() *Error {
+	return r.JSON404
+}
+
+// GetJSON409 returns the response for an HTTP 409 `application/json` response
+func (r MergeObjectResponse) GetJSON409() *Error {
+	return r.JSON409
+}
+
+// GetJSON503 returns the response for an HTTP 503 `application/json` response
+func (r MergeObjectResponse) GetJSON503() *Error {
+	return r.JSON503
+}
+
+// GetBody returns the raw response body bytes
+func (r MergeObjectResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r MergeObjectResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r MergeObjectResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r MergeObjectResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type PreviewMergeResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *MergePreview
+	// JSON400 the response for an HTTP 400 `application/json` response
+	JSON400 *Error
+	// JSON401 the response for an HTTP 401 `application/json` response
+	JSON401 *Error
+	// JSON403 the response for an HTTP 403 `application/json` response
+	JSON403 *Error
+	// JSON404 the response for an HTTP 404 `application/json` response
+	JSON404 *Error
+	// JSON409 the response for an HTTP 409 `application/json` response
+	JSON409 *Error
+	// JSON503 the response for an HTTP 503 `application/json` response
+	JSON503 *Error
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r PreviewMergeResponse) GetJSON200() *MergePreview {
+	return r.JSON200
+}
+
+// GetJSON400 returns the response for an HTTP 400 `application/json` response
+func (r PreviewMergeResponse) GetJSON400() *Error {
+	return r.JSON400
+}
+
+// GetJSON401 returns the response for an HTTP 401 `application/json` response
+func (r PreviewMergeResponse) GetJSON401() *Error {
+	return r.JSON401
+}
+
+// GetJSON403 returns the response for an HTTP 403 `application/json` response
+func (r PreviewMergeResponse) GetJSON403() *Error {
+	return r.JSON403
+}
+
+// GetJSON404 returns the response for an HTTP 404 `application/json` response
+func (r PreviewMergeResponse) GetJSON404() *Error {
+	return r.JSON404
+}
+
+// GetJSON409 returns the response for an HTTP 409 `application/json` response
+func (r PreviewMergeResponse) GetJSON409() *Error {
+	return r.JSON409
+}
+
+// GetJSON503 returns the response for an HTTP 503 `application/json` response
+func (r PreviewMergeResponse) GetJSON503() *Error {
+	return r.JSON503
+}
+
+// GetBody returns the raw response body bytes
+func (r PreviewMergeResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r PreviewMergeResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r PreviewMergeResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r PreviewMergeResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type ResolveObjectResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *Resolution
+	// JSON400 the response for an HTTP 400 `application/json` response
+	JSON400 *Error
+	// JSON401 the response for an HTTP 401 `application/json` response
+	JSON401 *Error
+	// JSON403 the response for an HTTP 403 `application/json` response
+	JSON403 *Error
+	// JSON404 the response for an HTTP 404 `application/json` response
+	JSON404 *Error
+	// JSON409 the response for an HTTP 409 `application/json` response
+	JSON409 *Error
+	// JSON503 the response for an HTTP 503 `application/json` response
+	JSON503 *Error
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r ResolveObjectResponse) GetJSON200() *Resolution {
+	return r.JSON200
+}
+
+// GetJSON400 returns the response for an HTTP 400 `application/json` response
+func (r ResolveObjectResponse) GetJSON400() *Error {
+	return r.JSON400
+}
+
+// GetJSON401 returns the response for an HTTP 401 `application/json` response
+func (r ResolveObjectResponse) GetJSON401() *Error {
+	return r.JSON401
+}
+
+// GetJSON403 returns the response for an HTTP 403 `application/json` response
+func (r ResolveObjectResponse) GetJSON403() *Error {
+	return r.JSON403
+}
+
+// GetJSON404 returns the response for an HTTP 404 `application/json` response
+func (r ResolveObjectResponse) GetJSON404() *Error {
+	return r.JSON404
+}
+
+// GetJSON409 returns the response for an HTTP 409 `application/json` response
+func (r ResolveObjectResponse) GetJSON409() *Error {
+	return r.JSON409
+}
+
+// GetJSON503 returns the response for an HTTP 503 `application/json` response
+func (r ResolveObjectResponse) GetJSON503() *Error {
+	return r.JSON503
+}
+
+// GetBody returns the raw response body bytes
+func (r ResolveObjectResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r ResolveObjectResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r ResolveObjectResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r ResolveObjectResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type SetObjectStateResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *Object
+	// JSON400 the response for an HTTP 400 `application/json` response
+	JSON400 *Error
+	// JSON401 the response for an HTTP 401 `application/json` response
+	JSON401 *Error
+	// JSON403 the response for an HTTP 403 `application/json` response
+	JSON403 *Error
+	// JSON404 the response for an HTTP 404 `application/json` response
+	JSON404 *Error
+	// JSON409 the response for an HTTP 409 `application/json` response
+	JSON409 *Error
+	// JSON503 the response for an HTTP 503 `application/json` response
+	JSON503 *Error
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r SetObjectStateResponse) GetJSON200() *Object {
+	return r.JSON200
+}
+
+// GetJSON400 returns the response for an HTTP 400 `application/json` response
+func (r SetObjectStateResponse) GetJSON400() *Error {
+	return r.JSON400
+}
+
+// GetJSON401 returns the response for an HTTP 401 `application/json` response
+func (r SetObjectStateResponse) GetJSON401() *Error {
+	return r.JSON401
+}
+
+// GetJSON403 returns the response for an HTTP 403 `application/json` response
+func (r SetObjectStateResponse) GetJSON403() *Error {
+	return r.JSON403
+}
+
+// GetJSON404 returns the response for an HTTP 404 `application/json` response
+func (r SetObjectStateResponse) GetJSON404() *Error {
+	return r.JSON404
+}
+
+// GetJSON409 returns the response for an HTTP 409 `application/json` response
+func (r SetObjectStateResponse) GetJSON409() *Error {
+	return r.JSON409
+}
+
+// GetJSON503 returns the response for an HTTP 503 `application/json` response
+func (r SetObjectStateResponse) GetJSON503() *Error {
+	return r.JSON503
+}
+
+// GetBody returns the raw response body bytes
+func (r SetObjectStateResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r SetObjectStateResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r SetObjectStateResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r SetObjectStateResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
 type GetObjectSummaryResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -1738,6 +2909,50 @@ func (c *ClientWithResponses) ImportCatalogWithResponse(ctx context.Context, par
 	return ParseImportCatalogResponse(rsp)
 }
 
+// ConfirmImportWithBodyWithResponse performs a POST /api/v1/catalog/imports/confirm (the `ConfirmImport` operationId) request,
+// with any type of body and a specified content type.
+//
+// Returns a wrapper object for the known response body format(s).
+func (c *ClientWithResponses) ConfirmImportWithBodyWithResponse(ctx context.Context, params *ConfirmImportParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*ConfirmImportResponse, error) {
+	rsp, err := c.ConfirmImportWithBody(ctx, params, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseConfirmImportResponse(rsp)
+}
+
+// ConfirmImportWithResponse performs a POST /api/v1/catalog/imports/confirm (the `ConfirmImport` operationId) request.
+// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+func (c *ClientWithResponses) ConfirmImportWithResponse(ctx context.Context, params *ConfirmImportParams, body ConfirmImportJSONRequestBody, reqEditors ...RequestEditorFn) (*ConfirmImportResponse, error) {
+	rsp, err := c.ConfirmImport(ctx, params, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseConfirmImportResponse(rsp)
+}
+
+// PreviewImportWithBodyWithResponse performs a POST /api/v1/catalog/imports/preview (the `PreviewImport` operationId) request,
+// with any type of body and a specified content type.
+//
+// Returns a wrapper object for the known response body format(s).
+func (c *ClientWithResponses) PreviewImportWithBodyWithResponse(ctx context.Context, params *PreviewImportParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PreviewImportResponse, error) {
+	rsp, err := c.PreviewImportWithBody(ctx, params, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParsePreviewImportResponse(rsp)
+}
+
+// PreviewImportWithResponse performs a POST /api/v1/catalog/imports/preview (the `PreviewImport` operationId) request.
+// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+func (c *ClientWithResponses) PreviewImportWithResponse(ctx context.Context, params *PreviewImportParams, body PreviewImportJSONRequestBody, reqEditors ...RequestEditorFn) (*PreviewImportResponse, error) {
+	rsp, err := c.PreviewImport(ctx, params, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParsePreviewImportResponse(rsp)
+}
+
 // MyEnrollmentsWithResponse performs a GET /api/v1/catalog/me/enrollments (the `MyEnrollments` operationId) request.
 //
 // Returns a wrapper object for the known response body format(s).
@@ -1804,6 +3019,83 @@ func (c *ClientWithResponses) CorrectObjectWithResponse(ctx context.Context, id 
 	return ParseCorrectObjectResponse(rsp)
 }
 
+// MergeObjectWithBodyWithResponse performs a POST /api/v1/catalog/objects/{id}/merge (the `MergeObject` operationId) request,
+// with any type of body and a specified content type.
+//
+// Returns a wrapper object for the known response body format(s).
+func (c *ClientWithResponses) MergeObjectWithBodyWithResponse(ctx context.Context, id string, params *MergeObjectParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*MergeObjectResponse, error) {
+	rsp, err := c.MergeObjectWithBody(ctx, id, params, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseMergeObjectResponse(rsp)
+}
+
+// MergeObjectWithResponse performs a POST /api/v1/catalog/objects/{id}/merge (the `MergeObject` operationId) request.
+// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+func (c *ClientWithResponses) MergeObjectWithResponse(ctx context.Context, id string, params *MergeObjectParams, body MergeObjectJSONRequestBody, reqEditors ...RequestEditorFn) (*MergeObjectResponse, error) {
+	rsp, err := c.MergeObject(ctx, id, params, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseMergeObjectResponse(rsp)
+}
+
+// PreviewMergeWithBodyWithResponse performs a POST /api/v1/catalog/objects/{id}/merge-preview (the `PreviewMerge` operationId) request,
+// with any type of body and a specified content type.
+//
+// Returns a wrapper object for the known response body format(s).
+func (c *ClientWithResponses) PreviewMergeWithBodyWithResponse(ctx context.Context, id string, params *PreviewMergeParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PreviewMergeResponse, error) {
+	rsp, err := c.PreviewMergeWithBody(ctx, id, params, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParsePreviewMergeResponse(rsp)
+}
+
+// PreviewMergeWithResponse performs a POST /api/v1/catalog/objects/{id}/merge-preview (the `PreviewMerge` operationId) request.
+// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+func (c *ClientWithResponses) PreviewMergeWithResponse(ctx context.Context, id string, params *PreviewMergeParams, body PreviewMergeJSONRequestBody, reqEditors ...RequestEditorFn) (*PreviewMergeResponse, error) {
+	rsp, err := c.PreviewMerge(ctx, id, params, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParsePreviewMergeResponse(rsp)
+}
+
+// ResolveObjectWithResponse performs a GET /api/v1/catalog/objects/{id}/resolution (the `ResolveObject` operationId) request.
+//
+// Returns a wrapper object for the known response body format(s).
+func (c *ClientWithResponses) ResolveObjectWithResponse(ctx context.Context, id string, reqEditors ...RequestEditorFn) (*ResolveObjectResponse, error) {
+	rsp, err := c.ResolveObject(ctx, id, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseResolveObjectResponse(rsp)
+}
+
+// SetObjectStateWithBodyWithResponse performs a POST /api/v1/catalog/objects/{id}/state (the `SetObjectState` operationId) request,
+// with any type of body and a specified content type.
+//
+// Returns a wrapper object for the known response body format(s).
+func (c *ClientWithResponses) SetObjectStateWithBodyWithResponse(ctx context.Context, id string, params *SetObjectStateParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*SetObjectStateResponse, error) {
+	rsp, err := c.SetObjectStateWithBody(ctx, id, params, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseSetObjectStateResponse(rsp)
+}
+
+// SetObjectStateWithResponse performs a POST /api/v1/catalog/objects/{id}/state (the `SetObjectState` operationId) request.
+// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+func (c *ClientWithResponses) SetObjectStateWithResponse(ctx context.Context, id string, params *SetObjectStateParams, body SetObjectStateJSONRequestBody, reqEditors ...RequestEditorFn) (*SetObjectStateResponse, error) {
+	rsp, err := c.SetObjectState(ctx, id, params, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseSetObjectStateResponse(rsp)
+}
+
 // GetObjectSummaryWithResponse performs a GET /api/v1/catalog/objects/{id}/summary (the `GetObjectSummary` operationId) request.
 //
 // Returns a wrapper object for the known response body format(s).
@@ -1831,6 +3123,142 @@ func ParseImportCatalogResponse(rsp *http.Response) (*ImportCatalogResponse, err
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
 		var dest ImportResult
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 409:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON409 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON503 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseConfirmImportResponse parses an HTTP response from a ConfirmImportWithResponse call
+func ParseConfirmImportResponse(rsp *http.Response) (*ConfirmImportResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &ConfirmImportResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest ImportResult
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 409:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON409 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON503 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParsePreviewImportResponse parses an HTTP response from a PreviewImportWithResponse call
+func ParsePreviewImportResponse(rsp *http.Response) (*PreviewImportResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &PreviewImportResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest ImportPreview
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -2164,6 +3592,278 @@ func ParseCorrectObjectResponse(rsp *http.Response) (*CorrectObjectResponse, err
 	}
 
 	response := &CorrectObjectResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest Object
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 409:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON409 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON503 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseMergeObjectResponse parses an HTTP response from a MergeObjectWithResponse call
+func ParseMergeObjectResponse(rsp *http.Response) (*MergeObjectResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &MergeObjectResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest Object
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 409:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON409 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON503 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParsePreviewMergeResponse parses an HTTP response from a PreviewMergeWithResponse call
+func ParsePreviewMergeResponse(rsp *http.Response) (*PreviewMergeResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &PreviewMergeResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest MergePreview
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 409:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON409 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON503 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseResolveObjectResponse parses an HTTP response from a ResolveObjectWithResponse call
+func ParseResolveObjectResponse(rsp *http.Response) (*ResolveObjectResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &ResolveObjectResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest Resolution
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 409:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON409 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON503 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseSetObjectStateResponse parses an HTTP response from a SetObjectStateWithResponse call
+func ParseSetObjectStateResponse(rsp *http.Response) (*SetObjectStateResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &SetObjectStateResponse{
 		Body:         bodyBytes,
 		HTTPResponse: rsp,
 	}
