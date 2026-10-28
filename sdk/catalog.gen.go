@@ -19,43 +19,88 @@ import (
 
 // Defines values for ObjectKind.
 const (
-	Assignment ObjectKind = "assignment"
-	Category   ObjectKind = "category"
-	Class      ObjectKind = "class"
-	Course     ObjectKind = "course"
-	Department ObjectKind = "department"
-	Nature     ObjectKind = "nature"
-	Schedule   ObjectKind = "schedule"
-	School     ObjectKind = "school"
-	Teacher    ObjectKind = "teacher"
-	Term       ObjectKind = "term"
-	TermCourse ObjectKind = "term_course"
+	ObjectKindAssignment ObjectKind = "assignment"
+	ObjectKindCategory   ObjectKind = "category"
+	ObjectKindClass      ObjectKind = "class"
+	ObjectKindCourse     ObjectKind = "course"
+	ObjectKindDepartment ObjectKind = "department"
+	ObjectKindNature     ObjectKind = "nature"
+	ObjectKindSchedule   ObjectKind = "schedule"
+	ObjectKindSchool     ObjectKind = "school"
+	ObjectKindTeacher    ObjectKind = "teacher"
+	ObjectKindTerm       ObjectKind = "term"
+	ObjectKindTermCourse ObjectKind = "term_course"
 )
 
 // Valid indicates whether the value is a known member of the ObjectKind enum.
 func (e ObjectKind) Valid() bool {
 	switch e {
-	case Assignment:
+	case ObjectKindAssignment:
 		return true
-	case Category:
+	case ObjectKindCategory:
 		return true
-	case Class:
+	case ObjectKindClass:
 		return true
-	case Course:
+	case ObjectKindCourse:
 		return true
-	case Department:
+	case ObjectKindDepartment:
 		return true
-	case Nature:
+	case ObjectKindNature:
 		return true
-	case Schedule:
+	case ObjectKindSchedule:
 		return true
-	case School:
+	case ObjectKindSchool:
 		return true
-	case Teacher:
+	case ObjectKindTeacher:
 		return true
-	case Term:
+	case ObjectKindTerm:
 		return true
-	case TermCourse:
+	case ObjectKindTermCourse:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for SummaryDepartmentKind.
+const (
+	SummaryDepartmentKindAssignment SummaryDepartmentKind = "assignment"
+	SummaryDepartmentKindCategory   SummaryDepartmentKind = "category"
+	SummaryDepartmentKindClass      SummaryDepartmentKind = "class"
+	SummaryDepartmentKindCourse     SummaryDepartmentKind = "course"
+	SummaryDepartmentKindDepartment SummaryDepartmentKind = "department"
+	SummaryDepartmentKindNature     SummaryDepartmentKind = "nature"
+	SummaryDepartmentKindSchedule   SummaryDepartmentKind = "schedule"
+	SummaryDepartmentKindSchool     SummaryDepartmentKind = "school"
+	SummaryDepartmentKindTeacher    SummaryDepartmentKind = "teacher"
+	SummaryDepartmentKindTerm       SummaryDepartmentKind = "term"
+	SummaryDepartmentKindTermCourse SummaryDepartmentKind = "term_course"
+)
+
+// Valid indicates whether the value is a known member of the SummaryDepartmentKind enum.
+func (e SummaryDepartmentKind) Valid() bool {
+	switch e {
+	case SummaryDepartmentKindAssignment:
+		return true
+	case SummaryDepartmentKindCategory:
+		return true
+	case SummaryDepartmentKindClass:
+		return true
+	case SummaryDepartmentKindCourse:
+		return true
+	case SummaryDepartmentKindDepartment:
+		return true
+	case SummaryDepartmentKindNature:
+		return true
+	case SummaryDepartmentKindSchedule:
+		return true
+	case SummaryDepartmentKindSchool:
+		return true
+	case SummaryDepartmentKindTeacher:
+		return true
+	case SummaryDepartmentKindTerm:
+		return true
+	case SummaryDepartmentKindTermCourse:
 		return true
 	default:
 		return false
@@ -64,9 +109,17 @@ func (e ObjectKind) Valid() bool {
 
 // Correction defines model for Correction.
 type Correction struct {
-	Biography *string `json:"biography,omitempty"`
-	Name      *string `json:"name,omitempty"`
-	Revision  int     `json:"revision"`
+	Biography  *string `json:"biography,omitempty"`
+	CategoryId *string `json:"category_id,omitempty"`
+
+	// ClearCredits Explicitly restore unknown credits; cannot be combined with credits.
+	ClearCredits *bool    `json:"clear_credits,omitempty"`
+	Code         *string  `json:"code,omitempty"`
+	Credits      *float32 `json:"credits,omitempty"`
+	DepartmentId *string  `json:"department_id,omitempty"`
+	Name         *string  `json:"name,omitempty"`
+	NatureId     *string  `json:"nature_id,omitempty"`
+	Revision     int      `json:"revision"`
 }
 
 // Enrollment defines model for Enrollment.
@@ -107,6 +160,12 @@ type ImportResult struct {
 	PreservedCorrections int    `json:"preserved_corrections"`
 }
 
+// Lookup defines model for Lookup.
+type Lookup struct {
+	Items      []Object `json:"items"`
+	MissingIds []string `json:"missing_ids"`
+}
+
 // Object defines model for Object.
 type Object struct {
 	Aliases      []string   `json:"aliases"`
@@ -140,6 +199,42 @@ type Page struct {
 	Next  string   `json:"next"`
 }
 
+// Summary defines model for Summary.
+type Summary struct {
+	Categories  []Object `json:"categories"`
+	CourseCount int      `json:"course_count"`
+	Department  *struct {
+		Aliases      []string              `json:"aliases"`
+		Biography    *string               `json:"biography,omitempty"`
+		CategoryId   *string               `json:"category_id,omitempty"`
+		ClassId      *string               `json:"class_id,omitempty"`
+		Code         *string               `json:"code,omitempty"`
+		CourseId     *string               `json:"course_id,omitempty"`
+		Credits      *float32              `json:"credits"`
+		DepartmentId *string               `json:"department_id,omitempty"`
+		Id           string                `json:"id"`
+		Kind         SummaryDepartmentKind `json:"kind"`
+		Location     *string               `json:"location,omitempty"`
+		Name         string                `json:"name"`
+		NatureId     *string               `json:"nature_id,omitempty"`
+		Revision     int                   `json:"revision"`
+		SchoolId     string                `json:"school_id"`
+		TeacherId    *string               `json:"teacher_id,omitempty"`
+		TermCourseId *string               `json:"term_course_id,omitempty"`
+		TermId       *string               `json:"term_id,omitempty"`
+		TimeText     *string               `json:"time_text,omitempty"`
+		UpdatedAt    time.Time             `json:"updated_at"`
+	} `json:"department"`
+	Natures       []Object `json:"natures"`
+	Object        Object   `json:"object"`
+	OfferingCount int      `json:"offering_count"`
+	School        Object   `json:"school"`
+	TeacherCount  int      `json:"teacher_count"`
+}
+
+// SummaryDepartmentKind defines model for Summary.Department.Kind.
+type SummaryDepartmentKind string
+
 // ImportCatalogParams defines parameters for ImportCatalog.
 type ImportCatalogParams struct {
 	IdempotencyKey string `json:"Idempotency-Key"`
@@ -167,6 +262,18 @@ type ListObjectsParams struct {
 	Q            *string `form:"q,omitempty" json:"q,omitempty"`
 	After        *string `form:"after,omitempty" json:"after,omitempty"`
 	Limit        *int    `form:"limit,omitempty" json:"limit,omitempty"`
+
+	// TermCourseId Restrict relationships to this offering or teaching class.
+	TermCourseId *string `form:"term_course_id,omitempty" json:"term_course_id,omitempty"`
+
+	// ClassId Restrict relationships to this offering or teaching class.
+	ClassId *string `form:"class_id,omitempty" json:"class_id,omitempty"`
+}
+
+// LookupObjectsParams defines parameters for LookupObjects.
+type LookupObjectsParams struct {
+	// Ids Comma-separated public object IDs, at most 100. Missing objects are reported without failing the full batch.
+	Ids string `form:"ids" json:"ids"`
 }
 
 // CorrectObjectParams defines parameters for CorrectObject.
@@ -268,6 +375,9 @@ type ClientInterface interface {
 	// ListObjects performs a GET /api/v1/catalog/objects (the `ListObjects` operationId) request.
 	ListObjects(ctx context.Context, params *ListObjectsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
+	// LookupObjects performs a GET /api/v1/catalog/objects/lookup (the `LookupObjects` operationId) request.
+	LookupObjects(ctx context.Context, params *LookupObjectsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
 	// GetObject performs a GET /api/v1/catalog/objects/{id} (the `GetObject` operationId) request.
 	GetObject(ctx context.Context, id string, reqEditors ...RequestEditorFn) (*http.Response, error)
 
@@ -278,6 +388,9 @@ type ClientInterface interface {
 	// CorrectObject performs a PATCH /api/v1/catalog/objects/{id} (the `CorrectObject` operationId) request.
 	// Takes a body of the `application/json` content type.
 	CorrectObject(ctx context.Context, id string, params *CorrectObjectParams, body CorrectObjectJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// GetObjectSummary performs a GET /api/v1/catalog/objects/{id}/summary (the `GetObjectSummary` operationId) request.
+	GetObjectSummary(ctx context.Context, id string, reqEditors ...RequestEditorFn) (*http.Response, error)
 }
 
 // ImportCatalogWithBody performs a POST /api/v1/catalog/imports (the `ImportCatalog` operationId) request,
@@ -334,6 +447,19 @@ func (c *Client) ListObjects(ctx context.Context, params *ListObjectsParams, req
 	return c.Client.Do(req)
 }
 
+// LookupObjects performs a GET /api/v1/catalog/objects/lookup (the `LookupObjects` operationId) request.
+func (c *Client) LookupObjects(ctx context.Context, params *LookupObjectsParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewLookupObjectsRequest(c.Server, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
 // GetObject performs a GET /api/v1/catalog/objects/{id} (the `GetObject` operationId) request.
 func (c *Client) GetObject(ctx context.Context, id string, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewGetObjectRequest(c.Server, id)
@@ -365,6 +491,19 @@ func (c *Client) CorrectObjectWithBody(ctx context.Context, id string, params *C
 // Takes a body of the `application/json` content type.
 func (c *Client) CorrectObject(ctx context.Context, id string, params *CorrectObjectParams, body CorrectObjectJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewCorrectObjectRequest(c.Server, id, params, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// GetObjectSummary performs a GET /api/v1/catalog/objects/{id}/summary (the `GetObjectSummary` operationId) request.
+func (c *Client) GetObjectSummary(ctx context.Context, id string, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetObjectSummaryRequest(c.Server, id)
 	if err != nil {
 		return nil, err
 	}
@@ -690,6 +829,80 @@ func NewListObjectsRequest(server string, params *ListObjectsParams) (*http.Requ
 
 		}
 
+		if params.TermCourseId != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "term_course_id", *params.TermCourseId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.ClassId != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "class_id", *params.ClassId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if encoded := queryValues.Encode(); encoded != "" {
+			rawQueryFragments = append(rawQueryFragments, encoded)
+		}
+		queryURL.RawQuery = strings.Join(rawQueryFragments, "&")
+	}
+
+	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewLookupObjectsRequest constructs an http.Request for the LookupObjects method
+func NewLookupObjectsRequest(server string, params *LookupObjectsParams) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/catalog/objects/lookup")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		// queryValues collects non-styled parameters (passthrough, JSON)
+		// that are safe to round-trip through url.Values.Encode().
+		queryValues := queryURL.Query()
+		// rawQueryFragments collects pre-encoded query fragments from
+		// styled parameters, preserving literal commas as delimiters
+		// per the OpenAPI spec (e.g. "color=blue,black,brown").
+		var rawQueryFragments []string
+
+		if queryFrag, err := runtime.StyleParamWithOptions("form", true, "ids", params.Ids, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+			return nil, err
+		} else {
+			for _, qp := range strings.Split(queryFrag, "&") {
+				rawQueryFragments = append(rawQueryFragments, qp)
+			}
+		}
+
 		if encoded := queryValues.Encode(); encoded != "" {
 			rawQueryFragments = append(rawQueryFragments, encoded)
 		}
@@ -798,6 +1011,40 @@ func NewCorrectObjectRequestWithBody(server string, id string, params *CorrectOb
 	return req, nil
 }
 
+// NewGetObjectSummaryRequest constructs an http.Request for the GetObjectSummary method
+func NewGetObjectSummaryRequest(server string, id string) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "id", id, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/catalog/objects/%s/summary", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
 func (c *Client) applyEditors(ctx context.Context, req *http.Request, additionalEditors []RequestEditorFn) error {
 	for _, r := range c.RequestEditors {
 		if err := r(ctx, req); err != nil {
@@ -862,6 +1109,11 @@ type ClientWithResponsesInterface interface {
 	// Returns a wrapper object for the known response body format(s).
 	ListObjectsWithResponse(ctx context.Context, params *ListObjectsParams, reqEditors ...RequestEditorFn) (*ListObjectsResponse, error)
 
+	// LookupObjectsWithResponse performs a GET /api/v1/catalog/objects/lookup (the `LookupObjects` operationId) request.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	LookupObjectsWithResponse(ctx context.Context, params *LookupObjectsParams, reqEditors ...RequestEditorFn) (*LookupObjectsResponse, error)
+
 	// GetObjectWithResponse performs a GET /api/v1/catalog/objects/{id} (the `GetObject` operationId) request.
 	//
 	// Returns a wrapper object for the known response body format(s).
@@ -876,6 +1128,11 @@ type ClientWithResponsesInterface interface {
 	// CorrectObjectWithResponse performs a PATCH /api/v1/catalog/objects/{id} (the `CorrectObject` operationId) request.
 	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
 	CorrectObjectWithResponse(ctx context.Context, id string, params *CorrectObjectParams, body CorrectObjectJSONRequestBody, reqEditors ...RequestEditorFn) (*CorrectObjectResponse, error)
+
+	// GetObjectSummaryWithResponse performs a GET /api/v1/catalog/objects/{id}/summary (the `GetObjectSummary` operationId) request.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	GetObjectSummaryWithResponse(ctx context.Context, id string, reqEditors ...RequestEditorFn) (*GetObjectSummaryResponse, error)
 }
 
 type ImportCatalogResponse struct {
@@ -1127,6 +1384,89 @@ func (r ListObjectsResponse) ContentType() string {
 	return ""
 }
 
+type LookupObjectsResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *Lookup
+	// JSON400 the response for an HTTP 400 `application/json` response
+	JSON400 *Error
+	// JSON401 the response for an HTTP 401 `application/json` response
+	JSON401 *Error
+	// JSON403 the response for an HTTP 403 `application/json` response
+	JSON403 *Error
+	// JSON404 the response for an HTTP 404 `application/json` response
+	JSON404 *Error
+	// JSON409 the response for an HTTP 409 `application/json` response
+	JSON409 *Error
+	// JSON503 the response for an HTTP 503 `application/json` response
+	JSON503 *Error
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r LookupObjectsResponse) GetJSON200() *Lookup {
+	return r.JSON200
+}
+
+// GetJSON400 returns the response for an HTTP 400 `application/json` response
+func (r LookupObjectsResponse) GetJSON400() *Error {
+	return r.JSON400
+}
+
+// GetJSON401 returns the response for an HTTP 401 `application/json` response
+func (r LookupObjectsResponse) GetJSON401() *Error {
+	return r.JSON401
+}
+
+// GetJSON403 returns the response for an HTTP 403 `application/json` response
+func (r LookupObjectsResponse) GetJSON403() *Error {
+	return r.JSON403
+}
+
+// GetJSON404 returns the response for an HTTP 404 `application/json` response
+func (r LookupObjectsResponse) GetJSON404() *Error {
+	return r.JSON404
+}
+
+// GetJSON409 returns the response for an HTTP 409 `application/json` response
+func (r LookupObjectsResponse) GetJSON409() *Error {
+	return r.JSON409
+}
+
+// GetJSON503 returns the response for an HTTP 503 `application/json` response
+func (r LookupObjectsResponse) GetJSON503() *Error {
+	return r.JSON503
+}
+
+// GetBody returns the raw response body bytes
+func (r LookupObjectsResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r LookupObjectsResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r LookupObjectsResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r LookupObjectsResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
 type GetObjectResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -1293,6 +1633,89 @@ func (r CorrectObjectResponse) ContentType() string {
 	return ""
 }
 
+type GetObjectSummaryResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *Summary
+	// JSON400 the response for an HTTP 400 `application/json` response
+	JSON400 *Error
+	// JSON401 the response for an HTTP 401 `application/json` response
+	JSON401 *Error
+	// JSON403 the response for an HTTP 403 `application/json` response
+	JSON403 *Error
+	// JSON404 the response for an HTTP 404 `application/json` response
+	JSON404 *Error
+	// JSON409 the response for an HTTP 409 `application/json` response
+	JSON409 *Error
+	// JSON503 the response for an HTTP 503 `application/json` response
+	JSON503 *Error
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r GetObjectSummaryResponse) GetJSON200() *Summary {
+	return r.JSON200
+}
+
+// GetJSON400 returns the response for an HTTP 400 `application/json` response
+func (r GetObjectSummaryResponse) GetJSON400() *Error {
+	return r.JSON400
+}
+
+// GetJSON401 returns the response for an HTTP 401 `application/json` response
+func (r GetObjectSummaryResponse) GetJSON401() *Error {
+	return r.JSON401
+}
+
+// GetJSON403 returns the response for an HTTP 403 `application/json` response
+func (r GetObjectSummaryResponse) GetJSON403() *Error {
+	return r.JSON403
+}
+
+// GetJSON404 returns the response for an HTTP 404 `application/json` response
+func (r GetObjectSummaryResponse) GetJSON404() *Error {
+	return r.JSON404
+}
+
+// GetJSON409 returns the response for an HTTP 409 `application/json` response
+func (r GetObjectSummaryResponse) GetJSON409() *Error {
+	return r.JSON409
+}
+
+// GetJSON503 returns the response for an HTTP 503 `application/json` response
+func (r GetObjectSummaryResponse) GetJSON503() *Error {
+	return r.JSON503
+}
+
+// GetBody returns the raw response body bytes
+func (r GetObjectSummaryResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r GetObjectSummaryResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetObjectSummaryResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r GetObjectSummaryResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
 // ImportCatalogWithBodyWithResponse performs a POST /api/v1/catalog/imports (the `ImportCatalog` operationId) request,
 // with any type of body and a specified content type.
 //
@@ -1337,6 +1760,17 @@ func (c *ClientWithResponses) ListObjectsWithResponse(ctx context.Context, param
 	return ParseListObjectsResponse(rsp)
 }
 
+// LookupObjectsWithResponse performs a GET /api/v1/catalog/objects/lookup (the `LookupObjects` operationId) request.
+//
+// Returns a wrapper object for the known response body format(s).
+func (c *ClientWithResponses) LookupObjectsWithResponse(ctx context.Context, params *LookupObjectsParams, reqEditors ...RequestEditorFn) (*LookupObjectsResponse, error) {
+	rsp, err := c.LookupObjects(ctx, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseLookupObjectsResponse(rsp)
+}
+
 // GetObjectWithResponse performs a GET /api/v1/catalog/objects/{id} (the `GetObject` operationId) request.
 //
 // Returns a wrapper object for the known response body format(s).
@@ -1368,6 +1802,17 @@ func (c *ClientWithResponses) CorrectObjectWithResponse(ctx context.Context, id 
 		return nil, err
 	}
 	return ParseCorrectObjectResponse(rsp)
+}
+
+// GetObjectSummaryWithResponse performs a GET /api/v1/catalog/objects/{id}/summary (the `GetObjectSummary` operationId) request.
+//
+// Returns a wrapper object for the known response body format(s).
+func (c *ClientWithResponses) GetObjectSummaryWithResponse(ctx context.Context, id string, reqEditors ...RequestEditorFn) (*GetObjectSummaryResponse, error) {
+	rsp, err := c.GetObjectSummary(ctx, id, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetObjectSummaryResponse(rsp)
 }
 
 // ParseImportCatalogResponse parses an HTTP response from a ImportCatalogWithResponse call
@@ -1574,6 +2019,74 @@ func ParseListObjectsResponse(rsp *http.Response) (*ListObjectsResponse, error) 
 	return response, nil
 }
 
+// ParseLookupObjectsResponse parses an HTTP response from a LookupObjectsWithResponse call
+func ParseLookupObjectsResponse(rsp *http.Response) (*LookupObjectsResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &LookupObjectsResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest Lookup
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 409:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON409 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON503 = &dest
+
+	}
+
+	return response, nil
+}
+
 // ParseGetObjectResponse parses an HTTP response from a GetObjectWithResponse call
 func ParseGetObjectResponse(rsp *http.Response) (*GetObjectResponse, error) {
 	bodyBytes, err := io.ReadAll(rsp.Body)
@@ -1658,6 +2171,74 @@ func ParseCorrectObjectResponse(rsp *http.Response) (*CorrectObjectResponse, err
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
 		var dest Object
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 409:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON409 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON503 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseGetObjectSummaryResponse parses an HTTP response from a GetObjectSummaryWithResponse call
+func ParseGetObjectSummaryResponse(rsp *http.Response) (*GetObjectSummaryResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetObjectSummaryResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest Summary
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}

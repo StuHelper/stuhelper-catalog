@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"net/url"
 	"strconv"
+	"strings"
 	"time"
 
 	catalog "github.com/StuHelper/stuhelper-catalog"
@@ -23,6 +24,14 @@ type Handler struct {
 func (h Handler) Routes() http.Handler {
 	m := http.NewServeMux()
 	m.HandleFunc("GET /api/v1/catalog/objects", h.list)
+	m.HandleFunc("GET /api/v1/catalog/objects/lookup", func(w http.ResponseWriter, r *http.Request) {
+		v, e := h.Service.Lookup(r.Context(), strings.Split(r.URL.Query().Get("ids"), ","))
+		respond(w, v, e)
+	})
+	m.HandleFunc("GET /api/v1/catalog/objects/{id}/summary", func(w http.ResponseWriter, r *http.Request) {
+		v, e := h.Service.Summary(r.Context(), r.PathValue("id"))
+		respond(w, v, e)
+	})
 	m.HandleFunc("GET /api/v1/catalog/objects/{id}", func(w http.ResponseWriter, r *http.Request) {
 		v, e := h.Service.Get(r.Context(), r.PathValue("id"))
 		respond(w, v, e)
@@ -114,7 +123,7 @@ func (h Handler) list(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	q := r.URL.Query()
-	v, e := h.Service.List(r.Context(), catalog.Filter{Kind: q.Get("kind"), SchoolID: q.Get("school_id"), DepartmentID: q.Get("department_id"), CategoryID: q.Get("category_id"), NatureID: q.Get("nature_id"), CourseID: q.Get("course_id"), TermID: q.Get("term_id"), TeacherID: q.Get("teacher_id"), Query: q.Get("q"), After: q.Get("after"), Limit: n})
+	v, e := h.Service.List(r.Context(), catalog.Filter{Kind: q.Get("kind"), SchoolID: q.Get("school_id"), DepartmentID: q.Get("department_id"), CategoryID: q.Get("category_id"), NatureID: q.Get("nature_id"), CourseID: q.Get("course_id"), TermID: q.Get("term_id"), TeacherID: q.Get("teacher_id"), TermCourseID: q.Get("term_course_id"), ClassID: q.Get("class_id"), Query: q.Get("q"), After: q.Get("after"), Limit: n})
 	respond(w, v, e)
 }
 func (h Handler) importData(w http.ResponseWriter, r *http.Request) {

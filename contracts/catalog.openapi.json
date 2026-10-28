@@ -166,6 +166,24 @@
               "maximum": 100,
               "default": 20
             }
+          },
+          {
+            "name": "term_course_id",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "maxLength": 128
+            },
+            "description": "Restrict relationships to this offering or teaching class."
+          },
+          {
+            "name": "class_id",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "maxLength": 128
+            },
+            "description": "Restrict relationships to this offering or teaching class."
           }
         ]
       }
@@ -596,6 +614,182 @@
           }
         ]
       }
+    },
+    "/api/v1/catalog/objects/lookup": {
+      "get": {
+        "operationId": "lookupObjects",
+        "parameters": [
+          {
+            "name": "ids",
+            "in": "query",
+            "required": true,
+            "description": "Comma-separated public object IDs, at most 100. Missing objects are reported without failing the full batch.",
+            "schema": {
+              "type": "string",
+              "maxLength": 12899
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Lookup"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not permitted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Revision or idempotency conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Required dependency unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/catalog/objects/{id}/summary": {
+      "get": {
+        "operationId": "getObjectSummary",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Summary"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not permitted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Revision or idempotency conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Required dependency unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -858,10 +1052,198 @@
           },
           "biography": {
             "type": "string"
+          },
+          "department_id": {
+            "type": "string",
+            "maxLength": 128
+          },
+          "category_id": {
+            "type": "string",
+            "maxLength": 128
+          },
+          "nature_id": {
+            "type": "string",
+            "maxLength": 128
+          },
+          "code": {
+            "type": "string",
+            "maxLength": 128
+          },
+          "credits": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 100
+          },
+          "clear_credits": {
+            "type": "boolean",
+            "description": "Explicitly restore unknown credits; cannot be combined with credits."
           }
         },
         "required": [
           "revision"
+        ]
+      },
+      "Lookup": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Object"
+            }
+          },
+          "missing_ids": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "items",
+          "missing_ids"
+        ]
+      },
+      "Summary": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "object": {
+            "$ref": "#/components/schemas/Object"
+          },
+          "school": {
+            "$ref": "#/components/schemas/Object"
+          },
+          "department": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "school",
+                  "department",
+                  "category",
+                  "nature",
+                  "term",
+                  "course",
+                  "teacher",
+                  "term_course",
+                  "class",
+                  "assignment",
+                  "schedule"
+                ]
+              },
+              "school_id": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              },
+              "code": {
+                "type": "string"
+              },
+              "department_id": {
+                "type": "string"
+              },
+              "category_id": {
+                "type": "string"
+              },
+              "nature_id": {
+                "type": "string"
+              },
+              "course_id": {
+                "type": "string"
+              },
+              "term_id": {
+                "type": "string"
+              },
+              "term_course_id": {
+                "type": "string"
+              },
+              "class_id": {
+                "type": "string"
+              },
+              "teacher_id": {
+                "type": "string"
+              },
+              "credits": {
+                "type": "number",
+                "nullable": true
+              },
+              "biography": {
+                "type": "string"
+              },
+              "location": {
+                "type": "string"
+              },
+              "time_text": {
+                "type": "string"
+              },
+              "aliases": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "revision": {
+                "type": "integer"
+              },
+              "updated_at": {
+                "type": "string",
+                "format": "date-time"
+              }
+            },
+            "required": [
+              "id",
+              "kind",
+              "school_id",
+              "name",
+              "credits",
+              "aliases",
+              "revision",
+              "updated_at"
+            ],
+            "nullable": true
+          },
+          "categories": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Object"
+            }
+          },
+          "natures": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Object"
+            }
+          },
+          "course_count": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "teacher_count": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "offering_count": {
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "required": [
+          "object",
+          "school",
+          "department",
+          "categories",
+          "natures",
+          "course_count",
+          "teacher_count",
+          "offering_count"
         ]
       }
     }

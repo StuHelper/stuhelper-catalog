@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"math"
 	"slices"
 	"strings"
 	"time"
@@ -74,7 +75,7 @@ func validateObject(o Object, school string) error {
 			return ErrInput
 		}
 	}
-	if o.Credits != nil && (*o.Credits < 0 || *o.Credits > 100) {
+	if o.Credits != nil && (*o.Credits < 0 || *o.Credits > 100 || math.IsNaN(*o.Credits) || math.IsInf(*o.Credits, 0)) {
 		return ErrInput
 	}
 	if o.Kind == "school" && o.ID != school {
@@ -201,14 +202,12 @@ func (s *Service) Import(ctx context.Context, p Principal, key string, in Import
 				if rec.Object.Aliases == nil {
 					rec.Object.Aliases = []string{}
 				}
-				for field, value := range rec.Manual {
-					if field == "name" {
-						rec.Object.Name = value
-					}
-					if field == "biography" {
-						rec.Object.Biography = value
-					}
-					out.PreservedCorrections++
+				if e := applyManual(&rec); e != nil {
+					return e
+				}
+				out.PreservedCorrections += len(rec.Manual)
+				if e := relations(t, rec.Object); e != nil {
+					return e
 				}
 				if e := t.SaveObject(rec); e != nil {
 					return e
@@ -307,6 +306,11 @@ func (s *Service) List(ctx context.Context, f Filter) (Page, error) {
 	if !slices.Contains(kinds, f.Kind) || f.Limit < 1 || f.Limit > 100 || !validText(f.Query, 200) {
 		return out, ErrInput
 	}
+	for _, id := range []string{f.SchoolID, f.DepartmentID, f.CategoryID, f.NatureID, f.CourseID, f.TermID, f.TeacherID, f.TermCourseID, f.ClassID, f.After} {
+		if id != "" && !ValidID(id) {
+			return out, ErrInput
+		}
+	}
 	err := s.Repo.Transaction(ctx, func(t Transaction) error {
 		items, e := t.List(f)
 		if e != nil {
@@ -338,7 +342,7 @@ func (s *Service) MyEnrollments(ctx context.Context, p Principal, school, course
 }
 func (s *Service) Correct(ctx context.Context, p Principal, id, key string, in Correction) (Object, error) {
 	var out Object
-	if !ValidID(id) || !ValidKey(key) || in.Revision < 1 || (in.Name == nil && in.Biography == nil) {
+	if !ValidID(id) || !ValidKey(key) || in.Revision < 1 || (in.Name == nil && in.Biography == nil && in.DepartmentID == nil && in.CategoryID == nil && in.NatureID == nil && in.Code == nil && in.Credits == nil && !in.ClearCredits) || (in.Credits != nil && in.ClearCredits) {
 		return out, ErrInput
 	}
 	if in.Name != nil && (strings.TrimSpace(*in.Name) == "" || !validText(*in.Name, 256)) {
@@ -377,16 +381,17 @@ func (s *Service) Correct(ctx context.Context, p Principal, id, key string, in C
 		if r.Object.Revision != in.Revision {
 			return ErrConflict
 		}
-		if r.Manual == nil {
-			r.Manual = map[string]string{}
+		if (in.Credits != nil || in.ClearCredits || in.CategoryID != nil || in.NatureID != nil) && r.Object.Kind != "course" {
+			return ErrInput
 		}
-		if in.Name != nil {
-			r.Manual["name"] = *in.Name
-			r.Object.Name = *in.Name
+		if e = recordCorrection(&r, in); e != nil {
+			return e
 		}
-		if in.Biography != nil {
-			r.Manual["biography"] = *in.Biography
-			r.Object.Biography = *in.Biography
+		if e = validateObject(r.Object, r.Object.SchoolID); e != nil {
+			return e
+		}
+		if e = relations(t, r.Object); e != nil {
+			return e
 		}
 		r.Object.Revision++
 		r.Object.UpdatedAt = s.now()

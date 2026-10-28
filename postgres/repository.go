@@ -101,26 +101,6 @@ func (t *transaction) SaveObject(r catalog.Record) error {
 	return t.save(`INSERT INTO catalog.objects(id,school_id,kind,name,department_id,category_id,nature_id,course_id,term_id,term_course_id,class_id,teacher_id,data) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13) ON CONFLICT(id) DO UPDATE SET name=excluded.name,department_id=excluded.department_id,category_id=excluded.category_id,nature_id=excluded.nature_id,course_id=excluded.course_id,term_id=excluded.term_id,term_course_id=excluded.term_course_id,class_id=excluded.class_id,teacher_id=excluded.teacher_id,data=excluded.data`, r, o.ID, o.SchoolID, o.Kind, o.Name, o.DepartmentID, o.CategoryID, o.NatureID, o.CourseID, o.TermID, o.TermCourseID, o.ClassID, o.TeacherID)
 }
 
-// Course filters join the same offering/class so categories from different terms cannot match each other.
-func (t *transaction) List(f catalog.Filter) ([]catalog.Object, error) {
-	return list[catalog.Object](t, `SELECT o.data->'object' FROM catalog.objects o
- WHERE o.kind=$1 AND ($2='' OR o.school_id=$2) AND o.id>$3
- AND ($4='' OR strpos(lower(o.name),lower($4))>0 OR strpos(lower(o.data->'object'->>'code'),lower($4))>0)
- AND ($5='' OR o.course_id=$5 OR o.id=$5 OR EXISTS(SELECT 1 FROM catalog.objects tc WHERE tc.id=o.term_course_id AND tc.course_id=$5) OR (o.kind='teacher' AND EXISTS(SELECT 1 FROM catalog.objects a JOIN catalog.objects cl ON cl.id=a.class_id JOIN catalog.objects tc ON tc.id=cl.term_course_id WHERE a.kind='assignment' AND a.teacher_id=o.id AND tc.course_id=$5 AND ($7='' OR tc.term_id=$7))))
- AND (
-  (o.kind='course' AND ($7<>'' OR $8<>'' OR $9<>'' OR $10<>'') AND EXISTS(
-   SELECT 1 FROM catalog.objects tc LEFT JOIN catalog.objects cl ON cl.term_course_id=tc.id AND cl.kind='class'
-   WHERE tc.kind='term_course' AND tc.course_id=o.id AND ($7='' OR tc.term_id=$7)
-   AND ($6='' OR COALESCE(NULLIF(cl.department_id,''),o.department_id)=$6)
-   AND ($8='' OR COALESCE(NULLIF(cl.category_id,''),o.category_id)=$8)
-   AND ($9='' OR COALESCE(NULLIF(cl.nature_id,''),o.nature_id)=$9)
-   AND ($10='' OR EXISTS(SELECT 1 FROM catalog.objects a WHERE a.kind='assignment' AND a.class_id=cl.id AND a.teacher_id=$10))))
-  OR (o.kind='course' AND $7='' AND $10='' AND ($6='' OR o.department_id=$6) AND ($8='' OR o.category_id=$8) AND ($9='' OR o.nature_id=$9))
-  OR (o.kind<>'course' AND ($6='' OR o.department_id=$6) AND ($8='' OR o.category_id=$8) AND ($9='' OR o.nature_id=$9)
-   AND ($7='' OR o.term_id=$7 OR o.id=$7 OR EXISTS(SELECT 1 FROM catalog.objects tc WHERE tc.id=o.term_course_id AND tc.term_id=$7) OR (o.kind='teacher' AND EXISTS(SELECT 1 FROM catalog.objects a JOIN catalog.objects cl ON cl.id=a.class_id JOIN catalog.objects tc ON tc.id=cl.term_course_id WHERE a.kind='assignment' AND a.teacher_id=o.id AND tc.term_id=$7 AND ($5='' OR tc.course_id=$5))))
-   AND ($10='' OR o.teacher_id=$10 OR o.id=$10 OR EXISTS(SELECT 1 FROM catalog.objects a WHERE a.kind='assignment' AND a.class_id=o.id AND a.teacher_id=$10)))
- ) ORDER BY o.id LIMIT $11`, f.Kind, f.SchoolID, f.After, f.Query, f.CourseID, f.DepartmentID, f.TermID, f.CategoryID, f.NatureID, f.TeacherID, f.Limit+1)
-}
 func (t *transaction) Enrollment(id string) (catalog.Enrollment, error) {
 	return read[catalog.Enrollment](t, `SELECT data FROM catalog.enrollments WHERE id=$1`, id)
 }

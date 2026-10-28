@@ -24,3 +24,9 @@ scenario_tests:
     - integration_test.go#TestSchoolScopePublicProjectionAndBoundedHTTP
   ACAD-33:
     - integration_test.go#TestImportRelationsClassificationAndMissingCredits
+  ACAD-01:
+    - directory_test.go#TestDirectorySummaryLookupAndOfferingContext
+  ACAD-02:
+    - directory_test.go#TestDirectorySummaryLookupAndOfferingContext
+  ACAD-24:
+    - directory_test.go#TestDirectorySummaryLookupAndOfferingContext

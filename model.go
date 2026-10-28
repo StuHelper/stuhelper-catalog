@@ -83,16 +83,37 @@ type ImportResult struct {
 }
 type Filter struct {
 	Kind, SchoolID, DepartmentID, CategoryID, NatureID, CourseID, TermID, TeacherID, Query, After string
+	TermCourseID, ClassID                                                                         string
 	Limit                                                                                         int
+}
+type Lookup struct {
+	Items      []Object `json:"items"`
+	MissingIDs []string `json:"missing_ids"`
+}
+type Summary struct {
+	Object        Object   `json:"object"`
+	School        Object   `json:"school"`
+	Department    *Object  `json:"department"`
+	Categories    []Object `json:"categories"`
+	Natures       []Object `json:"natures"`
+	CourseCount   int      `json:"course_count"`
+	TeacherCount  int      `json:"teacher_count"`
+	OfferingCount int      `json:"offering_count"`
 }
 type Page struct {
 	Items []Object `json:"items"`
 	Next  string   `json:"next"`
 }
 type Correction struct {
-	Revision  int64   `json:"revision"`
-	Name      *string `json:"name,omitempty"`
-	Biography *string `json:"biography,omitempty"`
+	Revision     int64    `json:"revision"`
+	Name         *string  `json:"name,omitempty"`
+	Biography    *string  `json:"biography,omitempty"`
+	DepartmentID *string  `json:"department_id,omitempty"`
+	CategoryID   *string  `json:"category_id,omitempty"`
+	NatureID     *string  `json:"nature_id,omitempty"`
+	Code         *string  `json:"code,omitempty"`
+	Credits      *float64 `json:"credits,omitempty"`
+	ClearCredits bool     `json:"clear_credits,omitempty"`
 }
 type Event struct {
 	ID, Subject, Type, SchoolID, Actor string
@@ -112,6 +133,8 @@ type Transaction interface {
 	Object(string) (Record, error)
 	SaveObject(Record) error
 	List(Filter) ([]Object, error)
+	Lookup([]string) ([]Object, error)
+	Summary(Object) (Summary, error)
 	HasAssignment(string, string) (bool, error)
 	Enrollment(string) (Enrollment, error)
 	SaveEnrollment(Enrollment) error
