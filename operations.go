@@ -79,6 +79,9 @@ func mergePlan(t Transaction, p Principal, id string, in MergeInput) (MergePrevi
 	if a.CanonicalID != "" || b.CanonicalID != "" {
 		return out, ErrConflict
 	}
+	if !slices.Contains(target.Object.Aliases, source.Object.Name) && len(target.Object.Aliases) >= 50 {
+		return out, ErrInput
+	}
 	ids, e := t.ResolveIDs(id)
 	if e != nil {
 		return out, e
@@ -142,7 +145,7 @@ func (s *Service) Merge(ctx context.Context, p Principal, id, key string, in Mer
 		}
 		target.Object.Revision++
 		target.Object.UpdatedAt = s.now()
-		if !slices.Contains(target.Object.Aliases, plan.Source.Name) && len(target.Object.Aliases) < 50 {
+		if !slices.Contains(target.Object.Aliases, plan.Source.Name) {
 			target.Object.Aliases = append(target.Object.Aliases, plan.Source.Name)
 		}
 		if e = t.SaveObject(target); e != nil {

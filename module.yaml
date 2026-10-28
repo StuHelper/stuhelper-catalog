@@ -32,6 +32,7 @@ scenario_tests:
     - directory_test.go#TestDirectorySummaryLookupAndOfferingContext
   CO-08:
     - operations_test.go#TestMergeKeepsOldLinksOfferingsAndEnrollmentsAndSupportsDeactivation
+    - operations_test.go#TestMergeRejectsFullAliasListWithoutDroppingSourceName
   CO-09:
     - operations_test.go#TestMergeKeepsOldLinksOfferingsAndEnrollmentsAndSupportsDeactivation
   CO-10:

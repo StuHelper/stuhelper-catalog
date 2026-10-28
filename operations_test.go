@@ -3,6 +3,7 @@ package catalog_test
 import (
 	"context"
 	"errors"
+	"fmt"
 	c "github.com/StuHelper/stuhelper-catalog"
 	"testing"
 )
@@ -113,5 +114,25 @@ func TestMergeKeepsOldLinksOfferingsAndEnrollmentsAndSupportsDeactivation(t *tes
 	courses, err = s.List(ctx, c.Filter{Kind: "course", Limit: 100, IncludeInactive: true})
 	if err != nil || len(courses.Items) != 1 {
 		t.Fatal(courses, err)
+	}
+}
+
+func TestMergeRejectsFullAliasListWithoutDroppingSourceName(t *testing.T) {
+	s, p, in := fixture(t)
+	ctx := context.Background()
+	aliases := []string{}
+	for i := 0; i < 50; i++ {
+		aliases = append(aliases, fmt.Sprintf("Known name %d", i))
+	}
+	in.Objects = append(in.Objects, c.Object{ID: "target", Kind: "course", SchoolID: "school", Name: "Target course", Aliases: aliases})
+	if _, err := s.Import(ctx, p, "seed", in); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := s.PreviewMerge(ctx, p, "course", c.MergeInput{TargetID: "target", SourceRevision: 1, TargetRevision: 1, Reason: "Checked duplicate"}); !errors.Is(err, c.ErrInput) {
+		t.Fatal("merge would silently drop the source name", err)
+	}
+	original, err := s.Get(ctx, "course")
+	if err != nil || original.CanonicalID != "" {
+		t.Fatal("rejected merge changed source", original, err)
 	}
 }
