@@ -133,6 +133,8 @@ type Repository interface {
 	Transaction(context.Context, func(Transaction) error) error
 }
 type Transaction interface {
+	OwnedReferences(subject string, ids []string) ([]string, error)
+	ReferenceNames(ids []string) ([]Reference, error)
 	PublicObject(string) (Object, error)
 	ResolveIDs(string) ([]string, error)
 	MergeAliases(string, string, string, time.Time, string) (int, error)

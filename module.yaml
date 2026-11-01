@@ -1,5 +1,5 @@
 id: catalog
-version: 0.2.0
+version: 0.3.0
 api: 1
 critical: false
 requires:
@@ -42,6 +42,7 @@ scenario_tests:
   CO-10:
     - operations_test.go#TestImportPreviewRollsBackAndRejectsChangedConfirmation
   AE-ACCESS-05:
+    - references_test.go#TestOwnEnrollmentNamesSurviveAdmissionExpiryWithoutPublicDetails
     - content_test.go#TestContentReadAdmissionCoversEveryHTTPReadAndPreservesOwnEnrollment
   AE-ACCESS-06:
     - content_test.go#TestContentReadAdmissionCoversEveryHTTPReadAndPreservesOwnEnrollment

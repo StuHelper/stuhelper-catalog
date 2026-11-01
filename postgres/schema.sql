@@ -30,3 +30,6 @@ CREATE OR REPLACE FUNCTION catalog.public_object(value jsonb) RETURNS jsonb LANG
 $$;
 REVOKE ALL ON TABLE catalog.redirects FROM PUBLIC;
 -- Invoker rights preserve each caller's table permissions.
+
+-- Name lookup also serves historical enrollment records after qualification expiry.
+CREATE INDEX IF NOT EXISTS catalog_enrollment_history_owner ON catalog.enrollments(subject,id);

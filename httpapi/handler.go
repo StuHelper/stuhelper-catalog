@@ -26,6 +26,14 @@ func (h Handler) Routes() http.Handler {
 	m.HandleFunc("GET /api/v1/catalog/objects", h.list)
 	h.operationRoutes(m)
 	h.adminReadRoutes(m)
+	m.HandleFunc("GET /api/v1/catalog/me/references", func(w http.ResponseWriter, r *http.Request) {
+		p, ok := h.principal(w, r)
+		if !ok {
+			return
+		}
+		v, e := h.Service.MyReferences(r.Context(), p, strings.Split(r.URL.Query().Get("ids"), ","))
+		respond(w, v, e)
+	})
 	m.HandleFunc("GET /api/v1/catalog/objects/lookup", func(w http.ResponseWriter, r *http.Request) {
 		p, ok := h.principal(w, r)
 		if !ok {

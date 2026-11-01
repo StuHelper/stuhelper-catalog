@@ -242,6 +242,20 @@ type Page struct {
 	Next  string   `json:"next"`
 }
 
+// Reference defines model for Reference.
+type Reference struct {
+	CanonicalId *string `json:"canonical_id,omitempty"`
+	Id          string  `json:"id"`
+	Kind        string  `json:"kind"`
+	Name        string  `json:"name"`
+}
+
+// References defines model for References.
+type References struct {
+	Items      []Reference `json:"items"`
+	MissingIds []string    `json:"missing_ids"`
+}
+
 // Resolution defines model for Resolution.
 type Resolution struct {
 	Ids    []string `json:"ids"`
@@ -334,6 +348,12 @@ type MyEnrollmentsParams struct {
 	TermId   *string `form:"term_id,omitempty" json:"term_id,omitempty"`
 	After    *string `form:"after,omitempty" json:"after,omitempty"`
 	Limit    *int    `form:"limit,omitempty" json:"limit,omitempty"`
+}
+
+// MyCatalogReferencesParams defines parameters for MyCatalogReferences.
+type MyCatalogReferencesParams struct {
+	// Ids Comma-separated public object IDs, at most 100. Missing objects are reported without failing the full batch.
+	Ids string `form:"ids" json:"ids"`
 }
 
 // ListObjectsParams defines parameters for ListObjects.
@@ -530,6 +550,11 @@ type ClientInterface interface {
 
 	// MyEnrollments performs a GET /api/v1/catalog/me/enrollments (the `MyEnrollments` operationId) request.
 	MyEnrollments(ctx context.Context, params *MyEnrollmentsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// MyCatalogReferences performs a GET /api/v1/catalog/me/references (the `MyCatalogReferences` operationId) request.
+	//
+	// Login and ownership only. Returns names for IDs referenced by the caller own current or historical enrollment records; current content admission is not required. An unowned requested ID rejects the entire request with 404. At most 100 IDs. This response never includes biographies, scores, schedules or other public detail.
+	MyCatalogReferences(ctx context.Context, params *MyCatalogReferencesParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// ListObjects performs a GET /api/v1/catalog/objects (the `ListObjects` operationId) request.
 	//
@@ -751,6 +776,21 @@ func (c *Client) PreviewImport(ctx context.Context, params *PreviewImportParams,
 // MyEnrollments performs a GET /api/v1/catalog/me/enrollments (the `MyEnrollments` operationId) request.
 func (c *Client) MyEnrollments(ctx context.Context, params *MyEnrollmentsParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewMyEnrollmentsRequest(c.Server, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// MyCatalogReferences performs a GET /api/v1/catalog/me/references (the `MyCatalogReferences` operationId) request.
+//
+// Login and ownership only. Returns names for IDs referenced by the caller own current or historical enrollment records; current content admission is not required. An unowned requested ID rejects the entire request with 404. At most 100 IDs. This response never includes biographies, scores, schedules or other public detail.
+func (c *Client) MyCatalogReferences(ctx context.Context, params *MyCatalogReferencesParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewMyCatalogReferencesRequest(c.Server, params)
 	if err != nil {
 		return nil, err
 	}
@@ -1567,6 +1607,56 @@ func NewMyEnrollmentsRequest(server string, params *MyEnrollmentsParams) (*http.
 	return req, nil
 }
 
+// NewMyCatalogReferencesRequest constructs an http.Request for the MyCatalogReferences method
+func NewMyCatalogReferencesRequest(server string, params *MyCatalogReferencesParams) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/catalog/me/references")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		// queryValues collects non-styled parameters (passthrough, JSON)
+		// that are safe to round-trip through url.Values.Encode().
+		queryValues := queryURL.Query()
+		// rawQueryFragments collects pre-encoded query fragments from
+		// styled parameters, preserving literal commas as delimiters
+		// per the OpenAPI spec (e.g. "color=blue,black,brown").
+		var rawQueryFragments []string
+
+		if queryFrag, err := runtime.StyleParamWithOptions("form", true, "ids", params.Ids, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+			return nil, err
+		} else {
+			for _, qp := range strings.Split(queryFrag, "&") {
+				rawQueryFragments = append(rawQueryFragments, qp)
+			}
+		}
+
+		if encoded := queryValues.Encode(); encoded != "" {
+			rawQueryFragments = append(rawQueryFragments, encoded)
+		}
+		queryURL.RawQuery = strings.Join(rawQueryFragments, "&")
+	}
+
+	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
 // NewListObjectsRequest constructs an http.Request for the ListObjects method
 func NewListObjectsRequest(server string, params *ListObjectsParams) (*http.Request, error) {
 	var err error
@@ -2282,6 +2372,13 @@ type ClientWithResponsesInterface interface {
 	//
 	// Returns a wrapper object for the known response body format(s).
 	MyEnrollmentsWithResponse(ctx context.Context, params *MyEnrollmentsParams, reqEditors ...RequestEditorFn) (*MyEnrollmentsResponse, error)
+
+	// MyCatalogReferencesWithResponse performs a GET /api/v1/catalog/me/references (the `MyCatalogReferences` operationId) request.
+	//
+	// Login and ownership only. Returns names for IDs referenced by the caller own current or historical enrollment records; current content admission is not required. An unowned requested ID rejects the entire request with 404. At most 100 IDs. This response never includes biographies, scores, schedules or other public detail.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	MyCatalogReferencesWithResponse(ctx context.Context, params *MyCatalogReferencesParams, reqEditors ...RequestEditorFn) (*MyCatalogReferencesResponse, error)
 
 	// ListObjectsWithResponse performs a GET /api/v1/catalog/objects (the `ListObjects` operationId) request.
 	//
@@ -3100,6 +3197,89 @@ func (r MyEnrollmentsResponse) StatusCode() int {
 
 // ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
 func (r MyEnrollmentsResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type MyCatalogReferencesResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *References
+	// JSON400 the response for an HTTP 400 `application/json` response
+	JSON400 *Error
+	// JSON401 the response for an HTTP 401 `application/json` response
+	JSON401 *Error
+	// JSON403 the response for an HTTP 403 `application/json` response
+	JSON403 *Error
+	// JSON404 the response for an HTTP 404 `application/json` response
+	JSON404 *Error
+	// JSON409 the response for an HTTP 409 `application/json` response
+	JSON409 *Error
+	// JSON503 the response for an HTTP 503 `application/json` response
+	JSON503 *Error
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r MyCatalogReferencesResponse) GetJSON200() *References {
+	return r.JSON200
+}
+
+// GetJSON400 returns the response for an HTTP 400 `application/json` response
+func (r MyCatalogReferencesResponse) GetJSON400() *Error {
+	return r.JSON400
+}
+
+// GetJSON401 returns the response for an HTTP 401 `application/json` response
+func (r MyCatalogReferencesResponse) GetJSON401() *Error {
+	return r.JSON401
+}
+
+// GetJSON403 returns the response for an HTTP 403 `application/json` response
+func (r MyCatalogReferencesResponse) GetJSON403() *Error {
+	return r.JSON403
+}
+
+// GetJSON404 returns the response for an HTTP 404 `application/json` response
+func (r MyCatalogReferencesResponse) GetJSON404() *Error {
+	return r.JSON404
+}
+
+// GetJSON409 returns the response for an HTTP 409 `application/json` response
+func (r MyCatalogReferencesResponse) GetJSON409() *Error {
+	return r.JSON409
+}
+
+// GetJSON503 returns the response for an HTTP 503 `application/json` response
+func (r MyCatalogReferencesResponse) GetJSON503() *Error {
+	return r.JSON503
+}
+
+// GetBody returns the raw response body bytes
+func (r MyCatalogReferencesResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r MyCatalogReferencesResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r MyCatalogReferencesResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r MyCatalogReferencesResponse) ContentType() string {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.Header.Get("Content-Type")
 	}
@@ -3995,6 +4175,19 @@ func (c *ClientWithResponses) MyEnrollmentsWithResponse(ctx context.Context, par
 	return ParseMyEnrollmentsResponse(rsp)
 }
 
+// MyCatalogReferencesWithResponse performs a GET /api/v1/catalog/me/references (the `MyCatalogReferences` operationId) request.
+//
+// Login and ownership only. Returns names for IDs referenced by the caller own current or historical enrollment records; current content admission is not required. An unowned requested ID rejects the entire request with 404. At most 100 IDs. This response never includes biographies, scores, schedules or other public detail.
+//
+// Returns a wrapper object for the known response body format(s).
+func (c *ClientWithResponses) MyCatalogReferencesWithResponse(ctx context.Context, params *MyCatalogReferencesParams, reqEditors ...RequestEditorFn) (*MyCatalogReferencesResponse, error) {
+	rsp, err := c.MyCatalogReferences(ctx, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseMyCatalogReferencesResponse(rsp)
+}
+
 // ListObjectsWithResponse performs a GET /api/v1/catalog/objects (the `ListObjects` operationId) request.
 //
 // Requires current content admission in the served school: valid campus eligibility or verified teacher status. Missing admission returns 403; unavailable required facts return 503. No preview, content, counts or statistics are returned on rejection.
@@ -4708,6 +4901,74 @@ func ParseMyEnrollmentsResponse(rsp *http.Response) (*MyEnrollmentsResponse, err
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
 		var dest []Enrollment
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 409:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON409 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON503 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseMyCatalogReferencesResponse parses an HTTP response from a MyCatalogReferencesWithResponse call
+func ParseMyCatalogReferencesResponse(rsp *http.Response) (*MyCatalogReferencesResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &MyCatalogReferencesResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest References
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
