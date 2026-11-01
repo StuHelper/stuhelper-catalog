@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
@@ -53,7 +54,7 @@ func TestDirectorySummaryLookupAndOfferingContext(t *testing.T) {
 	if _, err = s.Lookup(ctx, make([]string, 101)); !errors.Is(err, c.ErrInput) {
 		t.Fatal("unbounded lookup accepted")
 	}
-	h := httpapi.Handler{Service: s}.Routes()
+	h := httpapi.Handler{Service: s, Authenticate: func(*http.Request) (c.Principal, error) { return c.Principal{Subject: "issuer:student"}, nil }}.Routes()
 	response := httptest.NewRecorder()
 	h.ServeHTTP(response, httptest.NewRequest("GET", "/api/v1/catalog/objects/lookup?ids=course,missing", nil))
 	if response.Code != 200 {

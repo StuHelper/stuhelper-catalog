@@ -1,11 +1,15 @@
 id: catalog
-version: 0.1.0
+version: 0.3.0
 api: 1
 critical: false
 requires:
   - id: platform
     api: 1
 optional:
+  - id: verification
+    api: 1
+  - id: identity
+    api: 1
   - id: campus-adapters
     api: 1
 capabilities:
@@ -19,6 +23,7 @@ scenario_tests:
   CO-04:
     - integration_test.go#TestImportIdempotencyConcurrencyAndRollback
   CO-05:
+    - schedule_test.go#TestOwnedScheduleReadsOnlyCurrentEnrollmentMeetings
     - integration_test.go#TestCourseTeacherJoinsAndEnrollmentAssignments
   CO-07:
     - integration_test.go#TestSchoolScopePublicProjectionAndBoundedHTTP
@@ -37,3 +42,10 @@ scenario_tests:
     - operations_test.go#TestMergeKeepsOldLinksOfferingsAndEnrollmentsAndSupportsDeactivation
   CO-10:
     - operations_test.go#TestImportPreviewRollsBackAndRejectsChangedConfirmation
+  AE-ACCESS-05:
+    - references_test.go#TestOwnEnrollmentNamesSurviveAdmissionExpiryWithoutPublicDetails
+    - content_test.go#TestContentReadAdmissionCoversEveryHTTPReadAndPreservesOwnEnrollment
+  AE-ACCESS-06:
+    - content_test.go#TestContentReadAdmissionCoversEveryHTTPReadAndPreservesOwnEnrollment
+  AE-ACCESS-07:
+    - content_test.go#TestContentReadAdmissionCoversEveryHTTPReadAndPreservesOwnEnrollment

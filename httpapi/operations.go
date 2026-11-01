@@ -7,7 +7,11 @@ import (
 
 func (h Handler) operationRoutes(m *http.ServeMux) {
 	m.HandleFunc("GET /api/v1/catalog/objects/{id}/resolution", func(w http.ResponseWriter, r *http.Request) {
-		v, e := h.Service.Resolve(r.Context(), r.PathValue("id"))
+		p, ok := h.principal(w, r)
+		if !ok {
+			return
+		}
+		v, e := h.Service.ReadResolution(r.Context(), p, r.PathValue("id"))
 		respond(w, v, e)
 	})
 	for _, operation := range []string{"merge-preview", "merge"} {

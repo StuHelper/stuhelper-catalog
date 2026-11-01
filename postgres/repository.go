@@ -108,7 +108,7 @@ func (t *transaction) SaveEnrollment(v catalog.Enrollment) error {
 	return t.save(`INSERT INTO catalog.enrollments(id,subject,school_id,course_id,term_id,active,data) VALUES($1,$2,$3,$4,$5,$6,$7) ON CONFLICT(id) DO UPDATE SET course_id=excluded.course_id,term_id=excluded.term_id,active=excluded.active,data=excluded.data`, v, v.ID, v.Subject, v.SchoolID, v.CourseID, v.TermID, v.Active)
 }
 func (t *transaction) Enrollments(subject, school, course, term, after string, limit int) ([]catalog.Enrollment, error) {
-	return list[catalog.Enrollment](t, `SELECT data || jsonb_build_object('course_id',catalog.canonical(course_id),'teacher_ids',(SELECT COALESCE(jsonb_agg(DISTINCT catalog.canonical(value)),'[]'::jsonb) FROM jsonb_array_elements_text(data->'teacher_ids'))) FROM catalog.enrollments WHERE subject=$1 AND ($2='' OR school_id=$2) AND ($3='' OR catalog.canonical(course_id)=catalog.canonical($3)) AND ($4='' OR term_id=$4) AND id>$5 AND active ORDER BY id LIMIT $6`, subject, school, course, term, after, limit)
+	return list[catalog.Enrollment](t, `SELECT data || jsonb_build_object('course_id',catalog.canonical(course_id),'teacher_ids',(SELECT COALESCE(jsonb_agg(DISTINCT catalog.canonical(value)),'[]'::jsonb) FROM jsonb_array_elements_text(COALESCE(NULLIF(data->'teacher_ids','null'::jsonb),'[]'::jsonb)))) FROM catalog.enrollments WHERE subject=$1 AND ($2='' OR school_id=$2) AND ($3='' OR catalog.canonical(course_id)=catalog.canonical($3)) AND ($4='' OR term_id=$4) AND id>$5 AND active ORDER BY id LIMIT $6`, subject, school, course, term, after, limit)
 }
 func (t *transaction) Replay(key string) (catalog.Replay, error) {
 	return read[catalog.Replay](t, `SELECT data FROM catalog.replays WHERE key=$1`, key)
