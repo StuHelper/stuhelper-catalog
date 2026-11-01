@@ -33,3 +33,5 @@ REVOKE ALL ON TABLE catalog.redirects FROM PUBLIC;
 
 -- Name lookup also serves historical enrollment records after qualification expiry.
 CREATE INDEX IF NOT EXISTS catalog_enrollment_history_owner ON catalog.enrollments(subject,id);
+
+CREATE INDEX IF NOT EXISTS catalog_schedule_class ON catalog.objects(class_id,school_id,id) WHERE kind='schedule';

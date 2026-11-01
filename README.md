@@ -32,3 +32,9 @@ bash scripts/check-with-postgres.sh
 业务规则见 [课程与评价规格](https://github.com/StuHelper/stuhelper-next/blob/develop/docs/spec/academic-content.md)。
 
 本人名称查询 /catalog/me/references 只返回本人当前或历史选课记录关联对象的 ID、类型和名称，单次最多 100 个 ID。任一 ID 不属于本人记录时拒绝整次请求。名称接口不返回简介、评分、统计或排课详情，公共目录仍检查内容准入。
+
+## 本人课表投影
+
+MySchedule 是供模块使用的公开接口，只读取当前账号的有效选课记录和相应教学班排课。使用批量名称与排课查询，不查询其他账号记录，也不将内容准入失效放宽到公共目录。
+
+每页最多 100 个选课记录，每条最多 100 个排课，一页排课最多 1000 条。超过范围返回 unavailable，调用方减小分页后重试。没有排课时返回空 meetings，不据此判断用户空闲。

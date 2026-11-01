@@ -23,6 +23,7 @@ scenario_tests:
   CO-04:
     - integration_test.go#TestImportIdempotencyConcurrencyAndRollback
   CO-05:
+    - schedule_test.go#TestOwnedScheduleReadsOnlyCurrentEnrollmentMeetings
     - integration_test.go#TestCourseTeacherJoinsAndEnrollmentAssignments
   CO-07:
     - integration_test.go#TestSchoolScopePublicProjectionAndBoundedHTTP
