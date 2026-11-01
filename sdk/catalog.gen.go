@@ -284,6 +284,34 @@ type Summary struct {
 // SummaryDepartmentKind defines model for Summary.Department.Kind.
 type SummaryDepartmentKind string
 
+// AdminListObjectsParams defines parameters for AdminListObjects.
+type AdminListObjectsParams struct {
+	Kind         *string `form:"kind,omitempty" json:"kind,omitempty"`
+	SchoolId     string  `form:"school_id" json:"school_id"`
+	DepartmentId *string `form:"department_id,omitempty" json:"department_id,omitempty"`
+	CategoryId   *string `form:"category_id,omitempty" json:"category_id,omitempty"`
+	NatureId     *string `form:"nature_id,omitempty" json:"nature_id,omitempty"`
+	CourseId     *string `form:"course_id,omitempty" json:"course_id,omitempty"`
+	TermId       *string `form:"term_id,omitempty" json:"term_id,omitempty"`
+	TeacherId    *string `form:"teacher_id,omitempty" json:"teacher_id,omitempty"`
+	Q            *string `form:"q,omitempty" json:"q,omitempty"`
+	After        *string `form:"after,omitempty" json:"after,omitempty"`
+	Limit        *int    `form:"limit,omitempty" json:"limit,omitempty"`
+
+	// TermCourseId Restrict relationships to this offering or teaching class.
+	TermCourseId *string `form:"term_course_id,omitempty" json:"term_course_id,omitempty"`
+
+	// ClassId Restrict relationships to this offering or teaching class.
+	ClassId         *string `form:"class_id,omitempty" json:"class_id,omitempty"`
+	IncludeInactive *bool   `form:"include_inactive,omitempty" json:"include_inactive,omitempty"`
+}
+
+// AdminLookupObjectsParams defines parameters for AdminLookupObjects.
+type AdminLookupObjectsParams struct {
+	// Ids Comma-separated public object IDs, at most 100. Missing objects are reported without failing the full batch.
+	Ids string `form:"ids" json:"ids"`
+}
+
 // ImportCatalogParams defines parameters for ImportCatalog.
 type ImportCatalogParams struct {
 	IdempotencyKey string `json:"Idempotency-Key"`
@@ -451,6 +479,31 @@ func WithRequestEditorFn(fn RequestEditorFn) ClientOption {
 // The interface specification for the client above.
 type ClientInterface interface {
 
+	// AdminListObjects performs a GET /api/v1/catalog/admin/objects (the `AdminListObjects` operationId) request.
+	//
+	// Requires current catalog maintenance permission for the object school. Independent of content admission; no student enrollment identities are returned.
+	AdminListObjects(ctx context.Context, params *AdminListObjectsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// AdminLookupObjects performs a GET /api/v1/catalog/admin/objects/lookup (the `AdminLookupObjects` operationId) request.
+	//
+	// Requires current catalog maintenance permission for the object school. Independent of content admission; no student enrollment identities are returned.
+	AdminLookupObjects(ctx context.Context, params *AdminLookupObjectsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// AdminGetObject performs a GET /api/v1/catalog/admin/objects/{id} (the `AdminGetObject` operationId) request.
+	//
+	// Requires current catalog maintenance permission for the object school. Independent of content admission; no student enrollment identities are returned.
+	AdminGetObject(ctx context.Context, id string, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// AdminResolveObject performs a GET /api/v1/catalog/admin/objects/{id}/resolution (the `AdminResolveObject` operationId) request.
+	//
+	// Requires current catalog maintenance permission for the object school. Independent of content admission; no student enrollment identities are returned.
+	AdminResolveObject(ctx context.Context, id string, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// AdminGetObjectSummary performs a GET /api/v1/catalog/admin/objects/{id}/summary (the `AdminGetObjectSummary` operationId) request.
+	//
+	// Requires current catalog maintenance permission for the object school. Independent of content admission; no student enrollment identities are returned.
+	AdminGetObjectSummary(ctx context.Context, id string, reqEditors ...RequestEditorFn) (*http.Response, error)
+
 	// ImportCatalogWithBody performs a POST /api/v1/catalog/imports (the `ImportCatalog` operationId) request,
 	// with any type of body and a specified content type.
 	ImportCatalogWithBody(ctx context.Context, params *ImportCatalogParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
@@ -479,12 +532,18 @@ type ClientInterface interface {
 	MyEnrollments(ctx context.Context, params *MyEnrollmentsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// ListObjects performs a GET /api/v1/catalog/objects (the `ListObjects` operationId) request.
+	//
+	// Requires current content admission in the served school: valid campus eligibility or verified teacher status. Missing admission returns 403; unavailable required facts return 503. No preview, content, counts or statistics are returned on rejection.
 	ListObjects(ctx context.Context, params *ListObjectsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// LookupObjects performs a GET /api/v1/catalog/objects/lookup (the `LookupObjects` operationId) request.
+	//
+	// Requires current content admission in the served school: valid campus eligibility or verified teacher status. Missing admission returns 403; unavailable required facts return 503. No preview, content, counts or statistics are returned on rejection.
 	LookupObjects(ctx context.Context, params *LookupObjectsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// GetObject performs a GET /api/v1/catalog/objects/{id} (the `GetObject` operationId) request.
+	//
+	// Requires current content admission in the served school: valid campus eligibility or verified teacher status. Missing admission returns 403; unavailable required facts return 503. No preview, content, counts or statistics are returned on rejection.
 	GetObject(ctx context.Context, id string, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// CorrectObjectWithBody performs a PATCH /api/v1/catalog/objects/{id} (the `CorrectObject` operationId) request,
@@ -512,6 +571,8 @@ type ClientInterface interface {
 	PreviewMerge(ctx context.Context, id string, params *PreviewMergeParams, body PreviewMergeJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// ResolveObject performs a GET /api/v1/catalog/objects/{id}/resolution (the `ResolveObject` operationId) request.
+	//
+	// Requires current content admission in the served school: valid campus eligibility or verified teacher status. Missing admission returns 403; unavailable required facts return 503. No preview, content, counts or statistics are returned on rejection.
 	ResolveObject(ctx context.Context, id string, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// SetObjectStateWithBody performs a POST /api/v1/catalog/objects/{id}/state (the `SetObjectState` operationId) request,
@@ -523,7 +584,84 @@ type ClientInterface interface {
 	SetObjectState(ctx context.Context, id string, params *SetObjectStateParams, body SetObjectStateJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// GetObjectSummary performs a GET /api/v1/catalog/objects/{id}/summary (the `GetObjectSummary` operationId) request.
+	//
+	// Requires current content admission in the served school: valid campus eligibility or verified teacher status. Missing admission returns 403; unavailable required facts return 503. No preview, content, counts or statistics are returned on rejection.
 	GetObjectSummary(ctx context.Context, id string, reqEditors ...RequestEditorFn) (*http.Response, error)
+}
+
+// AdminListObjects performs a GET /api/v1/catalog/admin/objects (the `AdminListObjects` operationId) request.
+//
+// Requires current catalog maintenance permission for the object school. Independent of content admission; no student enrollment identities are returned.
+func (c *Client) AdminListObjects(ctx context.Context, params *AdminListObjectsParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewAdminListObjectsRequest(c.Server, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// AdminLookupObjects performs a GET /api/v1/catalog/admin/objects/lookup (the `AdminLookupObjects` operationId) request.
+//
+// Requires current catalog maintenance permission for the object school. Independent of content admission; no student enrollment identities are returned.
+func (c *Client) AdminLookupObjects(ctx context.Context, params *AdminLookupObjectsParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewAdminLookupObjectsRequest(c.Server, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// AdminGetObject performs a GET /api/v1/catalog/admin/objects/{id} (the `AdminGetObject` operationId) request.
+//
+// Requires current catalog maintenance permission for the object school. Independent of content admission; no student enrollment identities are returned.
+func (c *Client) AdminGetObject(ctx context.Context, id string, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewAdminGetObjectRequest(c.Server, id)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// AdminResolveObject performs a GET /api/v1/catalog/admin/objects/{id}/resolution (the `AdminResolveObject` operationId) request.
+//
+// Requires current catalog maintenance permission for the object school. Independent of content admission; no student enrollment identities are returned.
+func (c *Client) AdminResolveObject(ctx context.Context, id string, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewAdminResolveObjectRequest(c.Server, id)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// AdminGetObjectSummary performs a GET /api/v1/catalog/admin/objects/{id}/summary (the `AdminGetObjectSummary` operationId) request.
+//
+// Requires current catalog maintenance permission for the object school. Independent of content admission; no student enrollment identities are returned.
+func (c *Client) AdminGetObjectSummary(ctx context.Context, id string, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewAdminGetObjectSummaryRequest(c.Server, id)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
 }
 
 // ImportCatalogWithBody performs a POST /api/v1/catalog/imports (the `ImportCatalog` operationId) request,
@@ -624,6 +762,8 @@ func (c *Client) MyEnrollments(ctx context.Context, params *MyEnrollmentsParams,
 }
 
 // ListObjects performs a GET /api/v1/catalog/objects (the `ListObjects` operationId) request.
+//
+// Requires current content admission in the served school: valid campus eligibility or verified teacher status. Missing admission returns 403; unavailable required facts return 503. No preview, content, counts or statistics are returned on rejection.
 func (c *Client) ListObjects(ctx context.Context, params *ListObjectsParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewListObjectsRequest(c.Server, params)
 	if err != nil {
@@ -637,6 +777,8 @@ func (c *Client) ListObjects(ctx context.Context, params *ListObjectsParams, req
 }
 
 // LookupObjects performs a GET /api/v1/catalog/objects/lookup (the `LookupObjects` operationId) request.
+//
+// Requires current content admission in the served school: valid campus eligibility or verified teacher status. Missing admission returns 403; unavailable required facts return 503. No preview, content, counts or statistics are returned on rejection.
 func (c *Client) LookupObjects(ctx context.Context, params *LookupObjectsParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewLookupObjectsRequest(c.Server, params)
 	if err != nil {
@@ -650,6 +792,8 @@ func (c *Client) LookupObjects(ctx context.Context, params *LookupObjectsParams,
 }
 
 // GetObject performs a GET /api/v1/catalog/objects/{id} (the `GetObject` operationId) request.
+//
+// Requires current content admission in the served school: valid campus eligibility or verified teacher status. Missing admission returns 403; unavailable required facts return 503. No preview, content, counts or statistics are returned on rejection.
 func (c *Client) GetObject(ctx context.Context, id string, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewGetObjectRequest(c.Server, id)
 	if err != nil {
@@ -747,6 +891,8 @@ func (c *Client) PreviewMerge(ctx context.Context, id string, params *PreviewMer
 }
 
 // ResolveObject performs a GET /api/v1/catalog/objects/{id}/resolution (the `ResolveObject` operationId) request.
+//
+// Requires current content admission in the served school: valid campus eligibility or verified teacher status. Missing admission returns 403; unavailable required facts return 503. No preview, content, counts or statistics are returned on rejection.
 func (c *Client) ResolveObject(ctx context.Context, id string, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewResolveObjectRequest(c.Server, id)
 	if err != nil {
@@ -788,6 +934,8 @@ func (c *Client) SetObjectState(ctx context.Context, id string, params *SetObjec
 }
 
 // GetObjectSummary performs a GET /api/v1/catalog/objects/{id}/summary (the `GetObjectSummary` operationId) request.
+//
+// Requires current content admission in the served school: valid campus eligibility or verified teacher status. Missing admission returns 403; unavailable required facts return 503. No preview, content, counts or statistics are returned on rejection.
 func (c *Client) GetObjectSummary(ctx context.Context, id string, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewGetObjectSummaryRequest(c.Server, id)
 	if err != nil {
@@ -798,6 +946,364 @@ func (c *Client) GetObjectSummary(ctx context.Context, id string, reqEditors ...
 		return nil, err
 	}
 	return c.Client.Do(req)
+}
+
+// NewAdminListObjectsRequest constructs an http.Request for the AdminListObjects method
+func NewAdminListObjectsRequest(server string, params *AdminListObjectsParams) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/catalog/admin/objects")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		// queryValues collects non-styled parameters (passthrough, JSON)
+		// that are safe to round-trip through url.Values.Encode().
+		queryValues := queryURL.Query()
+		// rawQueryFragments collects pre-encoded query fragments from
+		// styled parameters, preserving literal commas as delimiters
+		// per the OpenAPI spec (e.g. "color=blue,black,brown").
+		var rawQueryFragments []string
+
+		if params.Kind != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "kind", *params.Kind, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if queryFrag, err := runtime.StyleParamWithOptions("form", true, "school_id", params.SchoolId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+			return nil, err
+		} else {
+			for _, qp := range strings.Split(queryFrag, "&") {
+				rawQueryFragments = append(rawQueryFragments, qp)
+			}
+		}
+
+		if params.DepartmentId != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "department_id", *params.DepartmentId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.CategoryId != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "category_id", *params.CategoryId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.NatureId != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "nature_id", *params.NatureId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.CourseId != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "course_id", *params.CourseId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.TermId != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "term_id", *params.TermId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.TeacherId != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "teacher_id", *params.TeacherId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.Q != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "q", *params.Q, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.After != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "after", *params.After, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.Limit != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "limit", *params.Limit, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "integer", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.TermCourseId != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "term_course_id", *params.TermCourseId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.ClassId != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "class_id", *params.ClassId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.IncludeInactive != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "include_inactive", *params.IncludeInactive, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "boolean", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if encoded := queryValues.Encode(); encoded != "" {
+			rawQueryFragments = append(rawQueryFragments, encoded)
+		}
+		queryURL.RawQuery = strings.Join(rawQueryFragments, "&")
+	}
+
+	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewAdminLookupObjectsRequest constructs an http.Request for the AdminLookupObjects method
+func NewAdminLookupObjectsRequest(server string, params *AdminLookupObjectsParams) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/catalog/admin/objects/lookup")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		// queryValues collects non-styled parameters (passthrough, JSON)
+		// that are safe to round-trip through url.Values.Encode().
+		queryValues := queryURL.Query()
+		// rawQueryFragments collects pre-encoded query fragments from
+		// styled parameters, preserving literal commas as delimiters
+		// per the OpenAPI spec (e.g. "color=blue,black,brown").
+		var rawQueryFragments []string
+
+		if queryFrag, err := runtime.StyleParamWithOptions("form", true, "ids", params.Ids, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+			return nil, err
+		} else {
+			for _, qp := range strings.Split(queryFrag, "&") {
+				rawQueryFragments = append(rawQueryFragments, qp)
+			}
+		}
+
+		if encoded := queryValues.Encode(); encoded != "" {
+			rawQueryFragments = append(rawQueryFragments, encoded)
+		}
+		queryURL.RawQuery = strings.Join(rawQueryFragments, "&")
+	}
+
+	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewAdminGetObjectRequest constructs an http.Request for the AdminGetObject method
+func NewAdminGetObjectRequest(server string, id string) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "id", id, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/catalog/admin/objects/%s", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewAdminResolveObjectRequest constructs an http.Request for the AdminResolveObject method
+func NewAdminResolveObjectRequest(server string, id string) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "id", id, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/catalog/admin/objects/%s/resolution", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewAdminGetObjectSummaryRequest constructs an http.Request for the AdminGetObjectSummary method
+func NewAdminGetObjectSummaryRequest(server string, id string) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "id", id, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/catalog/admin/objects/%s/summary", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
 }
 
 // NewImportCatalogRequest calls the generic ImportCatalog builder with application/json body
@@ -1707,6 +2213,41 @@ func WithBaseURL(baseURL string) ClientOption {
 // ClientWithResponsesInterface is the interface specification for the client with responses above.
 type ClientWithResponsesInterface interface {
 
+	// AdminListObjectsWithResponse performs a GET /api/v1/catalog/admin/objects (the `AdminListObjects` operationId) request.
+	//
+	// Requires current catalog maintenance permission for the object school. Independent of content admission; no student enrollment identities are returned.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	AdminListObjectsWithResponse(ctx context.Context, params *AdminListObjectsParams, reqEditors ...RequestEditorFn) (*AdminListObjectsResponse, error)
+
+	// AdminLookupObjectsWithResponse performs a GET /api/v1/catalog/admin/objects/lookup (the `AdminLookupObjects` operationId) request.
+	//
+	// Requires current catalog maintenance permission for the object school. Independent of content admission; no student enrollment identities are returned.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	AdminLookupObjectsWithResponse(ctx context.Context, params *AdminLookupObjectsParams, reqEditors ...RequestEditorFn) (*AdminLookupObjectsResponse, error)
+
+	// AdminGetObjectWithResponse performs a GET /api/v1/catalog/admin/objects/{id} (the `AdminGetObject` operationId) request.
+	//
+	// Requires current catalog maintenance permission for the object school. Independent of content admission; no student enrollment identities are returned.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	AdminGetObjectWithResponse(ctx context.Context, id string, reqEditors ...RequestEditorFn) (*AdminGetObjectResponse, error)
+
+	// AdminResolveObjectWithResponse performs a GET /api/v1/catalog/admin/objects/{id}/resolution (the `AdminResolveObject` operationId) request.
+	//
+	// Requires current catalog maintenance permission for the object school. Independent of content admission; no student enrollment identities are returned.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	AdminResolveObjectWithResponse(ctx context.Context, id string, reqEditors ...RequestEditorFn) (*AdminResolveObjectResponse, error)
+
+	// AdminGetObjectSummaryWithResponse performs a GET /api/v1/catalog/admin/objects/{id}/summary (the `AdminGetObjectSummary` operationId) request.
+	//
+	// Requires current catalog maintenance permission for the object school. Independent of content admission; no student enrollment identities are returned.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	AdminGetObjectSummaryWithResponse(ctx context.Context, id string, reqEditors ...RequestEditorFn) (*AdminGetObjectSummaryResponse, error)
+
 	// ImportCatalogWithBodyWithResponse performs a POST /api/v1/catalog/imports (the `ImportCatalog` operationId) request,
 	// with any type of body and a specified content type.
 	//
@@ -1744,15 +2285,21 @@ type ClientWithResponsesInterface interface {
 
 	// ListObjectsWithResponse performs a GET /api/v1/catalog/objects (the `ListObjects` operationId) request.
 	//
+	// Requires current content admission in the served school: valid campus eligibility or verified teacher status. Missing admission returns 403; unavailable required facts return 503. No preview, content, counts or statistics are returned on rejection.
+	//
 	// Returns a wrapper object for the known response body format(s).
 	ListObjectsWithResponse(ctx context.Context, params *ListObjectsParams, reqEditors ...RequestEditorFn) (*ListObjectsResponse, error)
 
 	// LookupObjectsWithResponse performs a GET /api/v1/catalog/objects/lookup (the `LookupObjects` operationId) request.
 	//
+	// Requires current content admission in the served school: valid campus eligibility or verified teacher status. Missing admission returns 403; unavailable required facts return 503. No preview, content, counts or statistics are returned on rejection.
+	//
 	// Returns a wrapper object for the known response body format(s).
 	LookupObjectsWithResponse(ctx context.Context, params *LookupObjectsParams, reqEditors ...RequestEditorFn) (*LookupObjectsResponse, error)
 
 	// GetObjectWithResponse performs a GET /api/v1/catalog/objects/{id} (the `GetObject` operationId) request.
+	//
+	// Requires current content admission in the served school: valid campus eligibility or verified teacher status. Missing admission returns 403; unavailable required facts return 503. No preview, content, counts or statistics are returned on rejection.
 	//
 	// Returns a wrapper object for the known response body format(s).
 	GetObjectWithResponse(ctx context.Context, id string, reqEditors ...RequestEditorFn) (*GetObjectResponse, error)
@@ -1789,6 +2336,8 @@ type ClientWithResponsesInterface interface {
 
 	// ResolveObjectWithResponse performs a GET /api/v1/catalog/objects/{id}/resolution (the `ResolveObject` operationId) request.
 	//
+	// Requires current content admission in the served school: valid campus eligibility or verified teacher status. Missing admission returns 403; unavailable required facts return 503. No preview, content, counts or statistics are returned on rejection.
+	//
 	// Returns a wrapper object for the known response body format(s).
 	ResolveObjectWithResponse(ctx context.Context, id string, reqEditors ...RequestEditorFn) (*ResolveObjectResponse, error)
 
@@ -1804,8 +2353,425 @@ type ClientWithResponsesInterface interface {
 
 	// GetObjectSummaryWithResponse performs a GET /api/v1/catalog/objects/{id}/summary (the `GetObjectSummary` operationId) request.
 	//
+	// Requires current content admission in the served school: valid campus eligibility or verified teacher status. Missing admission returns 403; unavailable required facts return 503. No preview, content, counts or statistics are returned on rejection.
+	//
 	// Returns a wrapper object for the known response body format(s).
 	GetObjectSummaryWithResponse(ctx context.Context, id string, reqEditors ...RequestEditorFn) (*GetObjectSummaryResponse, error)
+}
+
+type AdminListObjectsResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *Page
+	// JSON400 the response for an HTTP 400 `application/json` response
+	JSON400 *Error
+	// JSON401 the response for an HTTP 401 `application/json` response
+	JSON401 *Error
+	// JSON403 the response for an HTTP 403 `application/json` response
+	JSON403 *Error
+	// JSON404 the response for an HTTP 404 `application/json` response
+	JSON404 *Error
+	// JSON409 the response for an HTTP 409 `application/json` response
+	JSON409 *Error
+	// JSON503 the response for an HTTP 503 `application/json` response
+	JSON503 *Error
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r AdminListObjectsResponse) GetJSON200() *Page {
+	return r.JSON200
+}
+
+// GetJSON400 returns the response for an HTTP 400 `application/json` response
+func (r AdminListObjectsResponse) GetJSON400() *Error {
+	return r.JSON400
+}
+
+// GetJSON401 returns the response for an HTTP 401 `application/json` response
+func (r AdminListObjectsResponse) GetJSON401() *Error {
+	return r.JSON401
+}
+
+// GetJSON403 returns the response for an HTTP 403 `application/json` response
+func (r AdminListObjectsResponse) GetJSON403() *Error {
+	return r.JSON403
+}
+
+// GetJSON404 returns the response for an HTTP 404 `application/json` response
+func (r AdminListObjectsResponse) GetJSON404() *Error {
+	return r.JSON404
+}
+
+// GetJSON409 returns the response for an HTTP 409 `application/json` response
+func (r AdminListObjectsResponse) GetJSON409() *Error {
+	return r.JSON409
+}
+
+// GetJSON503 returns the response for an HTTP 503 `application/json` response
+func (r AdminListObjectsResponse) GetJSON503() *Error {
+	return r.JSON503
+}
+
+// GetBody returns the raw response body bytes
+func (r AdminListObjectsResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r AdminListObjectsResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r AdminListObjectsResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r AdminListObjectsResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type AdminLookupObjectsResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *Lookup
+	// JSON400 the response for an HTTP 400 `application/json` response
+	JSON400 *Error
+	// JSON401 the response for an HTTP 401 `application/json` response
+	JSON401 *Error
+	// JSON403 the response for an HTTP 403 `application/json` response
+	JSON403 *Error
+	// JSON404 the response for an HTTP 404 `application/json` response
+	JSON404 *Error
+	// JSON409 the response for an HTTP 409 `application/json` response
+	JSON409 *Error
+	// JSON503 the response for an HTTP 503 `application/json` response
+	JSON503 *Error
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r AdminLookupObjectsResponse) GetJSON200() *Lookup {
+	return r.JSON200
+}
+
+// GetJSON400 returns the response for an HTTP 400 `application/json` response
+func (r AdminLookupObjectsResponse) GetJSON400() *Error {
+	return r.JSON400
+}
+
+// GetJSON401 returns the response for an HTTP 401 `application/json` response
+func (r AdminLookupObjectsResponse) GetJSON401() *Error {
+	return r.JSON401
+}
+
+// GetJSON403 returns the response for an HTTP 403 `application/json` response
+func (r AdminLookupObjectsResponse) GetJSON403() *Error {
+	return r.JSON403
+}
+
+// GetJSON404 returns the response for an HTTP 404 `application/json` response
+func (r AdminLookupObjectsResponse) GetJSON404() *Error {
+	return r.JSON404
+}
+
+// GetJSON409 returns the response for an HTTP 409 `application/json` response
+func (r AdminLookupObjectsResponse) GetJSON409() *Error {
+	return r.JSON409
+}
+
+// GetJSON503 returns the response for an HTTP 503 `application/json` response
+func (r AdminLookupObjectsResponse) GetJSON503() *Error {
+	return r.JSON503
+}
+
+// GetBody returns the raw response body bytes
+func (r AdminLookupObjectsResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r AdminLookupObjectsResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r AdminLookupObjectsResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r AdminLookupObjectsResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type AdminGetObjectResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *Object
+	// JSON400 the response for an HTTP 400 `application/json` response
+	JSON400 *Error
+	// JSON401 the response for an HTTP 401 `application/json` response
+	JSON401 *Error
+	// JSON403 the response for an HTTP 403 `application/json` response
+	JSON403 *Error
+	// JSON404 the response for an HTTP 404 `application/json` response
+	JSON404 *Error
+	// JSON409 the response for an HTTP 409 `application/json` response
+	JSON409 *Error
+	// JSON503 the response for an HTTP 503 `application/json` response
+	JSON503 *Error
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r AdminGetObjectResponse) GetJSON200() *Object {
+	return r.JSON200
+}
+
+// GetJSON400 returns the response for an HTTP 400 `application/json` response
+func (r AdminGetObjectResponse) GetJSON400() *Error {
+	return r.JSON400
+}
+
+// GetJSON401 returns the response for an HTTP 401 `application/json` response
+func (r AdminGetObjectResponse) GetJSON401() *Error {
+	return r.JSON401
+}
+
+// GetJSON403 returns the response for an HTTP 403 `application/json` response
+func (r AdminGetObjectResponse) GetJSON403() *Error {
+	return r.JSON403
+}
+
+// GetJSON404 returns the response for an HTTP 404 `application/json` response
+func (r AdminGetObjectResponse) GetJSON404() *Error {
+	return r.JSON404
+}
+
+// GetJSON409 returns the response for an HTTP 409 `application/json` response
+func (r AdminGetObjectResponse) GetJSON409() *Error {
+	return r.JSON409
+}
+
+// GetJSON503 returns the response for an HTTP 503 `application/json` response
+func (r AdminGetObjectResponse) GetJSON503() *Error {
+	return r.JSON503
+}
+
+// GetBody returns the raw response body bytes
+func (r AdminGetObjectResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r AdminGetObjectResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r AdminGetObjectResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r AdminGetObjectResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type AdminResolveObjectResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *Resolution
+	// JSON400 the response for an HTTP 400 `application/json` response
+	JSON400 *Error
+	// JSON401 the response for an HTTP 401 `application/json` response
+	JSON401 *Error
+	// JSON403 the response for an HTTP 403 `application/json` response
+	JSON403 *Error
+	// JSON404 the response for an HTTP 404 `application/json` response
+	JSON404 *Error
+	// JSON409 the response for an HTTP 409 `application/json` response
+	JSON409 *Error
+	// JSON503 the response for an HTTP 503 `application/json` response
+	JSON503 *Error
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r AdminResolveObjectResponse) GetJSON200() *Resolution {
+	return r.JSON200
+}
+
+// GetJSON400 returns the response for an HTTP 400 `application/json` response
+func (r AdminResolveObjectResponse) GetJSON400() *Error {
+	return r.JSON400
+}
+
+// GetJSON401 returns the response for an HTTP 401 `application/json` response
+func (r AdminResolveObjectResponse) GetJSON401() *Error {
+	return r.JSON401
+}
+
+// GetJSON403 returns the response for an HTTP 403 `application/json` response
+func (r AdminResolveObjectResponse) GetJSON403() *Error {
+	return r.JSON403
+}
+
+// GetJSON404 returns the response for an HTTP 404 `application/json` response
+func (r AdminResolveObjectResponse) GetJSON404() *Error {
+	return r.JSON404
+}
+
+// GetJSON409 returns the response for an HTTP 409 `application/json` response
+func (r AdminResolveObjectResponse) GetJSON409() *Error {
+	return r.JSON409
+}
+
+// GetJSON503 returns the response for an HTTP 503 `application/json` response
+func (r AdminResolveObjectResponse) GetJSON503() *Error {
+	return r.JSON503
+}
+
+// GetBody returns the raw response body bytes
+func (r AdminResolveObjectResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r AdminResolveObjectResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r AdminResolveObjectResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r AdminResolveObjectResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type AdminGetObjectSummaryResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *Summary
+	// JSON400 the response for an HTTP 400 `application/json` response
+	JSON400 *Error
+	// JSON401 the response for an HTTP 401 `application/json` response
+	JSON401 *Error
+	// JSON403 the response for an HTTP 403 `application/json` response
+	JSON403 *Error
+	// JSON404 the response for an HTTP 404 `application/json` response
+	JSON404 *Error
+	// JSON409 the response for an HTTP 409 `application/json` response
+	JSON409 *Error
+	// JSON503 the response for an HTTP 503 `application/json` response
+	JSON503 *Error
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r AdminGetObjectSummaryResponse) GetJSON200() *Summary {
+	return r.JSON200
+}
+
+// GetJSON400 returns the response for an HTTP 400 `application/json` response
+func (r AdminGetObjectSummaryResponse) GetJSON400() *Error {
+	return r.JSON400
+}
+
+// GetJSON401 returns the response for an HTTP 401 `application/json` response
+func (r AdminGetObjectSummaryResponse) GetJSON401() *Error {
+	return r.JSON401
+}
+
+// GetJSON403 returns the response for an HTTP 403 `application/json` response
+func (r AdminGetObjectSummaryResponse) GetJSON403() *Error {
+	return r.JSON403
+}
+
+// GetJSON404 returns the response for an HTTP 404 `application/json` response
+func (r AdminGetObjectSummaryResponse) GetJSON404() *Error {
+	return r.JSON404
+}
+
+// GetJSON409 returns the response for an HTTP 409 `application/json` response
+func (r AdminGetObjectSummaryResponse) GetJSON409() *Error {
+	return r.JSON409
+}
+
+// GetJSON503 returns the response for an HTTP 503 `application/json` response
+func (r AdminGetObjectSummaryResponse) GetJSON503() *Error {
+	return r.JSON503
+}
+
+// GetBody returns the raw response body bytes
+func (r AdminGetObjectSummaryResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r AdminGetObjectSummaryResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r AdminGetObjectSummaryResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r AdminGetObjectSummaryResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
 }
 
 type ImportCatalogResponse struct {
@@ -2887,6 +3853,71 @@ func (r GetObjectSummaryResponse) ContentType() string {
 	return ""
 }
 
+// AdminListObjectsWithResponse performs a GET /api/v1/catalog/admin/objects (the `AdminListObjects` operationId) request.
+//
+// Requires current catalog maintenance permission for the object school. Independent of content admission; no student enrollment identities are returned.
+//
+// Returns a wrapper object for the known response body format(s).
+func (c *ClientWithResponses) AdminListObjectsWithResponse(ctx context.Context, params *AdminListObjectsParams, reqEditors ...RequestEditorFn) (*AdminListObjectsResponse, error) {
+	rsp, err := c.AdminListObjects(ctx, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseAdminListObjectsResponse(rsp)
+}
+
+// AdminLookupObjectsWithResponse performs a GET /api/v1/catalog/admin/objects/lookup (the `AdminLookupObjects` operationId) request.
+//
+// Requires current catalog maintenance permission for the object school. Independent of content admission; no student enrollment identities are returned.
+//
+// Returns a wrapper object for the known response body format(s).
+func (c *ClientWithResponses) AdminLookupObjectsWithResponse(ctx context.Context, params *AdminLookupObjectsParams, reqEditors ...RequestEditorFn) (*AdminLookupObjectsResponse, error) {
+	rsp, err := c.AdminLookupObjects(ctx, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseAdminLookupObjectsResponse(rsp)
+}
+
+// AdminGetObjectWithResponse performs a GET /api/v1/catalog/admin/objects/{id} (the `AdminGetObject` operationId) request.
+//
+// Requires current catalog maintenance permission for the object school. Independent of content admission; no student enrollment identities are returned.
+//
+// Returns a wrapper object for the known response body format(s).
+func (c *ClientWithResponses) AdminGetObjectWithResponse(ctx context.Context, id string, reqEditors ...RequestEditorFn) (*AdminGetObjectResponse, error) {
+	rsp, err := c.AdminGetObject(ctx, id, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseAdminGetObjectResponse(rsp)
+}
+
+// AdminResolveObjectWithResponse performs a GET /api/v1/catalog/admin/objects/{id}/resolution (the `AdminResolveObject` operationId) request.
+//
+// Requires current catalog maintenance permission for the object school. Independent of content admission; no student enrollment identities are returned.
+//
+// Returns a wrapper object for the known response body format(s).
+func (c *ClientWithResponses) AdminResolveObjectWithResponse(ctx context.Context, id string, reqEditors ...RequestEditorFn) (*AdminResolveObjectResponse, error) {
+	rsp, err := c.AdminResolveObject(ctx, id, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseAdminResolveObjectResponse(rsp)
+}
+
+// AdminGetObjectSummaryWithResponse performs a GET /api/v1/catalog/admin/objects/{id}/summary (the `AdminGetObjectSummary` operationId) request.
+//
+// Requires current catalog maintenance permission for the object school. Independent of content admission; no student enrollment identities are returned.
+//
+// Returns a wrapper object for the known response body format(s).
+func (c *ClientWithResponses) AdminGetObjectSummaryWithResponse(ctx context.Context, id string, reqEditors ...RequestEditorFn) (*AdminGetObjectSummaryResponse, error) {
+	rsp, err := c.AdminGetObjectSummary(ctx, id, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseAdminGetObjectSummaryResponse(rsp)
+}
+
 // ImportCatalogWithBodyWithResponse performs a POST /api/v1/catalog/imports (the `ImportCatalog` operationId) request,
 // with any type of body and a specified content type.
 //
@@ -2966,6 +3997,8 @@ func (c *ClientWithResponses) MyEnrollmentsWithResponse(ctx context.Context, par
 
 // ListObjectsWithResponse performs a GET /api/v1/catalog/objects (the `ListObjects` operationId) request.
 //
+// Requires current content admission in the served school: valid campus eligibility or verified teacher status. Missing admission returns 403; unavailable required facts return 503. No preview, content, counts or statistics are returned on rejection.
+//
 // Returns a wrapper object for the known response body format(s).
 func (c *ClientWithResponses) ListObjectsWithResponse(ctx context.Context, params *ListObjectsParams, reqEditors ...RequestEditorFn) (*ListObjectsResponse, error) {
 	rsp, err := c.ListObjects(ctx, params, reqEditors...)
@@ -2977,6 +4010,8 @@ func (c *ClientWithResponses) ListObjectsWithResponse(ctx context.Context, param
 
 // LookupObjectsWithResponse performs a GET /api/v1/catalog/objects/lookup (the `LookupObjects` operationId) request.
 //
+// Requires current content admission in the served school: valid campus eligibility or verified teacher status. Missing admission returns 403; unavailable required facts return 503. No preview, content, counts or statistics are returned on rejection.
+//
 // Returns a wrapper object for the known response body format(s).
 func (c *ClientWithResponses) LookupObjectsWithResponse(ctx context.Context, params *LookupObjectsParams, reqEditors ...RequestEditorFn) (*LookupObjectsResponse, error) {
 	rsp, err := c.LookupObjects(ctx, params, reqEditors...)
@@ -2987,6 +4022,8 @@ func (c *ClientWithResponses) LookupObjectsWithResponse(ctx context.Context, par
 }
 
 // GetObjectWithResponse performs a GET /api/v1/catalog/objects/{id} (the `GetObject` operationId) request.
+//
+// Requires current content admission in the served school: valid campus eligibility or verified teacher status. Missing admission returns 403; unavailable required facts return 503. No preview, content, counts or statistics are returned on rejection.
 //
 // Returns a wrapper object for the known response body format(s).
 func (c *ClientWithResponses) GetObjectWithResponse(ctx context.Context, id string, reqEditors ...RequestEditorFn) (*GetObjectResponse, error) {
@@ -3065,6 +4102,8 @@ func (c *ClientWithResponses) PreviewMergeWithResponse(ctx context.Context, id s
 
 // ResolveObjectWithResponse performs a GET /api/v1/catalog/objects/{id}/resolution (the `ResolveObject` operationId) request.
 //
+// Requires current content admission in the served school: valid campus eligibility or verified teacher status. Missing admission returns 403; unavailable required facts return 503. No preview, content, counts or statistics are returned on rejection.
+//
 // Returns a wrapper object for the known response body format(s).
 func (c *ClientWithResponses) ResolveObjectWithResponse(ctx context.Context, id string, reqEditors ...RequestEditorFn) (*ResolveObjectResponse, error) {
 	rsp, err := c.ResolveObject(ctx, id, reqEditors...)
@@ -3098,6 +4137,8 @@ func (c *ClientWithResponses) SetObjectStateWithResponse(ctx context.Context, id
 
 // GetObjectSummaryWithResponse performs a GET /api/v1/catalog/objects/{id}/summary (the `GetObjectSummary` operationId) request.
 //
+// Requires current content admission in the served school: valid campus eligibility or verified teacher status. Missing admission returns 403; unavailable required facts return 503. No preview, content, counts or statistics are returned on rejection.
+//
 // Returns a wrapper object for the known response body format(s).
 func (c *ClientWithResponses) GetObjectSummaryWithResponse(ctx context.Context, id string, reqEditors ...RequestEditorFn) (*GetObjectSummaryResponse, error) {
 	rsp, err := c.GetObjectSummary(ctx, id, reqEditors...)
@@ -3105,6 +4146,346 @@ func (c *ClientWithResponses) GetObjectSummaryWithResponse(ctx context.Context, 
 		return nil, err
 	}
 	return ParseGetObjectSummaryResponse(rsp)
+}
+
+// ParseAdminListObjectsResponse parses an HTTP response from a AdminListObjectsWithResponse call
+func ParseAdminListObjectsResponse(rsp *http.Response) (*AdminListObjectsResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &AdminListObjectsResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest Page
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 409:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON409 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON503 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseAdminLookupObjectsResponse parses an HTTP response from a AdminLookupObjectsWithResponse call
+func ParseAdminLookupObjectsResponse(rsp *http.Response) (*AdminLookupObjectsResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &AdminLookupObjectsResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest Lookup
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 409:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON409 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON503 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseAdminGetObjectResponse parses an HTTP response from a AdminGetObjectWithResponse call
+func ParseAdminGetObjectResponse(rsp *http.Response) (*AdminGetObjectResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &AdminGetObjectResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest Object
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 409:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON409 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON503 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseAdminResolveObjectResponse parses an HTTP response from a AdminResolveObjectWithResponse call
+func ParseAdminResolveObjectResponse(rsp *http.Response) (*AdminResolveObjectResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &AdminResolveObjectResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest Resolution
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 409:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON409 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON503 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseAdminGetObjectSummaryResponse parses an HTTP response from a AdminGetObjectSummaryWithResponse call
+func ParseAdminGetObjectSummaryResponse(rsp *http.Response) (*AdminGetObjectSummaryResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &AdminGetObjectSummaryResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest Summary
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 409:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON409 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON503 = &dest
+
+	}
+
+	return response, nil
 }
 
 // ParseImportCatalogResponse parses an HTTP response from a ImportCatalogWithResponse call

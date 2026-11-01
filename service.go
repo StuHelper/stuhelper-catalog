@@ -15,8 +15,9 @@ import (
 )
 
 type Service struct {
-	Repo  Repository
-	Clock func() time.Time
+	ReadAccess ContentAccess
+	Repo       Repository
+	Clock      func() time.Time
 }
 
 func (s *Service) now() time.Time {

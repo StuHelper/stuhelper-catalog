@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"net/http"
 	"net/http/httptest"
 	"strings"
 	"sync"
@@ -17,7 +18,7 @@ import (
 func fixture(t *testing.T) (*c.Service, c.Principal, c.Import) {
 	t.Helper()
 	repo, _ := database(t)
-	s := &c.Service{Repo: repo}
+	s := &c.Service{Repo: repo, ReadAccess: &readAccess{}}
 	p := c.Principal{Subject: "issuer:admin", Schools: []string{"school"}, CanImport: true, CanMaintain: true}
 	object := func(id, kind string) c.Object {
 		return c.Object{ID: id, Kind: kind, SchoolID: "school", Name: id, Aliases: []string{}}
@@ -185,7 +186,7 @@ func TestSchoolScopePublicProjectionAndBoundedHTTP(t *testing.T) {
 	if _, e := s.Import(ctx, p, "ok", in); e != nil {
 		t.Fatal(e)
 	}
-	h := httpapi.Handler{Service: s}.Routes()
+	h := httpapi.Handler{Service: s, Authenticate: func(*http.Request) (c.Principal, error) { return c.Principal{Subject: "issuer:student"}, nil }}.Routes()
 	w := httptest.NewRecorder()
 	h.ServeHTTP(w, httptest.NewRequest("GET", "/api/v1/catalog/objects?kind=course", nil))
 	if w.Code != 200 {
@@ -200,7 +201,7 @@ func TestSchoolScopePublicProjectionAndBoundedHTTP(t *testing.T) {
 		t.Fatal("unbounded request allowed")
 	}
 	w = httptest.NewRecorder()
-	h.ServeHTTP(w, httptest.NewRequest("GET", "/api/v1/catalog/me/enrollments?subject=issuer:student", nil))
+	httpapi.Handler{Service: s}.Routes().ServeHTTP(w, httptest.NewRequest("GET", "/api/v1/catalog/me/enrollments?subject=issuer:student", nil))
 	if w.Code != 503 {
 		t.Fatal("missing identity must fail closed")
 	}
