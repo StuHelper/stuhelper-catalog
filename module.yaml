@@ -1,22 +1,36 @@
 id: catalog
 version: 0.3.0
+kind: module
 api: 1
 critical: false
 requires:
   - id: platform
     api: 1
 optional:
+  - id: campus-adapters
+    api: 1
   - id: verification
     api: 1
   - id: identity
-    api: 1
-  - id: campus-adapters
     api: 1
 capabilities:
   - catalog.read
   - catalog.import
   - catalog.enrollments
-capability_requires: {}
+  - catalog.maintain
+capability_requires:
+  catalog.read:
+    - id: identity
+      api: 1
+  catalog.import:
+    - id: identity
+      api: 1
+  catalog.enrollments:
+    - id: identity
+      api: 1
+  catalog.maintain:
+    - id: identity
+      api: 1
 scenario_tests:
   CO-02:
     - integration_test.go#TestImportRelationsClassificationAndMissingCredits
