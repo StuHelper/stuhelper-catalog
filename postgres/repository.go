@@ -120,7 +120,11 @@ func (t *transaction) Event(v catalog.Event) error {
 	if e := t.save(`INSERT INTO catalog.audit(id,data) VALUES($1,$2)`, v, v.ID); e != nil {
 		return e
 	}
-	return t.save(`INSERT INTO catalog.outbox(id,data) VALUES($1,$2)`, map[string]any{"specversion": "1.0", "id": v.ID, "source": "catalog", "type": v.Type, "subject": v.Subject, "time": v.Time, "schoolid": v.SchoolID, "datacontenttype": "application/json", "data": map[string]any{"revision": v.Revision}}, v.ID)
+	if e := t.save(`INSERT INTO catalog.outbox(id,data) VALUES($1,$2)`, map[string]any{"specversion": "1.0", "id": v.ID, "source": "catalog", "type": v.Type, "subject": v.Subject, "time": v.Time, "schoolid": v.SchoolID, "datacontenttype": "application/json", "data": map[string]any{"revision": v.Revision}}, v.ID); e != nil {
+		return e
+	}
+	_, e := t.tx.ExecContext(t.ctx, `SELECT pg_notify('catalog_outbox', '')`)
+	return safe(e)
 }
 
 func (t *transaction) HasAssignment(class, teacher string) (bool, error) {

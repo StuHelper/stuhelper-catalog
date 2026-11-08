@@ -2,22 +2,29 @@ package catalog
 
 import (
 	"context"
+	"errors"
 	"slices"
 )
 
-type ScheduleMeeting struct{ ID, TimeText, Location string }
+type ScheduleMeeting struct {
+	ID           string        `json:"id"`
+	TimeText     string        `json:"time_text"`
+	Location     string        `json:"location"`
+	ScheduleTime *ScheduleTime `json:"schedule_time,omitempty"`
+}
 type EnrollmentMeeting struct {
 	EnrollmentID string
 	Meeting      ScheduleMeeting
 }
 type OwnSchedule struct {
-	Enrollment Enrollment
-	CourseName string
-	Meetings   []ScheduleMeeting
+	Enrollment Enrollment        `json:"enrollment"`
+	CourseName string            `json:"course_name"`
+	Meetings   []ScheduleMeeting `json:"meetings"`
+	Timetable  *Timetable        `json:"timetable,omitempty"`
 }
 type OwnSchedulePage struct {
-	Items []OwnSchedule
-	Next  string
+	Items []OwnSchedule `json:"items"`
+	Next  string        `json:"next"`
 }
 
 // MySchedule projects only active records owned by the authenticated account.
@@ -67,12 +74,27 @@ func (s *Service) MySchedule(ctx context.Context, p Principal, term, after strin
 				return ErrUnavailable
 			}
 		}
+		configs := map[string]*Timetable{}
+		for _, v := range rows {
+			key := v.SchoolID + "/" + v.TermID
+			if _, ok := configs[key]; ok {
+				continue
+			}
+			c, e := tx.Timetable(v.SchoolID, v.TermID)
+			if e != nil && !errors.Is(e, ErrNotFound) {
+				return e
+			}
+			configs[key] = nil
+			if e == nil {
+				configs[key] = &c
+			}
+		}
 		for _, v := range rows {
 			items := byEnrollment[v.ID]
 			if items == nil {
 				items = []ScheduleMeeting{}
 			}
-			out.Items = append(out.Items, OwnSchedule{Enrollment: v, CourseName: byName[v.CourseID], Meetings: items})
+			out.Items = append(out.Items, OwnSchedule{Enrollment: v, CourseName: byName[v.CourseID], Meetings: items, Timetable: configs[v.SchoolID+"/"+v.TermID]})
 		}
 		if len(rows) == limit {
 			out.Next = rows[len(rows)-1].ID

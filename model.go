@@ -24,28 +24,29 @@ type Principal struct {
 	CanMaintain bool
 }
 type Object struct {
-	Inactive     bool      `json:"inactive,omitempty"`
-	CanonicalID  string    `json:"canonical_id,omitempty"`
-	ID           string    `json:"id"`
-	Kind         string    `json:"kind"`
-	SchoolID     string    `json:"school_id"`
-	Name         string    `json:"name"`
-	Code         string    `json:"code,omitempty"`
-	DepartmentID string    `json:"department_id,omitempty"`
-	CategoryID   string    `json:"category_id,omitempty"`
-	NatureID     string    `json:"nature_id,omitempty"`
-	CourseID     string    `json:"course_id,omitempty"`
-	TermID       string    `json:"term_id,omitempty"`
-	TermCourseID string    `json:"term_course_id,omitempty"`
-	ClassID      string    `json:"class_id,omitempty"`
-	TeacherID    string    `json:"teacher_id,omitempty"`
-	Credits      *float64  `json:"credits"`
-	Biography    string    `json:"biography,omitempty"`
-	Location     string    `json:"location,omitempty"`
-	TimeText     string    `json:"time_text,omitempty"`
-	Aliases      []string  `json:"aliases"`
-	Revision     int64     `json:"revision"`
-	UpdatedAt    time.Time `json:"updated_at"`
+	ScheduleTime *ScheduleTime `json:"schedule_time,omitempty"`
+	Inactive     bool          `json:"inactive,omitempty"`
+	CanonicalID  string        `json:"canonical_id,omitempty"`
+	ID           string        `json:"id"`
+	Kind         string        `json:"kind"`
+	SchoolID     string        `json:"school_id"`
+	Name         string        `json:"name"`
+	Code         string        `json:"code,omitempty"`
+	DepartmentID string        `json:"department_id,omitempty"`
+	CategoryID   string        `json:"category_id,omitempty"`
+	NatureID     string        `json:"nature_id,omitempty"`
+	CourseID     string        `json:"course_id,omitempty"`
+	TermID       string        `json:"term_id,omitempty"`
+	TermCourseID string        `json:"term_course_id,omitempty"`
+	ClassID      string        `json:"class_id,omitempty"`
+	TeacherID    string        `json:"teacher_id,omitempty"`
+	Credits      *float64      `json:"credits"`
+	Biography    string        `json:"biography,omitempty"`
+	Location     string        `json:"location,omitempty"`
+	TimeText     string        `json:"time_text,omitempty"`
+	Aliases      []string      `json:"aliases"`
+	Revision     int64         `json:"revision"`
+	UpdatedAt    time.Time     `json:"updated_at"`
 }
 
 // Record retains provenance separately from the public directory projection.
@@ -133,6 +134,8 @@ type Repository interface {
 	Transaction(context.Context, func(Transaction) error) error
 }
 type Transaction interface {
+	Timetable(string, string) (Timetable, error)
+	SaveTimetable(Timetable) error
 	OwnScheduleMeetings(string, []string, int) ([]EnrollmentMeeting, error)
 	OwnedReferences(subject string, ids []string) ([]string, error)
 	ReferenceNames(ids []string) ([]Reference, error)

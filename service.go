@@ -63,6 +63,9 @@ func validText(v string, n int) bool {
 var kinds = []string{"school", "department", "category", "nature", "term", "course", "teacher", "term_course", "class", "assignment", "schedule"}
 
 func validateObject(o Object, school string) error {
+	if !validSchedule(o.ScheduleTime) || (o.ScheduleTime != nil && o.Kind != "schedule") {
+		return ErrInput
+	}
 	if !ValidID(o.ID) || o.SchoolID != school || !slices.Contains(kinds, o.Kind) || strings.TrimSpace(o.Name) == "" || !validText(o.Name, 256) || !validText(o.Code, 128) || !validText(o.Biography, 8000) || !validText(o.TimeText, 1024) || !validText(o.Location, 512) || len(o.Aliases) > 50 {
 		return ErrInput
 	}
@@ -134,6 +137,7 @@ func (s *Service) Import(ctx context.Context, p Principal, key string, in Import
 	if !ValidKey(key) || !ValidID(in.SchoolID) || !ValidID(in.SourceID) || in.Revision < 1 || in.FetchedAt.IsZero() || in.FetchedAt.After(s.now().Add(time.Minute)) || len(in.Objects)+len(in.Enrollments) < 1 || len(in.Objects)+len(in.Enrollments) > 500 {
 		return out, ErrInput
 	}
+	in.Objects = normalizeSchedules(in.Objects)
 	seen := map[string]bool{}
 	for _, o := range in.Objects {
 		if validateObject(o, in.SchoolID) != nil || seen[o.ID] {

@@ -303,6 +303,57 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/catalog/me/schedule": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["mySchedule"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/catalog/me/schedule/calendar": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Complete term export, at most 100 enrollments and 10000 occurrences; unavailable if exceeded. 422 schedule_incomplete when any meeting time, required period or timetable is missing, or local time is ambiguous/nonexistent. UTC DTSTART/DTEND correctly derived from IANA timezone. Stable UID per subject/term/class/meeting/week. No partial calendar. */
+        get: operations["myCalendar"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/catalog/admin/schools/{school_id}/terms/{term_id}/timetable": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Requires catalog maintain capability and school scope. Missing configuration returns 404. */
+        get: operations["getTimetable"];
+        /** @description Requires catalog maintain capability and school scope. Missing configuration returns 404. */
+        put: operations["putTimetable"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -335,6 +386,7 @@ export interface components {
             updated_at: string;
             inactive?: boolean;
             canonical_id?: string;
+            schedule_time?: components["schemas"]["ScheduleTime"];
         };
         Page: {
             items: components["schemas"]["Object"][];
@@ -446,6 +498,8 @@ export interface components {
             kind: string;
             state: string;
             fields: string[];
+            schedule_time?: components["schemas"]["ScheduleTime"];
+            time_text?: string;
         };
         ImportPreview: {
             valid: boolean;
@@ -462,6 +516,46 @@ export interface components {
         References: {
             items: components["schemas"]["Reference"][];
             missing_ids: string[];
+        };
+        /** @description ISO weekday Monday=1. Explicit week set; odd/even weeks are expanded by importer. End period >= start. Missing structure means not provided. Recognized time_text grammar: 周一 第1-2节 第1-16周(单), with optional 单/双 suffix. */
+        ScheduleTime: {
+            weekday: number;
+            start_period: number;
+            end_period: number;
+            weeks: number[];
+        };
+        Period: {
+            number: number;
+            start: string;
+            end: string;
+        };
+        /** @description School and term scoped. PUT revision 0 creates; subsequent writes require current revision. Duplicate identical PUT with previous revision returns stored result. Period numbers unique and increasing with nonoverlapping same-day times. */
+        Timetable: {
+            school_id: string;
+            term_id: string;
+            /** Format: int64 */
+            revision: number;
+            /** @description Monday, YYYY-MM-DD */
+            week_one_start: string;
+            /** @description IANA timezone */
+            timezone: string;
+            periods: components["schemas"]["Period"][];
+        };
+        ScheduleMeeting: {
+            id: string;
+            time_text: string;
+            location: string;
+            schedule_time?: components["schemas"]["ScheduleTime"];
+        };
+        OwnSchedule: {
+            enrollment: components["schemas"]["Enrollment"];
+            course_name: string;
+            meetings: components["schemas"]["ScheduleMeeting"][];
+            timetable?: components["schemas"]["Timetable"];
+        };
+        OwnSchedulePage: {
+            items: components["schemas"]["OwnSchedule"][];
+            next: string;
         };
     };
     responses: never;
@@ -1931,6 +2025,327 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["References"];
+                };
+            };
+            /** @description Invalid input */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Authentication required */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not permitted */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Revision or idempotency conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Required dependency unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    mySchedule: {
+        parameters: {
+            query: {
+                term_id: string;
+                after?: string;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OwnSchedulePage"];
+                };
+            };
+            /** @description Invalid input */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Authentication required */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not permitted */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Revision or idempotency conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Required dependency unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    myCalendar: {
+        parameters: {
+            query: {
+                term_id: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/calendar": string;
+                };
+            };
+            /** @description Invalid input */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Authentication required */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not permitted */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Revision or idempotency conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description schedule_incomplete */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Required dependency unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    getTimetable: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                school_id: string;
+                term_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Timetable"];
+                };
+            };
+            /** @description Invalid input */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Authentication required */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not permitted */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Revision or idempotency conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Required dependency unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    putTimetable: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                school_id: string;
+                term_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["Timetable"];
+            };
+        };
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Timetable"];
                 };
             };
             /** @description Invalid input */

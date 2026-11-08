@@ -2,7 +2,7 @@
   "openapi": "3.0.3",
   "info": {
     "title": "StuHelper Catalog",
-    "version": "0.3.0"
+    "version": "0.4.0"
   },
   "servers": [
     {
@@ -2108,6 +2108,428 @@
         ],
         "description": "Login and ownership only. Returns names for IDs referenced by the caller own current or historical enrollment records; current content admission is not required. An unowned requested ID rejects the entire request with 404. At most 100 IDs. This response never includes biographies, scores, schedules or other public detail."
       }
+    },
+    "/api/v1/catalog/me/schedule": {
+      "get": {
+        "operationId": "mySchedule",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OwnSchedulePage"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not permitted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Revision or idempotency conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Required dependency unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "term_id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "after",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 20
+            }
+          }
+        ]
+      }
+    },
+    "/api/v1/catalog/me/schedule/calendar": {
+      "get": {
+        "operationId": "myCalendar",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "text/calendar": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not permitted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Revision or idempotency conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Required dependency unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "schedule_incomplete",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "term_id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "description": "Complete term export, at most 100 enrollments and 10000 occurrences; unavailable if exceeded. 422 schedule_incomplete when any meeting time, required period or timetable is missing, or local time is ambiguous/nonexistent. UTC DTSTART/DTEND correctly derived from IANA timezone. Stable UID per subject/term/class/meeting/week. No partial calendar."
+      }
+    },
+    "/api/v1/catalog/admin/schools/{school_id}/terms/{term_id}/timetable": {
+      "get": {
+        "operationId": "getTimetable",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Timetable"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not permitted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Revision or idempotency conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Required dependency unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "school_id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "term_id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "description": "Requires catalog maintain capability and school scope. Missing configuration returns 404."
+      },
+      "put": {
+        "operationId": "putTimetable",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Timetable"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not permitted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Revision or idempotency conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Required dependency unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "school_id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "term_id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "description": "Requires catalog maintain capability and school scope. Missing configuration returns 404.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Timetable"
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -2217,6 +2639,9 @@
           },
           "canonical_id": {
             "type": "string"
+          },
+          "schedule_time": {
+            "$ref": "#/components/schemas/ScheduleTime"
           }
         },
         "required": [
@@ -2685,6 +3110,12 @@
             "items": {
               "type": "string"
             }
+          },
+          "schedule_time": {
+            "$ref": "#/components/schemas/ScheduleTime"
+          },
+          "time_text": {
+            "type": "string"
           }
         },
         "required": [
@@ -2764,6 +3195,179 @@
             }
           }
         },
+        "additionalProperties": false
+      },
+      "ScheduleTime": {
+        "type": "object",
+        "properties": {
+          "weekday": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 7
+          },
+          "start_period": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 30
+          },
+          "end_period": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 30
+          },
+          "weeks": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 60
+            },
+            "minItems": 1,
+            "maxItems": 60,
+            "uniqueItems": true
+          }
+        },
+        "required": [
+          "weekday",
+          "start_period",
+          "end_period",
+          "weeks"
+        ],
+        "additionalProperties": false,
+        "description": "ISO weekday Monday=1. Explicit week set; odd/even weeks are expanded by importer. End period >= start. Missing structure means not provided. Recognized time_text grammar: 周一 第1-2节 第1-16周(单), with optional 单/双 suffix."
+      },
+      "Period": {
+        "type": "object",
+        "properties": {
+          "number": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 30
+          },
+          "start": {
+            "type": "string",
+            "pattern": "^[0-2][0-9]:[0-5][0-9]$"
+          },
+          "end": {
+            "type": "string",
+            "pattern": "^[0-2][0-9]:[0-5][0-9]$"
+          }
+        },
+        "required": [
+          "number",
+          "start",
+          "end"
+        ],
+        "additionalProperties": false
+      },
+      "Timetable": {
+        "type": "object",
+        "properties": {
+          "school_id": {
+            "type": "string"
+          },
+          "term_id": {
+            "type": "string"
+          },
+          "revision": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "week_one_start": {
+            "type": "string",
+            "description": "Monday, YYYY-MM-DD"
+          },
+          "timezone": {
+            "type": "string",
+            "description": "IANA timezone"
+          },
+          "periods": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 30,
+            "items": {
+              "$ref": "#/components/schemas/Period"
+            }
+          }
+        },
+        "required": [
+          "school_id",
+          "term_id",
+          "revision",
+          "week_one_start",
+          "timezone",
+          "periods"
+        ],
+        "additionalProperties": false,
+        "description": "School and term scoped. PUT revision 0 creates; subsequent writes require current revision. Duplicate identical PUT with previous revision returns stored result. Period numbers unique and increasing with nonoverlapping same-day times."
+      },
+      "ScheduleMeeting": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "time_text": {
+            "type": "string"
+          },
+          "location": {
+            "type": "string"
+          },
+          "schedule_time": {
+            "$ref": "#/components/schemas/ScheduleTime"
+          }
+        },
+        "required": [
+          "id",
+          "time_text",
+          "location"
+        ],
+        "additionalProperties": false
+      },
+      "OwnSchedule": {
+        "type": "object",
+        "properties": {
+          "enrollment": {
+            "$ref": "#/components/schemas/Enrollment"
+          },
+          "course_name": {
+            "type": "string"
+          },
+          "meetings": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ScheduleMeeting"
+            }
+          },
+          "timetable": {
+            "$ref": "#/components/schemas/Timetable"
+          }
+        },
+        "required": [
+          "enrollment",
+          "course_name",
+          "meetings"
+        ],
+        "additionalProperties": false
+      },
+      "OwnSchedulePage": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OwnSchedule"
+            }
+          },
+          "next": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "items",
+          "next"
+        ],
         "additionalProperties": false
       }
     }

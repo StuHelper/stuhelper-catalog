@@ -1,5 +1,5 @@
 id: catalog
-version: 0.3.0
+version: 0.4.0
 kind: module
 api: 1
 critical: false
@@ -63,3 +63,15 @@ scenario_tests:
     - content_test.go#TestContentReadAdmissionCoversEveryHTTPReadAndPreservesOwnEnrollment
   AE-ACCESS-07:
     - content_test.go#TestContentReadAdmissionCoversEveryHTTPReadAndPreservesOwnEnrollment
+  MC-01:
+    - timetable_test.go#TestStructuredImportPreviewCalendarAndOwnership
+  MC-02:
+    - timetable_test.go#TestStructuredImportPreviewCalendarAndOwnership
+  MC-03:
+    - timetable_test.go#TestScheduleExpansionWeeksTimezoneAndMissing
+  MC-05:
+    - timetable_test.go#TestCalendarEscapingFoldingAndDSTOffsets
+    - timetable_test.go#TestScheduleExpansionWeeksTimezoneAndMissing
+  MC-06:
+    - timetable_test.go#TestTimetableRevisionAuditConcurrencyAndMigration
+    - timetable_test.go#TestTimetableTransactionNotificationAndMigration

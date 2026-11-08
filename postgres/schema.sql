@@ -35,3 +35,9 @@ REVOKE ALL ON TABLE catalog.redirects FROM PUBLIC;
 CREATE INDEX IF NOT EXISTS catalog_enrollment_history_owner ON catalog.enrollments(subject,id);
 
 CREATE INDEX IF NOT EXISTS catalog_schedule_class ON catalog.objects(class_id,school_id,id) WHERE kind='schedule';
+
+CREATE TABLE IF NOT EXISTS catalog.timetables(school_id text NOT NULL REFERENCES catalog.objects(id),term_id text NOT NULL REFERENCES catalog.objects(id),data jsonb NOT NULL,PRIMARY KEY(school_id,term_id));
+REVOKE ALL ON TABLE catalog.timetables FROM PUBLIC;
+ALTER TABLE catalog.outbox ADD COLUMN IF NOT EXISTS sent_at timestamptz;
+UPDATE catalog.outbox SET sent_at=COALESCE((data->>'time')::timestamptz,now()) WHERE delivered AND sent_at IS NULL;
+CREATE INDEX IF NOT EXISTS catalog_outbox_pending ON catalog.outbox((data->>'subject'),(data->'data'->>'revision')) WHERE sent_at IS NULL;

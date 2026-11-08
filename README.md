@@ -27,7 +27,7 @@ bash scripts/check-with-postgres.sh
 
 迁移身份执行 `postgres.Schema`；运行身份仅获得 catalog schema 的读写权限，不得创建数据库对象或访问其他模块 schema。`postgres.CheckRuntime` 在应用装配时检查权限。
 
-当前首次建库迁移已验证。存量生产迁移、学校持续同步、运行库备份和恢复演练仍待实际环境验收。outbox 已持久化，通用跨服务事件投递另行接入。
+当前首次建库迁移已验证。存量生产迁移、学校持续同步、运行库备份和恢复演练仍待实际环境验收。outbox 与业务同事务持久化并通知 catalog_outbox，通用跨服务 relay 由 backend 装配。
 
 业务规则见 [课程与评价规格](https://github.com/StuHelper/stuhelper-next/blob/develop/docs/spec/academic-content.md)。
 
@@ -38,3 +38,5 @@ bash scripts/check-with-postgres.sh
 MySchedule 是供模块使用的公开接口，只读取当前账号的有效选课记录和相应教学班排课。使用批量名称与排课查询，不查询其他账号记录，也不将内容准入失效放宽到公共目录。
 
 每页最多 100 个选课记录，每条最多 100 个排课，一页排课最多 1000 条。超过范围返回 unavailable，调用方减小分页后重试。没有排课时返回空 meetings，不据此判断用户空闲。
+
+结构化排课、学校学期作息、本人 HTTP 课表和 iCalendar 导出见[实现规格](docs/spec/my-courses.md)。导入预览同时返回解析结果与原文，未知时间保持缺失。
