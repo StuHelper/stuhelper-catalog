@@ -46,15 +46,19 @@ postgres.Repository.DiscoverySnapshot 是受信重建接口，接收 cursor 和 
 
 backend 将 ReadAudit 适配到 admin.AuditProvider，将 DiscoveryCurrent 和 DiscoverySnapshot 适配到 search.Sources。snapshot 的 Next 原样传回，文档字段直接映射。当前查询必须传递可信请求人，不能只信搜索索引的 visible。
 
-catalog.OutboxChannel 为 catalog_outbox。postgres.Repository 实现 OutboxReader，提供 PendingOutbox(ctx, limit) 和 ConfirmOutbox(ctx, id)。所有目录业务事件、catalog.discovery.v1 和作息变更共用 Envelope、同事务写入与通知路径。
+catalog.OutboxChannel 为 catalog_outbox。postgres.Repository 实现 OutboxReader，提供 PendingOutbox(ctx, limit, excludeSubjects) 和 ConfirmOutbox(ctx, id)。
 
-PendingOutbox 的 limit 为 1 至 100，仅读取 sent_at IS NULL。部分索引与查询均按 source、subject、数值 revision、ID 升序排列，字符串按字节比较。读取不锁定或确认事件，重复读取保留相同 ID 和完整载荷，空队列返回空列表。
+所有目录业务事件、catalog.discovery.v1 和作息变更共用 Envelope、同事务写入与通知路径。
+
+PendingOutbox 的 limit 为 1 至 100，excludeSubjects 最多 1000 项，超限返回 invalid_input。nil 或空列表不排除主题。排除在数据库 LIMIT 之前执行，退避或人工处理中的主题不会占用返回批次；不存在或重复主题不影响结果。
+
+查询仅读取 sent_at IS NULL 的部分索引，按 source、subject、数值 revision、ID 升序排列，字符串按字节比较。同主题的剩余事件保持原有顺序。读取不锁定或确认事件，排除主题保留待发送状态，空队列返回空列表。
 
 ConfirmOutbox 在消费者持久提交后调用，设置首次 sent_at。重复或并发确认保留该时间，不存在的 ID 返回 not_found。sent_at 是唯一投递状态；数据表直接定义最终结构，不提供旧投递状态的兼容或转换路径。
 
 relay 按 (source, subject) 串行消费，前一事件失败时不能越过它投递同组后续事件。多个 relay 的协调由 backend 承担。消费成功但确认失败时允许重投，消费者须按事件 ID 实现 inbox 去重。
 
-relay 收到 LISTEN 通知立即调用 PendingOutbox，启动及重连时补读，每 60 秒兜底读取。失败退避和 24 小时待处理队列由 backend 按 EVENT-DELIVERY.md 装配。业务表不作为增量轮询来源。
+relay 收到 LISTEN 通知立即调用 PendingOutbox，传入处于退避或人工处理的主题。启动及重连时补读，每 60 秒兜底读取。失败退避和 24 小时待处理队列由 backend 按 EVENT-DELIVERY.md 装配。业务表不作为增量轮询来源。
 
 | 场景 | 验收结果 |
 | --- | --- |
@@ -63,5 +67,8 @@ relay 收到 LISTEN 通知立即调用 PendingOutbox，启动及重连时补读�
 | CAT-DISCOVERY-02 | 更新与迟提交不改变快照，分页无重复遗漏，历史清理使快照失效 |
 | CAT-OUTBOX-01 | 事务通知、积压补读、批量上限、数值顺序、重复读取与幂等确认 |
 | CAT-OUTBOX-02 | discovery 和作息载荷完整保留，墓碑字段不丢失，消费后确认 |
+| CAT-OUTBOX-03 | 排除阻塞主题后返回其他主题，顺序不变，空列表及容量边界正确，实际查询使用部分索引 |
 
 本地隔离 PostgreSQL 18.6 的完整 make check 通过，包含 go vet、竞态测试、SDK 一致性、边界检查、构建及文档检查。backend 适配器、search 组合重建和真实账号尚未验收。本轮没有新增 HTTP 路径，OpenAPI 与 HTTP SDK 保持现有定义。
+
+查询计划测试使用生产 SQL，在 20000 条已确认和 200 条待发送事件上运行 EXPLAIN ANALYZE。nil、空列表、部分排除、全部排除及 1000 项排除均使用 catalog_outbox_pending，未出现 Seq Scan。测试使用默认优化器，不关闭顺序扫描。

@@ -88,3 +88,6 @@ scenario_tests:
   CAT-OUTBOX-02:
     - outbox_delivery_test.go#TestOutboxMergeRevisionBelongsToSourceSubject
     - outbox_delivery_test.go#TestOutboxDiscoveryAndTimetablePayloads
+  CAT-OUTBOX-03:
+    - outbox_delivery_test.go#TestOutboxExcludedSubjectsDoNotBlockOtherSubjects
+    - postgres/outbox_plan_test.go#TestPendingOutboxExclusionUsesPartialIndex

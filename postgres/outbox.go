@@ -7,14 +7,16 @@ import (
 
 var _ c.OutboxReader = (*Repository)(nil)
 
-func (r *Repository) PendingOutbox(ctx context.Context, limit int) ([]c.Envelope, error) {
-	if limit < 1 || limit > 100 {
+const pendingOutboxSQL = `SELECT data FROM catalog.outbox WHERE sent_at IS NULL AND NOT ((data->>'subject') = ANY(COALESCE($2::text[], ARRAY[]::text[]))) ORDER BY (data->>'source') COLLATE "C", (data->>'subject') COLLATE "C", (data->'data'->>'revision')::bigint, id COLLATE "C" LIMIT $1`
+
+func (r *Repository) PendingOutbox(ctx context.Context, limit int, excludeSubjects []string) ([]c.Envelope, error) {
+	if limit < 1 || limit > 100 || len(excludeSubjects) > 1000 {
 		return nil, c.ErrInput
 	}
 	var out []c.Envelope
 	err := r.Transaction(ctx, func(tx c.Transaction) error {
 		var e error
-		out, e = list[c.Envelope](tx.(*transaction), `SELECT data FROM catalog.outbox WHERE sent_at IS NULL ORDER BY (data->>'source') COLLATE "C", (data->>'subject') COLLATE "C", (data->'data'->>'revision')::bigint, id COLLATE "C" LIMIT $1`, limit)
+		out, e = list[c.Envelope](tx.(*transaction), pendingOutboxSQL, limit, excludeSubjects)
 		return e
 	})
 	return out, err

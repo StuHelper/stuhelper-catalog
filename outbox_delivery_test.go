@@ -46,7 +46,7 @@ func TestOutboxNotificationBacklogOrderAndConfirmation(t *testing.T) {
 	if !errors.Is(e, context.DeadlineExceeded) {
 		t.Fatal("rollback notified", e)
 	}
-	pending, e := repo.PendingOutbox(ctx, 100)
+	pending, e := repo.PendingOutbox(ctx, 100, nil)
 	if e != nil || len(pending) != 0 {
 		t.Fatal(pending, e)
 	}
@@ -85,14 +85,14 @@ func TestOutboxNotificationBacklogOrderAndConfirmation(t *testing.T) {
 		}
 	}
 	restarted := &postgres.Repository{DB: repo.DB}
-	pending, e = restarted.PendingOutbox(ctx, 100)
+	pending, e = restarted.PendingOutbox(ctx, 100, nil)
 	if e != nil || len(pending) != 100 {
 		t.Fatal(len(pending), e)
 	}
 	if pending[0].ID != "one" || pending[1].ID != "two" || pending[2].ID != "ten" {
 		t.Fatal(pending[:3])
 	}
-	again, e := restarted.PendingOutbox(ctx, 100)
+	again, e := restarted.PendingOutbox(ctx, 100, nil)
 	if e != nil || !reflect.DeepEqual(again, pending) {
 		t.Fatal("read changed delivery", e)
 	}
@@ -130,7 +130,7 @@ func TestOutboxNotificationBacklogOrderAndConfirmation(t *testing.T) {
 	if e = db.QueryRow(`SELECT sent_at FROM catalog.outbox WHERE id=$1`, pending[0].ID).Scan(&second); e != nil || !first.Equal(second) {
 		t.Fatal(first, second, e)
 	}
-	rest, e := repo.PendingOutbox(ctx, 100)
+	rest, e := repo.PendingOutbox(ctx, 100, nil)
 	if e != nil || len(rest) != 5 || rest[4].ID != "z-one" {
 		t.Fatal(rest, e)
 	}
@@ -139,12 +139,12 @@ func TestOutboxNotificationBacklogOrderAndConfirmation(t *testing.T) {
 			t.Fatal(e)
 		}
 	}
-	empty, e := repo.PendingOutbox(ctx, 1)
+	empty, e := repo.PendingOutbox(ctx, 1, nil)
 	if e != nil || len(empty) != 0 {
 		t.Fatal(empty, e)
 	}
 	for _, limit := range []int{-1, 0, 101} {
-		if _, e = repo.PendingOutbox(ctx, limit); !errors.Is(e, c.ErrInput) {
+		if _, e = repo.PendingOutbox(ctx, limit, nil); !errors.Is(e, c.ErrInput) {
 			t.Fatal(limit, e)
 		}
 	}
@@ -160,7 +160,7 @@ func TestOutboxNotificationBacklogOrderAndConfirmation(t *testing.T) {
 	}
 	cancelled, done := context.WithCancel(ctx)
 	done()
-	if _, e = repo.PendingOutbox(cancelled, 1); !errors.Is(e, context.Canceled) {
+	if _, e = repo.PendingOutbox(cancelled, 1, nil); !errors.Is(e, context.Canceled) {
 		t.Fatal(e)
 	}
 	if e = repo.ConfirmOutbox(cancelled, longID); !errors.Is(e, context.Canceled) {
@@ -193,7 +193,7 @@ func TestOutboxDiscoveryAndTimetablePayloads(t *testing.T) {
 	if _, e := s.PutTimetable(ctx, admin, cfg); e != nil {
 		t.Fatal(e)
 	}
-	events, e := repo.PendingOutbox(ctx, 100)
+	events, e := repo.PendingOutbox(ctx, 100, nil)
 	if e != nil || len(events) != 8 {
 		t.Fatal(len(events), e)
 	}
@@ -243,7 +243,7 @@ func TestOutboxDiscoveryAndTimetablePayloads(t *testing.T) {
 	if discovery != 4 || timetables != 2 || tombstones != 1 {
 		t.Fatal(discovery, timetables, tombstones)
 	}
-	empty, e := repo.PendingOutbox(ctx, 100)
+	empty, e := repo.PendingOutbox(ctx, 100, nil)
 	if e != nil || len(empty) != 0 {
 		t.Fatal(empty, e)
 	}
@@ -269,7 +269,7 @@ func TestOutboxMergeRevisionBelongsToSourceSubject(t *testing.T) {
 	if _, e = s.Merge(ctx, p, "duplicate", "merge", input); e != nil {
 		t.Fatal(e)
 	}
-	pending, e := s.Repo.(c.OutboxReader).PendingOutbox(ctx, 100)
+	pending, e := s.Repo.(c.OutboxReader).PendingOutbox(ctx, 100, nil)
 	if e != nil {
 		t.Fatal(e)
 	}
@@ -284,5 +284,76 @@ func TestOutboxMergeRevisionBelongsToSourceSubject(t *testing.T) {
 	}
 	if !found {
 		t.Fatal("merge event missing")
+	}
+}
+
+func TestOutboxExcludedSubjectsDoNotBlockOtherSubjects(t *testing.T) {
+	repo, _ := database(t)
+	ctx := context.Background()
+	err := repo.Transaction(ctx, func(tx c.Transaction) error {
+		for i := 1; i <= 100; i++ {
+			if e := tx.Event(c.Event{ID: fmt.Sprintf("blocked-%03d", i), Type: "catalog.test.v1", Subject: "a-blocked", Revision: int64(i), Time: time.Now().UTC()}); e != nil {
+				return e
+			}
+		}
+		for _, v := range []struct {
+			id, subject string
+			rev         int64
+		}{{"z-ten", "z-ready", 10}, {"z-two-b", "z-ready", 2}, {"z-two-a", "z-ready", 2}, {"b-one", "b-ready", 1}} {
+			if e := tx.Event(c.Event{ID: v.id, Type: "catalog.test.v1", Subject: v.subject, Revision: v.rev, Time: time.Now().UTC()}); e != nil {
+				return e
+			}
+		}
+		return nil
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	baseline, e := repo.PendingOutbox(ctx, 100, nil)
+	if e != nil || len(baseline) != 100 || baseline[99].Subject != "a-blocked" {
+		t.Fatal(baseline, e)
+	}
+	empty, e := repo.PendingOutbox(ctx, 100, []string{})
+	if e != nil || !reflect.DeepEqual(empty, baseline) {
+		t.Fatal("empty exclusion changed results", e)
+	}
+	result, e := repo.PendingOutbox(ctx, 100, []string{"a-blocked"})
+	if e != nil || len(result) != 4 {
+		t.Fatal(result, e)
+	}
+	want := []string{"b-one", "z-two-a", "z-two-b", "z-ten"}
+	for i, v := range result {
+		if v.ID != want[i] {
+			t.Fatal(result)
+		}
+	}
+	repeat, e := repo.PendingOutbox(ctx, 100, []string{"a-blocked", "a-blocked", "missing"})
+	if e != nil || !reflect.DeepEqual(repeat, result) {
+		t.Fatal(repeat, e)
+	}
+	one, e := repo.PendingOutbox(ctx, 1, []string{"a-blocked"})
+	if e != nil || len(one) != 1 || one[0].ID != "b-one" {
+		t.Fatal(one, e)
+	}
+	all, e := repo.PendingOutbox(ctx, 100, []string{"a-blocked", "b-ready", "z-ready"})
+	if e != nil || len(all) != 0 {
+		t.Fatal(all, e)
+	}
+	maximum := make([]string, 1000)
+	for i := range maximum {
+		maximum[i] = fmt.Sprintf("absent-%d", i)
+	}
+	maximum[999] = "a-blocked"
+	boundary, e := repo.PendingOutbox(ctx, 100, maximum)
+	if e != nil || !reflect.DeepEqual(boundary, result) {
+		t.Fatal(boundary, e)
+	}
+	if _, e = repo.PendingOutbox(ctx, 100, append(maximum, "overflow")); !errors.Is(e, c.ErrInput) {
+		t.Fatal("unbounded exclusion accepted", e)
+	}
+	// Exclusion has no delivery side effect: removing it makes the backlog visible.
+	restored, e := repo.PendingOutbox(ctx, 100, nil)
+	if e != nil || !reflect.DeepEqual(restored, baseline) {
+		t.Fatal("excluded events changed", e)
 	}
 }

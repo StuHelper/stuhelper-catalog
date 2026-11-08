@@ -9,8 +9,9 @@ const OutboxChannel = "catalog_outbox"
 
 // OutboxReader is a trusted relay port. Confirm only after durable consumption.
 // Pending reads do not claim rows; the relay serializes each (source, subject).
+// Exclude up to 1000 subjects currently backing off or awaiting manual handling.
 type OutboxReader interface {
-	PendingOutbox(context.Context, int) ([]Envelope, error)
+	PendingOutbox(context.Context, int, []string) ([]Envelope, error)
 	ConfirmOutbox(context.Context, string) error
 }
 
