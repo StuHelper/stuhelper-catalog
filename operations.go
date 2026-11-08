@@ -161,7 +161,7 @@ func (s *Service) Merge(ctx context.Context, p Principal, id, key string, in Mer
 			return e
 		}
 		out = target.Object
-		if e = t.Event(Event{Result: "success", ID: rk, Subject: id, Type: "catalog.merged.v1", Reason: "catalog.merge", SchoolID: out.SchoolID, Actor: p.Subject, Revision: out.Revision, Time: s.now()}); e != nil {
+		if e = t.Event(Event{Result: "success", ID: rk, Subject: id, Type: "catalog.merged.v1", Reason: "catalog.merge", SchoolID: out.SchoolID, Actor: p.Subject, Revision: source.Object.Revision, Time: s.now()}); e != nil {
 			return e
 		}
 		data, _ := json.Marshal(out)

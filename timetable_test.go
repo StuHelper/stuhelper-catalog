@@ -296,14 +296,14 @@ func TestTimetableTransactionNotificationAndMigration(t *testing.T) {
 	if e = repo.DB.QueryRow(`SELECT count(*) FROM catalog.outbox WHERE data->>'type'='catalog.timetable.updated.v1'`).Scan(&count); e != nil || count != 1 {
 		t.Fatal(count, e)
 	}
-	// Reapplying migration preserves pending events, configuration, and delivered state.
-	if _, e = migration.Exec(`UPDATE catalog.outbox SET delivered=true WHERE data->>'type'='catalog.imported.v1'`); e != nil {
+	// Reapplying schema preserves pending events, configuration, and confirmations.
+	if _, e = migration.Exec(`UPDATE catalog.outbox SET sent_at=now() WHERE data->>'type'='catalog.imported.v1'`); e != nil {
 		t.Fatal(e)
 	}
 	if _, e = migration.Exec(postgres.Schema); e != nil {
 		t.Fatal(e)
 	}
-	if e = repo.DB.QueryRow(`SELECT count(*) FROM catalog.outbox WHERE delivered AND sent_at IS NOT NULL`).Scan(&count); e != nil || count != 1 {
+	if e = repo.DB.QueryRow(`SELECT count(*) FROM catalog.outbox WHERE sent_at IS NOT NULL`).Scan(&count); e != nil || count != 1 {
 		t.Fatal(count, e)
 	}
 	stored, e = s.GetTimetable(ctx, admin, "school", "term1")

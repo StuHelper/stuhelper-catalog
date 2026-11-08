@@ -28,7 +28,7 @@ GET 和 PUT /api/v1/catalog/admin/schools/{school_id}/terms/{term_id}/timetable 
 
 配置按学校和学期独立持久化。创建传 revision=0，更正传当前修订号。并发更正返回 conflict；紧接成功写入的相同旧修订请求返回原结果。不存在的配置返回 not_found。
 
-作息写入、审计与 CloudEvents outbox 在同一事务提交，并通知 catalog_outbox。审计记录操作者、学校、对象和修订。sent_at IS NULL 的部分索引用于待发送读取。已有 delivered 事件在迁移中标记 sent_at，保留未投递事件。
+作息写入、审计与 CloudEvents outbox 在同一事务提交，并通知 catalog_outbox。审计记录操作者、学校、对象和修订。作息事件通过 PendingOutbox 读取，消费成功后调用 ConfirmOutbox。sent_at 为空表示待发送，确认后保留首次确认时间。
 
 ## 验收与后续接入
 

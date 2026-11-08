@@ -24,7 +24,7 @@ CREATE TABLE IF NOT EXISTS catalog.audit(
  audit_actor text NOT NULL DEFAULT 'unknown',audit_target text NOT NULL DEFAULT 'unknown',audit_action text NOT NULL DEFAULT 'unknown',
  audit_school text NOT NULL DEFAULT '*',audit_group text NOT NULL DEFAULT '*',audit_time timestamptz NOT NULL DEFAULT now()
 );
-CREATE TABLE IF NOT EXISTS catalog.outbox(id text PRIMARY KEY, data jsonb NOT NULL, delivered boolean NOT NULL DEFAULT false);
+CREATE TABLE IF NOT EXISTS catalog.outbox(id text PRIMARY KEY, data jsonb NOT NULL, sent_at timestamptz);
 REVOKE ALL ON SCHEMA catalog FROM PUBLIC;
 REVOKE ALL ON ALL TABLES IN SCHEMA catalog FROM PUBLIC;
 
@@ -44,9 +44,7 @@ CREATE INDEX IF NOT EXISTS catalog_schedule_class ON catalog.objects(class_id,sc
 
 CREATE TABLE IF NOT EXISTS catalog.timetables(school_id text NOT NULL REFERENCES catalog.objects(id),term_id text NOT NULL REFERENCES catalog.objects(id),data jsonb NOT NULL,PRIMARY KEY(school_id,term_id));
 REVOKE ALL ON TABLE catalog.timetables FROM PUBLIC;
-ALTER TABLE catalog.outbox ADD COLUMN IF NOT EXISTS sent_at timestamptz;
-UPDATE catalog.outbox SET sent_at=COALESCE((data->>'time')::timestamptz,now()) WHERE delivered AND sent_at IS NULL;
-CREATE INDEX IF NOT EXISTS catalog_outbox_pending ON catalog.outbox((data->>'subject'),(data->'data'->>'revision')) WHERE sent_at IS NULL;
+CREATE INDEX IF NOT EXISTS catalog_outbox_pending ON catalog.outbox((data->>'source') COLLATE "C",(data->>'subject') COLLATE "C",((data->'data'->>'revision')::bigint),id COLLATE "C") WHERE sent_at IS NULL;
 
 CREATE TABLE IF NOT EXISTS catalog.audit_retention(singleton boolean PRIMARY KEY DEFAULT true CHECK(singleton),revision bigint NOT NULL DEFAULT 0);
 INSERT INTO catalog.audit_retention(singleton) VALUES(true) ON CONFLICT DO NOTHING;

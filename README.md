@@ -27,7 +27,7 @@ bash scripts/check-with-postgres.sh
 
 迁移身份执行 `postgres.Schema`；运行身份仅获得 catalog schema 的读写权限，不得创建数据库对象或访问其他模块 schema。`postgres.CheckRuntime` 在应用装配时检查权限。
 
-当前首次建库迁移已验证。存量生产迁移、学校持续同步、运行库备份和恢复演练仍待实际环境验收。outbox 与业务同事务持久化并通知 catalog_outbox，通用跨服务 relay 由 backend 装配。
+当前首次建库迁移已验证。存量生产迁移、学校持续同步、运行库备份和恢复演练仍待实际环境验收。outbox 与业务同事务持久化并通知 OutboxChannel（catalog_outbox）。relay 通过 PendingOutbox 读取待发送事件，消费者持久提交后调用 ConfirmOutbox。通用跨服务 relay 由 backend 装配。
 
 业务规则见 [课程与评价规格](https://github.com/StuHelper/stuhelper-next/blob/develop/docs/spec/academic-content.md)。
 

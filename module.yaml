@@ -83,3 +83,8 @@ scenario_tests:
     - discovery_test.go#TestDiscoveryEventsRollbackMergeDeletionAndCurrent
   CAT-DISCOVERY-02:
     - discovery_test.go#TestDiscoverySnapshotStableWithUpdatesLateCommitsAndRetention
+  CAT-OUTBOX-01:
+    - outbox_delivery_test.go#TestOutboxNotificationBacklogOrderAndConfirmation
+  CAT-OUTBOX-02:
+    - outbox_delivery_test.go#TestOutboxMergeRevisionBelongsToSourceSubject
+    - outbox_delivery_test.go#TestOutboxDiscoveryAndTimetablePayloads

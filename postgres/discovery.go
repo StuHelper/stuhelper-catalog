@@ -29,12 +29,7 @@ func (t *transaction) saveDiscovery(o c.Object) error {
 		return e
 	}
 	eventID := fmt.Sprintf("discovery:%s:%d", o.ID, o.Revision)
-	event := map[string]any{"specversion": "1.0", "id": eventID, "source": "catalog", "type": "catalog.discovery.v1", "subject": o.ID, "time": o.UpdatedAt, "data": d}
-	if e := t.save(`INSERT INTO catalog.outbox(id,data) VALUES($1,$2)`, event, eventID); e != nil {
-		return e
-	}
-	_, e := t.tx.ExecContext(t.ctx, `SELECT pg_notify('catalog_outbox','')`)
-	return safe(e)
+	return t.saveEnvelope(c.Envelope{SpecVersion: "1.0", ID: eventID, Source: "catalog", Type: "catalog.discovery.v1", Subject: o.ID, Time: o.UpdatedAt, Data: c.ResultData{Revision: d.Revision, Target: &d.Target, Title: &d.Title, SchoolID: &d.SchoolID, Visible: &d.Visible, Ratings: &d.Ratings, At: &d.At}})
 }
 func (t *transaction) DiscoveryCurrent(school string, ids []string) ([]c.DiscoveryDocument, error) {
 	return list[c.DiscoveryDocument](t, `SELECT h.data FROM catalog.objects o JOIN catalog.discovery_history h ON h.id=o.id AND h.revision=(o.data->'object'->>'revision')::bigint WHERE o.id=ANY($1::text[]) AND o.school_id=$2 AND o.id=catalog.canonical(o.id) AND NOT COALESCE((o.data->'object'->>'inactive')::boolean,false) AND (h.data->>'visible')::boolean ORDER BY o.id COLLATE "C"`, ids, school)

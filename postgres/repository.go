@@ -148,11 +148,7 @@ func (t *transaction) Event(v catalog.Event) error {
 	if e := t.save(`INSERT INTO catalog.audit(id,reason,result,audit_actor,audit_target,audit_action,audit_school,audit_time,data) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9)`, v, v.ID, reason, result, actor, target, action, school, v.Time); e != nil {
 		return e
 	}
-	if e := t.save(`INSERT INTO catalog.outbox(id,data) VALUES($1,$2)`, map[string]any{"specversion": "1.0", "id": v.ID, "source": "catalog", "type": v.Type, "subject": v.Subject, "time": v.Time, "schoolid": v.SchoolID, "datacontenttype": "application/json", "data": map[string]any{"revision": v.Revision}}, v.ID); e != nil {
-		return e
-	}
-	_, e := t.tx.ExecContext(t.ctx, `SELECT pg_notify('catalog_outbox', '')`)
-	return safe(e)
+	return t.saveEnvelope(catalog.Envelope{SpecVersion: "1.0", ID: v.ID, Source: "catalog", Type: v.Type, Subject: v.Subject, Time: v.Time, SchoolID: v.SchoolID, DataContentType: "application/json", Data: catalog.ResultData{Revision: v.Revision}})
 }
 
 func (t *transaction) HasAssignment(class, teacher string) (bool, error) {

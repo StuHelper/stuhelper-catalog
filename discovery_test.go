@@ -278,7 +278,7 @@ func TestDiscoveryNotificationAndAuditAtomicity(t *testing.T) {
 		t.Fatal(audit, e)
 	}
 	if e = repo.Transaction(ctx, func(tx c.Transaction) error {
-		return tx.Event(c.Event{ID: "unknown-event", Actor: "admin", Subject: "school-teacher", SchoolID: "school", Type: "unproven", Time: time.Now(), Reason: "identity@example.invalid"})
+		return tx.Event(c.Event{ID: "unknown-event", Revision: 1, Actor: "admin", Subject: "school-teacher", SchoolID: "school", Type: "unproven", Time: time.Now(), Reason: "identity@example.invalid"})
 	}); e != nil {
 		t.Fatal(e)
 	}
