@@ -304,7 +304,7 @@ func (s *Service) Import(ctx context.Context, p Principal, key string, in Import
 		if _, e := t.MergeAliases("", "", in.SchoolID, now, "Canonical relation after import"); e != nil {
 			return e
 		}
-		if e := t.Event(Event{ID: rk, Subject: "import/" + rk, Type: "catalog.imported.v1", SchoolID: in.SchoolID, Actor: p.Subject, Revision: in.Revision, Time: now}); e != nil {
+		if e := t.Event(Event{Result: "success", ID: rk, Subject: "import/" + rk, Type: "catalog.imported.v1", SchoolID: in.SchoolID, Actor: p.Subject, Revision: in.Revision, Time: now}); e != nil {
 			return e
 		}
 		b, e := json.Marshal(out)
@@ -432,7 +432,7 @@ func (s *Service) Correct(ctx context.Context, p Principal, id, key string, in C
 			return e
 		}
 		out = r.Object
-		if e = t.Event(Event{ID: rk, Subject: fmt.Sprintf("object/%s", id), Type: "catalog.corrected.v1", SchoolID: r.Object.SchoolID, Actor: p.Subject, Revision: r.Object.Revision, Time: s.now()}); e != nil {
+		if e = t.Event(Event{Result: "success", ID: rk, Subject: fmt.Sprintf("object/%s", id), Type: "catalog.corrected.v1", SchoolID: r.Object.SchoolID, Actor: p.Subject, Revision: r.Object.Revision, Time: s.now()}); e != nil {
 			return e
 		}
 		b, e := json.Marshal(out)

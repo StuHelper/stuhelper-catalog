@@ -7,6 +7,7 @@ import (
 	_ "embed"
 	"encoding/json"
 	"errors"
+	"strings"
 
 	catalog "github.com/StuHelper/stuhelper-catalog"
 	"github.com/jackc/pgx/v5/pgconn"
@@ -98,7 +99,10 @@ func (t *transaction) SaveObject(r catalog.Record) error {
 	if e := t.save(`INSERT INTO catalog.history(id,revision,data) VALUES($1,$2,$3)`, r, o.ID, o.Revision); e != nil {
 		return e
 	}
-	return t.save(`INSERT INTO catalog.objects(id,school_id,kind,name,department_id,category_id,nature_id,course_id,term_id,term_course_id,class_id,teacher_id,data) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13) ON CONFLICT(id) DO UPDATE SET name=excluded.name,department_id=excluded.department_id,category_id=excluded.category_id,nature_id=excluded.nature_id,course_id=excluded.course_id,term_id=excluded.term_id,term_course_id=excluded.term_course_id,class_id=excluded.class_id,teacher_id=excluded.teacher_id,data=excluded.data`, r, o.ID, o.SchoolID, o.Kind, o.Name, o.DepartmentID, o.CategoryID, o.NatureID, o.CourseID, o.TermID, o.TermCourseID, o.ClassID, o.TeacherID)
+	if e := t.save(`INSERT INTO catalog.objects(id,school_id,kind,name,department_id,category_id,nature_id,course_id,term_id,term_course_id,class_id,teacher_id,data) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13) ON CONFLICT(id) DO UPDATE SET name=excluded.name,department_id=excluded.department_id,category_id=excluded.category_id,nature_id=excluded.nature_id,course_id=excluded.course_id,term_id=excluded.term_id,term_course_id=excluded.term_course_id,class_id=excluded.class_id,teacher_id=excluded.teacher_id,data=excluded.data`, r, o.ID, o.SchoolID, o.Kind, o.Name, o.DepartmentID, o.CategoryID, o.NatureID, o.CourseID, o.TermID, o.TermCourseID, o.ClassID, o.TeacherID); e != nil {
+		return e
+	}
+	return t.saveDiscovery(o)
 }
 
 func (t *transaction) Enrollment(id string) (catalog.Enrollment, error) {
@@ -117,7 +121,31 @@ func (t *transaction) SaveReplay(key string, v catalog.Replay) error {
 	return t.save(`INSERT INTO catalog.replays(key,data) VALUES($1,$2) ON CONFLICT(key) DO UPDATE SET data=excluded.data`, v, key)
 }
 func (t *transaction) Event(v catalog.Event) error {
-	if e := t.save(`INSERT INTO catalog.audit(id,data) VALUES($1,$2)`, v, v.ID); e != nil {
+	result := v.Result
+	if result == "" {
+		result = "unknown"
+	}
+	reason := ""
+	if v.Reason == "catalog.merge" || v.Reason == "catalog.state_change" {
+		reason = v.Reason
+	}
+	actor, target, action, school := v.Actor, v.Subject, v.Type, v.SchoolID
+	if v.Type == "catalog.corrected.v1" {
+		target = strings.TrimPrefix(target, "object/")
+	}
+	if actor == "" {
+		actor = "unknown"
+	}
+	if target == "" {
+		target = "unknown"
+	}
+	if action == "" {
+		action = "unknown"
+	}
+	if school == "" {
+		school = "*"
+	}
+	if e := t.save(`INSERT INTO catalog.audit(id,reason,result,audit_actor,audit_target,audit_action,audit_school,audit_time,data) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9)`, v, v.ID, reason, result, actor, target, action, school, v.Time); e != nil {
 		return e
 	}
 	if e := t.save(`INSERT INTO catalog.outbox(id,data) VALUES($1,$2)`, map[string]any{"specversion": "1.0", "id": v.ID, "source": "catalog", "type": v.Type, "subject": v.Subject, "time": v.Time, "schoolid": v.SchoolID, "datacontenttype": "application/json", "data": map[string]any{"revision": v.Revision}}, v.ID); e != nil {

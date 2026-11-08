@@ -17,7 +17,13 @@ CREATE TABLE IF NOT EXISTS catalog.enrollments (
 );
 CREATE INDEX IF NOT EXISTS catalog_enrollment_owner ON catalog.enrollments(subject,school_id,course_id,id) WHERE active;
 CREATE TABLE IF NOT EXISTS catalog.replays(key text PRIMARY KEY, data jsonb NOT NULL);
-CREATE TABLE IF NOT EXISTS catalog.audit(id text PRIMARY KEY, data jsonb NOT NULL);
+CREATE TABLE IF NOT EXISTS catalog.audit(
+ id text PRIMARY KEY, data jsonb NOT NULL,
+ reason text NOT NULL DEFAULT '', result text NOT NULL DEFAULT 'unknown' CHECK(result IN ('success','denied','failed','unknown')),
+ recorded_xid xid8 NOT NULL DEFAULT pg_current_xact_id(),
+ audit_actor text NOT NULL DEFAULT 'unknown',audit_target text NOT NULL DEFAULT 'unknown',audit_action text NOT NULL DEFAULT 'unknown',
+ audit_school text NOT NULL DEFAULT '*',audit_group text NOT NULL DEFAULT '*',audit_time timestamptz NOT NULL DEFAULT now()
+);
 CREATE TABLE IF NOT EXISTS catalog.outbox(id text PRIMARY KEY, data jsonb NOT NULL, delivered boolean NOT NULL DEFAULT false);
 REVOKE ALL ON SCHEMA catalog FROM PUBLIC;
 REVOKE ALL ON ALL TABLES IN SCHEMA catalog FROM PUBLIC;
@@ -41,3 +47,19 @@ REVOKE ALL ON TABLE catalog.timetables FROM PUBLIC;
 ALTER TABLE catalog.outbox ADD COLUMN IF NOT EXISTS sent_at timestamptz;
 UPDATE catalog.outbox SET sent_at=COALESCE((data->>'time')::timestamptz,now()) WHERE delivered AND sent_at IS NULL;
 CREATE INDEX IF NOT EXISTS catalog_outbox_pending ON catalog.outbox((data->>'subject'),(data->'data'->>'revision')) WHERE sent_at IS NULL;
+
+CREATE TABLE IF NOT EXISTS catalog.audit_retention(singleton boolean PRIMARY KEY DEFAULT true CHECK(singleton),revision bigint NOT NULL DEFAULT 0);
+INSERT INTO catalog.audit_retention(singleton) VALUES(true) ON CONFLICT DO NOTHING;
+CREATE OR REPLACE FUNCTION catalog.audit_invalidate() RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog AS $$ BEGIN UPDATE catalog.audit_retention SET revision=revision+1 WHERE singleton; RETURN NULL; END $$;
+REVOKE ALL ON FUNCTION catalog.audit_invalidate() FROM PUBLIC;
+CREATE OR REPLACE TRIGGER audit_invalidate AFTER UPDATE OR DELETE OR TRUNCATE ON catalog.audit FOR EACH STATEMENT EXECUTE FUNCTION catalog.audit_invalidate();
+CREATE INDEX IF NOT EXISTS catalog_audit_query ON catalog.audit(audit_time DESC,id COLLATE "C" DESC);
+CREATE TABLE IF NOT EXISTS catalog.discovery_history(id text NOT NULL,revision bigint NOT NULL,data jsonb NOT NULL,recorded_xid xid8 NOT NULL DEFAULT pg_current_xact_id(),PRIMARY KEY(id,revision));
+CREATE TABLE IF NOT EXISTS catalog.discovery_retention(singleton boolean PRIMARY KEY DEFAULT true CHECK(singleton),revision bigint NOT NULL DEFAULT 0);
+INSERT INTO catalog.discovery_retention(singleton) VALUES(true) ON CONFLICT DO NOTHING;
+CREATE OR REPLACE FUNCTION catalog.discovery_invalidate() RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog AS $$ BEGIN UPDATE catalog.discovery_retention SET revision=revision+1 WHERE singleton; RETURN NULL; END $$;
+REVOKE ALL ON FUNCTION catalog.discovery_invalidate() FROM PUBLIC;
+CREATE OR REPLACE TRIGGER discovery_invalidate AFTER UPDATE OR DELETE OR TRUNCATE ON catalog.discovery_history FOR EACH STATEMENT EXECUTE FUNCTION catalog.discovery_invalidate();
+REVOKE ALL ON TABLE catalog.audit_retention,catalog.discovery_history,catalog.discovery_retention FROM PUBLIC;
+CREATE INDEX IF NOT EXISTS catalog_discovery_order ON catalog.discovery_history(id COLLATE "C",revision DESC);
+CREATE INDEX IF NOT EXISTS catalog_audit_school_order ON catalog.audit(audit_school,audit_time DESC,id COLLATE "C" DESC);

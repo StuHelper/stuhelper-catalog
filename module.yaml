@@ -75,3 +75,11 @@ scenario_tests:
   MC-06:
     - timetable_test.go#TestTimetableRevisionAuditConcurrencyAndMigration
     - timetable_test.go#TestTimetableTransactionNotificationAndMigration
+  CAT-AUDIT-01:
+    - audit_query_test.go#TestPublicAuditQuery
+    - discovery_test.go#TestDiscoveryEventsRollbackMergeDeletionAndCurrent
+  CAT-DISCOVERY-01:
+    - discovery_test.go#TestDiscoveryNotificationAndAuditAtomicity
+    - discovery_test.go#TestDiscoveryEventsRollbackMergeDeletionAndCurrent
+  CAT-DISCOVERY-02:
+    - discovery_test.go#TestDiscoverySnapshotStableWithUpdatesLateCommitsAndRetention

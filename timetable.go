@@ -146,7 +146,7 @@ func (s *Service) PutTimetable(ctx context.Context, p Principal, in Timetable) (
 		if e = t.SaveTimetable(out); e != nil {
 			return e
 		}
-		return t.Event(Event{ID: digest([]string{"timetable", in.SchoolID, in.TermID, fmt.Sprint(out.Revision)}), Subject: "timetable/" + in.SchoolID + "/" + in.TermID, Type: "catalog.timetable.updated.v1", SchoolID: in.SchoolID, Actor: p.Subject, Revision: out.Revision, Time: s.now()})
+		return t.Event(Event{Result: "success", ID: digest([]string{"timetable", in.SchoolID, in.TermID, fmt.Sprint(out.Revision)}), Subject: "timetable/" + in.SchoolID + "/" + in.TermID, Type: "catalog.timetable.updated.v1", SchoolID: in.SchoolID, Actor: p.Subject, Revision: out.Revision, Time: s.now()})
 	})
 	return out, e
 }

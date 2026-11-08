@@ -40,3 +40,7 @@ MySchedule 是供模块使用的公开接口，只读取当前账号的有效选
 每页最多 100 个选课记录，每条最多 100 个排课，一页排课最多 1000 条。超过范围返回 unavailable，调用方减小分页后重试。没有排课时返回空 meetings，不据此判断用户空闲。
 
 结构化排课、学校学期作息、本人 HTTP 课表和 iCalendar 导出见[实现规格](docs/spec/my-courses.md)。导入预览同时返回解析结果与原文，未知时间保持缺失。
+
+## 审计与搜索来源
+
+公开审计查询、catalog.discovery.v1 事件、当前权限批量查询和含墓碑的重建快照见[接口规格](docs/spec/audit-discovery.md)。backend 使用公开 Go 接口装配 platform 与 search，不能跨模块读取 catalog 表。

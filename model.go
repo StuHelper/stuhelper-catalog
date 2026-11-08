@@ -121,6 +121,7 @@ type Correction struct {
 	ClearCredits bool     `json:"clear_credits,omitempty"`
 }
 type Event struct {
+	Reason, Result                     string
 	ID, Subject, Type, SchoolID, Actor string
 	Revision                           int64
 	Time                               time.Time
@@ -134,6 +135,7 @@ type Repository interface {
 	Transaction(context.Context, func(Transaction) error) error
 }
 type Transaction interface {
+	DiscoveryCurrent(string, []string) ([]DiscoveryDocument, error)
 	Timetable(string, string) (Timetable, error)
 	SaveTimetable(Timetable) error
 	OwnScheduleMeetings(string, []string, int) ([]EnrollmentMeeting, error)
