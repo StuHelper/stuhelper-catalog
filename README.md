@@ -44,3 +44,5 @@ MySchedule 是供模块使用的公开接口，只读取当前账号的有效选
 ## 审计与搜索来源
 
 公开审计查询、catalog.discovery.v1 事件、当前权限批量查询和含墓碑的重建快照见[接口规格](docs/spec/audit-discovery.md)。backend 使用公开 Go 接口装配 platform 与 search，不能跨模块读取 catalog 表。
+
+热门活动来源、日快照、计数规则与清理接口见[活动来源规格](docs/spec/activity.md)。

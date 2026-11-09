@@ -61,3 +61,26 @@ CREATE OR REPLACE TRIGGER discovery_invalidate AFTER UPDATE OR DELETE OR TRUNCAT
 REVOKE ALL ON TABLE catalog.audit_retention,catalog.discovery_history,catalog.discovery_retention FROM PUBLIC;
 CREATE INDEX IF NOT EXISTS catalog_discovery_order ON catalog.discovery_history(id COLLATE "C",revision DESC);
 CREATE INDEX IF NOT EXISTS catalog_audit_school_order ON catalog.audit(audit_school,audit_time DESC,id COLLATE "C" DESC);
+
+-- Provider-owned daily aggregates and immutable versions used by rebuild cursors.
+CREATE TABLE IF NOT EXISTS catalog.activity_buckets(id text PRIMARY KEY,kind text NOT NULL CHECK(kind IN('course','teacher')),target_id text NOT NULL,school_id text NOT NULL,day date NOT NULL,first_count bigint NOT NULL,second_count bigint NOT NULL,revision bigint NOT NULL CHECK(revision>0),visible boolean NOT NULL,data jsonb NOT NULL DEFAULT '{}',UNIQUE(kind,target_id,day));
+CREATE INDEX IF NOT EXISTS catalog_activity_target ON catalog.activity_buckets(kind,target_id,day);
+CREATE TABLE IF NOT EXISTS catalog.activity_history(id text NOT NULL,revision bigint NOT NULL,day date NOT NULL,data jsonb NOT NULL,recorded_xid xid8 NOT NULL DEFAULT pg_current_xact_id(),PRIMARY KEY(id,revision));
+CREATE INDEX IF NOT EXISTS catalog_activity_history_page ON catalog.activity_history(id COLLATE "C",revision DESC);
+CREATE INDEX IF NOT EXISTS catalog_activity_history_day ON catalog.activity_history(day,id,revision);
+CREATE TABLE IF NOT EXISTS catalog.activity_retention(singleton boolean PRIMARY KEY DEFAULT true CHECK(singleton),revision bigint NOT NULL DEFAULT 0);
+INSERT INTO catalog.activity_retention(singleton) VALUES(true) ON CONFLICT DO NOTHING;
+CREATE OR REPLACE FUNCTION catalog.invalidate_activity() RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog AS $$ BEGIN UPDATE catalog.activity_retention SET revision=revision+1 WHERE singleton;RETURN NULL;END $$;
+REVOKE ALL ON FUNCTION catalog.invalidate_activity() FROM PUBLIC;
+CREATE OR REPLACE TRIGGER invalidate_activity AFTER UPDATE OR DELETE ON catalog.activity_history FOR EACH ROW EXECUTE FUNCTION catalog.invalidate_activity();
+CREATE OR REPLACE TRIGGER truncate_activity AFTER TRUNCATE ON catalog.activity_history FOR EACH STATEMENT EXECUTE FUNCTION catalog.invalidate_activity();
+REVOKE ALL ON TABLE catalog.activity_buckets,catalog.activity_history,catalog.activity_retention FROM PUBLIC;
+
+-- No account or object identifiers are retained in the deduplication table.
+CREATE TABLE IF NOT EXISTS catalog.view_dedup(digest text NOT NULL CHECK(length(digest)=64),day date NOT NULL,PRIMARY KEY(digest,day));
+CREATE INDEX IF NOT EXISTS catalog_view_dedup_expiry ON catalog.view_dedup(day,digest);
+REVOKE ALL ON catalog.view_dedup FROM PUBLIC;
+
+CREATE TABLE IF NOT EXISTS catalog.view_retention(singleton boolean PRIMARY KEY DEFAULT true CHECK(singleton),before_day date NOT NULL DEFAULT '0001-01-01');
+INSERT INTO catalog.view_retention(singleton) VALUES(true) ON CONFLICT DO NOTHING;
+REVOKE ALL ON catalog.view_retention FROM PUBLIC;

@@ -135,6 +135,7 @@ type Repository interface {
 	Transaction(context.Context, func(Transaction) error) error
 }
 type Transaction interface {
+	RecordView(string, Object, time.Time) (bool, error)
 	DiscoveryCurrent(string, []string) ([]DiscoveryDocument, error)
 	Timetable(string, string) (Timetable, error)
 	SaveTimetable(Timetable) error

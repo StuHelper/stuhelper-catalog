@@ -179,8 +179,7 @@ func (s *Service) PreviewImport(ctx context.Context, p Principal, in Import) (Im
 		return out, err
 	}
 	// Execute the exact import validation in a transaction that always rolls back.
-	clone := *s
-	clone.Repo = previewRepository{s.Repo}
+	clone := Service{ReadAccess: s.ReadAccess, Repo: previewRepository{s.Repo}, Clock: s.Clock, ActivityLogger: s.ActivityLogger}
 	in.PreviewToken = out.PreviewToken
 	_, err = clone.Import(ctx, p, "preview-"+out.PreviewToken, in)
 	if err == nil {

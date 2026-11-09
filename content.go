@@ -29,7 +29,7 @@ func (s *Service) readScope(ctx context.Context, p Principal, requested string) 
 	}
 	return school, nil
 }
-func (s *Service) Read(ctx context.Context, p Principal, id string) (Object, error) {
+func (s *Service) readObject(ctx context.Context, p Principal, id string) (Object, error) {
 	school, e := s.readScope(ctx, p, "")
 	if e != nil {
 		return Object{}, e
@@ -67,11 +67,25 @@ func (s *Service) ReadLookup(ctx context.Context, p Principal, ids []string) (Lo
 	}
 	return out, nil
 }
+func (s *Service) Read(ctx context.Context, p Principal, id string) (Object, error) {
+	object, e := s.readObject(ctx, p, id)
+	if e != nil {
+		return object, e
+	}
+	s.recordView(ctx, p, object)
+	return object, nil
+}
 func (s *Service) ReadSummary(ctx context.Context, p Principal, id string) (Summary, error) {
-	if _, e := s.Read(ctx, p, id); e != nil {
+	object, e := s.readObject(ctx, p, id)
+	if e != nil {
 		return Summary{}, e
 	}
-	return s.Summary(ctx, id)
+	summary, e := s.Summary(ctx, id)
+	if e != nil {
+		return summary, e
+	}
+	s.recordView(ctx, p, object)
+	return summary, nil
 }
 func (s *Service) ReadResolution(ctx context.Context, p Principal, id string) (Resolution, error) {
 	school, e := s.readScope(ctx, p, "")

@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log/slog"
 	"math"
 	"slices"
 	"strings"
@@ -15,9 +16,11 @@ import (
 )
 
 type Service struct {
-	ReadAccess ContentAccess
-	Repo       Repository
-	Clock      func() time.Time
+	ActivityLogger *slog.Logger
+	viewStats      viewCounters
+	ReadAccess     ContentAccess
+	Repo           Repository
+	Clock          func() time.Time
 }
 
 func (s *Service) now() time.Time {
