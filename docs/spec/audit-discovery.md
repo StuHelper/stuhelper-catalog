@@ -1,7 +1,7 @@
 ---
 type: spec
 status: Accepted
-updated: 2026-11-09
+updated: 2026-11-10
 ---
 
 # 审计查询与搜索来源
@@ -24,7 +24,9 @@ Reason 使用 catalog.merge 或 catalog.state_change 操作分类码，其余返
 
 ## 搜索来源事件
 
-contracts/discovery-event.schema.json 保存 search 来源协议。每次课程或教师持久化均在业务事务中追加 discovery_history，并写 catalog.discovery.v1 outbox 和 pg_notify('catalog_outbox', '')。其他目录类型不发出该事件。
+contracts/discovery-event.schema.json 保存 search 来源协议。每次学校、课程或教师持久化均在业务事务中追加 discovery_history，并写 catalog.discovery.v1 outbox 和 pg_notify('catalog_outbox', '')。其他目录类型不发出该事件。
+
+学校文档另含可选 code 与 aliases，来源为目录当前登记值。
 
 事件使用 CloudEvents 1.0，source 为 catalog，subject 等于 data.target.id，ID 由对象 ID 与修订确定。data 包含 target、revision、title、school_id、visible、ratings 和 at。catalog 不拥有评分事实，因此 ratings 五项均为零。
 
@@ -72,3 +74,15 @@ relay 收到 LISTEN 通知立即调用 PendingOutbox，传入处于退避或人�
 本地隔离 PostgreSQL 18.6 的完整 make check 通过，包含 go vet、竞态测试、SDK 一致性、边界检查、构建及文档检查。backend 适配器、search 组合重建和真实账号尚未验收。本轮没有新增 HTTP 路径，OpenAPI 与 HTTP SDK 保持现有定义。
 
 查询计划测试使用生产 SQL，在 20000 条已确认和 200 条待发送事件上运行 EXPLAIN ANALYZE。nil、空列表、部分排除、全部排除及 1000 项排除均使用 catalog_outbox_pending，未出现 Seq Scan。测试使用默认优化器，不关闭顺序扫描。
+
+## 学校代码与名称匹配
+
+kind=school 列表的 q 去除首尾空白。纯数字查询精确匹配学校 ID 或 code；恰好五位数字还匹配十位数字 ID/code 的后五位。例如 4111010006、10006 均可定位已登记的北京航空航天大学。其他长度不做数字子串匹配。
+
+非纯数字查询对名称、code 和登记别名做不区分大小写的字面子串匹配。名称“北京航空航天大学”、别名“北航”或 Beihang 都依目录记录匹配；不推测未登记别名，百分号、下划线和反斜线不作为通配符。
+
+查询在数据库分页前完成，继续按 ID 升序和排他 after 分页。不存在的代码返回空列表，停用与合并来源不返回。公共入口保持当前内容准入和学校范围，管理员入口保持维护范围。
+
+Filter.IDs 是可信模块的批量候选限制，最多 100 项；verification 通过宿主传入已启用认证学校 ID。此参数不从公开 HTTP 绑定，不替代调用方自己的资格与权限判断。
+
+学校 code 与 aliases 随 discovery 事件和一致性快照送往 search。更名、别名修改、停用使用新修订，墓碑不保留名称和别名。CAT-SCHOOL-01 验证完整码、五位码、名称、别名、无结果、字面符号及 HTTP 与快照一致性。

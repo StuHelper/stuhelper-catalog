@@ -327,6 +327,15 @@ func (s *Service) Get(ctx context.Context, id string) (Object, error) {
 	return out, err
 }
 func (s *Service) List(ctx context.Context, f Filter) (Page, error) {
+	f.Query = strings.TrimSpace(f.Query)
+	if len(f.IDs) > 100 {
+		return Page{}, ErrInput
+	}
+	for _, id := range f.IDs {
+		if !ValidID(id) {
+			return Page{}, ErrInput
+		}
+	}
 	out := Page{Items: []Object{}}
 	if !slices.Contains(kinds, f.Kind) || f.Limit < 1 || f.Limit > 100 || !validText(f.Query, 200) {
 		return out, ErrInput

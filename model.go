@@ -86,6 +86,8 @@ type ImportResult struct {
 	PreservedCorrections int    `json:"preserved_corrections"`
 }
 type Filter struct {
+	// IDs limits trusted module name lookup; HTTP callers cannot bypass their read scope.
+	IDs                                                                                           []string
 	Kind, SchoolID, DepartmentID, CategoryID, NatureID, CourseID, TermID, TeacherID, Query, After string
 	TermCourseID, ClassID                                                                         string
 	IncludeInactive                                                                               bool

@@ -1,5 +1,5 @@
 id: catalog
-version: 0.4.0
+version: 0.4.1
 kind: module
 api: 1
 critical: false
@@ -98,3 +98,6 @@ scenario_tests:
   CAT-OUTBOX-03:
     - outbox_delivery_test.go#TestOutboxExcludedSubjectsDoNotBlockOtherSubjects
     - postgres/outbox_plan_test.go#TestPendingOutboxExclusionUsesPartialIndex
+
+  CAT-SCHOOL-01:
+    - school_search_test.go#TestSchoolSearchCodesNamesAliasesAndDiscovery

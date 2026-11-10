@@ -370,9 +370,11 @@ type AdminListObjectsParams struct {
 	CourseId     *string `form:"course_id,omitempty" json:"course_id,omitempty"`
 	TermId       *string `form:"term_id,omitempty" json:"term_id,omitempty"`
 	TeacherId    *string `form:"teacher_id,omitempty" json:"teacher_id,omitempty"`
-	Q            *string `form:"q,omitempty" json:"q,omitempty"`
-	After        *string `form:"after,omitempty" json:"after,omitempty"`
-	Limit        *int    `form:"limit,omitempty" json:"limit,omitempty"`
+
+	// Q Trimmed literal case-insensitive name/alias search. For kind=school, numeric queries match the complete stored id/code exactly, or the last five digits of a ten-digit id/code. Numeric queries do not use substring matching.
+	Q     *string `form:"q,omitempty" json:"q,omitempty"`
+	After *string `form:"after,omitempty" json:"after,omitempty"`
+	Limit *int    `form:"limit,omitempty" json:"limit,omitempty"`
 
 	// TermCourseId Restrict relationships to this offering or teaching class.
 	TermCourseId *string `form:"term_course_id,omitempty" json:"term_course_id,omitempty"`
@@ -440,9 +442,11 @@ type ListObjectsParams struct {
 	CourseId     *string `form:"course_id,omitempty" json:"course_id,omitempty"`
 	TermId       *string `form:"term_id,omitempty" json:"term_id,omitempty"`
 	TeacherId    *string `form:"teacher_id,omitempty" json:"teacher_id,omitempty"`
-	Q            *string `form:"q,omitempty" json:"q,omitempty"`
-	After        *string `form:"after,omitempty" json:"after,omitempty"`
-	Limit        *int    `form:"limit,omitempty" json:"limit,omitempty"`
+
+	// Q Trimmed literal case-insensitive name/alias search. For kind=school, numeric queries match the complete stored id/code exactly, or the last five digits of a ten-digit id/code. Numeric queries do not use substring matching.
+	Q     *string `form:"q,omitempty" json:"q,omitempty"`
+	After *string `form:"after,omitempty" json:"after,omitempty"`
+	Limit *int    `form:"limit,omitempty" json:"limit,omitempty"`
 
 	// TermCourseId Restrict relationships to this offering or teaching class.
 	TermCourseId *string `form:"term_course_id,omitempty" json:"term_course_id,omitempty"`

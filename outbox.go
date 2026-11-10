@@ -30,6 +30,8 @@ type Envelope struct {
 // Optional pointers preserve discovery's empty title, false visibility and zero
 // ratings while ordinary business events carry only their revision.
 type ResultData struct {
+	Code     string           `json:"code,omitempty"`
+	Aliases  []string         `json:"aliases,omitempty"`
 	Source   string           `json:"source,omitempty"`
 	ID       string           `json:"id,omitempty"`
 	Day      string           `json:"day,omitempty"`

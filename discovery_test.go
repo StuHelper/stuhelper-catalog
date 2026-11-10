@@ -8,6 +8,7 @@ import (
 	a "github.com/StuHelper/stuhelper-catalog/auditquery"
 	"github.com/StuHelper/stuhelper-catalog/postgres"
 	"github.com/jackc/pgx/v5/stdlib"
+	"reflect"
 	"strings"
 	"testing"
 	"time"
@@ -22,13 +23,13 @@ func TestDiscoveryEventsRollbackMergeDeletionAndCurrent(t *testing.T) {
 		t.Fatal(e)
 	}
 	var count int
-	if e := repo.DB.QueryRow(`SELECT count(*) FROM catalog.outbox WHERE data->>'type'='catalog.discovery.v1'`).Scan(&count); e != nil || count != 4 {
+	if e := repo.DB.QueryRow(`SELECT count(*) FROM catalog.outbox WHERE data->>'type'='catalog.discovery.v1'`).Scan(&count); e != nil || count != 5 {
 		t.Fatal(count, e)
 	}
 	if _, e := s.Import(ctx, p, "seed", in); e != nil {
 		t.Fatal(e)
 	}
-	if e := repo.DB.QueryRow(`SELECT count(*) FROM catalog.outbox WHERE data->>'type'='catalog.discovery.v1'`).Scan(&count); e != nil || count != 4 {
+	if e := repo.DB.QueryRow(`SELECT count(*) FROM catalog.outbox WHERE data->>'type'='catalog.discovery.v1'`).Scan(&count); e != nil || count != 5 {
 		t.Fatal(count, e)
 	}
 	name := "new title"
@@ -66,7 +67,7 @@ func TestDiscoveryEventsRollbackMergeDeletionAndCurrent(t *testing.T) {
 		t.Fatal(e)
 	}
 	page, e := repo.DiscoverySnapshot(ctx, "", 100)
-	if e != nil || len(page.Items) != 4 {
+	if e != nil || len(page.Items) != 5 {
 		t.Fatal(page, e)
 	}
 	for _, d := range page.Items {
@@ -99,7 +100,7 @@ func TestDiscoveryEventsRollbackMergeDeletionAndCurrent(t *testing.T) {
 		}
 		var stored c.DiscoveryDocument
 		_ = json.Unmarshal(history, &stored)
-		if d != stored || d.Target.Source != "catalog" || d.Ratings != [5]int{} || d.At.IsZero() {
+		if !reflect.DeepEqual(d, stored) || d.Target.Source != "catalog" || d.Ratings != [5]int{} || d.At.IsZero() {
 			t.Fatal(d, stored)
 		}
 		if strings.Contains(string(raw), "issuer:") || strings.Contains(string(raw), "private") {
@@ -189,11 +190,11 @@ func TestDiscoverySnapshotStableWithUpdatesLateCommitsAndRetention(t *testing.T)
 			seen[d.Target.ID] = d
 		}
 	}
-	if len(seen) != 3 || !seen["teacher"].Visible || seen["teacher"].Revision != 1 {
+	if len(seen) != 4 || !seen["teacher"].Visible || seen["teacher"].Revision != 1 {
 		t.Fatal(seen)
 	}
 	fresh, e := repo.DiscoverySnapshot(ctx, "", 100)
-	if e != nil || len(fresh.Items) != 4 {
+	if e != nil || len(fresh.Items) != 5 {
 		t.Fatal(fresh, e)
 	}
 	if _, e = repo.DB.Exec(`DELETE FROM catalog.discovery_history WHERE id='teacher' AND revision=1`); e != nil {

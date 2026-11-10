@@ -577,6 +577,7 @@ export interface operations {
                 course_id?: string;
                 term_id?: string;
                 teacher_id?: string;
+                /** @description Trimmed literal case-insensitive name/alias search. For kind=school, numeric queries match the complete stored id/code exactly, or the last five digits of a ten-digit id/code. Numeric queries do not use substring matching. */
                 q?: string;
                 after?: string;
                 limit?: number;
@@ -1621,6 +1622,7 @@ export interface operations {
                 course_id?: string;
                 term_id?: string;
                 teacher_id?: string;
+                /** @description Trimmed literal case-insensitive name/alias search. For kind=school, numeric queries match the complete stored id/code exactly, or the last five digits of a ten-digit id/code. Numeric queries do not use substring matching. */
                 q?: string;
                 after?: string;
                 limit?: number;

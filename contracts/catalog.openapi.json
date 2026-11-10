@@ -2,7 +2,7 @@
   "openapi": "3.0.3",
   "info": {
     "title": "StuHelper Catalog",
-    "version": "0.4.0"
+    "version": "0.4.1"
   },
   "servers": [
     {
@@ -152,7 +152,8 @@
             "name": "q",
             "schema": {
               "type": "string"
-            }
+            },
+            "description": "Trimmed literal case-insensitive name/alias search. For kind=school, numeric queries match the complete stored id/code exactly, or the last five digits of a ten-digit id/code. Numeric queries do not use substring matching."
           },
           {
             "in": "query",
@@ -1591,7 +1592,8 @@
             "name": "q",
             "schema": {
               "type": "string"
-            }
+            },
+            "description": "Trimmed literal case-insensitive name/alias search. For kind=school, numeric queries match the complete stored id/code exactly, or the last five digits of a ten-digit id/code. Numeric queries do not use substring matching."
           },
           {
             "in": "query",

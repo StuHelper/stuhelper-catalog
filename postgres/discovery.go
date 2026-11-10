@@ -14,7 +14,7 @@ import (
 var _ c.DiscoverySource = (*Repository)(nil)
 
 func (t *transaction) saveDiscovery(o c.Object) error {
-	if o.Kind != "course" && o.Kind != "teacher" {
+	if o.Kind != "school" && o.Kind != "course" && o.Kind != "teacher" {
 		return nil
 	}
 	var canonical string
@@ -22,6 +22,10 @@ func (t *transaction) saveDiscovery(o c.Object) error {
 		return safe(e)
 	}
 	d := c.DiscoveryDocument{Target: c.DiscoveryTarget{Source: "catalog", ID: o.ID, Kind: o.Kind}, Revision: o.Revision, Title: o.Name, SchoolID: o.SchoolID, Visible: !o.Inactive && canonical == o.ID, At: o.UpdatedAt}
+	if o.Kind == "school" && d.Visible {
+		d.Code = o.Code
+		d.Aliases = append([]string{}, o.Aliases...)
+	}
 	if !d.Visible {
 		d.Title = ""
 	}
@@ -29,7 +33,7 @@ func (t *transaction) saveDiscovery(o c.Object) error {
 		return e
 	}
 	eventID := fmt.Sprintf("discovery:%s:%d", o.ID, o.Revision)
-	return t.saveEnvelope(c.Envelope{SpecVersion: "1.0", ID: eventID, Source: "catalog", Type: "catalog.discovery.v1", Subject: o.ID, Time: o.UpdatedAt, Data: c.ResultData{Revision: d.Revision, Target: &d.Target, Title: &d.Title, SchoolID: &d.SchoolID, Visible: &d.Visible, Ratings: &d.Ratings, At: &d.At}})
+	return t.saveEnvelope(c.Envelope{SpecVersion: "1.0", ID: eventID, Source: "catalog", Type: "catalog.discovery.v1", Subject: o.ID, Time: o.UpdatedAt, Data: c.ResultData{Code: d.Code, Aliases: d.Aliases, Revision: d.Revision, Target: &d.Target, Title: &d.Title, SchoolID: &d.SchoolID, Visible: &d.Visible, Ratings: &d.Ratings, At: &d.At}})
 }
 func (t *transaction) DiscoveryCurrent(school string, ids []string) ([]c.DiscoveryDocument, error) {
 	return list[c.DiscoveryDocument](t, `SELECT h.data FROM catalog.objects o JOIN catalog.discovery_history h ON h.id=o.id AND h.revision=(o.data->'object'->>'revision')::bigint WHERE o.id=ANY($1::text[]) AND o.school_id=$2 AND o.id=catalog.canonical(o.id) AND NOT COALESCE((o.data->'object'->>'inactive')::boolean,false) AND (h.data->>'visible')::boolean ORDER BY o.id COLLATE "C"`, ids, school)

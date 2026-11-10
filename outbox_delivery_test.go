@@ -194,7 +194,7 @@ func TestOutboxDiscoveryAndTimetablePayloads(t *testing.T) {
 		t.Fatal(e)
 	}
 	events, e := repo.PendingOutbox(ctx, 100, nil)
-	if e != nil || len(events) != 8 {
+	if e != nil || len(events) != 9 {
 		t.Fatal(len(events), e)
 	}
 	discovery, timetables, tombstones := 0, 0, 0
@@ -240,7 +240,7 @@ func TestOutboxDiscoveryAndTimetablePayloads(t *testing.T) {
 			t.Fatal(e)
 		}
 	}
-	if discovery != 4 || timetables != 2 || tombstones != 1 {
+	if discovery != 5 || timetables != 2 || tombstones != 1 {
 		t.Fatal(discovery, timetables, tombstones)
 	}
 	empty, e := repo.PendingOutbox(ctx, 100, nil)
