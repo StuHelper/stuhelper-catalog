@@ -1,0 +1,7 @@
+{
+  "provider": "search",
+  "version": "1.0.0",
+  "source_commit": "9c56ad3e7c7795b8604e7e0a86265630f9db116a",
+  "path": "contracts/discovery-activity.schema.json",
+  "sha256": "0449f23e99a9146b01e56f00942b49fc756e5c60fb1d4e0486520651d02fc867"
+}

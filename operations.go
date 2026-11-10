@@ -139,6 +139,15 @@ func (s *Service) Merge(ctx context.Context, p Principal, id, key string, in Mer
 		if _, e = t.MergeAliases(id, in.TargetID, plan.Source.SchoolID, s.now(), in.Reason); e != nil {
 			return e
 		}
+		source, e := t.Object(id)
+		if e != nil {
+			return e
+		}
+		source.Object.Revision++
+		source.Object.UpdatedAt = s.now()
+		if e = t.SaveObject(source); e != nil {
+			return e
+		}
 		target, e := t.Object(in.TargetID)
 		if e != nil {
 			return e
@@ -152,7 +161,7 @@ func (s *Service) Merge(ctx context.Context, p Principal, id, key string, in Mer
 			return e
 		}
 		out = target.Object
-		if e = t.Event(Event{ID: rk, Subject: id, Type: "catalog.merged.v1", SchoolID: out.SchoolID, Actor: p.Subject, Revision: out.Revision, Time: s.now()}); e != nil {
+		if e = t.Event(Event{Result: "success", ID: rk, Subject: id, Type: "catalog.merged.v1", Reason: "catalog.merge", SchoolID: out.SchoolID, Actor: p.Subject, Revision: source.Object.Revision, Time: s.now()}); e != nil {
 			return e
 		}
 		data, _ := json.Marshal(out)
@@ -214,11 +223,18 @@ func (s *Service) SetState(ctx context.Context, p Principal, id, key string, in 
 			return e
 		}
 		out = old.Object
-		if e = t.Event(Event{ID: rk, Subject: id, Type: "catalog.state_changed.v1", SchoolID: out.SchoolID, Actor: p.Subject, Revision: out.Revision, Time: s.now()}); e != nil {
+		if e = t.Event(Event{Result: "success", ID: rk, Subject: id, Type: "catalog.state_changed.v1", Reason: "catalog.state_change", SchoolID: out.SchoolID, Actor: p.Subject, Revision: out.Revision, Time: s.now()}); e != nil {
 			return e
 		}
 		data, _ := json.Marshal(out)
 		return t.SaveReplay(rk, Replay{h, data, s.now().Add(24 * time.Hour)})
 	})
 	return out, err
+}
+
+// Delete logically removes a directory object while preserving academic history.
+// The resulting discovery tombstone has a higher revision; SetState may restore it.
+func (s *Service) Delete(ctx context.Context, p Principal, id, key string, in ObjectState) (Object, error) {
+	in.Inactive = true
+	return s.SetState(ctx, p, id, key, in)
 }

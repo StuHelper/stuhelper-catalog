@@ -24,28 +24,29 @@ type Principal struct {
 	CanMaintain bool
 }
 type Object struct {
-	Inactive     bool      `json:"inactive,omitempty"`
-	CanonicalID  string    `json:"canonical_id,omitempty"`
-	ID           string    `json:"id"`
-	Kind         string    `json:"kind"`
-	SchoolID     string    `json:"school_id"`
-	Name         string    `json:"name"`
-	Code         string    `json:"code,omitempty"`
-	DepartmentID string    `json:"department_id,omitempty"`
-	CategoryID   string    `json:"category_id,omitempty"`
-	NatureID     string    `json:"nature_id,omitempty"`
-	CourseID     string    `json:"course_id,omitempty"`
-	TermID       string    `json:"term_id,omitempty"`
-	TermCourseID string    `json:"term_course_id,omitempty"`
-	ClassID      string    `json:"class_id,omitempty"`
-	TeacherID    string    `json:"teacher_id,omitempty"`
-	Credits      *float64  `json:"credits"`
-	Biography    string    `json:"biography,omitempty"`
-	Location     string    `json:"location,omitempty"`
-	TimeText     string    `json:"time_text,omitempty"`
-	Aliases      []string  `json:"aliases"`
-	Revision     int64     `json:"revision"`
-	UpdatedAt    time.Time `json:"updated_at"`
+	ScheduleTime *ScheduleTime `json:"schedule_time,omitempty"`
+	Inactive     bool          `json:"inactive,omitempty"`
+	CanonicalID  string        `json:"canonical_id,omitempty"`
+	ID           string        `json:"id"`
+	Kind         string        `json:"kind"`
+	SchoolID     string        `json:"school_id"`
+	Name         string        `json:"name"`
+	Code         string        `json:"code,omitempty"`
+	DepartmentID string        `json:"department_id,omitempty"`
+	CategoryID   string        `json:"category_id,omitempty"`
+	NatureID     string        `json:"nature_id,omitempty"`
+	CourseID     string        `json:"course_id,omitempty"`
+	TermID       string        `json:"term_id,omitempty"`
+	TermCourseID string        `json:"term_course_id,omitempty"`
+	ClassID      string        `json:"class_id,omitempty"`
+	TeacherID    string        `json:"teacher_id,omitempty"`
+	Credits      *float64      `json:"credits"`
+	Biography    string        `json:"biography,omitempty"`
+	Location     string        `json:"location,omitempty"`
+	TimeText     string        `json:"time_text,omitempty"`
+	Aliases      []string      `json:"aliases"`
+	Revision     int64         `json:"revision"`
+	UpdatedAt    time.Time     `json:"updated_at"`
 }
 
 // Record retains provenance separately from the public directory projection.
@@ -85,6 +86,8 @@ type ImportResult struct {
 	PreservedCorrections int    `json:"preserved_corrections"`
 }
 type Filter struct {
+	// IDs limits trusted module name lookup; HTTP callers cannot bypass their read scope.
+	IDs                                                                                           []string
 	Kind, SchoolID, DepartmentID, CategoryID, NatureID, CourseID, TermID, TeacherID, Query, After string
 	TermCourseID, ClassID                                                                         string
 	IncludeInactive                                                                               bool
@@ -120,6 +123,7 @@ type Correction struct {
 	ClearCredits bool     `json:"clear_credits,omitempty"`
 }
 type Event struct {
+	Reason, Result                     string
 	ID, Subject, Type, SchoolID, Actor string
 	Revision                           int64
 	Time                               time.Time
@@ -133,6 +137,13 @@ type Repository interface {
 	Transaction(context.Context, func(Transaction) error) error
 }
 type Transaction interface {
+	RecordView(string, Object, time.Time) (bool, error)
+	DiscoveryCurrent(string, []string) ([]DiscoveryDocument, error)
+	Timetable(string, string) (Timetable, error)
+	SaveTimetable(Timetable) error
+	OwnScheduleMeetings(string, []string, int) ([]EnrollmentMeeting, error)
+	OwnedReferences(subject string, ids []string) ([]string, error)
+	ReferenceNames(ids []string) ([]Reference, error)
 	PublicObject(string) (Object, error)
 	ResolveIDs(string) ([]string, error)
 	MergeAliases(string, string, string, time.Time, string) (int, error)

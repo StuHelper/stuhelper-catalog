@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log/slog"
 	"math"
 	"slices"
 	"strings"
@@ -15,8 +16,11 @@ import (
 )
 
 type Service struct {
-	Repo  Repository
-	Clock func() time.Time
+	ActivityLogger *slog.Logger
+	viewStats      viewCounters
+	ReadAccess     ContentAccess
+	Repo           Repository
+	Clock          func() time.Time
 }
 
 func (s *Service) now() time.Time {
@@ -62,6 +66,9 @@ func validText(v string, n int) bool {
 var kinds = []string{"school", "department", "category", "nature", "term", "course", "teacher", "term_course", "class", "assignment", "schedule"}
 
 func validateObject(o Object, school string) error {
+	if !validSchedule(o.ScheduleTime) || (o.ScheduleTime != nil && o.Kind != "schedule") {
+		return ErrInput
+	}
 	if !ValidID(o.ID) || o.SchoolID != school || !slices.Contains(kinds, o.Kind) || strings.TrimSpace(o.Name) == "" || !validText(o.Name, 256) || !validText(o.Code, 128) || !validText(o.Biography, 8000) || !validText(o.TimeText, 1024) || !validText(o.Location, 512) || len(o.Aliases) > 50 {
 		return ErrInput
 	}
@@ -133,6 +140,7 @@ func (s *Service) Import(ctx context.Context, p Principal, key string, in Import
 	if !ValidKey(key) || !ValidID(in.SchoolID) || !ValidID(in.SourceID) || in.Revision < 1 || in.FetchedAt.IsZero() || in.FetchedAt.After(s.now().Add(time.Minute)) || len(in.Objects)+len(in.Enrollments) < 1 || len(in.Objects)+len(in.Enrollments) > 500 {
 		return out, ErrInput
 	}
+	in.Objects = normalizeSchedules(in.Objects)
 	seen := map[string]bool{}
 	for _, o := range in.Objects {
 		if validateObject(o, in.SchoolID) != nil || seen[o.ID] {
@@ -299,7 +307,7 @@ func (s *Service) Import(ctx context.Context, p Principal, key string, in Import
 		if _, e := t.MergeAliases("", "", in.SchoolID, now, "Canonical relation after import"); e != nil {
 			return e
 		}
-		if e := t.Event(Event{ID: rk, Subject: "import/" + rk, Type: "catalog.imported.v1", SchoolID: in.SchoolID, Actor: p.Subject, Revision: in.Revision, Time: now}); e != nil {
+		if e := t.Event(Event{Result: "success", ID: rk, Subject: "import/" + rk, Type: "catalog.imported.v1", SchoolID: in.SchoolID, Actor: p.Subject, Revision: in.Revision, Time: now}); e != nil {
 			return e
 		}
 		b, e := json.Marshal(out)
@@ -319,6 +327,15 @@ func (s *Service) Get(ctx context.Context, id string) (Object, error) {
 	return out, err
 }
 func (s *Service) List(ctx context.Context, f Filter) (Page, error) {
+	f.Query = strings.TrimSpace(f.Query)
+	if len(f.IDs) > 100 {
+		return Page{}, ErrInput
+	}
+	for _, id := range f.IDs {
+		if !ValidID(id) {
+			return Page{}, ErrInput
+		}
+	}
 	out := Page{Items: []Object{}}
 	if !slices.Contains(kinds, f.Kind) || f.Limit < 1 || f.Limit > 100 || !validText(f.Query, 200) {
 		return out, ErrInput
@@ -427,7 +444,7 @@ func (s *Service) Correct(ctx context.Context, p Principal, id, key string, in C
 			return e
 		}
 		out = r.Object
-		if e = t.Event(Event{ID: rk, Subject: fmt.Sprintf("object/%s", id), Type: "catalog.corrected.v1", SchoolID: r.Object.SchoolID, Actor: p.Subject, Revision: r.Object.Revision, Time: s.now()}); e != nil {
+		if e = t.Event(Event{Result: "success", ID: rk, Subject: fmt.Sprintf("object/%s", id), Type: "catalog.corrected.v1", SchoolID: r.Object.SchoolID, Actor: p.Subject, Revision: r.Object.Revision, Time: s.now()}); e != nil {
 			return e
 		}
 		b, e := json.Marshal(out)

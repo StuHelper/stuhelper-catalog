@@ -24,17 +24,39 @@ type Handler struct {
 func (h Handler) Routes() http.Handler {
 	m := http.NewServeMux()
 	m.HandleFunc("GET /api/v1/catalog/objects", h.list)
+	h.scheduleRoutes(m)
 	h.operationRoutes(m)
+	h.adminReadRoutes(m)
+	m.HandleFunc("GET /api/v1/catalog/me/references", func(w http.ResponseWriter, r *http.Request) {
+		p, ok := h.principal(w, r)
+		if !ok {
+			return
+		}
+		v, e := h.Service.MyReferences(r.Context(), p, strings.Split(r.URL.Query().Get("ids"), ","))
+		respond(w, v, e)
+	})
 	m.HandleFunc("GET /api/v1/catalog/objects/lookup", func(w http.ResponseWriter, r *http.Request) {
-		v, e := h.Service.Lookup(r.Context(), strings.Split(r.URL.Query().Get("ids"), ","))
+		p, ok := h.principal(w, r)
+		if !ok {
+			return
+		}
+		v, e := h.Service.ReadLookup(r.Context(), p, strings.Split(r.URL.Query().Get("ids"), ","))
 		respond(w, v, e)
 	})
 	m.HandleFunc("GET /api/v1/catalog/objects/{id}/summary", func(w http.ResponseWriter, r *http.Request) {
-		v, e := h.Service.Summary(r.Context(), r.PathValue("id"))
+		p, ok := h.principal(w, r)
+		if !ok {
+			return
+		}
+		v, e := h.Service.ReadSummary(r.Context(), p, r.PathValue("id"))
 		respond(w, v, e)
 	})
 	m.HandleFunc("GET /api/v1/catalog/objects/{id}", func(w http.ResponseWriter, r *http.Request) {
-		v, e := h.Service.Get(r.Context(), r.PathValue("id"))
+		p, ok := h.principal(w, r)
+		if !ok {
+			return
+		}
+		v, e := h.Service.Read(r.Context(), p, r.PathValue("id"))
 		respond(w, v, e)
 	})
 	m.HandleFunc("POST /api/v1/catalog/imports", h.importData)
@@ -63,7 +85,7 @@ func respond(w http.ResponseWriter, v any, e error) {
 		for _, item := range []struct {
 			e error
 			s int
-		}{{catalog.ErrUnauthenticated, 401}, {catalog.ErrInput, 400}, {catalog.ErrForbidden, 403}, {catalog.ErrNotFound, 404}, {catalog.ErrConflict, 409}} {
+		}{{catalog.ErrScheduleIncomplete, 422}, {catalog.ErrUnauthenticated, 401}, {catalog.ErrInput, 400}, {catalog.ErrForbidden, 403}, {catalog.ErrNotFound, 404}, {catalog.ErrConflict, 409}} {
 			if errors.Is(e, item.e) {
 				status = item.s
 				code = item.e.Error()
@@ -117,14 +139,25 @@ func limit(r *http.Request) (int, error) {
 	}
 	return n, nil
 }
-func (h Handler) list(w http.ResponseWriter, r *http.Request) {
+func readFilter(r *http.Request) (catalog.Filter, error) {
 	n, e := limit(r)
+	if e != nil {
+		return catalog.Filter{}, e
+	}
+	q := r.URL.Query()
+	return catalog.Filter{Kind: q.Get("kind"), IncludeInactive: q.Get("include_inactive") == "true", SchoolID: q.Get("school_id"), DepartmentID: q.Get("department_id"), CategoryID: q.Get("category_id"), NatureID: q.Get("nature_id"), CourseID: q.Get("course_id"), TermID: q.Get("term_id"), TeacherID: q.Get("teacher_id"), TermCourseID: q.Get("term_course_id"), ClassID: q.Get("class_id"), Query: q.Get("q"), After: q.Get("after"), Limit: n}, nil
+}
+func (h Handler) list(w http.ResponseWriter, r *http.Request) {
+	p, ok := h.principal(w, r)
+	if !ok {
+		return
+	}
+	filter, e := readFilter(r)
 	if e != nil {
 		respond(w, nil, e)
 		return
 	}
-	q := r.URL.Query()
-	v, e := h.Service.List(r.Context(), catalog.Filter{Kind: q.Get("kind"), IncludeInactive: q.Get("include_inactive") == "true", SchoolID: q.Get("school_id"), DepartmentID: q.Get("department_id"), CategoryID: q.Get("category_id"), NatureID: q.Get("nature_id"), CourseID: q.Get("course_id"), TermID: q.Get("term_id"), TeacherID: q.Get("teacher_id"), TermCourseID: q.Get("term_course_id"), ClassID: q.Get("class_id"), Query: q.Get("q"), After: q.Get("after"), Limit: n})
+	v, e := h.Service.ReadList(r.Context(), p, filter)
 	respond(w, v, e)
 }
 func (h Handler) importData(w http.ResponseWriter, r *http.Request) {

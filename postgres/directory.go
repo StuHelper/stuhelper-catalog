@@ -9,8 +9,14 @@ func (t *transaction) List(f catalog.Filter) ([]catalog.Object, error) {
  LEFT JOIN catalog.objects parent_class ON parent_class.id=catalog.canonical(o.class_id) AND parent_class.kind='class'
  LEFT JOIN catalog.objects parent_offering ON parent_offering.id=catalog.canonical(COALESCE(NULLIF(o.term_course_id,''),parent_class.term_course_id)) AND parent_offering.kind='term_course'
  WHERE o.kind=$1 AND NOT EXISTS(SELECT 1 FROM catalog.redirects redirect WHERE redirect.alias_id=o.id) AND ($14 OR NOT COALESCE((o.data->'object'->>'inactive')::boolean,false)) AND ($2='' OR o.school_id=$2) AND o.id>$3
- AND ($4='' OR strpos(lower(o.name),lower($4))>0 OR strpos(lower(o.data->'object'->>'code'),lower($4))>0
-   OR EXISTS(SELECT 1 FROM jsonb_array_elements_text(o.data->'object'->'aliases') alias WHERE strpos(lower(alias),lower($4))>0))
+ AND ($15::text[] IS NULL OR o.id=ANY($15))
+ AND ($4='' OR CASE WHEN o.kind='school' AND $4 ~ '^[0-9]+$' THEN
+   o.id=$4 OR o.data->'object'->>'code'=$4
+   OR (length($4)=5 AND ((o.id ~ '^[0-9]{10}$' AND right(o.id,5)=$4)
+     OR (o.data->'object'->>'code' ~ '^[0-9]{10}$' AND right(o.data->'object'->>'code',5)=$4)))
+ ELSE strpos(lower(o.name),lower($4))>0 OR strpos(lower(o.data->'object'->>'code'),lower($4))>0
+   OR EXISTS(SELECT 1 FROM jsonb_array_elements_text(o.data->'object'->'aliases') alias WHERE strpos(lower(alias),lower($4))>0) END)
+
  AND ($5='' OR catalog.canonical(o.course_id)=$5 OR (o.kind='course' AND o.id=$5) OR catalog.canonical(parent_offering.course_id)=$5
    OR (o.kind='teacher' AND EXISTS(SELECT 1 FROM catalog.objects a JOIN catalog.objects cl ON cl.id=a.class_id JOIN catalog.objects tc ON tc.id=cl.term_course_id
      WHERE a.kind='assignment' AND catalog.canonical(a.teacher_id)=catalog.canonical(o.id) AND catalog.canonical(tc.course_id)=$5 AND ($7='' OR tc.term_id=$7))))
@@ -35,7 +41,7 @@ func (t *transaction) List(f catalog.Filter) ([]catalog.Object, error) {
    OR (o.kind='teacher' AND EXISTS(SELECT 1 FROM catalog.objects a JOIN catalog.objects cl ON cl.id=a.class_id WHERE a.kind='assignment' AND catalog.canonical(a.teacher_id)=catalog.canonical(o.id) AND catalog.canonical(cl.term_course_id)=$12)))
  AND ($13='' OR catalog.canonical(o.class_id)=$13 OR o.id=$13
    OR (o.kind='teacher' AND EXISTS(SELECT 1 FROM catalog.objects a WHERE a.kind='assignment' AND catalog.canonical(a.teacher_id)=catalog.canonical(o.id) AND catalog.canonical(a.class_id)=$13)))
- ORDER BY o.id LIMIT $11`, f.Kind, f.SchoolID, f.After, f.Query, f.CourseID, f.DepartmentID, f.TermID, f.CategoryID, f.NatureID, f.TeacherID, f.Limit+1, f.TermCourseID, f.ClassID, f.IncludeInactive)
+ ORDER BY o.id LIMIT $11`, f.Kind, f.SchoolID, f.After, f.Query, f.CourseID, f.DepartmentID, f.TermID, f.CategoryID, f.NatureID, f.TeacherID, f.Limit+1, f.TermCourseID, f.ClassID, f.IncludeInactive, f.IDs)
 }
 
 func (t *transaction) Lookup(ids []string) ([]catalog.Object, error) {
@@ -97,4 +103,8 @@ func (t *transaction) Summary(object catalog.Object) (catalog.Summary, error) {
 		}
 	}
 	return out, nil
+}
+
+func (t *transaction) OwnScheduleMeetings(owner string, ids []string, limit int) ([]catalog.EnrollmentMeeting, error) {
+	return list[catalog.EnrollmentMeeting](t, `SELECT jsonb_build_object('EnrollmentID',en.id,'Meeting',jsonb_build_object('id',o.id,'time_text',COALESCE(o.data->'object'->>'time_text',''),'location',COALESCE(o.data->'object'->>'location',''),'schedule_time',o.data->'object'->'schedule_time')) FROM catalog.enrollments en JOIN catalog.objects o ON o.kind='schedule' AND o.school_id=en.school_id AND (o.class_id=catalog.canonical(COALESCE(en.data->>'class_id','')) OR o.class_id IN(SELECT alias_id FROM catalog.redirects WHERE canonical_id=catalog.canonical(COALESCE(en.data->>'class_id','')))) WHERE en.subject=$1 AND en.id=ANY($2::text[]) AND en.active AND NOT COALESCE((o.data->'object'->>'inactive')::boolean,false) ORDER BY en.id,o.id LIMIT $3`, owner, ids, limit)
 }

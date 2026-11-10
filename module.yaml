@@ -1,5 +1,6 @@
 id: catalog
-version: 0.1.0
+version: 0.4.1
+kind: module
 api: 1
 critical: false
 requires:
@@ -8,17 +9,42 @@ requires:
 optional:
   - id: campus-adapters
     api: 1
+  - id: verification
+    api: 1
+  - id: identity
+    api: 1
 capabilities:
   - catalog.read
   - catalog.import
   - catalog.enrollments
-capability_requires: {}
+  - catalog.maintain
+capability_requires:
+  catalog.read:
+    - id: identity
+      api: 1
+  catalog.import:
+    - id: identity
+      api: 1
+  catalog.enrollments:
+    - id: identity
+      api: 1
+  catalog.maintain:
+    - id: identity
+      api: 1
+specifications:
+  - docs/spec/activity.md
 scenario_tests:
+  CAT-ACTIVITY-01:
+    - postgres/activity_test.go#TestActivitySnapshotSchemaRollbackAndBoundedCleanup
+    - activity_test.go#TestActivityViewsDeduplicateConcurrentReadersAndDoNotBreakDetails
+    - activity_test.go#TestActivityViewFailureTelemetryAndBoundedDedupRetention
+    - activity_test.go#TestActivityViewAliasesShareCanonicalDeduplication
   CO-02:
     - integration_test.go#TestImportRelationsClassificationAndMissingCredits
   CO-04:
     - integration_test.go#TestImportIdempotencyConcurrencyAndRollback
   CO-05:
+    - schedule_test.go#TestOwnedScheduleReadsOnlyCurrentEnrollmentMeetings
     - integration_test.go#TestCourseTeacherJoinsAndEnrollmentAssignments
   CO-07:
     - integration_test.go#TestSchoolScopePublicProjectionAndBoundedHTTP
@@ -37,3 +63,41 @@ scenario_tests:
     - operations_test.go#TestMergeKeepsOldLinksOfferingsAndEnrollmentsAndSupportsDeactivation
   CO-10:
     - operations_test.go#TestImportPreviewRollsBackAndRejectsChangedConfirmation
+  AE-ACCESS-05:
+    - references_test.go#TestOwnEnrollmentNamesSurviveAdmissionExpiryWithoutPublicDetails
+    - content_test.go#TestContentReadAdmissionCoversEveryHTTPReadAndPreservesOwnEnrollment
+  AE-ACCESS-06:
+    - content_test.go#TestContentReadAdmissionCoversEveryHTTPReadAndPreservesOwnEnrollment
+  AE-ACCESS-07:
+    - content_test.go#TestContentReadAdmissionCoversEveryHTTPReadAndPreservesOwnEnrollment
+  MC-01:
+    - timetable_test.go#TestStructuredImportPreviewCalendarAndOwnership
+  MC-02:
+    - timetable_test.go#TestStructuredImportPreviewCalendarAndOwnership
+  MC-03:
+    - timetable_test.go#TestScheduleExpansionWeeksTimezoneAndMissing
+  MC-05:
+    - timetable_test.go#TestCalendarEscapingFoldingAndDSTOffsets
+    - timetable_test.go#TestScheduleExpansionWeeksTimezoneAndMissing
+  MC-06:
+    - timetable_test.go#TestTimetableRevisionAuditConcurrencyAndMigration
+    - timetable_test.go#TestTimetableTransactionNotificationAndMigration
+  CAT-AUDIT-01:
+    - audit_query_test.go#TestPublicAuditQuery
+    - discovery_test.go#TestDiscoveryEventsRollbackMergeDeletionAndCurrent
+  CAT-DISCOVERY-01:
+    - discovery_test.go#TestDiscoveryNotificationAndAuditAtomicity
+    - discovery_test.go#TestDiscoveryEventsRollbackMergeDeletionAndCurrent
+  CAT-DISCOVERY-02:
+    - discovery_test.go#TestDiscoverySnapshotStableWithUpdatesLateCommitsAndRetention
+  CAT-OUTBOX-01:
+    - outbox_delivery_test.go#TestOutboxNotificationBacklogOrderAndConfirmation
+  CAT-OUTBOX-02:
+    - outbox_delivery_test.go#TestOutboxMergeRevisionBelongsToSourceSubject
+    - outbox_delivery_test.go#TestOutboxDiscoveryAndTimetablePayloads
+  CAT-OUTBOX-03:
+    - outbox_delivery_test.go#TestOutboxExcludedSubjectsDoNotBlockOtherSubjects
+    - postgres/outbox_plan_test.go#TestPendingOutboxExclusionUsesPartialIndex
+
+  CAT-SCHOOL-01:
+    - school_search_test.go#TestSchoolSearchCodesNamesAliasesAndDiscovery

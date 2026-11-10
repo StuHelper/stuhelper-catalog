@@ -8,10 +8,12 @@ import (
 )
 
 type ImportChange struct {
-	ID     string   `json:"id"`
-	Kind   string   `json:"kind"`
-	State  string   `json:"state"`
-	Fields []string `json:"fields"`
+	ScheduleTime *ScheduleTime `json:"schedule_time,omitempty"`
+	TimeText     string        `json:"time_text,omitempty"`
+	ID           string        `json:"id"`
+	Kind         string        `json:"kind"`
+	State        string        `json:"state"`
+	Fields       []string      `json:"fields"`
 }
 type ImportPreview struct {
 	Valid        bool           `json:"valid"`
@@ -38,6 +40,7 @@ func (p previewRepository) Transaction(ctx context.Context, run func(Transaction
 }
 func importToken(t Transaction, in Import) (string, error) {
 	in.PreviewToken = ""
+	in.Objects = normalizeSchedules(in.Objects)
 	ids := []string{in.SchoolID}
 	for _, o := range in.Objects {
 		ids = append(ids, o.ID, o.DepartmentID, o.CategoryID, o.NatureID, o.CourseID, o.TermID, o.TermCourseID, o.ClassID, o.TeacherID)
@@ -82,6 +85,11 @@ func changedFields(a, b Object) []string {
 	_ = json.Unmarshal(left, &x)
 	_ = json.Unmarshal(right, &y)
 	out := []string{}
+	for key := range x {
+		if _, ok := y[key]; !ok {
+			y[key] = nil
+		}
+	}
 	for key, value := range y {
 		if key == "revision" || key == "updated_at" {
 			continue
@@ -102,6 +110,7 @@ func (s *Service) PreviewImport(ctx context.Context, p Principal, in Import) (Im
 		return out, ErrInput
 	}
 	in.PreviewToken = ""
+	in.Objects = normalizeSchedules(in.Objects)
 	err := s.Repo.Transaction(ctx, func(t Transaction) error {
 		if e := t.Lock(in.SchoolID); e != nil {
 			return e
@@ -116,7 +125,7 @@ func (s *Service) PreviewImport(ctx context.Context, p Principal, in Import) (Im
 			incoming[o.ID] = o
 		}
 		for _, o := range in.Objects {
-			change := ImportChange{ID: o.ID, Kind: o.Kind, State: "new", Fields: []string{}}
+			change := ImportChange{ID: o.ID, Kind: o.Kind, ScheduleTime: o.ScheduleTime, TimeText: o.TimeText, State: "new", Fields: []string{}}
 			old, e := t.Object(o.ID)
 			if e != nil && !errors.Is(e, ErrNotFound) {
 				return e
@@ -170,8 +179,7 @@ func (s *Service) PreviewImport(ctx context.Context, p Principal, in Import) (Im
 		return out, err
 	}
 	// Execute the exact import validation in a transaction that always rolls back.
-	clone := *s
-	clone.Repo = previewRepository{s.Repo}
+	clone := Service{ReadAccess: s.ReadAccess, Repo: previewRepository{s.Repo}, Clock: s.Clock, ActivityLogger: s.ActivityLogger}
 	in.PreviewToken = out.PreviewToken
 	_, err = clone.Import(ctx, p, "preview-"+out.PreviewToken, in)
 	if err == nil {
