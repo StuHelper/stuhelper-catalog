@@ -1,5 +1,5 @@
 id: catalog
-version: 0.4.2
+version: 0.4.3
 kind: module
 api: 1
 critical: false
@@ -113,3 +113,8 @@ scenario_tests:
 
   CAT-SCHOOL-01:
     - school_search_test.go#TestSchoolSearchCodesNamesAliasesAndDiscovery
+  CAT-SOURCE-05:
+    - own_performance_test.go#TestOwnScheduleDoesNotScanUnrelatedMeetings
+    - own_performance_test.go#TestUnchangedSnapshotDoesNotWaitForDirectoryWriter
+    - own_performance_test.go#TestOwnSchedulePreservesClassAliasesAndCurrentVisibility
+    - own_observability_test.go#TestOwnDiagnosticsKeepPhaseAndRemoveSensitiveErrors

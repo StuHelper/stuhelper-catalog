@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"slices"
+	"time"
 )
 
 type ScheduleMeeting struct {
@@ -41,7 +42,9 @@ func (s *Service) MySchedule(ctx context.Context, p Principal, term, after strin
 		return out, err
 	}
 	e := s.Repo.Transaction(ctx, func(tx Transaction) error {
+		started := time.Now()
 		rows, e := tx.Enrollments(p.Subject, "", "", term, after, limit)
+		s.observeOwn(ctx, "schedule.enrollments", started, e)
 		if e != nil {
 			return e
 		}
@@ -55,7 +58,9 @@ func (s *Service) MySchedule(ctx context.Context, p Principal, term, after strin
 		}
 		slices.Sort(courses)
 		courses = slices.Compact(courses)
+		started = time.Now()
 		names, e := tx.ReferenceNames(courses)
+		s.observeOwn(ctx, "schedule.names", started, e)
 		if e != nil {
 			return e
 		}
@@ -63,7 +68,9 @@ func (s *Service) MySchedule(ctx context.Context, p Principal, term, after strin
 		for _, v := range names {
 			byName[v.ID] = v.Name
 		}
+		started = time.Now()
 		meetings, e := tx.OwnScheduleMeetings(p.Subject, ids, 1001)
+		s.observeOwn(ctx, "schedule.meetings", started, e)
 		if e != nil {
 			return e
 		}
@@ -83,7 +90,13 @@ func (s *Service) MySchedule(ctx context.Context, p Principal, term, after strin
 			if _, ok := configs[key]; ok {
 				continue
 			}
+			started = time.Now()
 			c, e := tx.Timetable(v.SchoolID, v.TermID)
+			diagnostic := e
+			if errors.Is(e, ErrNotFound) {
+				diagnostic = nil
+			}
+			s.observeOwn(ctx, "schedule.timetable", started, diagnostic)
 			if e != nil && !errors.Is(e, ErrNotFound) {
 				return e
 			}
