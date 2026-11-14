@@ -67,6 +67,9 @@ func (s *Service) MyReferences(ctx context.Context, p Principal, ids []string) (
 	if e != nil {
 		return References{}, e
 	}
+	if err := s.refreshOwn(ctx, p); err != nil {
+		return References{}, err
+	}
 	var out References
 	e = s.Repo.Transaction(ctx, func(tx Transaction) error {
 		owned, e := tx.OwnedReferences(p.Subject, ids)

@@ -43,6 +43,15 @@ func (t *transaction) MergeAliases(source, target, school string, at time.Time, 
 		}
 		count++
 	}
+	// The raw relation keys are already unique. Canonical collisions can only
+	// exist after a redirect; fresh source pages need no full-school window scan.
+	var redirected bool
+	if e := t.tx.QueryRowContext(t.ctx, `SELECT EXISTS(SELECT 1 FROM catalog.redirects r JOIN catalog.objects o ON o.id=r.alias_id WHERE o.school_id=$1)`, school).Scan(&redirected); e != nil {
+		return 0, safe(e)
+	}
+	if !redirected {
+		return count, nil
+	}
 	for _, kind := range []string{"term_course", "assignment"} {
 		var q string
 		if kind == "term_course" {

@@ -16,11 +16,12 @@ import (
 )
 
 type Service struct {
-	ActivityLogger *slog.Logger
-	viewStats      viewCounters
-	ReadAccess     ContentAccess
-	Repo           Repository
-	Clock          func() time.Time
+	EnrollmentSource EnrollmentSource
+	ActivityLogger   *slog.Logger
+	viewStats        viewCounters
+	ReadAccess       ContentAccess
+	Repo             Repository
+	Clock            func() time.Time
 }
 
 func (s *Service) now() time.Time {
@@ -158,7 +159,7 @@ func (s *Service) Import(ctx context.Context, p Principal, key string, in Import
 			return e
 		}
 		r, e := t.Replay(rk)
-		if e == nil && now.Before(r.Until) {
+		if e == nil {
 			if r.Digest != h {
 				return ErrConflict
 			}
@@ -206,6 +207,18 @@ func (s *Service) Import(ctx context.Context, p Principal, key string, in Import
 						}
 						continue
 					}
+					if digest(old.Imported) == digest(imported) {
+						// Refresh source provenance without creating another public
+						// object/history/search revision for identical weekly data.
+						if err := t.AdvanceSourceRevision(o.ID, in.Revision); err != nil {
+							return err
+						}
+						out.PreservedCorrections += len(old.Manual)
+						if _, ok := old.Manual["inactive_reason"]; ok {
+							out.PreservedCorrections--
+						}
+						continue
+					}
 				}
 				rec := Record{Object: o, Imported: imported, SourceID: in.SourceID, SourceRevision: in.Revision, Manual: old.Manual}
 				rec.Object.Revision = old.Object.Revision + 1
@@ -237,70 +250,7 @@ func (s *Service) Import(ctx context.Context, p Principal, key string, in Import
 			}
 		}
 		for _, en := range in.Enrollments {
-			if !ValidID(en.ID) || en.Subject == "" || len(en.Subject) > 512 || en.SchoolID != in.SchoolID || len(en.TeacherIDs) > 100 {
-				return ErrInput
-			}
-			for id, kind := range map[string]string{en.CourseID: "course", en.TermID: "term"} {
-				r, e := t.Object(id)
-				if e != nil {
-					return e
-				}
-				if r.Object.Kind != kind || r.Object.SchoolID != in.SchoolID {
-					return ErrInput
-				}
-			}
-			if en.ClassID != "" {
-				cl, e := t.Object(en.ClassID)
-				if e != nil {
-					return e
-				}
-				tc, e := t.Object(cl.Object.TermCourseID)
-				if e != nil {
-					return e
-				}
-				if cl.Object.Kind != "class" || tc.Object.CourseID != en.CourseID || tc.Object.TermID != en.TermID {
-					return ErrInput
-				}
-			}
-			slices.Sort(en.TeacherIDs)
-			en.TeacherIDs = slices.Compact(en.TeacherIDs)
-			for _, id := range en.TeacherIDs {
-				r, e := t.Object(id)
-				if e != nil {
-					return e
-				}
-				if r.Object.Kind != "teacher" || r.Object.SchoolID != in.SchoolID {
-					return ErrInput
-				}
-				if en.ClassID != "" {
-					matched, err := t.HasAssignment(en.ClassID, id)
-					if err != nil {
-						return err
-					}
-					if !matched {
-						return ErrInput
-					}
-				}
-			}
-			en.SourceID = in.SourceID
-			en.SourceRevision = in.Revision
-			en.FetchedAt = in.FetchedAt
-			old, e := t.Enrollment(en.ID)
-			if e != nil && !errors.Is(e, ErrNotFound) {
-				return e
-			}
-			if e == nil {
-				if old.SourceID != in.SourceID || old.Subject != en.Subject || old.SchoolID != en.SchoolID || old.SourceRevision > in.Revision {
-					return ErrConflict
-				}
-				if old.SourceRevision == in.Revision {
-					if digest(old) != digest(en) {
-						return ErrConflict
-					}
-					continue
-				}
-			}
-			if e := t.SaveEnrollment(en); e != nil {
+			if e := importEnrollment(t, en, in); e != nil {
 				return e
 			}
 		}
@@ -376,6 +326,9 @@ func (s *Service) MyEnrollments(ctx context.Context, p Principal, school, course
 	}
 	if limit < 1 || limit > 100 {
 		return nil, ErrInput
+	}
+	if err := s.refreshOwn(ctx, p); err != nil {
+		return nil, err
 	}
 	var out []Enrollment
 	err := s.Repo.Transaction(ctx, func(t Transaction) error {
