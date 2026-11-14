@@ -19,8 +19,9 @@ var Schema string
 
 type Repository struct{ DB *sql.DB }
 type transaction struct {
-	tx  *sql.Tx
-	ctx context.Context
+	tx      *sql.Tx
+	ctx     context.Context
+	objects map[string]catalog.Record
 }
 
 func safe(e error) error {
@@ -45,7 +46,7 @@ func (r *Repository) Transaction(ctx context.Context, run func(catalog.Transacti
 		return safe(e)
 	}
 	defer tx.Rollback()
-	if e = run(&transaction{tx, ctx}); e != nil {
+	if e = run(&transaction{tx: tx, ctx: ctx, objects: map[string]catalog.Record{}}); e != nil {
 		return e
 	}
 	return safe(tx.Commit())
@@ -92,7 +93,17 @@ func (t *transaction) save(q string, v any, args ...any) error {
 	return safe(e)
 }
 func (t *transaction) Object(id string) (catalog.Record, error) {
-	return read[catalog.Record](t, `SELECT data FROM catalog.objects WHERE id=$1`, id)
+	if r, ok := t.objects[id]; ok {
+		return r, nil
+	}
+	r, err := read[catalog.Record](t, `SELECT data FROM catalog.objects WHERE id=$1`, id)
+	if err == nil && len(t.objects) < 10000 {
+		if t.objects == nil {
+			t.objects = map[string]catalog.Record{}
+		}
+		t.objects[id] = r
+	}
+	return r, err
 }
 func (t *transaction) SaveObject(r catalog.Record) error {
 	o := r.Object
@@ -105,11 +116,38 @@ func (t *transaction) SaveObject(r catalog.Record) error {
 	if e := t.saveDiscovery(o); e != nil {
 		return e
 	}
-	return t.syncActivityVisibility(o)
+	if err := t.syncActivityVisibility(o); err != nil {
+		return err
+	}
+	if len(t.objects) < 10000 {
+		if t.objects == nil {
+			t.objects = map[string]catalog.Record{}
+		}
+		t.objects[o.ID] = r
+	} else {
+		delete(t.objects, o.ID)
+	}
+	return nil
+}
+
+func (t *transaction) AdvanceSourceRevision(id string, revision int64) error {
+	_, err := t.tx.ExecContext(t.ctx, `UPDATE catalog.objects SET data=jsonb_set(data,'{source_revision}',to_jsonb($2::bigint)) WHERE id=$1`, id, revision)
+	if err != nil {
+		return safe(err)
+	}
+	if record, ok := t.objects[id]; ok {
+		record.SourceRevision = revision
+		t.objects[id] = record
+	}
+	return nil
 }
 
 func (t *transaction) Enrollment(id string) (catalog.Enrollment, error) {
 	return read[catalog.Enrollment](t, `SELECT data FROM catalog.enrollments WHERE id=$1`, id)
+}
+
+func (t *transaction) SourceEnrollments(subject, school, source string, limit int) ([]catalog.Enrollment, error) {
+	return list[catalog.Enrollment](t, `SELECT data FROM catalog.enrollments WHERE subject=$1 AND school_id=$2 AND data->>'source_id'=$3 ORDER BY id LIMIT $4`, subject, school, source, limit)
 }
 func (t *transaction) SaveEnrollment(v catalog.Enrollment) error {
 	return t.save(`INSERT INTO catalog.enrollments(id,subject,school_id,course_id,term_id,active,data) VALUES($1,$2,$3,$4,$5,$6,$7) ON CONFLICT(id) DO UPDATE SET course_id=excluded.course_id,term_id=excluded.term_id,active=excluded.active,data=excluded.data`, v, v.ID, v.Subject, v.SchoolID, v.CourseID, v.TermID, v.Active)

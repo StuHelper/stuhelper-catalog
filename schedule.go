@@ -37,6 +37,9 @@ func (s *Service) MySchedule(ctx context.Context, p Principal, term, after strin
 	if limit < 1 || limit > 100 || (term != "" && !ValidID(term)) || (after != "" && !ValidID(after)) {
 		return out, ErrInput
 	}
+	if err := s.refreshOwn(ctx, p); err != nil {
+		return out, err
+	}
 	e := s.Repo.Transaction(ctx, func(tx Transaction) error {
 		rows, e := tx.Enrollments(p.Subject, "", "", term, after, limit)
 		if e != nil {

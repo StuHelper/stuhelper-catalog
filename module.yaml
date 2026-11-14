@@ -1,5 +1,5 @@
 id: catalog
-version: 0.4.1
+version: 0.4.2
 kind: module
 api: 1
 critical: false
@@ -32,8 +32,15 @@ capability_requires:
     - id: identity
       api: 1
 specifications:
+  - docs/spec/enrollment-source.md
   - docs/spec/activity.md
 scenario_tests:
+  CAT-SOURCE-01:
+    - enrollment_source_test.go#TestOwnSourceRefreshIsAtomicScopedAndDurablyIdempotent
+  CAT-SOURCE-02:
+    - enrollment_source_test.go#TestOwnReadsRefreshSourceAndFailClosed
+  CAT-SOURCE-03:
+    - enrollment_source_test.go#TestRepeatedSourceDirectoryKeepsPublicRevisionsAndRejectsOlderData
   CAT-ACTIVITY-01:
     - postgres/activity_test.go#TestActivitySnapshotSchemaRollbackAndBoundedCleanup
     - activity_test.go#TestActivityViewsDeduplicateConcurrentReadersAndDoNotBreakDetails

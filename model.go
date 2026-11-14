@@ -150,10 +150,12 @@ type Transaction interface {
 	Lock(string) error
 	Object(string) (Record, error)
 	SaveObject(Record) error
+	AdvanceSourceRevision(string, int64) error
 	List(Filter) ([]Object, error)
 	Lookup([]string) ([]Object, error)
 	Summary(Object) (Summary, error)
 	HasAssignment(string, string) (bool, error)
+	SourceEnrollments(subject, school, source string, limit int) ([]Enrollment, error)
 	Enrollment(string) (Enrollment, error)
 	SaveEnrollment(Enrollment) error
 	Enrollments(subject, school, course, term, after string, limit int) ([]Enrollment, error)
