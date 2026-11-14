@@ -18,6 +18,7 @@ import (
 type Service struct {
 	EnrollmentSource EnrollmentSource
 	ActivityLogger   *slog.Logger
+	OwnLogger        *slog.Logger
 	viewStats        viewCounters
 	ReadAccess       ContentAccess
 	Repo             Repository
@@ -331,11 +332,13 @@ func (s *Service) MyEnrollments(ctx context.Context, p Principal, school, course
 		return nil, err
 	}
 	var out []Enrollment
+	started := time.Now()
 	err := s.Repo.Transaction(ctx, func(t Transaction) error {
 		var e error
 		out, e = t.Enrollments(p.Subject, school, course, term, after, limit)
 		return e
 	})
+	s.observeOwn(ctx, "enrollments.read", started, err)
 	return out, err
 }
 func (s *Service) Correct(ctx context.Context, p Principal, id, key string, in Correction) (Object, error) {

@@ -36,14 +36,18 @@ func (s *Service) refreshOwn(ctx context.Context, p Principal) error {
 	if s.EnrollmentSource == nil {
 		return nil
 	}
+	started := time.Now()
 	snapshot, err := s.EnrollmentSource.OwnSnapshot(ctx, p.Subject)
+	s.observeOwn(ctx, "snapshot.source", started, err)
 	if err != nil {
 		return ErrUnavailable
 	}
 	if snapshot.Subject != p.Subject {
 		return ErrUnavailable
 	}
+	started = time.Now()
 	_, err = s.ReplaceOwnEnrollments(ctx, Principal{Subject: "urn:stuhelper:catalog-source:" + snapshot.SourceID, Schools: []string{snapshot.SchoolID}, CanImport: true}, snapshot)
+	s.observeOwn(ctx, "snapshot.persist", started, err)
 	return err
 }
 
@@ -84,10 +88,24 @@ func (s *Service) ReplaceOwnEnrollments(ctx context.Context, p Principal, in Enr
 	h := digest(in)
 	now := s.now()
 	err := s.Repo.Transaction(ctx, func(tx Transaction) error {
+		// A committed identical snapshot is already complete. Reading its
+		// receipt must not queue behind a school-wide directory import.
+		previous, err := tx.Replay(key)
+		if err == nil && previous.Digest == h {
+			var marker sourceMarker
+			if json.Unmarshal(previous.Result, &marker) != nil {
+				return ErrUnavailable
+			}
+			out = marker.Result
+			return nil
+		}
+		if err != nil && !errors.Is(err, ErrNotFound) {
+			return err
+		}
 		if err := tx.Lock(in.SchoolID); err != nil {
 			return err
 		}
-		previous, err := tx.Replay(key)
+		previous, err = tx.Replay(key)
 		if err == nil {
 			var marker sourceMarker
 			if json.Unmarshal(previous.Result, &marker) != nil {
