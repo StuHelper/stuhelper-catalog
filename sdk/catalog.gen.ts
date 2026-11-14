@@ -47,6 +47,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
+        /** @description Imports at most 500 objects and enrollment records atomically. An identical idempotency key and payload returns the original result while the import record is retained, including retries after 24 hours. The same key with different content is rejected. */
         post: operations["importCatalog"];
         delete?: never;
         options?: never;
