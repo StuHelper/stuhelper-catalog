@@ -155,7 +155,7 @@ type Transaction interface {
 	Lookup([]string) ([]Object, error)
 	Summary(Object) (Summary, error)
 	HasAssignment(string, string) (bool, error)
-	SourceEnrollments(subject, school, source string, limit int) ([]Enrollment, error)
+	ActiveSourceEnrollments(subject, school, source string, limit int) ([]Enrollment, error)
 	Enrollment(string) (Enrollment, error)
 	SaveEnrollment(Enrollment) error
 	Enrollments(subject, school, course, term, after string, limit int) ([]Enrollment, error)

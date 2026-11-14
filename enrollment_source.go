@@ -84,7 +84,7 @@ func (s *Service) ReplaceOwnEnrollments(ctx context.Context, p Principal, in Enr
 	h := digest(in)
 	now := s.now()
 	err := s.Repo.Transaction(ctx, func(tx Transaction) error {
-		if err := tx.Lock("own-source:" + key); err != nil {
+		if err := tx.Lock(in.SchoolID); err != nil {
 			return err
 		}
 		previous, err := tx.Replay(key)
@@ -104,7 +104,7 @@ func (s *Service) ReplaceOwnEnrollments(ctx context.Context, p Principal, in Enr
 		if err != nil && !errors.Is(err, ErrNotFound) {
 			return err
 		}
-		old, err := tx.SourceEnrollments(in.Subject, in.SchoolID, in.SourceID, 2001)
+		old, err := tx.ActiveSourceEnrollments(in.Subject, in.SchoolID, in.SourceID, 2001)
 		if err != nil {
 			return err
 		}

@@ -53,6 +53,9 @@ func (r *Repository) Transaction(ctx context.Context, run func(catalog.Transacti
 }
 func (t *transaction) Lock(key string) error {
 	_, e := t.tx.ExecContext(t.ctx, `SELECT pg_advisory_xact_lock(hashtextextended($1,0))`, "catalog:"+key)
+	if e == nil {
+		clear(t.objects)
+	}
 	return safe(e)
 }
 func read[T any](t *transaction, q string, args ...any) (T, error) {
@@ -146,8 +149,8 @@ func (t *transaction) Enrollment(id string) (catalog.Enrollment, error) {
 	return read[catalog.Enrollment](t, `SELECT data FROM catalog.enrollments WHERE id=$1`, id)
 }
 
-func (t *transaction) SourceEnrollments(subject, school, source string, limit int) ([]catalog.Enrollment, error) {
-	return list[catalog.Enrollment](t, `SELECT data FROM catalog.enrollments WHERE subject=$1 AND school_id=$2 AND data->>'source_id'=$3 ORDER BY id LIMIT $4`, subject, school, source, limit)
+func (t *transaction) ActiveSourceEnrollments(subject, school, source string, limit int) ([]catalog.Enrollment, error) {
+	return list[catalog.Enrollment](t, `SELECT data FROM catalog.enrollments WHERE subject=$1 AND school_id=$2 AND data->>'source_id'=$3 AND active ORDER BY id LIMIT $4`, subject, school, source, limit)
 }
 func (t *transaction) SaveEnrollment(v catalog.Enrollment) error {
 	return t.save(`INSERT INTO catalog.enrollments(id,subject,school_id,course_id,term_id,active,data) VALUES($1,$2,$3,$4,$5,$6,$7) ON CONFLICT(id) DO UPDATE SET course_id=excluded.course_id,term_id=excluded.term_id,active=excluded.active,data=excluded.data`, v, v.ID, v.Subject, v.SchoolID, v.CourseID, v.TermID, v.Active)

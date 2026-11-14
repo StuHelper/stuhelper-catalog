@@ -37,10 +37,13 @@ specifications:
 scenario_tests:
   CAT-SOURCE-01:
     - enrollment_source_test.go#TestOwnSourceRefreshIsAtomicScopedAndDurablyIdempotent
+    - source_concurrency_test.go#TestSourceSnapshotCoordinatesWithOrdinaryImport
+    - source_concurrency_test.go#TestSourceSnapshotLimitDoesNotCountInactiveHistory
   CAT-SOURCE-02:
     - enrollment_source_test.go#TestOwnReadsRefreshSourceAndFailClosed
   CAT-SOURCE-03:
     - enrollment_source_test.go#TestRepeatedSourceDirectoryKeepsPublicRevisionsAndRejectsOlderData
+    - source_concurrency_test.go#TestCorrectionRereadsSourceWatermarkAfterSchoolLock
   CAT-ACTIVITY-01:
     - postgres/activity_test.go#TestActivitySnapshotSchemaRollbackAndBoundedCleanup
     - activity_test.go#TestActivityViewsDeduplicateConcurrentReadersAndDoNotBreakDetails
