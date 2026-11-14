@@ -624,10 +624,14 @@ type ClientInterface interface {
 
 	// ImportCatalogWithBody performs a POST /api/v1/catalog/imports (the `ImportCatalog` operationId) request,
 	// with any type of body and a specified content type.
+	//
+	// Imports at most 500 objects and enrollment records atomically. An identical idempotency key and payload returns the original result while the import record is retained, including retries after 24 hours. The same key with different content is rejected.
 	ImportCatalogWithBody(ctx context.Context, params *ImportCatalogParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// ImportCatalog performs a POST /api/v1/catalog/imports (the `ImportCatalog` operationId) request.
 	// Takes a body of the `application/json` content type.
+	//
+	// Imports at most 500 objects and enrollment records atomically. An identical idempotency key and payload returns the original result while the import record is retained, including retries after 24 hours. The same key with different content is rejected.
 	ImportCatalog(ctx context.Context, params *ImportCatalogParams, body ImportCatalogJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// ConfirmImportWithBody performs a POST /api/v1/catalog/imports/confirm (the `ConfirmImport` operationId) request,
@@ -844,6 +848,8 @@ func (c *Client) PutTimetable(ctx context.Context, schoolId string, termId strin
 
 // ImportCatalogWithBody performs a POST /api/v1/catalog/imports (the `ImportCatalog` operationId) request,
 // with any type of body and a specified content type.
+//
+// Imports at most 500 objects and enrollment records atomically. An identical idempotency key and payload returns the original result while the import record is retained, including retries after 24 hours. The same key with different content is rejected.
 func (c *Client) ImportCatalogWithBody(ctx context.Context, params *ImportCatalogParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewImportCatalogRequestWithBody(c.Server, params, contentType, body)
 	if err != nil {
@@ -858,6 +864,8 @@ func (c *Client) ImportCatalogWithBody(ctx context.Context, params *ImportCatalo
 
 // ImportCatalog performs a POST /api/v1/catalog/imports (the `ImportCatalog` operationId) request.
 // Takes a body of the `application/json` content type.
+//
+// Imports at most 500 objects and enrollment records atomically. An identical idempotency key and payload returns the original result while the import record is retained, including retries after 24 hours. The same key with different content is rejected.
 func (c *Client) ImportCatalog(ctx context.Context, params *ImportCatalogParams, body ImportCatalogJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewImportCatalogRequest(c.Server, params, body)
 	if err != nil {
@@ -2762,11 +2770,15 @@ type ClientWithResponsesInterface interface {
 	// ImportCatalogWithBodyWithResponse performs a POST /api/v1/catalog/imports (the `ImportCatalog` operationId) request,
 	// with any type of body and a specified content type.
 	//
+	// Imports at most 500 objects and enrollment records atomically. An identical idempotency key and payload returns the original result while the import record is retained, including retries after 24 hours. The same key with different content is rejected.
+	//
 	// Returns a wrapper object for the known response body format(s).
 	ImportCatalogWithBodyWithResponse(ctx context.Context, params *ImportCatalogParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*ImportCatalogResponse, error)
 
 	// ImportCatalogWithResponse performs a POST /api/v1/catalog/imports (the `ImportCatalog` operationId) request.
 	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Imports at most 500 objects and enrollment records atomically. An identical idempotency key and payload returns the original result while the import record is retained, including retries after 24 hours. The same key with different content is rejected.
 	ImportCatalogWithResponse(ctx context.Context, params *ImportCatalogParams, body ImportCatalogJSONRequestBody, reqEditors ...RequestEditorFn) (*ImportCatalogResponse, error)
 
 	// ConfirmImportWithBodyWithResponse performs a POST /api/v1/catalog/imports/confirm (the `ConfirmImport` operationId) request,
@@ -4905,6 +4917,8 @@ func (c *ClientWithResponses) PutTimetableWithResponse(ctx context.Context, scho
 // ImportCatalogWithBodyWithResponse performs a POST /api/v1/catalog/imports (the `ImportCatalog` operationId) request,
 // with any type of body and a specified content type.
 //
+// Imports at most 500 objects and enrollment records atomically. An identical idempotency key and payload returns the original result while the import record is retained, including retries after 24 hours. The same key with different content is rejected.
+//
 // Returns a wrapper object for the known response body format(s).
 func (c *ClientWithResponses) ImportCatalogWithBodyWithResponse(ctx context.Context, params *ImportCatalogParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*ImportCatalogResponse, error) {
 	rsp, err := c.ImportCatalogWithBody(ctx, params, contentType, body, reqEditors...)
@@ -4916,6 +4930,8 @@ func (c *ClientWithResponses) ImportCatalogWithBodyWithResponse(ctx context.Cont
 
 // ImportCatalogWithResponse performs a POST /api/v1/catalog/imports (the `ImportCatalog` operationId) request.
 // Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+//
+// Imports at most 500 objects and enrollment records atomically. An identical idempotency key and payload returns the original result while the import record is retained, including retries after 24 hours. The same key with different content is rejected.
 func (c *ClientWithResponses) ImportCatalogWithResponse(ctx context.Context, params *ImportCatalogParams, body ImportCatalogJSONRequestBody, reqEditors ...RequestEditorFn) (*ImportCatalogResponse, error) {
 	rsp, err := c.ImportCatalog(ctx, params, body, reqEditors...)
 	if err != nil {
