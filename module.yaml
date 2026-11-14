@@ -41,6 +41,8 @@ scenario_tests:
     - source_concurrency_test.go#TestSourceSnapshotLimitDoesNotCountInactiveHistory
   CAT-SOURCE-02:
     - enrollment_source_test.go#TestOwnReadsRefreshSourceAndFailClosed
+  CAT-SOURCE-04:
+    - directory_test.go#TestSummaryAndEnrollmentKeepMergedRelations
   CAT-SOURCE-03:
     - enrollment_source_test.go#TestRepeatedSourceDirectoryKeepsPublicRevisionsAndRejectsOlderData
     - source_concurrency_test.go#TestCorrectionRereadsSourceWatermarkAfterSchoolLock

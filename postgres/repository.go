@@ -197,6 +197,6 @@ func (t *transaction) Event(v catalog.Event) error {
 
 func (t *transaction) HasAssignment(class, teacher string) (bool, error) {
 	var yes bool
-	e := t.tx.QueryRowContext(t.ctx, `SELECT EXISTS(SELECT 1 FROM catalog.objects WHERE kind='assignment' AND catalog.canonical(class_id)=catalog.canonical($1) AND catalog.canonical(teacher_id)=catalog.canonical($2))`, class, teacher).Scan(&yes)
+	e := t.tx.QueryRowContext(t.ctx, `SELECT EXISTS(SELECT 1 FROM catalog.objects WHERE kind='assignment' AND class_id IN (SELECT catalog.canonical($1) UNION SELECT alias_id FROM catalog.redirects WHERE canonical_id=catalog.canonical($1)) AND teacher_id IN (SELECT catalog.canonical($2) UNION SELECT alias_id FROM catalog.redirects WHERE canonical_id=catalog.canonical($2)))`, class, teacher).Scan(&yes)
 	return yes, safe(e)
 }
