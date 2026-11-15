@@ -2,6 +2,9 @@ package catalog
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
+	"encoding/json"
 	"net/url"
 	"slices"
 	"strings"
@@ -43,11 +46,12 @@ type TeacherSiteMatch struct {
 // An interrupted crawl must not be submitted as a snapshot. Revision is the
 // observation's Unix microsecond timestamp, not a local import attempt counter.
 type TeacherSiteSnapshot struct {
-	SchoolID   string             `json:"school_id"`
-	SourceID   string             `json:"source_id"`
-	Revision   int64              `json:"revision"`
-	ObservedAt time.Time          `json:"observed_at"`
-	Matches    []TeacherSiteMatch `json:"matches"`
+	CandidateFingerprint string             `json:"candidate_fingerprint"`
+	SchoolID             string             `json:"school_id"`
+	SourceID             string             `json:"source_id"`
+	Revision             int64              `json:"revision"`
+	ObservedAt           time.Time          `json:"observed_at"`
+	Matches              []TeacherSiteMatch `json:"matches"`
 }
 
 type TeacherDirectoryResult struct {
@@ -63,6 +67,21 @@ type TeacherDirectoryTransaction interface {
 	TeacherCandidates(string, string, int) ([]TeacherCandidate, error)
 	RefreshTeachingDirectory(string, time.Time) (TeacherDirectoryResult, bool, error)
 	ReplaceTeacherSites(TeacherSiteSnapshot, string, time.Time) (TeacherDirectoryResult, error)
+}
+
+// TeacherCandidateFingerprint binds matching decisions to all candidate names
+// and units, including competing homonyms. Titles and teaching changes do not
+// affect this identity check. Repository recomputes it while holding the school
+// write lock so a concurrently inserted homonym cannot make a match ambiguous.
+func TeacherCandidateFingerprint(candidates []TeacherCandidate) string {
+	rows := slices.Clone(candidates)
+	slices.SortFunc(rows, func(a, b TeacherCandidate) int { return strings.Compare(a.ID, b.ID) })
+	h := sha256.New()
+	e := json.NewEncoder(h)
+	for _, row := range rows {
+		_ = e.Encode([4]string{row.ID, row.Name, row.DepartmentID, row.Unit})
+	}
+	return hex.EncodeToString(h.Sum(nil))
 }
 
 func (s *Service) TeacherCandidates(ctx context.Context, p Principal, school, after string, limit int) ([]TeacherCandidate, error) {
@@ -121,7 +140,8 @@ func (s *Service) ImportTeacherSites(ctx context.Context, p Principal, in Teache
 	if !p.CanImport || p.Subject == "" || !allowed(p, in.SchoolID) {
 		return out, ErrForbidden
 	}
-	if !ValidID(in.SchoolID) || !ValidID(in.SourceID) || in.Revision < 1 || in.ObservedAt.IsZero() ||
+	fingerprint, fingerprintError := hex.DecodeString(in.CandidateFingerprint)
+	if fingerprintError != nil || len(fingerprint) != 32 || !ValidID(in.SchoolID) || !ValidID(in.SourceID) || in.Revision < 1 || in.ObservedAt.IsZero() ||
 		in.ObservedAt.After(s.now().Add(5*time.Minute)) || len(in.Matches) > 20000 {
 		return out, ErrInput
 	}

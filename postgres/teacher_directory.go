@@ -29,19 +29,41 @@ const taughtTeachersSQL = `SELECT DISTINCT catalog.canonical(a.teacher_id) AS id
  JOIN catalog.objects cl ON cl.id=catalog.canonical(a.class_id) AND cl.kind='class' AND cl.school_id=a.school_id
  JOIN catalog.objects tc ON tc.id=catalog.canonical(cl.term_course_id) AND tc.kind='term_course' AND tc.school_id=a.school_id
  JOIN catalog.objects co ON co.id=catalog.canonical(tc.course_id) AND co.kind='course' AND co.school_id=a.school_id
- WHERE a.kind='assignment' AND a.school_id=$1
- AND NOT COALESCE((a.data->'object'->>'inactive')::boolean,false)`
+ WHERE a.kind='assignment' AND a.school_id=$1`
+
+func teachingEvidenceSQL(alias string) string {
+	return `EXISTS(SELECT 1 FROM catalog.objects a
+ JOIN catalog.objects cl ON cl.id=catalog.canonical(a.class_id) AND cl.kind='class' AND cl.school_id=a.school_id
+ JOIN catalog.objects tc ON tc.id=catalog.canonical(cl.term_course_id) AND tc.kind='term_course' AND tc.school_id=a.school_id
+ JOIN catalog.objects co ON co.id=catalog.canonical(tc.course_id) AND co.kind='course' AND co.school_id=a.school_id
+ WHERE a.kind='assignment' AND a.school_id=` + alias + `.school_id
+ AND a.teacher_id IN (SELECT ` + alias + `.id UNION ALL SELECT alias_id FROM catalog.redirects WHERE canonical_id=` + alias + `.id))`
+}
+
+// Import pages update only affected teacher keys once, in the business
+// transaction. This avoids both per-assignment round trips and full-table scans
+// after each 500-object page. The final full-source refresh also repairs a
+// preceding installation that had no markers yet.
+func (t *transaction) flushTeachingDirectory() error {
+	if len(t.pendingTeachers) == 0 {
+		return nil
+	}
+	ids := make([]string, 0, len(t.pendingTeachers))
+	for id := range t.pendingTeachers {
+		ids = append(ids, id)
+	}
+	_, err := t.tx.ExecContext(t.ctx, `INSERT INTO catalog.teacher_directory(teacher_id,school_id,teaching,teaching_updated_at,updated_at)
+ SELECT o.id,o.school_id,`+teachingEvidenceSQL("o")+`,$2,$2 FROM catalog.objects o
+ WHERE o.kind='teacher' AND o.id IN(SELECT catalog.canonical(id) FROM unnest($1::text[]) ids(id))
+ ON CONFLICT(teacher_id) DO UPDATE SET teaching=excluded.teaching,teaching_updated_at=excluded.teaching_updated_at,updated_at=excluded.updated_at
+ WHERE catalog.teacher_directory.teaching IS DISTINCT FROM excluded.teaching`, ids, t.teachingTime)
+	return safe(err)
+}
 
 func (t *transaction) TeacherCandidates(school, after string, limit int) ([]c.TeacherCandidate, error) {
 	return list[c.TeacherCandidate](t, `SELECT jsonb_build_object('id',o.id,'name',o.name,'department_id',o.department_id,
  'unit',COALESCE(d.name,''),'title',COALESCE(o.data->'object'->>'biography',''),
- 'teaching',EXISTS(SELECT 1 FROM catalog.objects a
- JOIN catalog.objects cl ON cl.id=catalog.canonical(a.class_id) AND cl.kind='class' AND cl.school_id=a.school_id
- JOIN catalog.objects tc ON tc.id=catalog.canonical(cl.term_course_id) AND tc.kind='term_course' AND tc.school_id=a.school_id
- JOIN catalog.objects co ON co.id=catalog.canonical(tc.course_id) AND co.kind='course' AND co.school_id=a.school_id
- WHERE a.kind='assignment' AND a.school_id=o.school_id
- AND a.teacher_id IN (SELECT o.id UNION ALL SELECT alias_id FROM catalog.redirects WHERE canonical_id=o.id)
- AND NOT COALESCE((a.data->'object'->>'inactive')::boolean,false)))
+ 'teaching',`+teachingEvidenceSQL("o")+`)
  FROM catalog.objects o LEFT JOIN catalog.objects d ON d.id=o.department_id AND d.kind='department' AND d.school_id=o.school_id
  WHERE o.school_id=$1 AND o.kind='teacher' AND o.id>$2 AND NOT EXISTS(SELECT 1 FROM catalog.redirects r WHERE r.alias_id=o.id)
  ORDER BY o.id LIMIT $3`, school, after, limit)
@@ -81,6 +103,31 @@ type teacherSourceState struct {
 	Digest   string `json:"digest"`
 }
 
+func (t *transaction) teacherCandidateFingerprint(school string) (string, error) {
+	rows, err := t.tx.QueryContext(t.ctx, `SELECT o.id,o.name,o.department_id,COALESCE(d.name,'') FROM catalog.objects o
+ LEFT JOIN catalog.objects d ON d.id=o.department_id AND d.kind='department' AND d.school_id=o.school_id
+ WHERE o.school_id=$1 AND o.kind='teacher' AND NOT EXISTS(SELECT 1 FROM catalog.redirects r WHERE r.alias_id=o.id) ORDER BY o.id LIMIT 100001`, school)
+	if err != nil {
+		return "", safe(err)
+	}
+	defer rows.Close()
+	candidates := []c.TeacherCandidate{}
+	for rows.Next() {
+		var candidate c.TeacherCandidate
+		if err := rows.Scan(&candidate.ID, &candidate.Name, &candidate.DepartmentID, &candidate.Unit); err != nil {
+			return "", safe(err)
+		}
+		candidates = append(candidates, candidate)
+	}
+	if err := rows.Err(); err != nil {
+		return "", safe(err)
+	}
+	if len(candidates) > 100000 {
+		return "", c.ErrUnavailable
+	}
+	return c.TeacherCandidateFingerprint(candidates), nil
+}
+
 func (t *transaction) ReplaceTeacherSites(in c.TeacherSiteSnapshot, actor string, at time.Time) (c.TeacherDirectoryResult, error) {
 	raw, err := json.Marshal(in)
 	if err != nil {
@@ -98,6 +145,13 @@ func (t *transaction) ReplaceTeacherSites(in c.TeacherSiteSnapshot, actor string
 		}
 	} else if !errors.Is(err, c.ErrNotFound) {
 		return c.TeacherDirectoryResult{}, err
+	}
+	currentFingerprint, err := t.teacherCandidateFingerprint(in.SchoolID)
+	if err != nil {
+		return c.TeacherDirectoryResult{}, err
+	}
+	if currentFingerprint != in.CandidateFingerprint {
+		return c.TeacherDirectoryResult{}, c.ErrConflict
 	}
 	matches, err := json.Marshal(in.Matches)
 	if err != nil {
