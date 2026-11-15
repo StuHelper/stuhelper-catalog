@@ -97,11 +97,13 @@ func mergePlan(t Transaction, p Principal, id string, in MergeInput) (MergePrevi
 	return out, nil
 }
 func (s *Service) PreviewMerge(ctx context.Context, p Principal, id string, in MergeInput) (MergePreview, error) {
+	ctx = teacherMaintenanceContext(ctx)
 	var out MergePreview
 	err := s.Repo.Transaction(ctx, func(t Transaction) error { var e error; out, e = mergePlan(t, p, id, in); return e })
 	return out, err
 }
 func (s *Service) Merge(ctx context.Context, p Principal, id, key string, in MergeInput) (Object, error) {
+	ctx = teacherMaintenanceContext(ctx)
 	var out Object
 	if !ValidKey(key) || in.PreviewToken == "" {
 		return out, ErrInput
@@ -170,6 +172,7 @@ func (s *Service) Merge(ctx context.Context, p Principal, id, key string, in Mer
 	return out, err
 }
 func (s *Service) SetState(ctx context.Context, p Principal, id, key string, in ObjectState) (Object, error) {
+	ctx = teacherMaintenanceContext(ctx)
 	var out Object
 	if !ValidID(id) || !ValidKey(key) || strings.TrimSpace(in.Reason) == "" || !validText(in.Reason, 2000) {
 		return out, ErrInput

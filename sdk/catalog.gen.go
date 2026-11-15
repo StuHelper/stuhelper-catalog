@@ -668,17 +668,17 @@ type ClientInterface interface {
 
 	// ListObjects performs a GET /api/v1/catalog/objects (the `ListObjects` operationId) request.
 	//
-	// Requires current content admission in the served school: valid campus eligibility or verified teacher status. Missing admission returns 403; unavailable required facts return 503. No preview, content, counts or statistics are returned on rejection.
+	// Requires current content admission in the served school: valid campus eligibility or verified teacher status. Missing admission returns 403; unavailable required facts return 503. No preview, content, counts or statistics are returned on rejection. 教师公开查询由服务端目录标记过滤：有授课记录或已匹配官网名单即可保留。列表、详情、批量查询、筛选选项及计数使用相同依据。未标记的教师详情返回 not_found。
 	ListObjects(ctx context.Context, params *ListObjectsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// LookupObjects performs a GET /api/v1/catalog/objects/lookup (the `LookupObjects` operationId) request.
 	//
-	// Requires current content admission in the served school: valid campus eligibility or verified teacher status. Missing admission returns 403; unavailable required facts return 503. No preview, content, counts or statistics are returned on rejection.
+	// Requires current content admission in the served school: valid campus eligibility or verified teacher status. Missing admission returns 403; unavailable required facts return 503. No preview, content, counts or statistics are returned on rejection. 教师公开查询由服务端目录标记过滤：有授课记录或已匹配官网名单即可保留。列表、详情、批量查询、筛选选项及计数使用相同依据。未标记的教师详情返回 not_found。
 	LookupObjects(ctx context.Context, params *LookupObjectsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// GetObject performs a GET /api/v1/catalog/objects/{id} (the `GetObject` operationId) request.
 	//
-	// Requires current content admission in the served school: valid campus eligibility or verified teacher status. Missing admission returns 403; unavailable required facts return 503. No preview, content, counts or statistics are returned on rejection.
+	// Requires current content admission in the served school: valid campus eligibility or verified teacher status. Missing admission returns 403; unavailable required facts return 503. No preview, content, counts or statistics are returned on rejection. 教师公开查询由服务端目录标记过滤：有授课记录或已匹配官网名单即可保留。列表、详情、批量查询、筛选选项及计数使用相同依据。未标记的教师详情返回 not_found。
 	GetObject(ctx context.Context, id string, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// CorrectObjectWithBody performs a PATCH /api/v1/catalog/objects/{id} (the `CorrectObject` operationId) request,
@@ -707,7 +707,7 @@ type ClientInterface interface {
 
 	// ResolveObject performs a GET /api/v1/catalog/objects/{id}/resolution (the `ResolveObject` operationId) request.
 	//
-	// Requires current content admission in the served school: valid campus eligibility or verified teacher status. Missing admission returns 403; unavailable required facts return 503. No preview, content, counts or statistics are returned on rejection.
+	// Requires current content admission in the served school: valid campus eligibility or verified teacher status. Missing admission returns 403; unavailable required facts return 503. No preview, content, counts or statistics are returned on rejection. 教师公开查询由服务端目录标记过滤：有授课记录或已匹配官网名单即可保留。列表、详情、批量查询、筛选选项及计数使用相同依据。未标记的教师详情返回 not_found。
 	ResolveObject(ctx context.Context, id string, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// SetObjectStateWithBody performs a POST /api/v1/catalog/objects/{id}/state (the `SetObjectState` operationId) request,
@@ -720,7 +720,7 @@ type ClientInterface interface {
 
 	// GetObjectSummary performs a GET /api/v1/catalog/objects/{id}/summary (the `GetObjectSummary` operationId) request.
 	//
-	// Requires current content admission in the served school: valid campus eligibility or verified teacher status. Missing admission returns 403; unavailable required facts return 503. No preview, content, counts or statistics are returned on rejection.
+	// Requires current content admission in the served school: valid campus eligibility or verified teacher status. Missing admission returns 403; unavailable required facts return 503. No preview, content, counts or statistics are returned on rejection. 教师公开查询由服务端目录标记过滤：有授课记录或已匹配官网名单即可保留。列表、详情、批量查询、筛选选项及计数使用相同依据。未标记的教师详情返回 not_found。
 	GetObjectSummary(ctx context.Context, id string, reqEditors ...RequestEditorFn) (*http.Response, error)
 }
 
@@ -992,7 +992,7 @@ func (c *Client) MyCalendar(ctx context.Context, params *MyCalendarParams, reqEd
 
 // ListObjects performs a GET /api/v1/catalog/objects (the `ListObjects` operationId) request.
 //
-// Requires current content admission in the served school: valid campus eligibility or verified teacher status. Missing admission returns 403; unavailable required facts return 503. No preview, content, counts or statistics are returned on rejection.
+// Requires current content admission in the served school: valid campus eligibility or verified teacher status. Missing admission returns 403; unavailable required facts return 503. No preview, content, counts or statistics are returned on rejection. 教师公开查询由服务端目录标记过滤：有授课记录或已匹配官网名单即可保留。列表、详情、批量查询、筛选选项及计数使用相同依据。未标记的教师详情返回 not_found。
 func (c *Client) ListObjects(ctx context.Context, params *ListObjectsParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewListObjectsRequest(c.Server, params)
 	if err != nil {
@@ -1007,7 +1007,7 @@ func (c *Client) ListObjects(ctx context.Context, params *ListObjectsParams, req
 
 // LookupObjects performs a GET /api/v1/catalog/objects/lookup (the `LookupObjects` operationId) request.
 //
-// Requires current content admission in the served school: valid campus eligibility or verified teacher status. Missing admission returns 403; unavailable required facts return 503. No preview, content, counts or statistics are returned on rejection.
+// Requires current content admission in the served school: valid campus eligibility or verified teacher status. Missing admission returns 403; unavailable required facts return 503. No preview, content, counts or statistics are returned on rejection. 教师公开查询由服务端目录标记过滤：有授课记录或已匹配官网名单即可保留。列表、详情、批量查询、筛选选项及计数使用相同依据。未标记的教师详情返回 not_found。
 func (c *Client) LookupObjects(ctx context.Context, params *LookupObjectsParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewLookupObjectsRequest(c.Server, params)
 	if err != nil {
@@ -1022,7 +1022,7 @@ func (c *Client) LookupObjects(ctx context.Context, params *LookupObjectsParams,
 
 // GetObject performs a GET /api/v1/catalog/objects/{id} (the `GetObject` operationId) request.
 //
-// Requires current content admission in the served school: valid campus eligibility or verified teacher status. Missing admission returns 403; unavailable required facts return 503. No preview, content, counts or statistics are returned on rejection.
+// Requires current content admission in the served school: valid campus eligibility or verified teacher status. Missing admission returns 403; unavailable required facts return 503. No preview, content, counts or statistics are returned on rejection. 教师公开查询由服务端目录标记过滤：有授课记录或已匹配官网名单即可保留。列表、详情、批量查询、筛选选项及计数使用相同依据。未标记的教师详情返回 not_found。
 func (c *Client) GetObject(ctx context.Context, id string, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewGetObjectRequest(c.Server, id)
 	if err != nil {
@@ -1121,7 +1121,7 @@ func (c *Client) PreviewMerge(ctx context.Context, id string, params *PreviewMer
 
 // ResolveObject performs a GET /api/v1/catalog/objects/{id}/resolution (the `ResolveObject` operationId) request.
 //
-// Requires current content admission in the served school: valid campus eligibility or verified teacher status. Missing admission returns 403; unavailable required facts return 503. No preview, content, counts or statistics are returned on rejection.
+// Requires current content admission in the served school: valid campus eligibility or verified teacher status. Missing admission returns 403; unavailable required facts return 503. No preview, content, counts or statistics are returned on rejection. 教师公开查询由服务端目录标记过滤：有授课记录或已匹配官网名单即可保留。列表、详情、批量查询、筛选选项及计数使用相同依据。未标记的教师详情返回 not_found。
 func (c *Client) ResolveObject(ctx context.Context, id string, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewResolveObjectRequest(c.Server, id)
 	if err != nil {
@@ -1164,7 +1164,7 @@ func (c *Client) SetObjectState(ctx context.Context, id string, params *SetObjec
 
 // GetObjectSummary performs a GET /api/v1/catalog/objects/{id}/summary (the `GetObjectSummary` operationId) request.
 //
-// Requires current content admission in the served school: valid campus eligibility or verified teacher status. Missing admission returns 403; unavailable required facts return 503. No preview, content, counts or statistics are returned on rejection.
+// Requires current content admission in the served school: valid campus eligibility or verified teacher status. Missing admission returns 403; unavailable required facts return 503. No preview, content, counts or statistics are returned on rejection. 教师公开查询由服务端目录标记过滤：有授课记录或已匹配官网名单即可保留。列表、详情、批量查询、筛选选项及计数使用相同依据。未标记的教师详情返回 not_found。
 func (c *Client) GetObjectSummary(ctx context.Context, id string, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewGetObjectSummaryRequest(c.Server, id)
 	if err != nil {
@@ -2827,21 +2827,21 @@ type ClientWithResponsesInterface interface {
 
 	// ListObjectsWithResponse performs a GET /api/v1/catalog/objects (the `ListObjects` operationId) request.
 	//
-	// Requires current content admission in the served school: valid campus eligibility or verified teacher status. Missing admission returns 403; unavailable required facts return 503. No preview, content, counts or statistics are returned on rejection.
+	// Requires current content admission in the served school: valid campus eligibility or verified teacher status. Missing admission returns 403; unavailable required facts return 503. No preview, content, counts or statistics are returned on rejection. 教师公开查询由服务端目录标记过滤：有授课记录或已匹配官网名单即可保留。列表、详情、批量查询、筛选选项及计数使用相同依据。未标记的教师详情返回 not_found。
 	//
 	// Returns a wrapper object for the known response body format(s).
 	ListObjectsWithResponse(ctx context.Context, params *ListObjectsParams, reqEditors ...RequestEditorFn) (*ListObjectsResponse, error)
 
 	// LookupObjectsWithResponse performs a GET /api/v1/catalog/objects/lookup (the `LookupObjects` operationId) request.
 	//
-	// Requires current content admission in the served school: valid campus eligibility or verified teacher status. Missing admission returns 403; unavailable required facts return 503. No preview, content, counts or statistics are returned on rejection.
+	// Requires current content admission in the served school: valid campus eligibility or verified teacher status. Missing admission returns 403; unavailable required facts return 503. No preview, content, counts or statistics are returned on rejection. 教师公开查询由服务端目录标记过滤：有授课记录或已匹配官网名单即可保留。列表、详情、批量查询、筛选选项及计数使用相同依据。未标记的教师详情返回 not_found。
 	//
 	// Returns a wrapper object for the known response body format(s).
 	LookupObjectsWithResponse(ctx context.Context, params *LookupObjectsParams, reqEditors ...RequestEditorFn) (*LookupObjectsResponse, error)
 
 	// GetObjectWithResponse performs a GET /api/v1/catalog/objects/{id} (the `GetObject` operationId) request.
 	//
-	// Requires current content admission in the served school: valid campus eligibility or verified teacher status. Missing admission returns 403; unavailable required facts return 503. No preview, content, counts or statistics are returned on rejection.
+	// Requires current content admission in the served school: valid campus eligibility or verified teacher status. Missing admission returns 403; unavailable required facts return 503. No preview, content, counts or statistics are returned on rejection. 教师公开查询由服务端目录标记过滤：有授课记录或已匹配官网名单即可保留。列表、详情、批量查询、筛选选项及计数使用相同依据。未标记的教师详情返回 not_found。
 	//
 	// Returns a wrapper object for the known response body format(s).
 	GetObjectWithResponse(ctx context.Context, id string, reqEditors ...RequestEditorFn) (*GetObjectResponse, error)
@@ -2878,7 +2878,7 @@ type ClientWithResponsesInterface interface {
 
 	// ResolveObjectWithResponse performs a GET /api/v1/catalog/objects/{id}/resolution (the `ResolveObject` operationId) request.
 	//
-	// Requires current content admission in the served school: valid campus eligibility or verified teacher status. Missing admission returns 403; unavailable required facts return 503. No preview, content, counts or statistics are returned on rejection.
+	// Requires current content admission in the served school: valid campus eligibility or verified teacher status. Missing admission returns 403; unavailable required facts return 503. No preview, content, counts or statistics are returned on rejection. 教师公开查询由服务端目录标记过滤：有授课记录或已匹配官网名单即可保留。列表、详情、批量查询、筛选选项及计数使用相同依据。未标记的教师详情返回 not_found。
 	//
 	// Returns a wrapper object for the known response body format(s).
 	ResolveObjectWithResponse(ctx context.Context, id string, reqEditors ...RequestEditorFn) (*ResolveObjectResponse, error)
@@ -2895,7 +2895,7 @@ type ClientWithResponsesInterface interface {
 
 	// GetObjectSummaryWithResponse performs a GET /api/v1/catalog/objects/{id}/summary (the `GetObjectSummary` operationId) request.
 	//
-	// Requires current content admission in the served school: valid campus eligibility or verified teacher status. Missing admission returns 403; unavailable required facts return 503. No preview, content, counts or statistics are returned on rejection.
+	// Requires current content admission in the served school: valid campus eligibility or verified teacher status. Missing admission returns 403; unavailable required facts return 503. No preview, content, counts or statistics are returned on rejection. 教师公开查询由服务端目录标记过滤：有授课记录或已匹配官网名单即可保留。列表、详情、批量查询、筛选选项及计数使用相同依据。未标记的教师详情返回 not_found。
 	//
 	// Returns a wrapper object for the known response body format(s).
 	GetObjectSummaryWithResponse(ctx context.Context, id string, reqEditors ...RequestEditorFn) (*GetObjectSummaryResponse, error)
@@ -5034,7 +5034,7 @@ func (c *ClientWithResponses) MyCalendarWithResponse(ctx context.Context, params
 
 // ListObjectsWithResponse performs a GET /api/v1/catalog/objects (the `ListObjects` operationId) request.
 //
-// Requires current content admission in the served school: valid campus eligibility or verified teacher status. Missing admission returns 403; unavailable required facts return 503. No preview, content, counts or statistics are returned on rejection.
+// Requires current content admission in the served school: valid campus eligibility or verified teacher status. Missing admission returns 403; unavailable required facts return 503. No preview, content, counts or statistics are returned on rejection. 教师公开查询由服务端目录标记过滤：有授课记录或已匹配官网名单即可保留。列表、详情、批量查询、筛选选项及计数使用相同依据。未标记的教师详情返回 not_found。
 //
 // Returns a wrapper object for the known response body format(s).
 func (c *ClientWithResponses) ListObjectsWithResponse(ctx context.Context, params *ListObjectsParams, reqEditors ...RequestEditorFn) (*ListObjectsResponse, error) {
@@ -5047,7 +5047,7 @@ func (c *ClientWithResponses) ListObjectsWithResponse(ctx context.Context, param
 
 // LookupObjectsWithResponse performs a GET /api/v1/catalog/objects/lookup (the `LookupObjects` operationId) request.
 //
-// Requires current content admission in the served school: valid campus eligibility or verified teacher status. Missing admission returns 403; unavailable required facts return 503. No preview, content, counts or statistics are returned on rejection.
+// Requires current content admission in the served school: valid campus eligibility or verified teacher status. Missing admission returns 403; unavailable required facts return 503. No preview, content, counts or statistics are returned on rejection. 教师公开查询由服务端目录标记过滤：有授课记录或已匹配官网名单即可保留。列表、详情、批量查询、筛选选项及计数使用相同依据。未标记的教师详情返回 not_found。
 //
 // Returns a wrapper object for the known response body format(s).
 func (c *ClientWithResponses) LookupObjectsWithResponse(ctx context.Context, params *LookupObjectsParams, reqEditors ...RequestEditorFn) (*LookupObjectsResponse, error) {
@@ -5060,7 +5060,7 @@ func (c *ClientWithResponses) LookupObjectsWithResponse(ctx context.Context, par
 
 // GetObjectWithResponse performs a GET /api/v1/catalog/objects/{id} (the `GetObject` operationId) request.
 //
-// Requires current content admission in the served school: valid campus eligibility or verified teacher status. Missing admission returns 403; unavailable required facts return 503. No preview, content, counts or statistics are returned on rejection.
+// Requires current content admission in the served school: valid campus eligibility or verified teacher status. Missing admission returns 403; unavailable required facts return 503. No preview, content, counts or statistics are returned on rejection. 教师公开查询由服务端目录标记过滤：有授课记录或已匹配官网名单即可保留。列表、详情、批量查询、筛选选项及计数使用相同依据。未标记的教师详情返回 not_found。
 //
 // Returns a wrapper object for the known response body format(s).
 func (c *ClientWithResponses) GetObjectWithResponse(ctx context.Context, id string, reqEditors ...RequestEditorFn) (*GetObjectResponse, error) {
@@ -5139,7 +5139,7 @@ func (c *ClientWithResponses) PreviewMergeWithResponse(ctx context.Context, id s
 
 // ResolveObjectWithResponse performs a GET /api/v1/catalog/objects/{id}/resolution (the `ResolveObject` operationId) request.
 //
-// Requires current content admission in the served school: valid campus eligibility or verified teacher status. Missing admission returns 403; unavailable required facts return 503. No preview, content, counts or statistics are returned on rejection.
+// Requires current content admission in the served school: valid campus eligibility or verified teacher status. Missing admission returns 403; unavailable required facts return 503. No preview, content, counts or statistics are returned on rejection. 教师公开查询由服务端目录标记过滤：有授课记录或已匹配官网名单即可保留。列表、详情、批量查询、筛选选项及计数使用相同依据。未标记的教师详情返回 not_found。
 //
 // Returns a wrapper object for the known response body format(s).
 func (c *ClientWithResponses) ResolveObjectWithResponse(ctx context.Context, id string, reqEditors ...RequestEditorFn) (*ResolveObjectResponse, error) {
@@ -5174,7 +5174,7 @@ func (c *ClientWithResponses) SetObjectStateWithResponse(ctx context.Context, id
 
 // GetObjectSummaryWithResponse performs a GET /api/v1/catalog/objects/{id}/summary (the `GetObjectSummary` operationId) request.
 //
-// Requires current content admission in the served school: valid campus eligibility or verified teacher status. Missing admission returns 403; unavailable required facts return 503. No preview, content, counts or statistics are returned on rejection.
+// Requires current content admission in the served school: valid campus eligibility or verified teacher status. Missing admission returns 403; unavailable required facts return 503. No preview, content, counts or statistics are returned on rejection. 教师公开查询由服务端目录标记过滤：有授课记录或已匹配官网名单即可保留。列表、详情、批量查询、筛选选项及计数使用相同依据。未标记的教师详情返回 not_found。
 //
 // Returns a wrapper object for the known response body format(s).
 func (c *ClientWithResponses) GetObjectSummaryWithResponse(ctx context.Context, id string, reqEditors ...RequestEditorFn) (*GetObjectSummaryResponse, error) {

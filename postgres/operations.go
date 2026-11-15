@@ -6,7 +6,7 @@ import (
 )
 
 func (t *transaction) PublicObject(id string) (c.Object, error) {
-	return read[c.Object](t, `SELECT catalog.public_object(data->'object') || CASE WHEN id<>$1 THEN jsonb_build_object('id',$1,'canonical_id',id) ELSE '{}'::jsonb END FROM catalog.objects WHERE id=catalog.canonical($1)`, id)
+	return read[c.Object](t, `SELECT catalog.public_object(data->'object') || CASE WHEN id<>$1 THEN jsonb_build_object('id',$1,'canonical_id',id) ELSE '{}'::jsonb END FROM catalog.objects o WHERE id=catalog.canonical($1)`+t.teacherVisibility("o"), id)
 }
 func (t *transaction) ResolveIDs(id string) ([]string, error) {
 	rows, e := t.tx.QueryContext(t.ctx, `SELECT id FROM catalog.objects WHERE id=catalog.canonical($1) UNION SELECT alias_id FROM catalog.redirects WHERE canonical_id=catalog.canonical($1) ORDER BY id LIMIT 1001`, id)
