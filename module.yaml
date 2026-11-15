@@ -1,5 +1,5 @@
 id: catalog
-version: 0.5.2
+version: 0.6.0
 kind: module
 api: 1
 critical: false
@@ -25,7 +25,15 @@ capabilities:
   - catalog.enrollments
   - catalog.maintain
   - catalog.directory
+  - catalog.teacher-sites.read
+  - catalog.teacher-sites.refresh
 capability_requires:
+  catalog.teacher-sites.read:
+    - id: identity
+      api: 1
+  catalog.teacher-sites.refresh:
+    - id: identity
+      api: 1
   catalog.read:
     - id: identity
       api: 1
@@ -46,11 +54,25 @@ capability_requires:
     - id: favorites
       api: 1
 specifications:
+  - docs/spec/directory-projection.md
   - docs/spec/teacher-directory.md
   - docs/spec/enrollment-source.md
   - docs/spec/activity.md
   - docs/spec/ui-data.md
 scenario_tests:
+  CAT-REFRESH-01:
+    - teacher_refresh_test.go#TestTeacherRefreshDurableConcurrencyIdempotencyAndTimeout
+  CAT-REFRESH-02:
+    - teacher_refresh_test.go#TestTeacherRefreshReadersDoNotWaitForWorkerPublication
+    - teacher_refresh_test.go#TestTeacherUnmatchedEmptySnapshotIsIdempotent
+    - teacher_refresh_test.go#TestTeacherRefreshUnmatchedPaginationPrivacyAndFailureRetention
+  CAT-REFRESH-03:
+    - teacher_refresh_test.go#TestTeacherRefreshAuditAtomicityAndHTTPBoundary
+  CAT-OPTIONS-01:
+    - filter_options_test.go#TestFilterOptionsNonzeroCountsAndRevisionInvalidation
+    - filter_options_test.go#TestFilterOptionsAliasAndInactiveRelations
+  CAT-OPTIONS-02:
+    - filter_options_test.go#TestFilterOptionsProductionScale
   CAT-TEACHER-01:
     - teacher_directory_test.go#TestTeacherDirectoryUnionFiltersEveryReadBeforePagination
   CAT-TEACHER-02:
@@ -169,3 +191,18 @@ scenario_tests:
     - ui_performance_test.go#TestUIDirectoryProductionScale
   CAT-UI-06:
     - ui_consistency_test.go#TestUIViewTokensAreDailyAndOldKeysExpire
+
+  CAT-PROJECTION-01:
+    - projection_test.go#TestDirectoryProjectionCutoffOrderingCountsAndAbsentOldCourses
+  CAT-PROJECTION-02:
+    - projection_test.go#TestDirectoryProjectionRebuildFailureKeepsVersionAndRecordsReason
+  CAT-PROJECTION-03:
+    - projection_test.go#TestDirectoryProjectionAutoRebuildAndCompleteImportBoundary
+    - projection_test.go#TestDirectoryProjectionFailedSourceImportFencesPublicationUntilRetry
+    - projection_import_test.go#TestDirectoryProjectionRetiredImportCannotWriteOrPublish
+    - projection_import_test.go#TestDirectoryProjectionCompletedAndExpiredImportsRejectFurtherPages
+  CAT-PROJECTION-04:
+    - projection_test.go#TestDirectoryProjectionConcurrentReadersAndSearchSnapshot
+    - projection_test.go#TestDirectoryProjectionCutoffOrderingCountsAndAbsentOldCourses
+  CAT-PROJECTION-05:
+    - projection_performance_test.go#TestDirectoryProjectionProductionScaleBeforeAfter

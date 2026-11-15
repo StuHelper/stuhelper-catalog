@@ -9,6 +9,9 @@ import (
 // Filters follow the same offering and teaching class; independent EXISTS clauses
 // must not combine one term's category with another term's teacher.
 func (t *transaction) List(f catalog.Filter) ([]catalog.Object, error) {
+	if t.projectionRead && f.Kind != "school" {
+		return t.projectedList(f)
+	}
 	if (f.Kind == "course" || f.Kind == "teacher") && f.CourseID == "" && f.TermID == "" && f.TermCourseID == "" && f.ClassID == "" {
 		// These bounded pages are latency-sensitive. LLVM compilation of the
 		// relational predicates can exceed the query's work and memory budget.
@@ -86,10 +89,16 @@ func (t *transaction) List(f catalog.Filter) ([]catalog.Object, error) {
 }
 
 func (t *transaction) Lookup(ids []string) ([]catalog.Object, error) {
+	if t.projectionRead {
+		return t.projectedLookup(ids)
+	}
 	return list[catalog.Object](t, `SELECT catalog.public_object(o.data->'object') || CASE WHEN o.id<>requested.id THEN jsonb_build_object('id',requested.id,'canonical_id',o.id) ELSE '{}'::jsonb END FROM unnest($1::text[]) requested(id) JOIN catalog.objects o ON o.id=catalog.canonical(requested.id) WHERE true`+t.teacherVisibility("o")+` ORDER BY requested.id`, ids)
 }
 
 func (t *transaction) Summary(object catalog.Object) (catalog.Summary, error) {
+	if t.projectionRead {
+		return t.projectedSummary(object)
+	}
 	out := catalog.Summary{Object: object, Categories: []catalog.Object{}, Natures: []catalog.Object{}}
 	refs, err := t.Lookup([]string{object.SchoolID, object.DepartmentID})
 	if err != nil {

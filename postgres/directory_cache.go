@@ -23,6 +23,7 @@ type directoryCandidate struct {
 	Categories  []string `json:"categories"`
 }
 type directorySelection struct {
+	NatureFacets     []c.DirectoryFacet   `json:"nature_facets"`
 	VariantCount     int64                `json:"variant_count"`
 	Candidates       []directoryCandidate `json:"candidates"`
 	FacetTotal       int64                `json:"facet_total"`
@@ -114,10 +115,16 @@ func (cache *directoryCache) get(ctx context.Context, key string, revision int64
 }
 func (t *transaction) directorySelection(q c.DirectoryQuery) (*directorySelection, error) {
 	var revision int64
-	if err := t.tx.QueryRowContext(t.ctx, `SELECT revision FROM catalog.directory_revision WHERE singleton`).Scan(&revision); err != nil {
+	if t.projectionRead {
+		var err error
+		revision, err = t.projectionVersion(q.SchoolID)
+		if err != nil {
+			return nil, err
+		}
+	} else if err := t.tx.QueryRowContext(t.ctx, `SELECT revision FROM catalog.directory_revision WHERE singleton`).Scan(&revision); err != nil {
 		return nil, safe(err)
 	}
-	input, err := json.Marshal([]any{q.Kind, q.SchoolID, q.Query, q.DepartmentID, q.CategoryID, q.NatureID, q.TeacherID, t.requireTeacherDirectory})
+	input, err := json.Marshal([]any{q.Kind, q.SchoolID, q.Query, q.DepartmentID, q.CategoryID, q.NatureID, q.TeacherID, t.requireTeacherDirectory, t.projectionRead})
 	if err != nil {
 		return nil, c.ErrInput
 	}
@@ -125,6 +132,13 @@ func (t *transaction) directorySelection(q c.DirectoryQuery) (*directorySelectio
 	key := hex.EncodeToString(hash[:])
 	return t.directoryData.get(t.ctx, key, revision, func() (*directorySelection, int, error) {
 		query, args, err := directorySelectionQuery(q)
+		if t.projectionRead {
+			query, args, err = projectedSelectionQuery(q, revision)
+			if q.Query == "" && q.DepartmentID == "" && q.CategoryID == "" && q.NatureID == "" && q.TeacherID == "" {
+				query = `SELECT data FROM catalog.projection_selections WHERE version=$1 AND kind=$2`
+				args = []any{revision, q.Kind}
+			}
+		}
 		if err != nil {
 			return nil, 0, err
 		}

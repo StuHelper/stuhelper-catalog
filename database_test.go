@@ -55,6 +55,12 @@ func database(t *testing.T) (*postgres.Repository, *sql.DB) {
 		t.Fatal(e)
 	}
 	runtime := dbcfg.Copy()
+	if _, e = migration.Exec(`GRANT EXECUTE ON FUNCTION catalog.analyze_directory_projection() TO ` + role); e != nil {
+		t.Fatal(e)
+	}
+	if _, e = migration.Exec(`GRANT USAGE ON ALL SEQUENCES IN SCHEMA catalog TO ` + role); e != nil {
+		t.Fatal(e)
+	}
 	runtime.User = role
 	runtime.Password = ""
 	db := stdlib.OpenDB(*runtime)

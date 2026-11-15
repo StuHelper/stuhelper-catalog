@@ -2,7 +2,7 @@
   "openapi": "3.0.3",
   "info": {
     "title": "StuHelper Catalog",
-    "version": "0.5.2"
+    "version": "0.6.0"
   },
   "servers": [
     {
@@ -199,7 +199,7 @@
             }
           }
         ],
-        "description": "Requires current content admission in the served school: valid campus eligibility or verified teacher status. Missing admission returns 403; unavailable required facts return 503. No preview, content, counts or statistics are returned on rejection. 教师公开查询由服务端目录标记过滤：有授课记录或已匹配官网名单即可保留。列表、详情、批量查询、筛选选项及计数使用相同依据。未标记的教师详情返回 not_found。"
+        "description": "读取当前学校的可展示目录投影，当前内容权限在每次请求时检查。课程须在服务端截止学期（默认 2023 秋）及以后有开课记录。kind=term 仅返回截止学期及以后且有可见课程的学期，按 term_order_key 降序、ID 升序分页；前端保持返回顺序。其他类型按 ID 升序。"
       }
     },
     "/api/v1/catalog/objects/{id}": {
@@ -292,7 +292,7 @@
             }
           }
         ],
-        "description": "Requires current content admission in the served school: valid campus eligibility or verified teacher status. Missing admission returns 403; unavailable required facts return 503. No preview, content, counts or statistics are returned on rejection. 教师公开查询由服务端目录标记过滤：有授课记录或已匹配官网名单即可保留。列表、详情、批量查询、筛选选项及计数使用相同依据。未标记的教师详情返回 not_found。"
+        "description": "Requires current content admission in the served school: valid campus eligibility or verified teacher status. Missing admission returns 403; unavailable required facts return 503. No preview, content, counts or statistics are returned on rejection. 教师公开查询由服务端目录标记过滤：有授课记录或已匹配官网名单即可保留。列表、详情、批量查询、筛选选项及计数使用相同依据。未标记的教师详情返回 not_found。 Courses outside the current visible directory projection return not_found, including direct links."
       },
       "patch": {
         "operationId": "correctObject",
@@ -820,7 +820,7 @@
             "bearerAuth": []
           }
         ],
-        "description": "Requires current content admission in the served school: valid campus eligibility or verified teacher status. Missing admission returns 403; unavailable required facts return 503. No preview, content, counts or statistics are returned on rejection. 教师公开查询由服务端目录标记过滤：有授课记录或已匹配官网名单即可保留。列表、详情、批量查询、筛选选项及计数使用相同依据。未标记的教师详情返回 not_found。"
+        "description": "Requires current content admission in the served school: valid campus eligibility or verified teacher status. Missing admission returns 403; unavailable required facts return 503. No preview, content, counts or statistics are returned on rejection. 教师公开查询由服务端目录标记过滤：有授课记录或已匹配官网名单即可保留。列表、详情、批量查询、筛选选项及计数使用相同依据。未标记的教师详情返回 not_found。 Courses outside the current visible directory projection return not_found, including direct links."
       }
     },
     "/api/v1/catalog/objects/{id}/merge-preview": {
@@ -2717,7 +2717,7 @@
             }
           }
         ],
-        "description": "Current visible course/teacher directory, stable sort with ID tie-break and filter-bound cursor. Categories count distinct courses after all filters except category_id. Department groups respect all current filters. Classification filters apply to the same offering/class. Teacher rows and counts require T2 persisted marking; absent marker enforcement returns 503. Scores are read in bounded batches from owning modules, without per-row queries. Catalog membership is cached with transactional revision invalidation; ratings and heat are always current."
+        "description": "Current visible course/teacher directory, stable sort with ID tie-break and filter-bound cursor. Categories count distinct courses after all filters except category_id. Department groups respect all current filters. Classification filters apply to the same offering/class. Teacher rows and counts require T2 persisted marking; absent marker enforcement returns 503. Scores are read in bounded batches from owning modules, without per-row queries. Catalog membership is cached with transactional revision invalidation; ratings and heat are always current. 目录成员和分面来自同一持久投影版本，实时评分与热度按 ID 关联。游标绑定投影版本，重建后使用旧游标返回 409，应从第一页重新读取。"
       }
     },
     "/api/v1/catalog/me/recent-courses": {
@@ -3064,6 +3064,448 @@
         "parameters": [],
         "description": "Uses the current owner enrollment source and a separate server-side permission to display enrollment summaries. Missing display permission or source authorization returns unavailable without course data."
       }
+    },
+    "/api/v1/catalog/filter-options": {
+      "get": {
+        "operationId": "getFilterOptions",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "kind",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "course",
+                "teacher"
+              ]
+            }
+          },
+          {
+            "name": "school_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "maxLength": 128
+            }
+          }
+        ],
+        "description": "读取与公开列表相同投影版本的筛选选项，只返回数量大于零的项。课程截止学期、内容状态、学校和教师标记均已应用；当前内容权限在每次请求时检查。",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FilterOptions"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not permitted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Revision or idempotency conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Required dependency unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/catalog/admin/schools/{school_id}/teacher-sites/refresh": {
+      "get": {
+        "operationId": "getTeacherRefreshStatus",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "school_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "maxLength": 128
+            }
+          }
+        ],
+        "description": "Requires catalog.teacher-sites.read and current school management scope. Every view is audited. Latest run includes safe failure code and observed request/site counts; unknown measurements are null. Counts reflect current visible teacher marks.",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TeacherRefreshStatus"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not permitted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Revision or idempotency conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Required dependency unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "operationId": "startTeacherRefresh",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "school_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "maxLength": 128
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            }
+          }
+        ],
+        "description": "Requires catalog.teacher-sites.refresh and current school management scope. Audited durable enqueue. Only one queued/running refresh globally; a competing request returns 409. Replay with the same actor, school, key and mode returns the original run; a different mode conflicts. Deadline is 45 minutes including queue time. Manual full and incremental are supported; monthly scheduler only enqueues incremental.",
+        "responses": {
+          "400": {
+            "description": "Invalid input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not permitted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Revision or idempotency conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Required dependency unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "202": {
+            "description": "Accepted; asynchronous durable job. Poll status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TeacherRefreshRun"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TeacherRefreshInput"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/catalog/admin/schools/{school_id}/teacher-sites/unmatched": {
+      "get": {
+        "operationId": "listUnmatchedTeacherSites",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "school_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "maxLength": 128
+            }
+          },
+          {
+            "name": "reason",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "catalog_name_absent",
+                "catalog_unit_missing",
+                "site_unit_missing",
+                "unit_mismatch",
+                "ambiguous_catalog",
+                "ambiguous_site"
+              ]
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 20
+            }
+          },
+          {
+            "name": "after",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "maxLength": 4096
+            }
+          }
+        ],
+        "description": "Requires catalog.teacher-sites.read and current school management scope. Every view is audited. Current complete unmatched snapshot only; failed refresh preserves it. Returns public website name/unit, fixed reason and count of same-name catalog candidates, never candidate IDs, staff numbers or contacts. reason_counts covers the entire snapshot; total respects reason. Cursor binds school, reason and snapshot revision; a changed snapshot returns 409. Sorted by site_id.",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnmatchedTeacherSitePage"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not permitted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Revision or idempotency conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Required dependency unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -3176,6 +3618,16 @@
           },
           "schedule_time": {
             "$ref": "#/components/schemas/ScheduleTime"
+          },
+          "term_order_key": {
+            "type": "integer",
+            "readOnly": true,
+            "description": "学期结构化排序键：自然年乘 10 加季节（春 1、夏 2、秋 3）。来自学校适配器解析的学年与学期序号；无法可靠解析的学期不返回。"
+          },
+          "latest_term_id": {
+            "type": "string",
+            "readOnly": true,
+            "description": "课程在当前目录投影中最近一次开课的学期 ID，按结构化学期排序键确定。"
           }
         },
         "required": [
@@ -3510,15 +3962,18 @@
           },
           "course_count": {
             "type": "integer",
-            "minimum": 0
+            "minimum": 0,
+            "description": "当前目录投影中关联的可展示课程数量。"
           },
           "teacher_count": {
             "type": "integer",
-            "minimum": 0
+            "minimum": 0,
+            "description": "当前目录投影中关联的可展示教师数量。"
           },
           "offering_count": {
             "type": "integer",
-            "minimum": 0
+            "minimum": 0,
+            "description": "截止学期及以后纳入当前投影的开课记录数量。"
           }
         },
         "required": [
@@ -4220,6 +4675,325 @@
           "time_zone",
           "items"
         ]
+      },
+      "FilterOption": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "name",
+          "count"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "count": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1
+          }
+        }
+      },
+      "FilterOptions": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "kind",
+          "total",
+          "departments",
+          "categories",
+          "natures"
+        ],
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "course",
+              "teacher"
+            ]
+          },
+          "total": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "departments": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FilterOption"
+            }
+          },
+          "categories": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FilterOption"
+            }
+          },
+          "natures": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FilterOption"
+            }
+          }
+        }
+      },
+      "TeacherMarkCounts": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "teaching",
+          "official",
+          "both",
+          "eligible"
+        ],
+        "properties": {
+          "teaching": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "official": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "both": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "eligible": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          }
+        }
+      },
+      "TeacherRefreshInput": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "mode"
+        ],
+        "properties": {
+          "mode": {
+            "type": "string",
+            "enum": [
+              "incremental",
+              "full"
+            ]
+          }
+        }
+      },
+      "TeacherRefreshRun": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "school_id",
+          "mode",
+          "trigger",
+          "status",
+          "requested_at",
+          "started_at",
+          "finished_at",
+          "deadline_at",
+          "duration_ms",
+          "requests",
+          "site_count",
+          "counts",
+          "failure_reason"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "school_id": {
+            "type": "string"
+          },
+          "mode": {
+            "type": "string",
+            "enum": [
+              "incremental",
+              "full"
+            ]
+          },
+          "trigger": {
+            "type": "string",
+            "enum": [
+              "manual",
+              "scheduled"
+            ]
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "queued",
+              "running",
+              "succeeded",
+              "failed",
+              "timed_out"
+            ]
+          },
+          "requested_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "started_at": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "finished_at": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "deadline_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "duration_ms": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "requests": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0,
+            "nullable": true
+          },
+          "site_count": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0,
+            "nullable": true
+          },
+          "counts": {
+            "$ref": "#/components/schemas/TeacherMarkCounts",
+            "nullable": true
+          },
+          "failure_reason": {
+            "type": "string",
+            "enum": [
+              "",
+              "crawl_failed",
+              "request_failed",
+              "invalid_snapshot",
+              "import_conflict",
+              "dependency_unavailable",
+              "worker_interrupted",
+              "timeout"
+            ]
+          }
+        }
+      },
+      "TeacherRefreshStatus": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "latest",
+          "counts"
+        ],
+        "properties": {
+          "latest": {
+            "$ref": "#/components/schemas/TeacherRefreshRun",
+            "nullable": true
+          },
+          "counts": {
+            "$ref": "#/components/schemas/TeacherMarkCounts"
+          }
+        }
+      },
+      "UnmatchedTeacherSite": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "site_id",
+          "name",
+          "unit",
+          "reason",
+          "candidate_count"
+        ],
+        "properties": {
+          "site_id": {
+            "type": "string",
+            "description": "仅用于列表标识和分页的不可逆摘要，不返回官网原始标识、教师工号或候选教师 ID。"
+          },
+          "name": {
+            "type": "string"
+          },
+          "unit": {
+            "type": "string"
+          },
+          "reason": {
+            "type": "string",
+            "enum": [
+              "catalog_name_absent",
+              "catalog_unit_missing",
+              "site_unit_missing",
+              "unit_mismatch",
+              "ambiguous_catalog",
+              "ambiguous_site"
+            ]
+          },
+          "candidate_count": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          }
+        }
+      },
+      "UnmatchedTeacherSitePage": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "items",
+          "total",
+          "reason_counts",
+          "next",
+          "revision",
+          "observed_at"
+        ],
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/UnmatchedTeacherSite"
+            }
+          },
+          "total": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "reason_counts": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "integer",
+              "format": "int64",
+              "minimum": 0
+            }
+          },
+          "next": {
+            "type": "string"
+          },
+          "revision": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "observed_at": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          }
+        }
       }
     }
   }

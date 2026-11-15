@@ -29,6 +29,20 @@ func (m uiScaleMetrics) Metrics(_ context.Context, _ c.Principal, _, kind string
 	return m[kind], nil
 }
 
+func directoryScaleMetrics() uiScaleMetrics {
+	metrics := uiScaleMetrics{}
+	for kind, n := range map[string]int{"course": 21206, "teacher": 22964} {
+		for i := 1; i <= n; i++ {
+			metric := c.DirectoryMetric{ID: fmt.Sprintf("%s-%06d", kind, i), ReviewCount: int64(i % 17), RecentReviews: int64(i % 7), Favorites: int64(i % 5), Recommendation: []string{"unrated", "not_recommended", "average", "recommended", "strongly_recommended"}[i%5]}
+			for d := range 5 {
+				metric.Dimensions[d] = c.DirectoryBand{Level: i % 5, Samples: i % 17, Courses: 1}
+			}
+			metrics[kind] = append(metrics[kind], metric)
+		}
+	}
+	return metrics
+}
+
 func TestUIDirectoryProductionScale(t *testing.T) {
 	repo, admin := database(t)
 	ctx := context.Background()
@@ -44,16 +58,7 @@ func TestUIDirectoryProductionScale(t *testing.T) {
 	if _, err := admin.Exec(`ANALYZE catalog.teacher_directory`); err != nil {
 		t.Fatal(err)
 	}
-	metrics := uiScaleMetrics{}
-	for kind, n := range map[string]int{"course": 21206, "teacher": 22964} {
-		for i := 1; i <= n; i++ {
-			metric := c.DirectoryMetric{ID: fmt.Sprintf("%s-%06d", kind, i), ReviewCount: int64(i % 17), RecentReviews: int64(i % 7), Favorites: int64(i % 5), Recommendation: []string{"unrated", "not_recommended", "average", "recommended", "strongly_recommended"}[i%5]}
-			for d := range 5 {
-				metric.Dimensions[d] = c.DirectoryBand{Level: i % 5, Samples: i % 17, Courses: 1}
-			}
-			metrics[kind] = append(metrics[kind], metric)
-		}
-	}
+	metrics := directoryScaleMetrics()
 	repo.RequireTeacherDirectory = true
 	repo.DB.SetMaxOpenConns(3)
 	s := &c.Service{Repo: repo, ReadAccess: uiScaleAccess{}, DirectoryMetrics: metrics}

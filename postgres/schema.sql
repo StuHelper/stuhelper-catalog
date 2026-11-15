@@ -164,3 +164,119 @@ CREATE OR REPLACE TRIGGER invalidate_directory AFTER INSERT OR UPDATE OR DELETE 
 CREATE OR REPLACE TRIGGER invalidate_directory AFTER INSERT OR UPDATE OR DELETE OR TRUNCATE ON catalog.redirects FOR EACH STATEMENT EXECUTE FUNCTION catalog.invalidate_directory();
 CREATE OR REPLACE TRIGGER invalidate_directory AFTER INSERT OR UPDATE OR DELETE OR TRUNCATE ON catalog.teacher_directory FOR EACH STATEMENT EXECUTE FUNCTION catalog.invalidate_directory();
 REVOKE ALL ON TABLE catalog.directory_revision FROM PUBLIC;
+
+-- Teacher refresh control and sanitized review data belong to catalog. One
+-- active job across all schools fences timers, manual requests and workers.
+CREATE TABLE IF NOT EXISTS catalog.teacher_refresh_runs (
+ id text PRIMARY KEY, school_id text NOT NULL, status text NOT NULL CHECK(status IN ('queued','running','succeeded','failed','timed_out')),
+ requested_at timestamptz NOT NULL, data jsonb NOT NULL
+);
+ALTER TABLE catalog.teacher_refresh_runs ADD COLUMN IF NOT EXISTS position bigint GENERATED ALWAYS AS IDENTITY;
+CREATE UNIQUE INDEX IF NOT EXISTS catalog_teacher_refresh_active ON catalog.teacher_refresh_runs((true)) WHERE status IN ('queued','running');
+CREATE INDEX IF NOT EXISTS catalog_teacher_refresh_latest ON catalog.teacher_refresh_runs(school_id,requested_at DESC,id DESC);
+CREATE INDEX IF NOT EXISTS catalog_teacher_refresh_position ON catalog.teacher_refresh_runs(school_id,position DESC);
+CREATE TABLE IF NOT EXISTS catalog.teacher_unmatched_snapshots (
+ school_id text PRIMARY KEY, revision bigint NOT NULL, observed_at timestamptz NOT NULL, digest text NOT NULL
+);
+CREATE TABLE IF NOT EXISTS catalog.teacher_unmatched_sites (
+ school_id text NOT NULL, site_id text NOT NULL, reason text NOT NULL, data jsonb NOT NULL,
+ PRIMARY KEY(school_id,site_id)
+);
+CREATE INDEX IF NOT EXISTS catalog_teacher_unmatched_reason ON catalog.teacher_unmatched_sites(school_id,reason,site_id);
+-- Versioned public directory. Source objects and private enrollments remain owned
+-- by their existing tables. A head is published only after every projection passes.
+CREATE TABLE IF NOT EXISTS catalog.term_orders (
+ school_id text NOT NULL, id text PRIMARY KEY, sort_key integer NOT NULL,
+ data jsonb NOT NULL, CHECK(sort_key=0 OR sort_key BETWEEN 19001 AND 22003)
+);
+CREATE TABLE IF NOT EXISTS catalog.projection_generations (
+ version bigint PRIMARY KEY, school_id text NOT NULL, policy jsonb NOT NULL,
+ source_revision bigint NOT NULL, built_at timestamptz NOT NULL, report jsonb NOT NULL DEFAULT '{}'
+);
+CREATE TABLE IF NOT EXISTS catalog.projection_heads (
+ school_id text PRIMARY KEY, version bigint NOT NULL, policy jsonb NOT NULL
+);
+CREATE TABLE IF NOT EXISTS catalog.projection_failures (
+ school_id text PRIMARY KEY, failed_at timestamptz NOT NULL, reason text NOT NULL
+);
+CREATE TABLE IF NOT EXISTS catalog.projection_imports (
+ school_id text PRIMARY KEY, batch text NOT NULL, state text NOT NULL CHECK(state IN('running','failed','complete')),
+ started_at timestamptz NOT NULL, updated_at timestamptz NOT NULL, deadline timestamptz NOT NULL
+);
+ALTER TABLE catalog.projection_imports ADD COLUMN IF NOT EXISTS attempt_id text NOT NULL DEFAULT '';
+CREATE TABLE IF NOT EXISTS catalog.projection_objects (
+ version bigint NOT NULL REFERENCES catalog.projection_generations(version) ON DELETE CASCADE,
+ id text NOT NULL, school_id text NOT NULL, kind text NOT NULL, name text NOT NULL,
+ department_id text NOT NULL DEFAULT '', category_id text NOT NULL DEFAULT '', nature_id text NOT NULL DEFAULT '',
+ course_id text NOT NULL DEFAULT '', term_id text NOT NULL DEFAULT '', term_course_id text NOT NULL DEFAULT '',
+ class_id text NOT NULL DEFAULT '', teacher_id text NOT NULL DEFAULT '',
+ term_key integer NOT NULL DEFAULT 0, visible boolean NOT NULL DEFAULT false,
+ teaching boolean NOT NULL DEFAULT false, official boolean NOT NULL DEFAULT false, data jsonb NOT NULL,
+ PRIMARY KEY(version,id)
+);
+CREATE INDEX IF NOT EXISTS projection_objects_page ON catalog.projection_objects(version,kind,id) WHERE visible;
+CREATE INDEX IF NOT EXISTS projection_objects_terms ON catalog.projection_objects(version,kind,term_key DESC,id) WHERE visible;
+CREATE INDEX IF NOT EXISTS projection_objects_course ON catalog.projection_objects(version,course_id,kind,id);
+CREATE INDEX IF NOT EXISTS projection_objects_class ON catalog.projection_objects(version,class_id,kind,id);
+CREATE INDEX IF NOT EXISTS projection_objects_offering ON catalog.projection_objects(version,term_course_id,kind,id);
+CREATE INDEX IF NOT EXISTS projection_objects_teacher ON catalog.projection_objects(version,teacher_id,kind,id);
+CREATE TABLE IF NOT EXISTS catalog.projection_variants (
+ version bigint NOT NULL REFERENCES catalog.projection_generations(version) ON DELETE CASCADE,
+ course_id text NOT NULL, offering_id text NOT NULL, class_id text NOT NULL, term_id text NOT NULL,
+ term_key integer NOT NULL, department_id text NOT NULL, category_id text NOT NULL, nature_id text NOT NULL,
+ teacher_ids text[] NOT NULL DEFAULT '{}', PRIMARY KEY(version,course_id,offering_id,class_id)
+);
+CREATE INDEX IF NOT EXISTS projection_variants_department ON catalog.projection_variants(version,department_id,course_id);
+CREATE INDEX IF NOT EXISTS projection_variants_category ON catalog.projection_variants(version,category_id,course_id);
+CREATE INDEX IF NOT EXISTS projection_variants_nature ON catalog.projection_variants(version,nature_id,course_id);
+CREATE INDEX IF NOT EXISTS projection_variants_teachers ON catalog.projection_variants USING gin(teacher_ids);
+CREATE TABLE IF NOT EXISTS catalog.projection_relations (
+ version bigint NOT NULL REFERENCES catalog.projection_generations(version) ON DELETE CASCADE,
+ course_id text NOT NULL, teacher_id text NOT NULL, term_id text NOT NULL, offering_id text NOT NULL,
+ PRIMARY KEY(version,course_id,teacher_id,term_id,offering_id)
+);
+CREATE INDEX IF NOT EXISTS projection_relations_teacher ON catalog.projection_relations(version,teacher_id,course_id);
+CREATE TABLE IF NOT EXISTS catalog.projection_teaching_history (
+ version bigint NOT NULL REFERENCES catalog.projection_generations(version) ON DELETE CASCADE,
+ teacher_id text NOT NULL,course_id text NOT NULL,PRIMARY KEY(version,teacher_id,course_id)
+);
+CREATE TABLE IF NOT EXISTS catalog.projection_options (
+ version bigint NOT NULL REFERENCES catalog.projection_generations(version) ON DELETE CASCADE,
+ owner_kind text NOT NULL, kind text NOT NULL, id text NOT NULL, name text NOT NULL,
+ count bigint NOT NULL CHECK(count>0), term_key integer NOT NULL DEFAULT 0,
+ PRIMARY KEY(version,owner_kind,kind,id)
+);
+CREATE TABLE IF NOT EXISTS catalog.projection_aliases (
+ version bigint NOT NULL REFERENCES catalog.projection_generations(version) ON DELETE CASCADE,
+ alias_id text NOT NULL, canonical_id text NOT NULL, PRIMARY KEY(version,alias_id)
+);
+CREATE TABLE IF NOT EXISTS catalog.projection_summaries (
+ version bigint NOT NULL REFERENCES catalog.projection_generations(version) ON DELETE CASCADE,
+ id text NOT NULL, data jsonb NOT NULL, PRIMARY KEY(version,id)
+);
+CREATE TABLE IF NOT EXISTS catalog.projection_documents (
+ version bigint NOT NULL REFERENCES catalog.projection_generations(version) ON DELETE CASCADE,
+ id text NOT NULL, data jsonb NOT NULL, PRIMARY KEY(version,id)
+);
+CREATE TABLE IF NOT EXISTS catalog.projection_selections (
+ version bigint NOT NULL REFERENCES catalog.projection_generations(version) ON DELETE CASCADE,
+ kind text NOT NULL CHECK(kind IN('course','teacher')),data jsonb NOT NULL,
+ PRIMARY KEY(version,kind),CHECK(jsonb_typeof(data)='object')
+);
+-- Fixed owner function for fresh-generation planner statistics. No source
+-- tables or arbitrary SQL are accessible through this maintenance capability.
+CREATE OR REPLACE FUNCTION catalog.analyze_directory_projection() RETURNS void
+LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog AS $$ BEGIN
+ ANALYZE catalog.projection_objects;
+ ANALYZE catalog.projection_variants;
+ ANALYZE catalog.projection_relations;
+ ANALYZE catalog.projection_options;
+ ANALYZE catalog.projection_aliases;
+ ANALYZE catalog.projection_heads;
+ ANALYZE catalog.projection_generations;
+ ANALYZE catalog.projection_summaries;
+ ANALYZE catalog.projection_documents;
+ ANALYZE catalog.projection_selections;
+ ANALYZE catalog.projection_teaching_history;
+END $$;
+REVOKE ALL ON FUNCTION catalog.analyze_directory_projection() FROM PUBLIC;
