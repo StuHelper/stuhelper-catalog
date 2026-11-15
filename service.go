@@ -136,6 +136,7 @@ func relations(t Transaction, o Object) error {
 
 // Import commits a bounded page atomically. Omitted rows are never interpreted as deletions.
 func (s *Service) Import(ctx context.Context, p Principal, key string, in Import) (ImportResult, error) {
+	ctx = teacherMaintenanceContext(ctx)
 	var out ImportResult
 	if !p.CanImport || !allowed(p, in.SchoolID) {
 		return out, ErrForbidden
@@ -345,6 +346,7 @@ func (s *Service) MyEnrollments(ctx context.Context, p Principal, school, course
 	return out, err
 }
 func (s *Service) Correct(ctx context.Context, p Principal, id, key string, in Correction) (Object, error) {
+	ctx = teacherMaintenanceContext(ctx)
 	var out Object
 	if !ValidID(id) || !ValidKey(key) || in.Revision < 1 || (in.Name == nil && in.Biography == nil && in.DepartmentID == nil && in.CategoryID == nil && in.NatureID == nil && in.Code == nil && in.Credits == nil && !in.ClearCredits) || (in.Credits != nil && in.ClearCredits) {
 		return out, ErrInput

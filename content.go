@@ -114,6 +114,7 @@ func maintainRead(p Principal) error {
 	return nil
 }
 func (s *Service) AdminRead(ctx context.Context, p Principal, id string) (Object, error) {
+	ctx = teacherMaintenanceContext(ctx)
 	if e := maintainRead(p); e != nil {
 		return Object{}, e
 	}
@@ -127,6 +128,7 @@ func (s *Service) AdminRead(ctx context.Context, p Principal, id string) (Object
 	return out, nil
 }
 func (s *Service) AdminList(ctx context.Context, p Principal, f Filter) (Page, error) {
+	ctx = teacherMaintenanceContext(ctx)
 	if e := maintainRead(p); e != nil {
 		return Page{}, e
 	}
@@ -139,6 +141,7 @@ func (s *Service) AdminList(ctx context.Context, p Principal, f Filter) (Page, e
 	return s.List(ctx, f)
 }
 func (s *Service) AdminLookup(ctx context.Context, p Principal, ids []string) (Lookup, error) {
+	ctx = teacherMaintenanceContext(ctx)
 	if e := maintainRead(p); e != nil {
 		return Lookup{}, e
 	}
@@ -154,12 +157,14 @@ func (s *Service) AdminLookup(ctx context.Context, p Principal, ids []string) (L
 	return out, nil
 }
 func (s *Service) AdminSummary(ctx context.Context, p Principal, id string) (Summary, error) {
+	ctx = teacherMaintenanceContext(ctx)
 	if _, e := s.AdminRead(ctx, p, id); e != nil {
 		return Summary{}, e
 	}
 	return s.Summary(ctx, id)
 }
 func (s *Service) AdminResolution(ctx context.Context, p Principal, id string) (Resolution, error) {
+	ctx = teacherMaintenanceContext(ctx)
 	if _, e := s.AdminRead(ctx, p, id); e != nil {
 		return Resolution{}, e
 	}
