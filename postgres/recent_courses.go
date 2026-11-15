@@ -19,7 +19,7 @@ func (t *transaction) SaveRecentCourse(owner string, object c.Object, now time.T
 	if err != nil {
 		return err
 	}
-	if current.Inactive || current.ReadOnly || current.Kind != "course" || current.SchoolID != object.SchoolID {
+	if current.Inactive || current.Kind != "course" || current.SchoolID != object.SchoolID {
 		return c.ErrForbidden
 	}
 	if current.CanonicalID != "" {

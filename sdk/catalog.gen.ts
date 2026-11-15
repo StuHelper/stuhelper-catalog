@@ -28,7 +28,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** @description Requires current content admission in the served school: valid campus eligibility or verified teacher status. Missing admission returns 403; unavailable required facts return 503. No preview, content, counts or statistics are returned on rejection. 教师公开查询由服务端目录标记过滤：有授课记录或已匹配官网名单即可保留。列表、详情、批量查询、筛选选项及计数使用相同依据。未标记的教师详情返回 not_found。 */
+        /** @description Requires current content admission in the served school: valid campus eligibility or verified teacher status. Missing admission returns 403; unavailable required facts return 503. No preview, content, counts or statistics are returned on rejection. 教师公开查询由服务端目录标记过滤：有授课记录或已匹配官网名单即可保留。列表、详情、批量查询、筛选选项及计数使用相同依据。未标记的教师详情返回 not_found。 Courses outside the current visible directory projection return not_found, including direct links. */
         get: operations["getObject"];
         put?: never;
         post?: never;
@@ -95,7 +95,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** @description Requires current content admission in the served school: valid campus eligibility or verified teacher status. Missing admission returns 403; unavailable required facts return 503. No preview, content, counts or statistics are returned on rejection. 教师公开查询由服务端目录标记过滤：有授课记录或已匹配官网名单即可保留。列表、详情、批量查询、筛选选项及计数使用相同依据。未标记的教师详情返回 not_found。 */
+        /** @description Requires current content admission in the served school: valid campus eligibility or verified teacher status. Missing admission returns 403; unavailable required facts return 503. No preview, content, counts or statistics are returned on rejection. 教师公开查询由服务端目录标记过滤：有授课记录或已匹配官网名单即可保留。列表、详情、批量查询、筛选选项及计数使用相同依据。未标记的教师详情返回 not_found。 Courses outside the current visible directory projection return not_found, including direct links. */
         get: operations["getObjectSummary"];
         put?: never;
         post?: never;
@@ -509,8 +509,6 @@ export interface components {
             inactive?: boolean;
             canonical_id?: string;
             schedule_time?: components["schemas"]["ScheduleTime"];
-            /** @description 课程或学期不满足当前目录截止规则时为 true。当前有内容权限的用户可通过历史链接、评价或收藏读取旧课程详情；旧课程不进入目录、搜索、热门和推荐，不能发布新评价。 */
-            readonly read_only?: boolean;
             /** @description 学期结构化排序键：自然年乘 10 加季节（春 1、夏 2、秋 3）。来自学校适配器解析的学年与学期序号；无法可靠解析的学期不返回。 */
             readonly term_order_key?: number;
             /** @description 课程在当前目录投影中最近一次开课的学期 ID，按结构化学期排序键确定。 */

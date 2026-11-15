@@ -23,11 +23,13 @@ func (t *transaction) touchProjection(school string) error {
 	if err := t.Lock("projection-source:" + school); err != nil {
 		return err
 	}
-	var blocked bool
-	if err := t.tx.QueryRowContext(t.ctx, `SELECT EXISTS(SELECT 1 FROM catalog.projection_imports WHERE school_id=$1 AND state<>'complete' AND batch<>$2)`, school, c.DirectoryImportID(t.ctx)).Scan(&blocked); err != nil {
+	var permitted bool
+	if err := t.tx.QueryRowContext(t.ctx, `SELECT CASE WHEN $2='' THEN
+ NOT EXISTS(SELECT 1 FROM catalog.projection_imports WHERE school_id=$1 AND state<>'complete')
+ ELSE EXISTS(SELECT 1 FROM catalog.projection_imports WHERE school_id=$1 AND attempt_id=$2 AND state='running' AND deadline>clock_timestamp()) END`, school, c.DirectoryImportID(t.ctx)).Scan(&permitted); err != nil {
 		return safe(err)
 	}
-	if blocked {
+	if !permitted {
 		return c.ErrConflict
 	}
 	if t.projectionSchools == nil {
@@ -41,13 +43,13 @@ func (t *transaction) DirectoryProjection(school string) (c.ProjectionReport, er
 	return read[c.ProjectionReport](t, `SELECT g.report FROM catalog.projection_heads h JOIN catalog.projection_generations g ON g.version=h.version WHERE h.school_id=$1`, school)
 }
 
-func (t *transaction) BeginDirectoryImport(school, batch string, at time.Time) error {
+func (t *transaction) BeginDirectoryImport(school, batch, attempt string, at time.Time) error {
 	if err := t.Lock("projection-source:" + school); err != nil {
 		return err
 	}
-	result, err := t.tx.ExecContext(t.ctx, `INSERT INTO catalog.projection_imports(school_id,batch,state,started_at,updated_at,deadline)
- VALUES($1,$2,'running',$3,$3,$4) ON CONFLICT(school_id) DO UPDATE SET batch=excluded.batch,state='running',started_at=excluded.started_at,updated_at=excluded.updated_at,deadline=excluded.deadline
- WHERE catalog.projection_imports.state<>'running' OR catalog.projection_imports.deadline<=$3`, school, batch, at, at.Add(2*time.Hour))
+	result, err := t.tx.ExecContext(t.ctx, `INSERT INTO catalog.projection_imports(school_id,batch,attempt_id,state,started_at,updated_at,deadline)
+ VALUES($1,$2,$5,'running',$3,$3,$4) ON CONFLICT(school_id) DO UPDATE SET batch=excluded.batch,attempt_id=excluded.attempt_id,state='running',started_at=excluded.started_at,updated_at=excluded.updated_at,deadline=excluded.deadline
+ WHERE catalog.projection_imports.state<>'running' OR catalog.projection_imports.deadline<=$3`, school, batch, at, at.Add(2*time.Hour), attempt)
 	if err != nil {
 		return safe(err)
 	}
@@ -61,7 +63,7 @@ func (t *transaction) BeginDirectoryImport(school, batch string, at time.Time) e
 	return nil
 }
 
-func (t *transaction) EndDirectoryImport(school, batch string, success bool, at time.Time) error {
+func (t *transaction) EndDirectoryImport(school, attempt string, success bool, at time.Time) error {
 	if err := t.Lock("projection-source:" + school); err != nil {
 		return err
 	}
@@ -69,7 +71,7 @@ func (t *transaction) EndDirectoryImport(school, batch string, success bool, at 
 	if success {
 		state = "complete"
 	}
-	result, err := t.tx.ExecContext(t.ctx, `UPDATE catalog.projection_imports SET state=$3,updated_at=$4 WHERE school_id=$1 AND batch=$2 AND state='running'`, school, batch, state, at)
+	result, err := t.tx.ExecContext(t.ctx, `UPDATE catalog.projection_imports SET state=$3,updated_at=$4 WHERE school_id=$1 AND attempt_id=$2 AND state='running' AND ($3<>'complete' OR deadline>$4)`, school, attempt, state, at)
 	if err != nil {
 		return safe(err)
 	}
@@ -173,10 +175,10 @@ func (r *Repository) recordProjectionFailure(school string, err error) {
 
 func (t *transaction) RebuildDirectory(school string, policy *c.DirectoryPolicy, at time.Time) (out c.ProjectionReport, err error) {
 	started := time.Now()
-	t.projectionAttempt = school
 	if err = t.touchProjection(school); err != nil {
 		return
 	}
+	t.projectionAttempt = school
 	if err = t.Lock("projection-build"); err != nil {
 		return
 	}
@@ -240,7 +242,7 @@ func (t *transaction) RebuildDirectory(school string, policy *c.DirectoryPolicy,
 		// New generation values have no statistics until this transaction builds
 		// them. Refresh after bulk phases to avoid repeated full-scan join plans.
 		switch index + 1 {
-		case 1, 2, 5, 6, 8, 11, 16:
+		case 1, 2, 6, 7, 9, 12, 17:
 			if _, e := t.tx.ExecContext(t.ctx, `SELECT catalog.analyze_directory_projection()`); e != nil {
 				return out, safe(e)
 			}

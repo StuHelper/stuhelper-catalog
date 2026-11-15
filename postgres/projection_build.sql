@@ -1,7 +1,7 @@
 INSERT INTO catalog.projection_objects(version,id,school_id,kind,name,department_id,category_id,nature_id,term_key,official,data)
 SELECT $2,o.id,o.school_id,o.kind,o.name,catalog.canonical(o.department_id),catalog.canonical(o.category_id),catalog.canonical(o.nature_id),
  COALESCE(t.sort_key,0),COALESCE(td.official AND td.matched_name=o.name AND td.matched_department_id=o.department_id,false),
- catalog.public_object(o.data->'object')-'read_only'-'term_order_key'-'latest_term_id'
+ catalog.public_object(o.data->'object')-'term_order_key'-'latest_term_id'
 FROM catalog.objects o LEFT JOIN catalog.term_orders t ON t.id=o.id AND t.school_id=o.school_id
 LEFT JOIN catalog.teacher_directory td ON td.teacher_id=o.id
 WHERE o.school_id=$1 AND o.kind IN('school','department','category','nature','term','course','teacher')
@@ -22,6 +22,8 @@ AND NOT EXISTS(SELECT 1 FROM catalog.redirects r WHERE r.alias_id=o.id);
 -- step
 UPDATE catalog.projection_objects co SET visible=true WHERE co.version=$2 AND co.kind='course'
 AND EXISTS(SELECT 1 FROM catalog.projection_objects tc WHERE tc.version=$2 AND tc.kind='term_course' AND tc.course_id=co.id);
+-- step
+DELETE FROM catalog.projection_objects WHERE version=$2 AND kind='course' AND NOT visible;
 -- step
 UPDATE catalog.projection_objects co SET term_key=latest.term_key,data=co.data||jsonb_build_object('latest_term_id',latest.term_id)
 FROM (SELECT DISTINCT ON(course_id) course_id,term_id,term_key FROM catalog.projection_objects
@@ -85,10 +87,8 @@ WHERE te.version=$2 AND te.kind='teacher' AND te.visible GROUP BY d.id,d.name;
 UPDATE catalog.projection_objects o SET visible=(kind='school' OR EXISTS(SELECT 1 FROM catalog.projection_options opt WHERE opt.version=$2 AND opt.id=o.id))
 WHERE o.version=$2 AND o.kind IN('school','department','category','nature','term');
 -- step
-UPDATE catalog.projection_objects SET data=data ||
- CASE WHEN kind IN('course','term') AND NOT visible THEN jsonb_build_object('read_only',true) ELSE '{}'::jsonb END ||
- CASE WHEN kind='term' AND term_key>0 THEN jsonb_build_object('term_order_key',term_key) ELSE '{}'::jsonb END
-WHERE version=$2 AND ((kind IN('course','term') AND NOT visible) OR (kind='term' AND term_key>0));
+UPDATE catalog.projection_objects SET data=data || jsonb_build_object('term_order_key',term_key)
+WHERE version=$2 AND kind='term' AND term_key>0;
 -- step
 INSERT INTO catalog.projection_aliases(version,alias_id,canonical_id)
 SELECT $2,r.alias_id,r.canonical_id FROM catalog.redirects r JOIN catalog.objects o ON o.id=r.canonical_id AND o.school_id=$1;
@@ -118,7 +118,7 @@ LEFT JOIN catalog.projection_objects d ON d.version=$2 AND d.id=o.department_id 
 LEFT JOIN counts ct ON ct.id=o.id LEFT JOIN teachers te ON te.id=o.id LEFT JOIN courses co ON co.id=o.id
 LEFT JOIN classifications ca ON ca.course_id=o.id AND ca.kind='category'
 LEFT JOIN classifications na ON na.course_id=o.id AND na.kind='nature'
-WHERE o.version=$2 AND o.kind IN('course','teacher') AND (o.kind='course' OR o.visible);
+WHERE o.version=$2 AND o.kind IN('course','teacher') AND o.visible;
 -- step
 INSERT INTO catalog.projection_documents(version,id,data)
 SELECT $2,o.id,jsonb_build_object('target',jsonb_build_object('source','catalog','id',o.id,'kind',o.kind),
@@ -140,4 +140,5 @@ SELECT DISTINCT $2,catalog.canonical(a.teacher_id),catalog.canonical(tc.course_i
 FROM catalog.objects a
 JOIN catalog.objects cl ON cl.id=catalog.canonical(a.class_id) AND cl.kind='class' AND cl.school_id=a.school_id
 JOIN catalog.objects tc ON tc.id=catalog.canonical(cl.term_course_id) AND tc.kind='term_course' AND tc.school_id=a.school_id
+JOIN catalog.projection_objects co ON co.version=$2 AND co.kind='course' AND co.visible AND co.id=catalog.canonical(tc.course_id)
 WHERE a.kind='assignment' AND a.school_id=$1;

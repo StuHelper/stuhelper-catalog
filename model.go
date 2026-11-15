@@ -26,7 +26,6 @@ type Principal struct {
 	CanRefreshTeacherSites bool
 }
 type Object struct {
-	ReadOnly     bool          `json:"read_only,omitempty"`
 	TermOrderKey int           `json:"term_order_key,omitempty"`
 	LatestTermID string        `json:"latest_term_id,omitempty"`
 	ScheduleTime *ScheduleTime `json:"schedule_time,omitempty"`

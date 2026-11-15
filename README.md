@@ -57,4 +57,4 @@ MySchedule 是供模块使用的公开接口，只读取当前账号的有效选
 
 原型目录的分面、排序、本人最近课程和下一上课日见[原型数据接口](docs/spec/ui-data.md)。教师目录依赖 T2 持久标记，热度及推荐默认值已确认。
 
-产品启用 RequireDirectoryProjection 后，课程、教师、筛选、摘要与搜索使用版本化投影。截止学期默认 2023 秋，旧课程链接只读保留。重建、导入中断、配置切换和资源上限见[可展示目录投影](docs/spec/directory-projection.md)。
+产品启用 RequireDirectoryProjection 后，课程、教师、筛选、摘要与搜索使用版本化投影。截止学期默认 2023 秋，旧课程在详情及公开入口返回不存在。重建、导入中断、配置切换和资源上限见[可展示目录投影](docs/spec/directory-projection.md)。

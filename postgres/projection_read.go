@@ -11,7 +11,7 @@ import (
 // The caller's current content authorization remains in the catalog Service.
 const projectedObjectFrom = ` FROM catalog.projection_heads h
  JOIN catalog.projection_objects o ON o.version=h.version`
-const projectedDetailVisible = `(o.visible OR o.kind IN('course','school','department','category','nature','term'))`
+const projectedDetailVisible = `o.visible`
 
 func (t *transaction) projectedObject(id string) (c.Object, error) {
 	return read[c.Object](t, `SELECT o.data || CASE WHEN o.id<>$1 THEN jsonb_build_object('id',$1,'canonical_id',o.id) ELSE '{}'::jsonb END`+projectedObjectFrom+`

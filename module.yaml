@@ -193,14 +193,16 @@ scenario_tests:
     - ui_consistency_test.go#TestUIViewTokensAreDailyAndOldKeysExpire
 
   CAT-PROJECTION-01:
-    - projection_test.go#TestDirectoryProjectionCutoffOrderingCountsAndArchivedDetails
+    - projection_test.go#TestDirectoryProjectionCutoffOrderingCountsAndAbsentOldCourses
   CAT-PROJECTION-02:
     - projection_test.go#TestDirectoryProjectionRebuildFailureKeepsVersionAndRecordsReason
   CAT-PROJECTION-03:
     - projection_test.go#TestDirectoryProjectionAutoRebuildAndCompleteImportBoundary
     - projection_test.go#TestDirectoryProjectionFailedSourceImportFencesPublicationUntilRetry
+    - projection_import_test.go#TestDirectoryProjectionRetiredImportCannotWriteOrPublish
+    - projection_import_test.go#TestDirectoryProjectionCompletedAndExpiredImportsRejectFurtherPages
   CAT-PROJECTION-04:
     - projection_test.go#TestDirectoryProjectionConcurrentReadersAndSearchSnapshot
-    - projection_test.go#TestDirectoryProjectionCutoffOrderingCountsAndArchivedDetails
+    - projection_test.go#TestDirectoryProjectionCutoffOrderingCountsAndAbsentOldCourses
   CAT-PROJECTION-05:
     - projection_performance_test.go#TestDirectoryProjectionProductionScaleBeforeAfter
