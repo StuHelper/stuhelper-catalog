@@ -105,8 +105,9 @@ func (t *transaction) OwnScheduleMeetings(owner string, ids []string, limit int)
 }
 
 // Resolve only the requested owner's classes before joining schedule rows.
-// The bounded lateral lookup uses catalog_schedule_class even when the school
-// has a large historical directory. Alias expansion preserves merged classes.
+// Materialize the bounded meeting set once before matching enrollments. This
+// avoids repeating a scan for duplicate classes under skewed statistics; the
+// class-id predicate remains indexable. Alias expansion preserves old links.
 const ownScheduleMeetingsSQL = `WITH owned AS MATERIALIZED (
  SELECT id,school_id,catalog.canonical(COALESCE(data->>'class_id','')) AS class_id
  FROM catalog.enrollments WHERE subject=$1 AND id=ANY($2::text[]) AND active
@@ -114,17 +115,19 @@ const ownScheduleMeetingsSQL = `WITH owned AS MATERIALIZED (
  SELECT id,school_id,class_id FROM owned WHERE class_id<>''
  UNION
  SELECT en.id,en.school_id,r.alias_id FROM owned en JOIN catalog.redirects r ON r.canonical_id=en.class_id
+), class_ids AS MATERIALIZED (
+ SELECT DISTINCT class_id FROM class_keys
+), meetings AS MATERIALIZED (
+ SELECT o.id,o.class_id,o.school_id,o.data FROM catalog.objects o
+ WHERE o.kind='schedule' AND o.class_id=ANY(ARRAY(SELECT class_id FROM class_ids))
+ AND EXISTS(SELECT 1 FROM class_keys en WHERE en.class_id=o.class_id AND en.school_id=o.school_id)
+ AND NOT COALESCE((o.data->'object'->>'inactive')::boolean,false)
+ LIMIT $3
 )
 SELECT jsonb_build_object('EnrollmentID',en.id,'Meeting',
  jsonb_build_object('id',o.id,'time_text',COALESCE(o.data->'object'->>'time_text',''),
  'location',COALESCE(o.data->'object'->>'location',''),'schedule_time',o.data->'object'->'schedule_time'))
-FROM class_keys en
-JOIN LATERAL (
- SELECT id,data FROM catalog.objects
- WHERE kind='schedule' AND class_id=en.class_id AND school_id=en.school_id
- AND NOT COALESCE((data->'object'->>'inactive')::boolean,false)
- ORDER BY id LIMIT $3
-) o ON true
+FROM class_keys en JOIN meetings o ON o.class_id=en.class_id AND o.school_id=en.school_id
 ORDER BY en.id,o.id LIMIT $3`
 
 // Merges preserve original records and their foreign keys. Expand the target's
