@@ -73,6 +73,9 @@ func validText(v string, n int) bool {
 var kinds = []string{"school", "department", "category", "nature", "term", "course", "teacher", "term_course", "class", "assignment", "schedule"}
 
 func validateObject(o Object, school string) error {
+	if o.ReadOnly || o.TermOrderKey != 0 || o.LatestTermID != "" {
+		return ErrInput
+	}
 	if !validSchedule(o.ScheduleTime) || (o.ScheduleTime != nil && o.Kind != "schedule") {
 		return ErrInput
 	}

@@ -36,6 +36,13 @@ func (t *transaction) saveDiscovery(o c.Object) error {
 	return t.saveEnvelope(c.Envelope{SpecVersion: "1.0", ID: eventID, Source: "catalog", Type: "catalog.discovery.v1", Subject: o.ID, Time: o.UpdatedAt, Data: c.ResultData{Code: d.Code, Aliases: d.Aliases, Revision: d.Revision, Target: &d.Target, Title: &d.Title, SchoolID: &d.SchoolID, Visible: &d.Visible, Ratings: &d.Ratings, At: &d.At}})
 }
 func (t *transaction) DiscoveryCurrent(school string, ids []string) ([]c.DiscoveryDocument, error) {
+	if t.projectionRead {
+		if _, err := t.projectionVersion(school); err != nil {
+			return nil, err
+		}
+		return list[c.DiscoveryDocument](t, `SELECT d.data FROM catalog.projection_heads h JOIN catalog.projection_documents d ON d.version=h.version
+ WHERE h.school_id=$1 AND d.id=ANY($2::text[]) AND (d.data->>'visible')::boolean ORDER BY d.id COLLATE "C"`, school, ids)
+	}
 	return list[c.DiscoveryDocument](t, `SELECT h.data FROM catalog.objects o JOIN catalog.discovery_history h ON h.id=o.id AND h.revision=(o.data->'object'->>'revision')::bigint WHERE o.id=ANY($1::text[]) AND o.school_id=$2 AND o.id=catalog.canonical(o.id) AND NOT COALESCE((o.data->'object'->>'inactive')::boolean,false) AND (h.data->>'visible')::boolean `+t.teacherVisibility("o")+` ORDER BY o.id COLLATE "C"`, ids, school)
 }
 
@@ -49,6 +56,9 @@ type discoveryCursor struct {
 // DiscoverySnapshot preserves object versions using transaction visibility on
 // immutable history. Retention invalidates existing cursors, never silently resets.
 func (r *Repository) DiscoverySnapshot(ctx context.Context, cursor string, limit int) (out c.DiscoveryPage, err error) {
+	if r.RequireDirectoryProjection {
+		return r.projectedDiscoverySnapshot(ctx, cursor, limit)
+	}
 	out.Items = []c.DiscoveryDocument{}
 	if limit < 1 || limit > 100 || len(cursor) > 16384 {
 		return out, c.ErrInput

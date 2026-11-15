@@ -18,6 +18,24 @@ import (
 	openapi_types "github.com/oapi-codegen/runtime/types"
 )
 
+// Defines values for FilterOptionsKind.
+const (
+	FilterOptionsKindCourse  FilterOptionsKind = "course"
+	FilterOptionsKindTeacher FilterOptionsKind = "teacher"
+)
+
+// Valid indicates whether the value is a known member of the FilterOptionsKind enum.
+func (e FilterOptionsKind) Valid() bool {
+	switch e {
+	case FilterOptionsKindCourse:
+		return true
+	case FilterOptionsKindTeacher:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for NextClassDayState.
 const (
 	NextClassDayStateAvailable   NextClassDayState = "available"
@@ -174,6 +192,183 @@ func (e SummaryDepartmentKind) Valid() bool {
 	}
 }
 
+// Defines values for TeacherRefreshInputMode.
+const (
+	TeacherRefreshInputModeFull        TeacherRefreshInputMode = "full"
+	TeacherRefreshInputModeIncremental TeacherRefreshInputMode = "incremental"
+)
+
+// Valid indicates whether the value is a known member of the TeacherRefreshInputMode enum.
+func (e TeacherRefreshInputMode) Valid() bool {
+	switch e {
+	case TeacherRefreshInputModeFull:
+		return true
+	case TeacherRefreshInputModeIncremental:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for TeacherRefreshRunFailureReason.
+const (
+	TeacherRefreshRunFailureReasonCrawlFailed           TeacherRefreshRunFailureReason = "crawl_failed"
+	TeacherRefreshRunFailureReasonDependencyUnavailable TeacherRefreshRunFailureReason = "dependency_unavailable"
+	TeacherRefreshRunFailureReasonEmpty                 TeacherRefreshRunFailureReason = ""
+	TeacherRefreshRunFailureReasonImportConflict        TeacherRefreshRunFailureReason = "import_conflict"
+	TeacherRefreshRunFailureReasonInvalidSnapshot       TeacherRefreshRunFailureReason = "invalid_snapshot"
+	TeacherRefreshRunFailureReasonRequestFailed         TeacherRefreshRunFailureReason = "request_failed"
+	TeacherRefreshRunFailureReasonTimeout               TeacherRefreshRunFailureReason = "timeout"
+	TeacherRefreshRunFailureReasonWorkerInterrupted     TeacherRefreshRunFailureReason = "worker_interrupted"
+)
+
+// Valid indicates whether the value is a known member of the TeacherRefreshRunFailureReason enum.
+func (e TeacherRefreshRunFailureReason) Valid() bool {
+	switch e {
+	case TeacherRefreshRunFailureReasonCrawlFailed:
+		return true
+	case TeacherRefreshRunFailureReasonDependencyUnavailable:
+		return true
+	case TeacherRefreshRunFailureReasonEmpty:
+		return true
+	case TeacherRefreshRunFailureReasonImportConflict:
+		return true
+	case TeacherRefreshRunFailureReasonInvalidSnapshot:
+		return true
+	case TeacherRefreshRunFailureReasonRequestFailed:
+		return true
+	case TeacherRefreshRunFailureReasonTimeout:
+		return true
+	case TeacherRefreshRunFailureReasonWorkerInterrupted:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for TeacherRefreshRunMode.
+const (
+	TeacherRefreshRunModeFull        TeacherRefreshRunMode = "full"
+	TeacherRefreshRunModeIncremental TeacherRefreshRunMode = "incremental"
+)
+
+// Valid indicates whether the value is a known member of the TeacherRefreshRunMode enum.
+func (e TeacherRefreshRunMode) Valid() bool {
+	switch e {
+	case TeacherRefreshRunModeFull:
+		return true
+	case TeacherRefreshRunModeIncremental:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for TeacherRefreshRunStatus.
+const (
+	Failed    TeacherRefreshRunStatus = "failed"
+	Queued    TeacherRefreshRunStatus = "queued"
+	Running   TeacherRefreshRunStatus = "running"
+	Succeeded TeacherRefreshRunStatus = "succeeded"
+	TimedOut  TeacherRefreshRunStatus = "timed_out"
+)
+
+// Valid indicates whether the value is a known member of the TeacherRefreshRunStatus enum.
+func (e TeacherRefreshRunStatus) Valid() bool {
+	switch e {
+	case Failed:
+		return true
+	case Queued:
+		return true
+	case Running:
+		return true
+	case Succeeded:
+		return true
+	case TimedOut:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for TeacherRefreshRunTrigger.
+const (
+	Manual    TeacherRefreshRunTrigger = "manual"
+	Scheduled TeacherRefreshRunTrigger = "scheduled"
+)
+
+// Valid indicates whether the value is a known member of the TeacherRefreshRunTrigger enum.
+func (e TeacherRefreshRunTrigger) Valid() bool {
+	switch e {
+	case Manual:
+		return true
+	case Scheduled:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for UnmatchedTeacherSiteReason.
+const (
+	UnmatchedTeacherSiteReasonAmbiguousCatalog   UnmatchedTeacherSiteReason = "ambiguous_catalog"
+	UnmatchedTeacherSiteReasonAmbiguousSite      UnmatchedTeacherSiteReason = "ambiguous_site"
+	UnmatchedTeacherSiteReasonCatalogNameAbsent  UnmatchedTeacherSiteReason = "catalog_name_absent"
+	UnmatchedTeacherSiteReasonCatalogUnitMissing UnmatchedTeacherSiteReason = "catalog_unit_missing"
+	UnmatchedTeacherSiteReasonSiteUnitMissing    UnmatchedTeacherSiteReason = "site_unit_missing"
+	UnmatchedTeacherSiteReasonUnitMismatch       UnmatchedTeacherSiteReason = "unit_mismatch"
+)
+
+// Valid indicates whether the value is a known member of the UnmatchedTeacherSiteReason enum.
+func (e UnmatchedTeacherSiteReason) Valid() bool {
+	switch e {
+	case UnmatchedTeacherSiteReasonAmbiguousCatalog:
+		return true
+	case UnmatchedTeacherSiteReasonAmbiguousSite:
+		return true
+	case UnmatchedTeacherSiteReasonCatalogNameAbsent:
+		return true
+	case UnmatchedTeacherSiteReasonCatalogUnitMissing:
+		return true
+	case UnmatchedTeacherSiteReasonSiteUnitMissing:
+		return true
+	case UnmatchedTeacherSiteReasonUnitMismatch:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ListUnmatchedTeacherSitesParamsReason.
+const (
+	ListUnmatchedTeacherSitesParamsReasonAmbiguousCatalog   ListUnmatchedTeacherSitesParamsReason = "ambiguous_catalog"
+	ListUnmatchedTeacherSitesParamsReasonAmbiguousSite      ListUnmatchedTeacherSitesParamsReason = "ambiguous_site"
+	ListUnmatchedTeacherSitesParamsReasonCatalogNameAbsent  ListUnmatchedTeacherSitesParamsReason = "catalog_name_absent"
+	ListUnmatchedTeacherSitesParamsReasonCatalogUnitMissing ListUnmatchedTeacherSitesParamsReason = "catalog_unit_missing"
+	ListUnmatchedTeacherSitesParamsReasonSiteUnitMissing    ListUnmatchedTeacherSitesParamsReason = "site_unit_missing"
+	ListUnmatchedTeacherSitesParamsReasonUnitMismatch       ListUnmatchedTeacherSitesParamsReason = "unit_mismatch"
+)
+
+// Valid indicates whether the value is a known member of the ListUnmatchedTeacherSitesParamsReason enum.
+func (e ListUnmatchedTeacherSitesParamsReason) Valid() bool {
+	switch e {
+	case ListUnmatchedTeacherSitesParamsReasonAmbiguousCatalog:
+		return true
+	case ListUnmatchedTeacherSitesParamsReasonAmbiguousSite:
+		return true
+	case ListUnmatchedTeacherSitesParamsReasonCatalogNameAbsent:
+		return true
+	case ListUnmatchedTeacherSitesParamsReasonCatalogUnitMissing:
+		return true
+	case ListUnmatchedTeacherSitesParamsReasonSiteUnitMissing:
+		return true
+	case ListUnmatchedTeacherSitesParamsReasonUnitMismatch:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for ListDirectoryParamsKind.
 const (
 	ListDirectoryParamsKindCourse  ListDirectoryParamsKind = "course"
@@ -210,6 +405,24 @@ func (e ListDirectoryParamsSort) Valid() bool {
 	case Recommend:
 		return true
 	case Reviews:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for GetFilterOptionsParamsKind.
+const (
+	GetFilterOptionsParamsKindCourse  GetFilterOptionsParamsKind = "course"
+	GetFilterOptionsParamsKindTeacher GetFilterOptionsParamsKind = "teacher"
+)
+
+// Valid indicates whether the value is a known member of the GetFilterOptionsParamsKind enum.
+func (e GetFilterOptionsParamsKind) Valid() bool {
+	switch e {
+	case GetFilterOptionsParamsKindCourse:
+		return true
+	case GetFilterOptionsParamsKindTeacher:
 		return true
 	default:
 		return false
@@ -291,6 +504,25 @@ type Enrollment struct {
 type Error struct {
 	Code string `json:"code"`
 }
+
+// FilterOption defines model for FilterOption.
+type FilterOption struct {
+	Count int64  `json:"count"`
+	Id    string `json:"id"`
+	Name  string `json:"name"`
+}
+
+// FilterOptions defines model for FilterOptions.
+type FilterOptions struct {
+	Categories  []FilterOption    `json:"categories"`
+	Departments []FilterOption    `json:"departments"`
+	Kind        FilterOptionsKind `json:"kind"`
+	Natures     []FilterOption    `json:"natures"`
+	Total       int64             `json:"total"`
+}
+
+// FilterOptionsKind defines model for FilterOptions.Kind.
+type FilterOptionsKind string
 
 // Import defines model for Import.
 type Import struct {
@@ -392,10 +624,16 @@ type Object struct {
 	Id           string     `json:"id"`
 	Inactive     *bool      `json:"inactive,omitempty"`
 	Kind         ObjectKind `json:"kind"`
-	Location     *string    `json:"location,omitempty"`
-	Name         string     `json:"name"`
-	NatureId     *string    `json:"nature_id,omitempty"`
-	Revision     int        `json:"revision"`
+
+	// LatestTermId 课程在当前目录投影中最近一次开课的学期 ID，按结构化学期排序键确定。
+	LatestTermId *string `json:"latest_term_id,omitempty"`
+	Location     *string `json:"location,omitempty"`
+	Name         string  `json:"name"`
+	NatureId     *string `json:"nature_id,omitempty"`
+
+	// ReadOnly 课程或学期不满足当前目录截止规则时为 true。当前有内容权限的用户可通过历史链接、评价或收藏读取旧课程详情；旧课程不进入目录、搜索、热门和推荐，不能发布新评价。
+	ReadOnly *bool `json:"read_only,omitempty"`
+	Revision int   `json:"revision"`
 
 	// ScheduleTime ISO weekday Monday=1. Explicit week set; odd/even weeks are expanded by importer. End period >= start. Missing structure means not provided. Recognized time_text grammar: 周一 第1-2节 第1-16周(单), with optional 单/双 suffix.
 	ScheduleTime *ScheduleTime `json:"schedule_time,omitempty"`
@@ -403,8 +641,11 @@ type Object struct {
 	TeacherId    *string       `json:"teacher_id,omitempty"`
 	TermCourseId *string       `json:"term_course_id,omitempty"`
 	TermId       *string       `json:"term_id,omitempty"`
-	TimeText     *string       `json:"time_text,omitempty"`
-	UpdatedAt    time.Time     `json:"updated_at"`
+
+	// TermOrderKey 学期结构化排序键：自然年乘 10 加季节（春 1、夏 2、秋 3）。来自学校适配器解析的学年与学期序号；无法可靠解析的学期不返回。
+	TermOrderKey *int      `json:"term_order_key,omitempty"`
+	TimeText     *string   `json:"time_text,omitempty"`
+	UpdatedAt    time.Time `json:"updated_at"`
 }
 
 // ObjectKind defines model for Object.Kind.
@@ -515,8 +756,10 @@ type ScheduleTime struct {
 
 // Summary defines model for Summary.
 type Summary struct {
-	Categories  []Object `json:"categories"`
-	CourseCount int      `json:"course_count"`
+	Categories []Object `json:"categories"`
+
+	// CourseCount 当前目录投影中关联的可展示课程数量。
+	CourseCount int `json:"course_count"`
 	Department  *struct {
 		Aliases      []string              `json:"aliases"`
 		Biography    *string               `json:"biography,omitempty"`
@@ -539,15 +782,71 @@ type Summary struct {
 		TimeText     *string               `json:"time_text,omitempty"`
 		UpdatedAt    time.Time             `json:"updated_at"`
 	} `json:"department"`
-	Natures       []Object `json:"natures"`
-	Object        Object   `json:"object"`
-	OfferingCount int      `json:"offering_count"`
-	School        Object   `json:"school"`
-	TeacherCount  int      `json:"teacher_count"`
+	Natures []Object `json:"natures"`
+	Object  Object   `json:"object"`
+
+	// OfferingCount 截止学期及以后纳入当前投影的开课记录数量。
+	OfferingCount int    `json:"offering_count"`
+	School        Object `json:"school"`
+
+	// TeacherCount 当前目录投影中关联的可展示教师数量。
+	TeacherCount int `json:"teacher_count"`
 }
 
 // SummaryDepartmentKind defines model for Summary.Department.Kind.
 type SummaryDepartmentKind string
+
+// TeacherMarkCounts defines model for TeacherMarkCounts.
+type TeacherMarkCounts struct {
+	Both     int64 `json:"both"`
+	Eligible int64 `json:"eligible"`
+	Official int64 `json:"official"`
+	Teaching int64 `json:"teaching"`
+}
+
+// TeacherRefreshInput defines model for TeacherRefreshInput.
+type TeacherRefreshInput struct {
+	Mode TeacherRefreshInputMode `json:"mode"`
+}
+
+// TeacherRefreshInputMode defines model for TeacherRefreshInput.Mode.
+type TeacherRefreshInputMode string
+
+// TeacherRefreshRun defines model for TeacherRefreshRun.
+type TeacherRefreshRun struct {
+	Counts        TeacherMarkCounts              `json:"counts"`
+	DeadlineAt    time.Time                      `json:"deadline_at"`
+	DurationMs    int64                          `json:"duration_ms"`
+	FailureReason TeacherRefreshRunFailureReason `json:"failure_reason"`
+	FinishedAt    *time.Time                     `json:"finished_at"`
+	Id            string                         `json:"id"`
+	Mode          TeacherRefreshRunMode          `json:"mode"`
+	RequestedAt   time.Time                      `json:"requested_at"`
+	Requests      *int64                         `json:"requests"`
+	SchoolId      string                         `json:"school_id"`
+	SiteCount     *int64                         `json:"site_count"`
+	StartedAt     *time.Time                     `json:"started_at"`
+	Status        TeacherRefreshRunStatus        `json:"status"`
+	Trigger       TeacherRefreshRunTrigger       `json:"trigger"`
+}
+
+// TeacherRefreshRunFailureReason defines model for TeacherRefreshRun.FailureReason.
+type TeacherRefreshRunFailureReason string
+
+// TeacherRefreshRunMode defines model for TeacherRefreshRun.Mode.
+type TeacherRefreshRunMode string
+
+// TeacherRefreshRunStatus defines model for TeacherRefreshRun.Status.
+type TeacherRefreshRunStatus string
+
+// TeacherRefreshRunTrigger defines model for TeacherRefreshRun.Trigger.
+type TeacherRefreshRunTrigger string
+
+// TeacherRefreshStatus defines model for TeacherRefreshStatus.
+type TeacherRefreshStatus struct {
+	Counts TeacherMarkCounts `json:"counts"`
+	Latest TeacherRefreshRun `json:"latest"`
+}
 
 // Timetable School and term scoped. PUT revision 0 creates; subsequent writes require current revision. Duplicate identical PUT with previous revision returns stored result. Period numbers unique and increasing with nonoverlapping same-day times.
 type Timetable struct {
@@ -561,6 +860,30 @@ type Timetable struct {
 
 	// WeekOneStart Monday, YYYY-MM-DD
 	WeekOneStart string `json:"week_one_start"`
+}
+
+// UnmatchedTeacherSite defines model for UnmatchedTeacherSite.
+type UnmatchedTeacherSite struct {
+	CandidateCount int64                      `json:"candidate_count"`
+	Name           string                     `json:"name"`
+	Reason         UnmatchedTeacherSiteReason `json:"reason"`
+
+	// SiteId 仅用于列表标识和分页的不可逆摘要，不返回官网原始标识、教师工号或候选教师 ID。
+	SiteId string `json:"site_id"`
+	Unit   string `json:"unit"`
+}
+
+// UnmatchedTeacherSiteReason defines model for UnmatchedTeacherSite.Reason.
+type UnmatchedTeacherSiteReason string
+
+// UnmatchedTeacherSitePage defines model for UnmatchedTeacherSitePage.
+type UnmatchedTeacherSitePage struct {
+	Items        []UnmatchedTeacherSite `json:"items"`
+	Next         string                 `json:"next"`
+	ObservedAt   *time.Time             `json:"observed_at"`
+	ReasonCounts map[string]int64       `json:"reason_counts"`
+	Revision     int64                  `json:"revision"`
+	Total        int64                  `json:"total"`
 }
 
 // AdminListObjectsParams defines parameters for AdminListObjects.
@@ -593,6 +916,21 @@ type AdminLookupObjectsParams struct {
 	Ids string `form:"ids" json:"ids"`
 }
 
+// StartTeacherRefreshParams defines parameters for StartTeacherRefresh.
+type StartTeacherRefreshParams struct {
+	IdempotencyKey string `json:"Idempotency-Key"`
+}
+
+// ListUnmatchedTeacherSitesParams defines parameters for ListUnmatchedTeacherSites.
+type ListUnmatchedTeacherSitesParams struct {
+	Reason *ListUnmatchedTeacherSitesParamsReason `form:"reason,omitempty" json:"reason,omitempty"`
+	Limit  *int                                   `form:"limit,omitempty" json:"limit,omitempty"`
+	After  *string                                `form:"after,omitempty" json:"after,omitempty"`
+}
+
+// ListUnmatchedTeacherSitesParamsReason defines parameters for ListUnmatchedTeacherSites.
+type ListUnmatchedTeacherSitesParamsReason string
+
 // ListDirectoryParams defines parameters for ListDirectory.
 type ListDirectoryParams struct {
 	Kind         ListDirectoryParamsKind  `form:"kind" json:"kind"`
@@ -612,6 +950,15 @@ type ListDirectoryParamsKind string
 
 // ListDirectoryParamsSort defines parameters for ListDirectory.
 type ListDirectoryParamsSort string
+
+// GetFilterOptionsParams defines parameters for GetFilterOptions.
+type GetFilterOptionsParams struct {
+	Kind     GetFilterOptionsParamsKind `form:"kind" json:"kind"`
+	SchoolId *string                    `form:"school_id,omitempty" json:"school_id,omitempty"`
+}
+
+// GetFilterOptionsParamsKind defines parameters for GetFilterOptions.
+type GetFilterOptionsParamsKind string
 
 // ImportCatalogParams defines parameters for ImportCatalog.
 type ImportCatalogParams struct {
@@ -704,6 +1051,9 @@ type PreviewMergeParams struct {
 type SetObjectStateParams struct {
 	IdempotencyKey string `json:"Idempotency-Key"`
 }
+
+// StartTeacherRefreshJSONRequestBody defines body for StartTeacherRefresh for application/json ContentType.
+type StartTeacherRefreshJSONRequestBody = TeacherRefreshInput
 
 // PutTimetableJSONRequestBody defines body for PutTimetable for application/json ContentType.
 type PutTimetableJSONRequestBody = Timetable
@@ -828,6 +1178,28 @@ type ClientInterface interface {
 	// Requires current catalog maintenance permission for the object school. Independent of content admission; no student enrollment identities are returned.
 	AdminGetObjectSummary(ctx context.Context, id string, reqEditors ...RequestEditorFn) (*http.Response, error)
 
+	// GetTeacherRefreshStatus performs a GET /api/v1/catalog/admin/schools/{school_id}/teacher-sites/refresh (the `GetTeacherRefreshStatus` operationId) request.
+	//
+	// Requires catalog.teacher-sites.read and current school management scope. Every view is audited. Latest run includes safe failure code and observed request/site counts; unknown measurements are null. Counts reflect current visible teacher marks.
+	GetTeacherRefreshStatus(ctx context.Context, schoolId string, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// StartTeacherRefreshWithBody performs a POST /api/v1/catalog/admin/schools/{school_id}/teacher-sites/refresh (the `StartTeacherRefresh` operationId) request,
+	// with any type of body and a specified content type.
+	//
+	// Requires catalog.teacher-sites.refresh and current school management scope. Audited durable enqueue. Only one queued/running refresh globally; a competing request returns 409. Replay with the same actor, school, key and mode returns the original run; a different mode conflicts. Deadline is 45 minutes including queue time. Manual full and incremental are supported; monthly scheduler only enqueues incremental.
+	StartTeacherRefreshWithBody(ctx context.Context, schoolId string, params *StartTeacherRefreshParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// StartTeacherRefresh performs a POST /api/v1/catalog/admin/schools/{school_id}/teacher-sites/refresh (the `StartTeacherRefresh` operationId) request.
+	// Takes a body of the `application/json` content type.
+	//
+	// Requires catalog.teacher-sites.refresh and current school management scope. Audited durable enqueue. Only one queued/running refresh globally; a competing request returns 409. Replay with the same actor, school, key and mode returns the original run; a different mode conflicts. Deadline is 45 minutes including queue time. Manual full and incremental are supported; monthly scheduler only enqueues incremental.
+	StartTeacherRefresh(ctx context.Context, schoolId string, params *StartTeacherRefreshParams, body StartTeacherRefreshJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// ListUnmatchedTeacherSites performs a GET /api/v1/catalog/admin/schools/{school_id}/teacher-sites/unmatched (the `ListUnmatchedTeacherSites` operationId) request.
+	//
+	// Requires catalog.teacher-sites.read and current school management scope. Every view is audited. Current complete unmatched snapshot only; failed refresh preserves it. Returns public website name/unit, fixed reason and count of same-name catalog candidates, never candidate IDs, staff numbers or contacts. reason_counts covers the entire snapshot; total respects reason. Cursor binds school, reason and snapshot revision; a changed snapshot returns 409. Sorted by site_id.
+	ListUnmatchedTeacherSites(ctx context.Context, schoolId string, params *ListUnmatchedTeacherSitesParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
 	// GetTimetable performs a GET /api/v1/catalog/admin/schools/{school_id}/terms/{term_id}/timetable (the `GetTimetable` operationId) request.
 	//
 	// Requires catalog maintain capability and school scope. Missing configuration returns 404.
@@ -847,8 +1219,13 @@ type ClientInterface interface {
 
 	// ListDirectory performs a GET /api/v1/catalog/directory (the `ListDirectory` operationId) request.
 	//
-	// Current visible course/teacher directory, stable sort with ID tie-break and filter-bound cursor. Categories count distinct courses after all filters except category_id. Department groups respect all current filters. Classification filters apply to the same offering/class. Teacher rows and counts require T2 persisted marking; absent marker enforcement returns 503. Scores are read in bounded batches from owning modules, without per-row queries. Catalog membership is cached with transactional revision invalidation; ratings and heat are always current.
+	// Current visible course/teacher directory, stable sort with ID tie-break and filter-bound cursor. Categories count distinct courses after all filters except category_id. Department groups respect all current filters. Classification filters apply to the same offering/class. Teacher rows and counts require T2 persisted marking; absent marker enforcement returns 503. Scores are read in bounded batches from owning modules, without per-row queries. Catalog membership is cached with transactional revision invalidation; ratings and heat are always current. 目录成员和分面来自同一持久投影版本，实时评分与热度按 ID 关联。游标绑定投影版本，重建后使用旧游标返回 409，应从第一页重新读取。
 	ListDirectory(ctx context.Context, params *ListDirectoryParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// GetFilterOptions performs a GET /api/v1/catalog/filter-options (the `GetFilterOptions` operationId) request.
+	//
+	// 读取与公开列表相同投影版本的筛选选项，只返回数量大于零的项。课程截止学期、内容状态、学校和教师标记均已应用；当前内容权限在每次请求时检查。.
+	GetFilterOptions(ctx context.Context, params *GetFilterOptionsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// ImportCatalogWithBody performs a POST /api/v1/catalog/imports (the `ImportCatalog` operationId) request,
 	// with any type of body and a specified content type.
@@ -916,7 +1293,7 @@ type ClientInterface interface {
 
 	// ListObjects performs a GET /api/v1/catalog/objects (the `ListObjects` operationId) request.
 	//
-	// Requires current content admission in the served school: valid campus eligibility or verified teacher status. Missing admission returns 403; unavailable required facts return 503. No preview, content, counts or statistics are returned on rejection. 教师公开查询由服务端目录标记过滤：有授课记录或已匹配官网名单即可保留。列表、详情、批量查询、筛选选项及计数使用相同依据。未标记的教师详情返回 not_found。
+	// 读取当前学校的可展示目录投影，当前内容权限在每次请求时检查。课程须在服务端截止学期（默认 2023 秋）及以后有开课记录。kind=term 仅返回截止学期及以后且有可见课程的学期，按 term_order_key 降序、ID 升序分页；前端保持返回顺序。其他类型按 ID 升序。.
 	ListObjects(ctx context.Context, params *ListObjectsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// LookupObjects performs a GET /api/v1/catalog/objects/lookup (the `LookupObjects` operationId) request.
@@ -1047,6 +1424,68 @@ func (c *Client) AdminGetObjectSummary(ctx context.Context, id string, reqEditor
 	return c.Client.Do(req)
 }
 
+// GetTeacherRefreshStatus performs a GET /api/v1/catalog/admin/schools/{school_id}/teacher-sites/refresh (the `GetTeacherRefreshStatus` operationId) request.
+//
+// Requires catalog.teacher-sites.read and current school management scope. Every view is audited. Latest run includes safe failure code and observed request/site counts; unknown measurements are null. Counts reflect current visible teacher marks.
+func (c *Client) GetTeacherRefreshStatus(ctx context.Context, schoolId string, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetTeacherRefreshStatusRequest(c.Server, schoolId)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// StartTeacherRefreshWithBody performs a POST /api/v1/catalog/admin/schools/{school_id}/teacher-sites/refresh (the `StartTeacherRefresh` operationId) request,
+// with any type of body and a specified content type.
+//
+// Requires catalog.teacher-sites.refresh and current school management scope. Audited durable enqueue. Only one queued/running refresh globally; a competing request returns 409. Replay with the same actor, school, key and mode returns the original run; a different mode conflicts. Deadline is 45 minutes including queue time. Manual full and incremental are supported; monthly scheduler only enqueues incremental.
+func (c *Client) StartTeacherRefreshWithBody(ctx context.Context, schoolId string, params *StartTeacherRefreshParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewStartTeacherRefreshRequestWithBody(c.Server, schoolId, params, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// StartTeacherRefresh performs a POST /api/v1/catalog/admin/schools/{school_id}/teacher-sites/refresh (the `StartTeacherRefresh` operationId) request.
+// Takes a body of the `application/json` content type.
+//
+// Requires catalog.teacher-sites.refresh and current school management scope. Audited durable enqueue. Only one queued/running refresh globally; a competing request returns 409. Replay with the same actor, school, key and mode returns the original run; a different mode conflicts. Deadline is 45 minutes including queue time. Manual full and incremental are supported; monthly scheduler only enqueues incremental.
+func (c *Client) StartTeacherRefresh(ctx context.Context, schoolId string, params *StartTeacherRefreshParams, body StartTeacherRefreshJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewStartTeacherRefreshRequest(c.Server, schoolId, params, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// ListUnmatchedTeacherSites performs a GET /api/v1/catalog/admin/schools/{school_id}/teacher-sites/unmatched (the `ListUnmatchedTeacherSites` operationId) request.
+//
+// Requires catalog.teacher-sites.read and current school management scope. Every view is audited. Current complete unmatched snapshot only; failed refresh preserves it. Returns public website name/unit, fixed reason and count of same-name catalog candidates, never candidate IDs, staff numbers or contacts. reason_counts covers the entire snapshot; total respects reason. Cursor binds school, reason and snapshot revision; a changed snapshot returns 409. Sorted by site_id.
+func (c *Client) ListUnmatchedTeacherSites(ctx context.Context, schoolId string, params *ListUnmatchedTeacherSitesParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewListUnmatchedTeacherSitesRequest(c.Server, schoolId, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
 // GetTimetable performs a GET /api/v1/catalog/admin/schools/{school_id}/terms/{term_id}/timetable (the `GetTimetable` operationId) request.
 //
 // Requires catalog maintain capability and school scope. Missing configuration returns 404.
@@ -1096,9 +1535,24 @@ func (c *Client) PutTimetable(ctx context.Context, schoolId string, termId strin
 
 // ListDirectory performs a GET /api/v1/catalog/directory (the `ListDirectory` operationId) request.
 //
-// Current visible course/teacher directory, stable sort with ID tie-break and filter-bound cursor. Categories count distinct courses after all filters except category_id. Department groups respect all current filters. Classification filters apply to the same offering/class. Teacher rows and counts require T2 persisted marking; absent marker enforcement returns 503. Scores are read in bounded batches from owning modules, without per-row queries. Catalog membership is cached with transactional revision invalidation; ratings and heat are always current.
+// Current visible course/teacher directory, stable sort with ID tie-break and filter-bound cursor. Categories count distinct courses after all filters except category_id. Department groups respect all current filters. Classification filters apply to the same offering/class. Teacher rows and counts require T2 persisted marking; absent marker enforcement returns 503. Scores are read in bounded batches from owning modules, without per-row queries. Catalog membership is cached with transactional revision invalidation; ratings and heat are always current. 目录成员和分面来自同一持久投影版本，实时评分与热度按 ID 关联。游标绑定投影版本，重建后使用旧游标返回 409，应从第一页重新读取。
 func (c *Client) ListDirectory(ctx context.Context, params *ListDirectoryParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewListDirectoryRequest(c.Server, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// GetFilterOptions performs a GET /api/v1/catalog/filter-options (the `GetFilterOptions` operationId) request.
+//
+// 读取与公开列表相同投影版本的筛选选项，只返回数量大于零的项。课程截止学期、内容状态、学校和教师标记均已应用；当前内容权限在每次请求时检查。.
+func (c *Client) GetFilterOptions(ctx context.Context, params *GetFilterOptionsParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetFilterOptionsRequest(c.Server, params)
 	if err != nil {
 		return nil, err
 	}
@@ -1315,7 +1769,7 @@ func (c *Client) MyCalendar(ctx context.Context, params *MyCalendarParams, reqEd
 
 // ListObjects performs a GET /api/v1/catalog/objects (the `ListObjects` operationId) request.
 //
-// Requires current content admission in the served school: valid campus eligibility or verified teacher status. Missing admission returns 403; unavailable required facts return 503. No preview, content, counts or statistics are returned on rejection. 教师公开查询由服务端目录标记过滤：有授课记录或已匹配官网名单即可保留。列表、详情、批量查询、筛选选项及计数使用相同依据。未标记的教师详情返回 not_found。
+// 读取当前学校的可展示目录投影，当前内容权限在每次请求时检查。课程须在服务端截止学期（默认 2023 秋）及以后有开课记录。kind=term 仅返回截止学期及以后且有可见课程的学期，按 term_order_key 降序、ID 升序分页；前端保持返回顺序。其他类型按 ID 升序。.
 func (c *Client) ListObjects(ctx context.Context, params *ListObjectsParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewListObjectsRequest(c.Server, params)
 	if err != nil {
@@ -1858,6 +2312,185 @@ func NewAdminGetObjectSummaryRequest(server string, id string) (*http.Request, e
 	return req, nil
 }
 
+// NewGetTeacherRefreshStatusRequest constructs an http.Request for the GetTeacherRefreshStatus method
+func NewGetTeacherRefreshStatusRequest(server string, schoolId string) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "school_id", schoolId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/catalog/admin/schools/%s/teacher-sites/refresh", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewStartTeacherRefreshRequest calls the generic StartTeacherRefresh builder with application/json body
+func NewStartTeacherRefreshRequest(server string, schoolId string, params *StartTeacherRefreshParams, body StartTeacherRefreshJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewStartTeacherRefreshRequestWithBody(server, schoolId, params, "application/json", bodyReader)
+}
+
+// NewStartTeacherRefreshRequestWithBody constructs an http.Request for the StartTeacherRefresh method, with any body, and a specified content type
+func NewStartTeacherRefreshRequestWithBody(server string, schoolId string, params *StartTeacherRefreshParams, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "school_id", schoolId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/catalog/admin/schools/%s/teacher-sites/refresh", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPost, queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	if params != nil {
+
+		var headerParam0 string
+
+		headerParam0, err = runtime.StyleParamWithOptions("simple", false, "Idempotency-Key", params.IdempotencyKey, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationHeader, Type: "string", Format: ""})
+		if err != nil {
+			return nil, err
+		}
+
+		req.Header.Set("Idempotency-Key", headerParam0)
+
+	}
+
+	return req, nil
+}
+
+// NewListUnmatchedTeacherSitesRequest constructs an http.Request for the ListUnmatchedTeacherSites method
+func NewListUnmatchedTeacherSitesRequest(server string, schoolId string, params *ListUnmatchedTeacherSitesParams) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "school_id", schoolId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/catalog/admin/schools/%s/teacher-sites/unmatched", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		// queryValues collects non-styled parameters (passthrough, JSON)
+		// that are safe to round-trip through url.Values.Encode().
+		queryValues := queryURL.Query()
+		// rawQueryFragments collects pre-encoded query fragments from
+		// styled parameters, preserving literal commas as delimiters
+		// per the OpenAPI spec (e.g. "color=blue,black,brown").
+		var rawQueryFragments []string
+
+		if params.Reason != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "reason", *params.Reason, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.Limit != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "limit", *params.Limit, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "integer", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.After != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "after", *params.After, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if encoded := queryValues.Encode(); encoded != "" {
+			rawQueryFragments = append(rawQueryFragments, encoded)
+		}
+		queryURL.RawQuery = strings.Join(rawQueryFragments, "&")
+	}
+
+	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
 // NewGetTimetableRequest constructs an http.Request for the GetTimetable method
 func NewGetTimetableRequest(server string, schoolId string, termId string) (*http.Request, error) {
 	var err error
@@ -2088,6 +2721,68 @@ func NewListDirectoryRequest(server string, params *ListDirectoryParams) (*http.
 		if params.Limit != nil {
 
 			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "limit", *params.Limit, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "integer", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if encoded := queryValues.Encode(); encoded != "" {
+			rawQueryFragments = append(rawQueryFragments, encoded)
+		}
+		queryURL.RawQuery = strings.Join(rawQueryFragments, "&")
+	}
+
+	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewGetFilterOptionsRequest constructs an http.Request for the GetFilterOptions method
+func NewGetFilterOptionsRequest(server string, params *GetFilterOptionsParams) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/catalog/filter-options")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		// queryValues collects non-styled parameters (passthrough, JSON)
+		// that are safe to round-trip through url.Values.Encode().
+		queryValues := queryURL.Query()
+		// rawQueryFragments collects pre-encoded query fragments from
+		// styled parameters, preserving literal commas as delimiters
+		// per the OpenAPI spec (e.g. "color=blue,black,brown").
+		var rawQueryFragments []string
+
+		if queryFrag, err := runtime.StyleParamWithOptions("form", true, "kind", params.Kind, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+			return nil, err
+		} else {
+			for _, qp := range strings.Split(queryFrag, "&") {
+				rawQueryFragments = append(rawQueryFragments, qp)
+			}
+		}
+
+		if params.SchoolId != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "school_id", *params.SchoolId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
 				return nil, err
 			} else {
 				for _, qp := range strings.Split(queryFrag, "&") {
@@ -3342,6 +4037,34 @@ type ClientWithResponsesInterface interface {
 	// Returns a wrapper object for the known response body format(s).
 	AdminGetObjectSummaryWithResponse(ctx context.Context, id string, reqEditors ...RequestEditorFn) (*AdminGetObjectSummaryResponse, error)
 
+	// GetTeacherRefreshStatusWithResponse performs a GET /api/v1/catalog/admin/schools/{school_id}/teacher-sites/refresh (the `GetTeacherRefreshStatus` operationId) request.
+	//
+	// Requires catalog.teacher-sites.read and current school management scope. Every view is audited. Latest run includes safe failure code and observed request/site counts; unknown measurements are null. Counts reflect current visible teacher marks.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	GetTeacherRefreshStatusWithResponse(ctx context.Context, schoolId string, reqEditors ...RequestEditorFn) (*GetTeacherRefreshStatusResponse, error)
+
+	// StartTeacherRefreshWithBodyWithResponse performs a POST /api/v1/catalog/admin/schools/{school_id}/teacher-sites/refresh (the `StartTeacherRefresh` operationId) request,
+	// with any type of body and a specified content type.
+	//
+	// Requires catalog.teacher-sites.refresh and current school management scope. Audited durable enqueue. Only one queued/running refresh globally; a competing request returns 409. Replay with the same actor, school, key and mode returns the original run; a different mode conflicts. Deadline is 45 minutes including queue time. Manual full and incremental are supported; monthly scheduler only enqueues incremental.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	StartTeacherRefreshWithBodyWithResponse(ctx context.Context, schoolId string, params *StartTeacherRefreshParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*StartTeacherRefreshResponse, error)
+
+	// StartTeacherRefreshWithResponse performs a POST /api/v1/catalog/admin/schools/{school_id}/teacher-sites/refresh (the `StartTeacherRefresh` operationId) request.
+	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Requires catalog.teacher-sites.refresh and current school management scope. Audited durable enqueue. Only one queued/running refresh globally; a competing request returns 409. Replay with the same actor, school, key and mode returns the original run; a different mode conflicts. Deadline is 45 minutes including queue time. Manual full and incremental are supported; monthly scheduler only enqueues incremental.
+	StartTeacherRefreshWithResponse(ctx context.Context, schoolId string, params *StartTeacherRefreshParams, body StartTeacherRefreshJSONRequestBody, reqEditors ...RequestEditorFn) (*StartTeacherRefreshResponse, error)
+
+	// ListUnmatchedTeacherSitesWithResponse performs a GET /api/v1/catalog/admin/schools/{school_id}/teacher-sites/unmatched (the `ListUnmatchedTeacherSites` operationId) request.
+	//
+	// Requires catalog.teacher-sites.read and current school management scope. Every view is audited. Current complete unmatched snapshot only; failed refresh preserves it. Returns public website name/unit, fixed reason and count of same-name catalog candidates, never candidate IDs, staff numbers or contacts. reason_counts covers the entire snapshot; total respects reason. Cursor binds school, reason and snapshot revision; a changed snapshot returns 409. Sorted by site_id.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	ListUnmatchedTeacherSitesWithResponse(ctx context.Context, schoolId string, params *ListUnmatchedTeacherSitesParams, reqEditors ...RequestEditorFn) (*ListUnmatchedTeacherSitesResponse, error)
+
 	// GetTimetableWithResponse performs a GET /api/v1/catalog/admin/schools/{school_id}/terms/{term_id}/timetable (the `GetTimetable` operationId) request.
 	//
 	// Requires catalog maintain capability and school scope. Missing configuration returns 404.
@@ -3365,10 +4088,17 @@ type ClientWithResponsesInterface interface {
 
 	// ListDirectoryWithResponse performs a GET /api/v1/catalog/directory (the `ListDirectory` operationId) request.
 	//
-	// Current visible course/teacher directory, stable sort with ID tie-break and filter-bound cursor. Categories count distinct courses after all filters except category_id. Department groups respect all current filters. Classification filters apply to the same offering/class. Teacher rows and counts require T2 persisted marking; absent marker enforcement returns 503. Scores are read in bounded batches from owning modules, without per-row queries. Catalog membership is cached with transactional revision invalidation; ratings and heat are always current.
+	// Current visible course/teacher directory, stable sort with ID tie-break and filter-bound cursor. Categories count distinct courses after all filters except category_id. Department groups respect all current filters. Classification filters apply to the same offering/class. Teacher rows and counts require T2 persisted marking; absent marker enforcement returns 503. Scores are read in bounded batches from owning modules, without per-row queries. Catalog membership is cached with transactional revision invalidation; ratings and heat are always current. 目录成员和分面来自同一持久投影版本，实时评分与热度按 ID 关联。游标绑定投影版本，重建后使用旧游标返回 409，应从第一页重新读取。
 	//
 	// Returns a wrapper object for the known response body format(s).
 	ListDirectoryWithResponse(ctx context.Context, params *ListDirectoryParams, reqEditors ...RequestEditorFn) (*ListDirectoryResponse, error)
+
+	// GetFilterOptionsWithResponse performs a GET /api/v1/catalog/filter-options (the `GetFilterOptions` operationId) request.
+	//
+	// 读取与公开列表相同投影版本的筛选选项，只返回数量大于零的项。课程截止学期、内容状态、学校和教师标记均已应用；当前内容权限在每次请求时检查。.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	GetFilterOptionsWithResponse(ctx context.Context, params *GetFilterOptionsParams, reqEditors ...RequestEditorFn) (*GetFilterOptionsResponse, error)
 
 	// ImportCatalogWithBodyWithResponse performs a POST /api/v1/catalog/imports (the `ImportCatalog` operationId) request,
 	// with any type of body and a specified content type.
@@ -3458,7 +4188,7 @@ type ClientWithResponsesInterface interface {
 
 	// ListObjectsWithResponse performs a GET /api/v1/catalog/objects (the `ListObjects` operationId) request.
 	//
-	// Requires current content admission in the served school: valid campus eligibility or verified teacher status. Missing admission returns 403; unavailable required facts return 503. No preview, content, counts or statistics are returned on rejection. 教师公开查询由服务端目录标记过滤：有授课记录或已匹配官网名单即可保留。列表、详情、批量查询、筛选选项及计数使用相同依据。未标记的教师详情返回 not_found。
+	// 读取当前学校的可展示目录投影，当前内容权限在每次请求时检查。课程须在服务端截止学期（默认 2023 秋）及以后有开课记录。kind=term 仅返回截止学期及以后且有可见课程的学期，按 term_order_key 降序、ID 升序分页；前端保持返回顺序。其他类型按 ID 升序。.
 	//
 	// Returns a wrapper object for the known response body format(s).
 	ListObjectsWithResponse(ctx context.Context, params *ListObjectsParams, reqEditors ...RequestEditorFn) (*ListObjectsResponse, error)
@@ -3947,6 +4677,255 @@ func (r AdminGetObjectSummaryResponse) ContentType() string {
 	return ""
 }
 
+type GetTeacherRefreshStatusResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *TeacherRefreshStatus
+	// JSON400 the response for an HTTP 400 `application/json` response
+	JSON400 *Error
+	// JSON401 the response for an HTTP 401 `application/json` response
+	JSON401 *Error
+	// JSON403 the response for an HTTP 403 `application/json` response
+	JSON403 *Error
+	// JSON404 the response for an HTTP 404 `application/json` response
+	JSON404 *Error
+	// JSON409 the response for an HTTP 409 `application/json` response
+	JSON409 *Error
+	// JSON503 the response for an HTTP 503 `application/json` response
+	JSON503 *Error
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r GetTeacherRefreshStatusResponse) GetJSON200() *TeacherRefreshStatus {
+	return r.JSON200
+}
+
+// GetJSON400 returns the response for an HTTP 400 `application/json` response
+func (r GetTeacherRefreshStatusResponse) GetJSON400() *Error {
+	return r.JSON400
+}
+
+// GetJSON401 returns the response for an HTTP 401 `application/json` response
+func (r GetTeacherRefreshStatusResponse) GetJSON401() *Error {
+	return r.JSON401
+}
+
+// GetJSON403 returns the response for an HTTP 403 `application/json` response
+func (r GetTeacherRefreshStatusResponse) GetJSON403() *Error {
+	return r.JSON403
+}
+
+// GetJSON404 returns the response for an HTTP 404 `application/json` response
+func (r GetTeacherRefreshStatusResponse) GetJSON404() *Error {
+	return r.JSON404
+}
+
+// GetJSON409 returns the response for an HTTP 409 `application/json` response
+func (r GetTeacherRefreshStatusResponse) GetJSON409() *Error {
+	return r.JSON409
+}
+
+// GetJSON503 returns the response for an HTTP 503 `application/json` response
+func (r GetTeacherRefreshStatusResponse) GetJSON503() *Error {
+	return r.JSON503
+}
+
+// GetBody returns the raw response body bytes
+func (r GetTeacherRefreshStatusResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r GetTeacherRefreshStatusResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetTeacherRefreshStatusResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r GetTeacherRefreshStatusResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type StartTeacherRefreshResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON202 the response for an HTTP 202 `application/json` response
+	JSON202 *TeacherRefreshRun
+	// JSON400 the response for an HTTP 400 `application/json` response
+	JSON400 *Error
+	// JSON401 the response for an HTTP 401 `application/json` response
+	JSON401 *Error
+	// JSON403 the response for an HTTP 403 `application/json` response
+	JSON403 *Error
+	// JSON404 the response for an HTTP 404 `application/json` response
+	JSON404 *Error
+	// JSON409 the response for an HTTP 409 `application/json` response
+	JSON409 *Error
+	// JSON503 the response for an HTTP 503 `application/json` response
+	JSON503 *Error
+}
+
+// GetJSON202 returns the response for an HTTP 202 `application/json` response
+func (r StartTeacherRefreshResponse) GetJSON202() *TeacherRefreshRun {
+	return r.JSON202
+}
+
+// GetJSON400 returns the response for an HTTP 400 `application/json` response
+func (r StartTeacherRefreshResponse) GetJSON400() *Error {
+	return r.JSON400
+}
+
+// GetJSON401 returns the response for an HTTP 401 `application/json` response
+func (r StartTeacherRefreshResponse) GetJSON401() *Error {
+	return r.JSON401
+}
+
+// GetJSON403 returns the response for an HTTP 403 `application/json` response
+func (r StartTeacherRefreshResponse) GetJSON403() *Error {
+	return r.JSON403
+}
+
+// GetJSON404 returns the response for an HTTP 404 `application/json` response
+func (r StartTeacherRefreshResponse) GetJSON404() *Error {
+	return r.JSON404
+}
+
+// GetJSON409 returns the response for an HTTP 409 `application/json` response
+func (r StartTeacherRefreshResponse) GetJSON409() *Error {
+	return r.JSON409
+}
+
+// GetJSON503 returns the response for an HTTP 503 `application/json` response
+func (r StartTeacherRefreshResponse) GetJSON503() *Error {
+	return r.JSON503
+}
+
+// GetBody returns the raw response body bytes
+func (r StartTeacherRefreshResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r StartTeacherRefreshResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r StartTeacherRefreshResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r StartTeacherRefreshResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type ListUnmatchedTeacherSitesResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *UnmatchedTeacherSitePage
+	// JSON400 the response for an HTTP 400 `application/json` response
+	JSON400 *Error
+	// JSON401 the response for an HTTP 401 `application/json` response
+	JSON401 *Error
+	// JSON403 the response for an HTTP 403 `application/json` response
+	JSON403 *Error
+	// JSON404 the response for an HTTP 404 `application/json` response
+	JSON404 *Error
+	// JSON409 the response for an HTTP 409 `application/json` response
+	JSON409 *Error
+	// JSON503 the response for an HTTP 503 `application/json` response
+	JSON503 *Error
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r ListUnmatchedTeacherSitesResponse) GetJSON200() *UnmatchedTeacherSitePage {
+	return r.JSON200
+}
+
+// GetJSON400 returns the response for an HTTP 400 `application/json` response
+func (r ListUnmatchedTeacherSitesResponse) GetJSON400() *Error {
+	return r.JSON400
+}
+
+// GetJSON401 returns the response for an HTTP 401 `application/json` response
+func (r ListUnmatchedTeacherSitesResponse) GetJSON401() *Error {
+	return r.JSON401
+}
+
+// GetJSON403 returns the response for an HTTP 403 `application/json` response
+func (r ListUnmatchedTeacherSitesResponse) GetJSON403() *Error {
+	return r.JSON403
+}
+
+// GetJSON404 returns the response for an HTTP 404 `application/json` response
+func (r ListUnmatchedTeacherSitesResponse) GetJSON404() *Error {
+	return r.JSON404
+}
+
+// GetJSON409 returns the response for an HTTP 409 `application/json` response
+func (r ListUnmatchedTeacherSitesResponse) GetJSON409() *Error {
+	return r.JSON409
+}
+
+// GetJSON503 returns the response for an HTTP 503 `application/json` response
+func (r ListUnmatchedTeacherSitesResponse) GetJSON503() *Error {
+	return r.JSON503
+}
+
+// GetBody returns the raw response body bytes
+func (r ListUnmatchedTeacherSitesResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r ListUnmatchedTeacherSitesResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r ListUnmatchedTeacherSitesResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r ListUnmatchedTeacherSitesResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
 type GetTimetableResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -4190,6 +5169,89 @@ func (r ListDirectoryResponse) StatusCode() int {
 
 // ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
 func (r ListDirectoryResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type GetFilterOptionsResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *FilterOptions
+	// JSON400 the response for an HTTP 400 `application/json` response
+	JSON400 *Error
+	// JSON401 the response for an HTTP 401 `application/json` response
+	JSON401 *Error
+	// JSON403 the response for an HTTP 403 `application/json` response
+	JSON403 *Error
+	// JSON404 the response for an HTTP 404 `application/json` response
+	JSON404 *Error
+	// JSON409 the response for an HTTP 409 `application/json` response
+	JSON409 *Error
+	// JSON503 the response for an HTTP 503 `application/json` response
+	JSON503 *Error
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r GetFilterOptionsResponse) GetJSON200() *FilterOptions {
+	return r.JSON200
+}
+
+// GetJSON400 returns the response for an HTTP 400 `application/json` response
+func (r GetFilterOptionsResponse) GetJSON400() *Error {
+	return r.JSON400
+}
+
+// GetJSON401 returns the response for an HTTP 401 `application/json` response
+func (r GetFilterOptionsResponse) GetJSON401() *Error {
+	return r.JSON401
+}
+
+// GetJSON403 returns the response for an HTTP 403 `application/json` response
+func (r GetFilterOptionsResponse) GetJSON403() *Error {
+	return r.JSON403
+}
+
+// GetJSON404 returns the response for an HTTP 404 `application/json` response
+func (r GetFilterOptionsResponse) GetJSON404() *Error {
+	return r.JSON404
+}
+
+// GetJSON409 returns the response for an HTTP 409 `application/json` response
+func (r GetFilterOptionsResponse) GetJSON409() *Error {
+	return r.JSON409
+}
+
+// GetJSON503 returns the response for an HTTP 503 `application/json` response
+func (r GetFilterOptionsResponse) GetJSON503() *Error {
+	return r.JSON503
+}
+
+// GetBody returns the raw response body bytes
+func (r GetFilterOptionsResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r GetFilterOptionsResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetFilterOptionsResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r GetFilterOptionsResponse) ContentType() string {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.Header.Get("Content-Type")
 	}
@@ -5921,6 +6983,58 @@ func (c *ClientWithResponses) AdminGetObjectSummaryWithResponse(ctx context.Cont
 	return ParseAdminGetObjectSummaryResponse(rsp)
 }
 
+// GetTeacherRefreshStatusWithResponse performs a GET /api/v1/catalog/admin/schools/{school_id}/teacher-sites/refresh (the `GetTeacherRefreshStatus` operationId) request.
+//
+// Requires catalog.teacher-sites.read and current school management scope. Every view is audited. Latest run includes safe failure code and observed request/site counts; unknown measurements are null. Counts reflect current visible teacher marks.
+//
+// Returns a wrapper object for the known response body format(s).
+func (c *ClientWithResponses) GetTeacherRefreshStatusWithResponse(ctx context.Context, schoolId string, reqEditors ...RequestEditorFn) (*GetTeacherRefreshStatusResponse, error) {
+	rsp, err := c.GetTeacherRefreshStatus(ctx, schoolId, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetTeacherRefreshStatusResponse(rsp)
+}
+
+// StartTeacherRefreshWithBodyWithResponse performs a POST /api/v1/catalog/admin/schools/{school_id}/teacher-sites/refresh (the `StartTeacherRefresh` operationId) request,
+// with any type of body and a specified content type.
+//
+// Requires catalog.teacher-sites.refresh and current school management scope. Audited durable enqueue. Only one queued/running refresh globally; a competing request returns 409. Replay with the same actor, school, key and mode returns the original run; a different mode conflicts. Deadline is 45 minutes including queue time. Manual full and incremental are supported; monthly scheduler only enqueues incremental.
+//
+// Returns a wrapper object for the known response body format(s).
+func (c *ClientWithResponses) StartTeacherRefreshWithBodyWithResponse(ctx context.Context, schoolId string, params *StartTeacherRefreshParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*StartTeacherRefreshResponse, error) {
+	rsp, err := c.StartTeacherRefreshWithBody(ctx, schoolId, params, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseStartTeacherRefreshResponse(rsp)
+}
+
+// StartTeacherRefreshWithResponse performs a POST /api/v1/catalog/admin/schools/{school_id}/teacher-sites/refresh (the `StartTeacherRefresh` operationId) request.
+// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+//
+// Requires catalog.teacher-sites.refresh and current school management scope. Audited durable enqueue. Only one queued/running refresh globally; a competing request returns 409. Replay with the same actor, school, key and mode returns the original run; a different mode conflicts. Deadline is 45 minutes including queue time. Manual full and incremental are supported; monthly scheduler only enqueues incremental.
+func (c *ClientWithResponses) StartTeacherRefreshWithResponse(ctx context.Context, schoolId string, params *StartTeacherRefreshParams, body StartTeacherRefreshJSONRequestBody, reqEditors ...RequestEditorFn) (*StartTeacherRefreshResponse, error) {
+	rsp, err := c.StartTeacherRefresh(ctx, schoolId, params, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseStartTeacherRefreshResponse(rsp)
+}
+
+// ListUnmatchedTeacherSitesWithResponse performs a GET /api/v1/catalog/admin/schools/{school_id}/teacher-sites/unmatched (the `ListUnmatchedTeacherSites` operationId) request.
+//
+// Requires catalog.teacher-sites.read and current school management scope. Every view is audited. Current complete unmatched snapshot only; failed refresh preserves it. Returns public website name/unit, fixed reason and count of same-name catalog candidates, never candidate IDs, staff numbers or contacts. reason_counts covers the entire snapshot; total respects reason. Cursor binds school, reason and snapshot revision; a changed snapshot returns 409. Sorted by site_id.
+//
+// Returns a wrapper object for the known response body format(s).
+func (c *ClientWithResponses) ListUnmatchedTeacherSitesWithResponse(ctx context.Context, schoolId string, params *ListUnmatchedTeacherSitesParams, reqEditors ...RequestEditorFn) (*ListUnmatchedTeacherSitesResponse, error) {
+	rsp, err := c.ListUnmatchedTeacherSites(ctx, schoolId, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseListUnmatchedTeacherSitesResponse(rsp)
+}
+
 // GetTimetableWithResponse performs a GET /api/v1/catalog/admin/schools/{school_id}/terms/{term_id}/timetable (the `GetTimetable` operationId) request.
 //
 // Requires catalog maintain capability and school scope. Missing configuration returns 404.
@@ -5962,7 +7076,7 @@ func (c *ClientWithResponses) PutTimetableWithResponse(ctx context.Context, scho
 
 // ListDirectoryWithResponse performs a GET /api/v1/catalog/directory (the `ListDirectory` operationId) request.
 //
-// Current visible course/teacher directory, stable sort with ID tie-break and filter-bound cursor. Categories count distinct courses after all filters except category_id. Department groups respect all current filters. Classification filters apply to the same offering/class. Teacher rows and counts require T2 persisted marking; absent marker enforcement returns 503. Scores are read in bounded batches from owning modules, without per-row queries. Catalog membership is cached with transactional revision invalidation; ratings and heat are always current.
+// Current visible course/teacher directory, stable sort with ID tie-break and filter-bound cursor. Categories count distinct courses after all filters except category_id. Department groups respect all current filters. Classification filters apply to the same offering/class. Teacher rows and counts require T2 persisted marking; absent marker enforcement returns 503. Scores are read in bounded batches from owning modules, without per-row queries. Catalog membership is cached with transactional revision invalidation; ratings and heat are always current. 目录成员和分面来自同一持久投影版本，实时评分与热度按 ID 关联。游标绑定投影版本，重建后使用旧游标返回 409，应从第一页重新读取。
 //
 // Returns a wrapper object for the known response body format(s).
 func (c *ClientWithResponses) ListDirectoryWithResponse(ctx context.Context, params *ListDirectoryParams, reqEditors ...RequestEditorFn) (*ListDirectoryResponse, error) {
@@ -5971,6 +7085,19 @@ func (c *ClientWithResponses) ListDirectoryWithResponse(ctx context.Context, par
 		return nil, err
 	}
 	return ParseListDirectoryResponse(rsp)
+}
+
+// GetFilterOptionsWithResponse performs a GET /api/v1/catalog/filter-options (the `GetFilterOptions` operationId) request.
+//
+// 读取与公开列表相同投影版本的筛选选项，只返回数量大于零的项。课程截止学期、内容状态、学校和教师标记均已应用；当前内容权限在每次请求时检查。.
+//
+// Returns a wrapper object for the known response body format(s).
+func (c *ClientWithResponses) GetFilterOptionsWithResponse(ctx context.Context, params *GetFilterOptionsParams, reqEditors ...RequestEditorFn) (*GetFilterOptionsResponse, error) {
+	rsp, err := c.GetFilterOptions(ctx, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetFilterOptionsResponse(rsp)
 }
 
 // ImportCatalogWithBodyWithResponse performs a POST /api/v1/catalog/imports (the `ImportCatalog` operationId) request,
@@ -6145,7 +7272,7 @@ func (c *ClientWithResponses) MyCalendarWithResponse(ctx context.Context, params
 
 // ListObjectsWithResponse performs a GET /api/v1/catalog/objects (the `ListObjects` operationId) request.
 //
-// Requires current content admission in the served school: valid campus eligibility or verified teacher status. Missing admission returns 403; unavailable required facts return 503. No preview, content, counts or statistics are returned on rejection. 教师公开查询由服务端目录标记过滤：有授课记录或已匹配官网名单即可保留。列表、详情、批量查询、筛选选项及计数使用相同依据。未标记的教师详情返回 not_found。
+// 读取当前学校的可展示目录投影，当前内容权限在每次请求时检查。课程须在服务端截止学期（默认 2023 秋）及以后有开课记录。kind=term 仅返回截止学期及以后且有可见课程的学期，按 term_order_key 降序、ID 升序分页；前端保持返回顺序。其他类型按 ID 升序。.
 //
 // Returns a wrapper object for the known response body format(s).
 func (c *ClientWithResponses) ListObjectsWithResponse(ctx context.Context, params *ListObjectsParams, reqEditors ...RequestEditorFn) (*ListObjectsResponse, error) {
@@ -6636,6 +7763,210 @@ func ParseAdminGetObjectSummaryResponse(rsp *http.Response) (*AdminGetObjectSumm
 	return response, nil
 }
 
+// ParseGetTeacherRefreshStatusResponse parses an HTTP response from a GetTeacherRefreshStatusWithResponse call
+func ParseGetTeacherRefreshStatusResponse(rsp *http.Response) (*GetTeacherRefreshStatusResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetTeacherRefreshStatusResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest TeacherRefreshStatus
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 409:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON409 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON503 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseStartTeacherRefreshResponse parses an HTTP response from a StartTeacherRefreshWithResponse call
+func ParseStartTeacherRefreshResponse(rsp *http.Response) (*StartTeacherRefreshResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &StartTeacherRefreshResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 202:
+		var dest TeacherRefreshRun
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON202 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 409:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON409 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON503 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseListUnmatchedTeacherSitesResponse parses an HTTP response from a ListUnmatchedTeacherSitesWithResponse call
+func ParseListUnmatchedTeacherSitesResponse(rsp *http.Response) (*ListUnmatchedTeacherSitesResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &ListUnmatchedTeacherSitesResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest UnmatchedTeacherSitePage
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 409:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON409 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON503 = &dest
+
+	}
+
+	return response, nil
+}
+
 // ParseGetTimetableResponse parses an HTTP response from a GetTimetableWithResponse call
 func ParseGetTimetableResponse(rsp *http.Response) (*GetTimetableResponse, error) {
 	bodyBytes, err := io.ReadAll(rsp.Body)
@@ -6788,6 +8119,74 @@ func ParseListDirectoryResponse(rsp *http.Response) (*ListDirectoryResponse, err
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
 		var dest DirectoryPage
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 409:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON409 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON503 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseGetFilterOptionsResponse parses an HTTP response from a GetFilterOptionsWithResponse call
+func ParseGetFilterOptionsResponse(rsp *http.Response) (*GetFilterOptionsResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetFilterOptionsResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest FilterOptions
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}

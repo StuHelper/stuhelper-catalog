@@ -126,6 +126,15 @@ func (s *Service) RefreshTeachingDirectory(ctx context.Context, p Principal, sch
 		if e != nil {
 			return e
 		}
+		if projection, ok := t.(DirectoryProjectionTransaction); ok {
+			report, e := projection.RebuildPublishedDirectory(school, s.now())
+			if e != nil {
+				return e
+			}
+			if report != nil {
+				out = report.Marks
+			}
+		}
 		if !changed {
 			return nil
 		}
@@ -140,20 +149,8 @@ func (s *Service) ImportTeacherSites(ctx context.Context, p Principal, in Teache
 	if !p.CanImport || p.Subject == "" || !allowed(p, in.SchoolID) {
 		return out, ErrForbidden
 	}
-	fingerprint, fingerprintError := hex.DecodeString(in.CandidateFingerprint)
-	if fingerprintError != nil || len(fingerprint) != 32 || !ValidID(in.SchoolID) || !ValidID(in.SourceID) || in.Revision < 1 || in.ObservedAt.IsZero() ||
-		in.ObservedAt.After(s.now().Add(5*time.Minute)) || len(in.Matches) > 20000 {
-		return out, ErrInput
-	}
-	in.Matches = append([]TeacherSiteMatch{}, in.Matches...)
-	slices.SortFunc(in.Matches, func(a, b TeacherSiteMatch) int { return strings.Compare(a.TeacherID, b.TeacherID) })
-	for i, match := range in.Matches {
-		u, e := url.Parse(match.URL)
-		if !ValidID(match.TeacherID) || !ValidID(match.DepartmentID) || !validText(match.Name, 256) || strings.TrimSpace(match.Name) == "" ||
-			e != nil || u.Scheme != "https" || u.Host != "shi.buaa.edu.cn" || u.User != nil || u.RawQuery != "" || u.Fragment != "" ||
-			!strings.HasSuffix(u.Path, "/index.htm") || i > 0 && in.Matches[i-1].TeacherID == match.TeacherID {
-			return out, ErrInput
-		}
+	if err := s.validateTeacherSites(&in); err != nil {
+		return out, err
 	}
 	err := s.Repo.Transaction(ctx, func(t Transaction) error {
 		if e := t.Lock(in.SchoolID); e != nil {
@@ -168,4 +165,23 @@ func (s *Service) ImportTeacherSites(ctx context.Context, p Principal, in Teache
 		return e
 	})
 	return out, err
+}
+
+func (s *Service) validateTeacherSites(in *TeacherSiteSnapshot) error {
+	fingerprint, fingerprintError := hex.DecodeString(in.CandidateFingerprint)
+	if fingerprintError != nil || len(fingerprint) != 32 || !ValidID(in.SchoolID) || !ValidID(in.SourceID) || in.Revision < 1 || in.ObservedAt.IsZero() ||
+		in.ObservedAt.After(s.now().Add(5*time.Minute)) || len(in.Matches) > 20000 {
+		return ErrInput
+	}
+	in.Matches = append([]TeacherSiteMatch{}, in.Matches...)
+	slices.SortFunc(in.Matches, func(a, b TeacherSiteMatch) int { return strings.Compare(a.TeacherID, b.TeacherID) })
+	for i, match := range in.Matches {
+		u, e := url.Parse(match.URL)
+		if !ValidID(match.TeacherID) || !ValidID(match.DepartmentID) || !validText(match.Name, 256) || strings.TrimSpace(match.Name) == "" ||
+			e != nil || u.Scheme != "https" || u.Host != "shi.buaa.edu.cn" || u.User != nil || u.RawQuery != "" || u.Fragment != "" ||
+			!strings.HasSuffix(u.Path, "/index.htm") || i > 0 && in.Matches[i-1].TeacherID == match.TeacherID {
+			return ErrInput
+		}
+	}
+	return nil
 }

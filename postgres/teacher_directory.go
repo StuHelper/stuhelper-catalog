@@ -63,13 +63,22 @@ func (t *transaction) flushTeachingDirectory() error {
 func (t *transaction) TeacherCandidates(school, after string, limit int) ([]c.TeacherCandidate, error) {
 	return list[c.TeacherCandidate](t, `SELECT jsonb_build_object('id',o.id,'name',o.name,'department_id',o.department_id,
  'unit',COALESCE(d.name,''),'title',COALESCE(o.data->'object'->>'biography',''),
- 'teaching',`+teachingEvidenceSQL("o")+`)
+ 'teaching',CASE WHEN EXISTS(SELECT 1 FROM catalog.projection_heads WHERE school_id=$1)
+ THEN EXISTS(SELECT 1 FROM catalog.projection_heads h JOIN catalog.projection_objects p ON p.version=h.version AND p.id=o.id AND p.teaching WHERE h.school_id=$1)
+ ELSE `+teachingEvidenceSQL("o")+` END)
  FROM catalog.objects o LEFT JOIN catalog.objects d ON d.id=o.department_id AND d.kind='department' AND d.school_id=o.school_id
  WHERE o.school_id=$1 AND o.kind='teacher' AND o.id>$2 AND NOT EXISTS(SELECT 1 FROM catalog.redirects r WHERE r.alias_id=o.id)
  ORDER BY o.id LIMIT $3`, school, after, limit)
 }
 
 func (t *transaction) directoryCounts(school string) (c.TeacherDirectoryResult, error) {
+	var active bool
+	if err := t.tx.QueryRowContext(t.ctx, `SELECT EXISTS(SELECT 1 FROM catalog.projection_heads WHERE school_id=$1)`, school).Scan(&active); err != nil {
+		return c.TeacherDirectoryResult{}, safe(err)
+	}
+	if active {
+		return t.projectedMarks(school)
+	}
 	var out c.TeacherDirectoryResult
 	err := t.tx.QueryRowContext(t.ctx, `SELECT count(*) FILTER(WHERE td.teaching),
  count(*) FILTER(WHERE td.official AND td.matched_name=o.name AND td.matched_department_id=o.department_id),
@@ -81,6 +90,9 @@ func (t *transaction) directoryCounts(school string) (c.TeacherDirectoryResult, 
 }
 
 func (t *transaction) RefreshTeachingDirectory(school string, at time.Time) (c.TeacherDirectoryResult, bool, error) {
+	if err := t.touchProjection(school); err != nil {
+		return c.TeacherDirectoryResult{}, false, err
+	}
 	result, err := t.tx.ExecContext(t.ctx, `WITH taught AS (`+taughtTeachersSQL+`)
  INSERT INTO catalog.teacher_directory(teacher_id,school_id,teaching,teaching_updated_at,updated_at)
  SELECT o.id,o.school_id,EXISTS(SELECT 1 FROM taught WHERE taught.id=o.id),$2,$2
@@ -129,6 +141,9 @@ func (t *transaction) teacherCandidateFingerprint(school string) (string, error)
 }
 
 func (t *transaction) ReplaceTeacherSites(in c.TeacherSiteSnapshot, actor string, at time.Time) (c.TeacherDirectoryResult, error) {
+	if err := t.touchProjection(in.SchoolID); err != nil {
+		return c.TeacherDirectoryResult{}, err
+	}
 	raw, err := json.Marshal(in)
 	if err != nil {
 		return c.TeacherDirectoryResult{}, c.ErrInput
@@ -187,6 +202,9 @@ func (t *transaction) ReplaceTeacherSites(in c.TeacherSiteSnapshot, actor string
 	}
 	if err := t.Event(c.Event{ID: fmt.Sprintf("teacher-sites:%s:%d", in.SchoolID, in.Revision), Subject: "school/" + in.SchoolID,
 		Type: "catalog.teacher-sites.refreshed.v1", SchoolID: in.SchoolID, Actor: actor, Revision: in.Revision, Result: "success", Time: at}); err != nil {
+		return c.TeacherDirectoryResult{}, err
+	}
+	if err := t.rebuildActive(in.SchoolID); err != nil {
 		return c.TeacherDirectoryResult{}, err
 	}
 	return t.directoryCounts(in.SchoolID)

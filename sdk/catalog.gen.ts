@@ -11,7 +11,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** @description Requires current content admission in the served school: valid campus eligibility or verified teacher status. Missing admission returns 403; unavailable required facts return 503. No preview, content, counts or statistics are returned on rejection. 教师公开查询由服务端目录标记过滤：有授课记录或已匹配官网名单即可保留。列表、详情、批量查询、筛选选项及计数使用相同依据。未标记的教师详情返回 not_found。 */
+        /** @description 读取当前学校的可展示目录投影，当前内容权限在每次请求时检查。课程须在服务端截止学期（默认 2023 秋）及以后有开课记录。kind=term 仅返回截止学期及以后且有可见课程的学期，按 term_order_key 降序、ID 升序分页；前端保持返回顺序。其他类型按 ID 升序。 */
         get: operations["listObjects"];
         put?: never;
         post?: never;
@@ -362,7 +362,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** @description Current visible course/teacher directory, stable sort with ID tie-break and filter-bound cursor. Categories count distinct courses after all filters except category_id. Department groups respect all current filters. Classification filters apply to the same offering/class. Teacher rows and counts require T2 persisted marking; absent marker enforcement returns 503. Scores are read in bounded batches from owning modules, without per-row queries. Catalog membership is cached with transactional revision invalidation; ratings and heat are always current. */
+        /** @description Current visible course/teacher directory, stable sort with ID tie-break and filter-bound cursor. Categories count distinct courses after all filters except category_id. Department groups respect all current filters. Classification filters apply to the same offering/class. Teacher rows and counts require T2 persisted marking; absent marker enforcement returns 503. Scores are read in bounded batches from owning modules, without per-row queries. Catalog membership is cached with transactional revision invalidation; ratings and heat are always current. 目录成员和分面来自同一持久投影版本，实时评分与热度按 ID 关联。游标绑定投影版本，重建后使用旧游标返回 409，应从第一页重新读取。 */
         get: operations["listDirectory"];
         put?: never;
         post?: never;
@@ -424,6 +424,58 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/catalog/filter-options": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description 读取与公开列表相同投影版本的筛选选项，只返回数量大于零的项。课程截止学期、内容状态、学校和教师标记均已应用；当前内容权限在每次请求时检查。 */
+        get: operations["getFilterOptions"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/catalog/admin/schools/{school_id}/teacher-sites/refresh": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Requires catalog.teacher-sites.read and current school management scope. Every view is audited. Latest run includes safe failure code and observed request/site counts; unknown measurements are null. Counts reflect current visible teacher marks. */
+        get: operations["getTeacherRefreshStatus"];
+        put?: never;
+        /** @description Requires catalog.teacher-sites.refresh and current school management scope. Audited durable enqueue. Only one queued/running refresh globally; a competing request returns 409. Replay with the same actor, school, key and mode returns the original run; a different mode conflicts. Deadline is 45 minutes including queue time. Manual full and incremental are supported; monthly scheduler only enqueues incremental. */
+        post: operations["startTeacherRefresh"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/catalog/admin/schools/{school_id}/teacher-sites/unmatched": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Requires catalog.teacher-sites.read and current school management scope. Every view is audited. Current complete unmatched snapshot only; failed refresh preserves it. Returns public website name/unit, fixed reason and count of same-name catalog candidates, never candidate IDs, staff numbers or contacts. reason_counts covers the entire snapshot; total respects reason. Cursor binds school, reason and snapshot revision; a changed snapshot returns 409. Sorted by site_id. */
+        get: operations["listUnmatchedTeacherSites"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -457,6 +509,12 @@ export interface components {
             inactive?: boolean;
             canonical_id?: string;
             schedule_time?: components["schemas"]["ScheduleTime"];
+            /** @description 课程或学期不满足当前目录截止规则时为 true。当前有内容权限的用户可通过历史链接、评价或收藏读取旧课程详情；旧课程不进入目录、搜索、热门和推荐，不能发布新评价。 */
+            readonly read_only?: boolean;
+            /** @description 学期结构化排序键：自然年乘 10 加季节（春 1、夏 2、秋 3）。来自学校适配器解析的学年与学期序号；无法可靠解析的学期不返回。 */
+            readonly term_order_key?: number;
+            /** @description 课程在当前目录投影中最近一次开课的学期 ID，按结构化学期排序键确定。 */
+            readonly latest_term_id?: string;
         };
         Page: {
             items: components["schemas"]["Object"][];
@@ -537,8 +595,11 @@ export interface components {
             } | null;
             categories: components["schemas"]["Object"][];
             natures: components["schemas"]["Object"][];
+            /** @description 当前目录投影中关联的可展示课程数量。 */
             course_count: number;
+            /** @description 当前目录投影中关联的可展示教师数量。 */
             teacher_count: number;
+            /** @description 截止学期及以后纳入当前投影的开课记录数量。 */
             offering_count: number;
         };
         MergeInput: {
@@ -698,6 +759,89 @@ export interface components {
             date: string | null;
             time_zone: string;
             items: components["schemas"]["NextLesson"][];
+        };
+        FilterOption: {
+            id: string;
+            name: string;
+            /** Format: int64 */
+            count: number;
+        };
+        FilterOptions: {
+            /** @enum {string} */
+            kind: "course" | "teacher";
+            /** Format: int64 */
+            total: number;
+            departments: components["schemas"]["FilterOption"][];
+            categories: components["schemas"]["FilterOption"][];
+            natures: components["schemas"]["FilterOption"][];
+        };
+        TeacherMarkCounts: {
+            /** Format: int64 */
+            teaching: number;
+            /** Format: int64 */
+            official: number;
+            /** Format: int64 */
+            both: number;
+            /** Format: int64 */
+            eligible: number;
+        };
+        TeacherRefreshInput: {
+            /** @enum {string} */
+            mode: "incremental" | "full";
+        };
+        TeacherRefreshRun: {
+            id: string;
+            school_id: string;
+            /** @enum {string} */
+            mode: "incremental" | "full";
+            /** @enum {string} */
+            trigger: "manual" | "scheduled";
+            /** @enum {string} */
+            status: "queued" | "running" | "succeeded" | "failed" | "timed_out";
+            /** Format: date-time */
+            requested_at: string;
+            /** Format: date-time */
+            started_at: string | null;
+            /** Format: date-time */
+            finished_at: string | null;
+            /** Format: date-time */
+            deadline_at: string;
+            /** Format: int64 */
+            duration_ms: number;
+            /** Format: int64 */
+            requests: number | null;
+            /** Format: int64 */
+            site_count: number | null;
+            counts: components["schemas"]["TeacherMarkCounts"];
+            /** @enum {string} */
+            failure_reason: "" | "crawl_failed" | "request_failed" | "invalid_snapshot" | "import_conflict" | "dependency_unavailable" | "worker_interrupted" | "timeout";
+        };
+        TeacherRefreshStatus: {
+            latest: components["schemas"]["TeacherRefreshRun"];
+            counts: components["schemas"]["TeacherMarkCounts"];
+        };
+        UnmatchedTeacherSite: {
+            /** @description 仅用于列表标识和分页的不可逆摘要，不返回官网原始标识、教师工号或候选教师 ID。 */
+            site_id: string;
+            name: string;
+            unit: string;
+            /** @enum {string} */
+            reason: "catalog_name_absent" | "catalog_unit_missing" | "site_unit_missing" | "unit_mismatch" | "ambiguous_catalog" | "ambiguous_site";
+            /** Format: int64 */
+            candidate_count: number;
+        };
+        UnmatchedTeacherSitePage: {
+            items: components["schemas"]["UnmatchedTeacherSite"][];
+            /** Format: int64 */
+            total: number;
+            reason_counts: {
+                [key: string]: number;
+            };
+            next: string;
+            /** Format: int64 */
+            revision: number;
+            /** Format: date-time */
+            observed_at: string | null;
         };
     };
     responses: never;
@@ -2873,6 +3017,321 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["NextClassDay"];
+                };
+            };
+            /** @description Invalid input */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Authentication required */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not permitted */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Revision or idempotency conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Required dependency unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    getFilterOptions: {
+        parameters: {
+            query: {
+                kind: "course" | "teacher";
+                school_id?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FilterOptions"];
+                };
+            };
+            /** @description Invalid input */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Authentication required */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not permitted */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Revision or idempotency conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Required dependency unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    getTeacherRefreshStatus: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                school_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TeacherRefreshStatus"];
+                };
+            };
+            /** @description Invalid input */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Authentication required */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not permitted */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Revision or idempotency conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Required dependency unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    startTeacherRefresh: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path: {
+                school_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TeacherRefreshInput"];
+            };
+        };
+        responses: {
+            /** @description Accepted; asynchronous durable job. Poll status. */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TeacherRefreshRun"];
+                };
+            };
+            /** @description Invalid input */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Authentication required */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not permitted */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Revision or idempotency conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Required dependency unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    listUnmatchedTeacherSites: {
+        parameters: {
+            query?: {
+                reason?: "catalog_name_absent" | "catalog_unit_missing" | "site_unit_missing" | "unit_mismatch" | "ambiguous_catalog" | "ambiguous_site";
+                limit?: number;
+                after?: string;
+            };
+            header?: never;
+            path: {
+                school_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UnmatchedTeacherSitePage"];
                 };
             };
             /** @description Invalid input */
