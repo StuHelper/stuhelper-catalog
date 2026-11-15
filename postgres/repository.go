@@ -19,11 +19,17 @@ import (
 //go:embed schema.sql
 var Schema string
 
-type Repository struct{ DB *sql.DB }
+type Repository struct {
+	DB *sql.DB
+	// Enable in product composition. Maintenance candidate enumeration has its
+	// own authorized port and does not disable this public read filter.
+	RequireTeacherDirectory bool
+}
 type transaction struct {
-	tx      *sql.Tx
-	ctx     context.Context
-	objects map[string]catalog.Record
+	requireTeacherDirectory bool
+	tx                      *sql.Tx
+	ctx                     context.Context
+	objects                 map[string]catalog.Record
 }
 
 func safe(e error) error {
@@ -72,7 +78,7 @@ func (r *Repository) Transaction(ctx context.Context, run func(catalog.Transacti
 		return safe(e)
 	}
 	defer tx.Rollback()
-	if e = run(&transaction{tx: tx, ctx: ctx, objects: map[string]catalog.Record{}}); e != nil {
+	if e = run(&transaction{tx: tx, ctx: ctx, objects: map[string]catalog.Record{}, requireTeacherDirectory: r.RequireTeacherDirectory}); e != nil {
 		return e
 	}
 	return safe(tx.Commit())
