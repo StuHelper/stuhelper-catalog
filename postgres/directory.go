@@ -16,8 +16,22 @@ func (t *transaction) List(f catalog.Filter) ([]catalog.Object, error) {
 		if _, err := t.tx.ExecContext(t.ctx, "SET LOCAL jit=off"); err != nil {
 			return nil, safe(err)
 		}
+		prefixLimit := 0
 		if f.Query != "" && f.DepartmentID == "" && f.CategoryID == "" && f.NatureID == "" && f.TeacherID == "" && f.IDs == nil {
-			q, args := directoryPageQuery(f, true, t.requireTeacherDirectory)
+			prefixLimit = 128
+		} else if f.Kind == "course" && f.CategoryID != "" && f.Query == "" && f.DepartmentID == "" && f.NatureID == "" && f.TeacherID == "" && f.IDs == nil {
+			// Only broad categories benefit from scanning an ordered course prefix.
+			// Stop this covering-index probe after 4097 matching class keys.
+			var broad bool
+			if err := t.tx.QueryRowContext(t.ctx, `SELECT EXISTS(SELECT 1 FROM catalog.objects WHERE kind='class' AND category_id<>'' AND category_id=$1 AND ($2='' OR school_id=$2) OFFSET 4096)`, pgx.QueryExecModeExec, f.CategoryID, f.SchoolID).Scan(&broad); err != nil {
+				return nil, safe(err)
+			}
+			if broad {
+				prefixLimit = 512
+			}
+		}
+		if prefixLimit != 0 {
+			q, args := directoryPageQuery(f, prefixLimit, t.requireTeacherDirectory)
 			rows, err := list[catalog.Object](t, q, append([]any{pgx.QueryExecModeExec}, args...)...)
 			if err != nil {
 				return nil, err
@@ -26,7 +40,7 @@ func (t *transaction) List(f catalog.Filter) ([]catalog.Object, error) {
 				return rows, nil
 			}
 		}
-		q, args := directoryPageQuery(f, false, t.requireTeacherDirectory)
+		q, args := directoryPageQuery(f, 0, t.requireTeacherDirectory)
 		// Selectivity differs substantially across departments and categories.
 		// Keep bind parameters, but plan each page for its actual values.
 		return list[catalog.Object](t, q, append([]any{pgx.QueryExecModeExec}, args...)...)
