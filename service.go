@@ -19,6 +19,7 @@ type Service struct {
 	EnrollmentSource EnrollmentSource
 	ActivityLogger   *slog.Logger
 	OwnLogger        *slog.Logger
+	DirectoryLogger  *slog.Logger
 	viewStats        viewCounters
 	ReadAccess       ContentAccess
 	Repo             Repository
@@ -277,7 +278,9 @@ func (s *Service) Get(ctx context.Context, id string) (Object, error) {
 	err := s.Repo.Transaction(ctx, func(t Transaction) error { r, e := t.PublicObject(id); out = r; return e })
 	return out, err
 }
-func (s *Service) List(ctx context.Context, f Filter) (Page, error) {
+func (s *Service) List(ctx context.Context, f Filter) (page Page, err error) {
+	start := time.Now()
+	defer func() { s.observeDirectory(ctx, "list", start, err) }()
 	f.Query = strings.TrimSpace(f.Query)
 	if len(f.IDs) > 100 {
 		return Page{}, ErrInput
@@ -296,7 +299,7 @@ func (s *Service) List(ctx context.Context, f Filter) (Page, error) {
 			return out, ErrInput
 		}
 	}
-	err := s.Repo.Transaction(ctx, func(t Transaction) error {
+	err = s.Repo.Transaction(ctx, func(t Transaction) error {
 		for _, id := range []*string{&f.CourseID, &f.TeacherID, &f.TermCourseID, &f.ClassID} {
 			if *id != "" {
 				object, e := t.PublicObject(*id)

@@ -29,7 +29,7 @@ bash scripts/check-with-postgres.sh
 
 检查脚本建立独立、仅 Unix socket 可访问的 当前稳定 PostgreSQL 集群，退出时清理。测试使用独立数据库与运行身份，检查事务回滚、并发幂等、学院分类、教师归属及禁止越权访问。
 
-迁移身份执行 `postgres.Schema`；运行身份仅获得 catalog schema 的读写权限，不得创建数据库对象或访问其他模块 schema。`postgres.CheckRuntime` 在应用装配时检查权限。
+迁移身份执行 `postgres.Migrate`；运行身份仅获得 catalog schema 的读写权限，不得创建数据库对象或访问其他模块 schema。`postgres.CheckRuntime` 在应用装配时检查权限。
 
 当前首次建库迁移已验证。存量生产迁移、学校持续同步、运行库备份和恢复演练仍待实际环境验收。outbox 与业务同事务持久化并通知 OutboxChannel（catalog_outbox）。relay 通过 PendingOutbox 读取待发送事件，并传入需要排除的退避或人工处理主题。消费者持久提交后调用 ConfirmOutbox。通用跨服务 relay 由 backend 装配。
 
@@ -50,3 +50,5 @@ MySchedule 是供模块使用的公开接口，只读取当前账号的有效选
 公开审计查询、catalog.discovery.v1 事件、当前权限批量查询和含墓碑的重建快照见[接口规格](docs/spec/audit-discovery.md)。backend 使用公开 Go 接口装配 platform 与 search，不能跨模块读取 catalog 表。
 
 热门活动来源、日快照、计数规则与清理接口见[活动来源规格](docs/spec/activity.md)。
+
+课程与教师的游标分页、分类与名称索引、存量迁移和性能验证见[目录筛选规格](docs/spec/directory-performance.md)。查询诊断保留固定阶段与原因，不记录搜索词或对象身份。

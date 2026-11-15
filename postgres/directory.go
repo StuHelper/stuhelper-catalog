@@ -1,10 +1,35 @@
 package postgres
 
-import catalog "github.com/StuHelper/stuhelper-catalog"
+import (
+	catalog "github.com/StuHelper/stuhelper-catalog"
+	"github.com/jackc/pgx/v5"
+)
 
 // Filters follow the same offering and teaching class; independent EXISTS clauses
 // must not combine one term's category with another term's teacher.
 func (t *transaction) List(f catalog.Filter) ([]catalog.Object, error) {
+	if (f.Kind == "course" || f.Kind == "teacher") && f.CourseID == "" && f.TermID == "" && f.TermCourseID == "" && f.ClassID == "" {
+		// These bounded pages are latency-sensitive. LLVM compilation of the
+		// relational predicates can exceed the query's work and memory budget.
+		// The setting ends with this transaction; other module queries keep theirs.
+		if _, err := t.tx.ExecContext(t.ctx, "SET LOCAL jit=off"); err != nil {
+			return nil, safe(err)
+		}
+		if f.Query != "" && f.DepartmentID == "" && f.CategoryID == "" && f.NatureID == "" && f.TeacherID == "" && f.IDs == nil {
+			q, args := directoryPageQuery(f, true)
+			rows, err := list[catalog.Object](t, q, append([]any{pgx.QueryExecModeExec}, args...)...)
+			if err != nil {
+				return nil, err
+			}
+			if len(rows) >= f.Limit+1 {
+				return rows, nil
+			}
+		}
+		q, args := directoryPageQuery(f, false)
+		// Selectivity differs substantially across departments and categories.
+		// Keep bind parameters, but plan each page for its actual values.
+		return list[catalog.Object](t, q, append([]any{pgx.QueryExecModeExec}, args...)...)
+	}
 	return list[catalog.Object](t, `SELECT catalog.public_object(o.data->'object') FROM catalog.objects o
  LEFT JOIN catalog.objects parent_class ON parent_class.id=o.class_id AND parent_class.kind='class'
  LEFT JOIN catalog.redirects parent_redirect ON parent_redirect.alias_id=COALESCE(NULLIF(o.term_course_id,''),parent_class.term_course_id)

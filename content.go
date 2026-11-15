@@ -44,7 +44,9 @@ func (s *Service) readObject(ctx context.Context, p Principal, id string) (Objec
 	return object, nil
 }
 func (s *Service) ReadList(ctx context.Context, p Principal, f Filter) (Page, error) {
+	start := time.Now()
 	school, e := s.readScope(ctx, p, f.SchoolID)
+	s.observeDirectory(ctx, "authorization", start, e)
 	if e != nil {
 		return Page{}, e
 	}

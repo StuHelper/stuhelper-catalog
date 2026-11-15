@@ -84,3 +84,31 @@ REVOKE ALL ON catalog.view_dedup FROM PUBLIC;
 CREATE TABLE IF NOT EXISTS catalog.view_retention(singleton boolean PRIMARY KEY DEFAULT true CHECK(singleton),before_day date NOT NULL DEFAULT '0001-01-01');
 INSERT INTO catalog.view_retention(singleton) VALUES(true) ON CONFLICT DO NOTHING;
 REVOKE ALL ON catalog.view_retention FROM PUBLIC;
+
+-- Classification candidates include inherited offering/class values. Keep the
+-- selector before school so trusted internal cross-school reads also use it.
+CREATE INDEX IF NOT EXISTS catalog_department_filter ON catalog.objects(kind,department_id,school_id,id) INCLUDE(course_id,term_course_id) WHERE department_id<>'';
+CREATE INDEX IF NOT EXISTS catalog_category_filter ON catalog.objects(kind,category_id,school_id,id) INCLUDE(course_id,term_course_id) WHERE category_id<>'';
+CREATE INDEX IF NOT EXISTS catalog_nature_filter ON catalog.objects(kind,nature_id,school_id,id) INCLUDE(course_id,term_course_id) WHERE nature_id<>'';
+
+-- Chinese names commonly use one/two-character searches, for which pg_trgm
+-- cannot extract a trigram. Built-in GIN array_ops supports those searches
+-- without extension privileges. Tokens are only a candidate filter; List
+-- rechecks the literal substring independently in name, code and each alias.
+CREATE OR REPLACE FUNCTION catalog.search_tokens(value jsonb) RETURNS text[]
+LANGUAGE sql IMMUTABLE PARALLEL SAFE AS $$
+ SELECT COALESCE(array_agg(DISTINCT token),'{}'::text[]) FROM (
+  SELECT substring(v FROM p FOR n) AS token
+  FROM (
+   SELECT lower(COALESCE(value->>'name','')) AS v
+   UNION ALL SELECT lower(COALESCE(value->>'code',''))
+   UNION ALL SELECT lower(a) FROM jsonb_array_elements_text(COALESCE(NULLIF(value->'aliases','null'::jsonb),'[]'::jsonb)) a
+  ) values_to_index
+  CROSS JOIN generate_series(1,2) n
+  CROSS JOIN LATERAL generate_series(1,length(v)-n+1) p
+ ) tokens
+$$;
+CREATE INDEX IF NOT EXISTS catalog_name_tokens ON catalog.objects USING gin(catalog.search_tokens(data->'object')) WHERE kind IN ('course','teacher');
+
+-- Cover the class-to-offering candidate join without reading JSON heap rows.
+CREATE INDEX IF NOT EXISTS catalog_offering_course_lookup ON catalog.objects(id) INCLUDE(course_id) WHERE kind='term_course';
