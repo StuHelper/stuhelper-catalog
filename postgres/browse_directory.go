@@ -64,17 +64,24 @@ func directorySelectionQuery(q c.DirectoryQuery) (string, []any, error) {
  COALESCE(NULLIF(cl.nature_id,''),NULLIF(tc.nature_id,''),b.nature_id) AS nature_id
  FROM base b JOIN offerings tc ON tc.course_id=b.id LEFT JOIN classes cl ON cl.term_course_id=tc.id` + teacherFilter + `)`
 	}
+	categoryCounts := `category_counts AS (SELECT category_id,count(DISTINCT id) AS n FROM eligible GROUP BY category_id)`
+	categoryMembers := `'{}'::jsonb`
+	if q.CategoryID != "" {
+		categoryCounts = `category_counts AS MATERIALIZED (SELECT category_id,count(DISTINCT id) AS n,array_agg(DISTINCT id) AS ids FROM eligible GROUP BY category_id)`
+		categoryMembers = `COALESCE((SELECT jsonb_object_agg(category_id,ids) FROM category_counts),'{}'::jsonb)`
+	}
 	ctes := []string{base, variants,
 		"eligible AS MATERIALIZED (SELECT v.id,v.department_id,v.category_id FROM variants v WHERE " + strings.Join(common, " AND ") + " LIMIT 500001)",
 		"matching AS MATERIALIZED (SELECT * FROM eligible WHERE " + category + ")",
 		`candidates AS (SELECT m.id,b.name,array_agg(DISTINCT m.department_id) AS departments,array_agg(DISTINCT m.category_id) AS categories
  FROM matching m JOIN base b ON b.id=m.id GROUP BY m.id,b.name ORDER BY m.id LIMIT 100001)`,
-		`category_counts AS (SELECT category_id,count(DISTINCT id) AS n FROM eligible GROUP BY category_id)`,
+		categoryCounts,
 		`department_counts AS (SELECT department_id,count(DISTINCT id) AS n FROM matching GROUP BY department_id)`,
 	}
 	query := "WITH " + strings.Join(ctes, ",\n") + ` SELECT jsonb_build_object(
  'variant_count',(SELECT count(*) FROM eligible),'candidates',COALESCE((SELECT jsonb_agg(to_jsonb(v) ORDER BY id) FROM candidates v),'[]'::jsonb),
  'facet_total',(SELECT count(DISTINCT id) FROM eligible),
+ 'category_members',` + categoryMembers + `,
  'category_facets',COALESCE((SELECT jsonb_agg(jsonb_build_object('id',ca.id,'name',ca.name,'count',COALESCE(cc.n,0),'review_count',0) ORDER BY ca.name COLLATE "C",ca.id)
  FROM catalog.objects ca LEFT JOIN category_counts cc ON cc.category_id=ca.id WHERE ca.kind='category' AND ca.school_id=` + school + ` AND ` + kind + `='course'
  AND NOT COALESCE((ca.data->'object'->>'inactive')::boolean,false)),'[]'::jsonb),

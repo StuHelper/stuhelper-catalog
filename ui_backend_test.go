@@ -137,7 +137,7 @@ func TestUIDirectoryFacetsSortingVisibilityAndPagination(t *testing.T) {
 	if err != nil || first.Total != 2 || first.FacetTotal != 2 || len(first.Items) != 1 || first.Items[0].Object.ID != "course" || first.Items[0].Heat != 13 || first.Next == "" {
 		t.Fatalf("hot: %+v %v", first, err)
 	}
-	if len(first.CategoryFacets) != 1 || first.CategoryFacets[0].Count != 2 || len(first.DepartmentFacets) != 1 || first.DepartmentFacets[0].Count != 2 || first.DepartmentFacets[0].ReviewCount != 8 {
+	if len(first.CategoryFacets) != 1 || first.CategoryFacets[0].Count != 2 || first.CategoryFacets[0].ReviewCount != 8 || len(first.DepartmentFacets) != 1 || first.DepartmentFacets[0].Count != 2 || first.DepartmentFacets[0].ReviewCount != 8 {
 		t.Fatalf("facets: %+v", first)
 	}
 	q.After = first.Next
@@ -168,7 +168,7 @@ func TestUIDirectoryFacetsSortingVisibilityAndPagination(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		if page.Total != int64(len(old.Items)) || len(page.Items) != len(old.Items) || page.CategoryFacets[0].Count != 2 {
+		if page.Total != int64(len(old.Items)) || len(page.Items) != len(old.Items) || page.CategoryFacets[0].Count != 2 || page.CategoryFacets[0].ReviewCount != 8 {
 			t.Fatal("count/list/filter mismatch", page, old)
 		}
 	}

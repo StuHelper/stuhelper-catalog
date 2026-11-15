@@ -9,7 +9,7 @@ import (
 
 type directoryRanked struct {
 	candidate *directoryCandidate
-	metric    c.DirectoryMetric
+	metric    *c.DirectoryMetric
 	heat      float64
 	rank      int
 }
@@ -65,9 +65,11 @@ func (t *transaction) Directory(q c.DirectoryQuery, cursor c.DirectoryPosition, 
 		return c.DirectoryResult{}, err
 	}
 	out := c.DirectoryResult{Rows: []c.DirectoryRow{}, Total: int64(len(selection.Candidates)), FacetTotal: selection.FacetTotal, CategoryFacets: slices.Clone(selection.CategoryFacets), DepartmentFacets: slices.Clone(selection.DepartmentFacets)}
-	byID := make(map[string]c.DirectoryMetric, len(metrics))
-	for _, value := range metrics {
-		byID[value.ID] = value
+	// The provider slice is read-only for this request. Sorting references avoids
+	// copying five rating arrays into every map value and every ranked row.
+	byID := make(map[string]*c.DirectoryMetric, len(metrics))
+	for i := range metrics {
+		byID[metrics[i].ID] = &metrics[i]
 	}
 	views, err := t.directoryViews(q.Kind, q.SchoolID, from, until)
 	if err != nil {
@@ -77,17 +79,41 @@ func (t *transaction) Directory(q c.DirectoryQuery, cursor c.DirectoryPosition, 
 	for i, facet := range out.DepartmentFacets {
 		departments[facet.ID] = i
 	}
+	// Category tabs exclude their own selection. Their cached membership is
+	// therefore separate from the filtered page candidates, while counts always
+	// use this request's live review metrics.
+	categories := make(map[string]int, len(out.CategoryFacets))
+	for i, facet := range out.CategoryFacets {
+		categories[facet.ID] = i
+		if q.CategoryID != "" {
+			for _, id := range selection.CategoryMembers[facet.ID] {
+				if metric := byID[id]; metric != nil {
+					out.CategoryFacets[i].ReviewCount += metric.ReviewCount
+				}
+			}
+		}
+	}
 	ranks := map[string]int{"unrated": 0, "not_recommended": 1, "average": 2, "recommended": 3, "strongly_recommended": 4}
 	rows := make([]directoryRanked, 0, len(selection.Candidates))
+	unrated := &c.DirectoryMetric{Recommendation: "unrated"}
 	for i := range selection.Candidates {
 		candidate := &selection.Candidates[i]
-		metric, ok := byID[candidate.ID]
-		if !ok {
-			metric = c.DirectoryMetric{ID: candidate.ID, Recommendation: "unrated"}
+		metric := byID[candidate.ID]
+		if metric == nil {
+			metric = unrated
 		}
 		for _, department := range candidate.Departments {
 			if index, ok := departments[department]; ok {
 				out.DepartmentFacets[index].ReviewCount += metric.ReviewCount
+			}
+		}
+		if q.CategoryID == "" {
+			// Without a selected category, these candidates already are the full
+			// facet membership. Reuse the metric read needed for ranking.
+			for _, category := range candidate.Categories {
+				if index, ok := categories[category]; ok {
+					out.CategoryFacets[index].ReviewCount += metric.ReviewCount
+				}
 			}
 		}
 		heat := float64(views[candidate.ID])*config.ViewWeight + float64(metric.Favorites)*config.FavoriteWeight + float64(metric.RecentReviews)*config.ReviewWeight
@@ -95,7 +121,7 @@ func (t *transaction) Directory(q c.DirectoryQuery, cursor c.DirectoryPosition, 
 	}
 	slices.SortFunc(rows, func(a, b directoryRanked) int { return directoryRankCompare(a, b, q.Sort) })
 	if cursor.ID != "" {
-		position := directoryRanked{candidate: &directoryCandidate{ID: cursor.ID, Name: cursor.Name}, metric: c.DirectoryMetric{ReviewCount: cursor.Reviews}, heat: cursor.Heat, rank: cursor.Recommendation}
+		position := directoryRanked{candidate: &directoryCandidate{ID: cursor.ID, Name: cursor.Name}, metric: &c.DirectoryMetric{ReviewCount: cursor.Reviews}, heat: cursor.Heat, rank: cursor.Recommendation}
 		n := 0
 		for n < len(rows) && directoryRankCompare(rows[n], position, q.Sort) <= 0 {
 			n++

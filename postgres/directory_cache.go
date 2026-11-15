@@ -27,6 +27,7 @@ type directorySelection struct {
 	Candidates       []directoryCandidate `json:"candidates"`
 	FacetTotal       int64                `json:"facet_total"`
 	CategoryFacets   []c.DirectoryFacet   `json:"category_facets"`
+	CategoryMembers  map[string][]string  `json:"category_members"`
 	DepartmentFacets []c.DirectoryFacet   `json:"department_facets"`
 }
 type directoryCacheEntry struct {
