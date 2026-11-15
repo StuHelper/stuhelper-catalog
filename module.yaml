@@ -87,6 +87,9 @@ scenario_tests:
   ACAD-33:
     - integration_test.go#TestImportRelationsClassificationAndMissingCredits
   ACAD-01:
+    - directory_performance_test.go#TestDirectoryTeacherSkewedAssignmentScale
+    - directory_performance_test.go#TestDirectoryTeacherClassificationsCannotMixClasses
+    - directory_performance_test.go#TestDirectoryBroadCategoryPrefixFallbackKeepsCursor
     - directory_performance_test.go#TestDirectorySearchPrefixFallsBackWithoutLosingPagination
     - directory_performance_test.go#TestDirectoryListPoolDeadlineReturnsUnavailable
     - directory_performance_test.go#TestDirectoryFilterProductionScale

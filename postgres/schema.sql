@@ -132,9 +132,16 @@ LANGUAGE sql IMMUTABLE PARALLEL SAFE AS $$
  ) tokens
 $$;
 CREATE INDEX IF NOT EXISTS catalog_name_tokens ON catalog.objects USING gin(catalog.search_tokens(data->'object')) WHERE kind IN ('course','teacher');
+-- Keep each directory's posting lists separate: a teacher-name query must not
+-- fetch thousands of course rows that share the same short Chinese token.
+CREATE INDEX IF NOT EXISTS catalog_course_name_tokens ON catalog.objects USING gin(catalog.search_tokens(data->'object')) WHERE kind='course';
+CREATE INDEX IF NOT EXISTS catalog_teacher_name_tokens ON catalog.objects USING gin(catalog.search_tokens(data->'object')) WHERE kind='teacher';
 
 -- Cover the class-to-offering candidate join without reading JSON heap rows.
 CREATE INDEX IF NOT EXISTS catalog_offering_course_lookup ON catalog.objects(id) INCLUDE(course_id) WHERE kind='term_course';
+CREATE INDEX IF NOT EXISTS catalog_class_offering_lookup ON catalog.objects(id) INCLUDE(term_course_id,department_id,category_id,nature_id) WHERE kind='class';
+CREATE INDEX IF NOT EXISTS catalog_class_directory_lookup ON catalog.objects(term_course_id) INCLUDE(department_id,category_id,nature_id) WHERE kind='class';
+CREATE INDEX IF NOT EXISTS catalog_offering_directory_lookup ON catalog.objects(course_id) INCLUDE(id,department_id,category_id,nature_id) WHERE kind='term_course';
 
 -- Facets scan bounded classification columns, not the JSON payload of every
 -- class/offering. Existing list/search indexes remain unchanged.
