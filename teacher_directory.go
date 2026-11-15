@@ -8,6 +8,19 @@ import (
 	"time"
 )
 
+type teacherMaintenanceKey struct{}
+
+func teacherMaintenanceContext(ctx context.Context) context.Context {
+	return context.WithValue(ctx, teacherMaintenanceKey{}, true)
+}
+
+// TeacherMaintenanceRead is consumed by Repository after Service has selected
+// an authorized maintenance operation. HTTP callers cannot set this context key.
+func TeacherMaintenanceRead(ctx context.Context) bool {
+	value, _ := ctx.Value(teacherMaintenanceKey{}).(bool)
+	return value
+}
+
 // TeacherCandidate is an authorized maintenance projection. Source staff numbers
 // stay in the school adapter; consumers match only the name and owning unit.
 type TeacherCandidate struct {

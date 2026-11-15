@@ -42,6 +42,7 @@ scenario_tests:
     - teacher_directory_test.go#TestTeacherSitesAtomicReplayRevocationAndChangedIdentity
   CAT-TEACHER-03:
     - teacher_directory_test.go#TestTeacherSitesAtomicReplayRevocationAndChangedIdentity
+    - teacher_directory_test.go#TestTeacherDirectoryKeepsAuthorizedMaintenanceOfHiddenTeachers
   CAT-SOURCE-01:
     - enrollment_source_test.go#TestOwnSourceRefreshIsAtomicScopedAndDurablyIdempotent
     - source_concurrency_test.go#TestSourceSnapshotCoordinatesWithOrdinaryImport

@@ -78,7 +78,7 @@ func (r *Repository) Transaction(ctx context.Context, run func(catalog.Transacti
 		return safe(e)
 	}
 	defer tx.Rollback()
-	if e = run(&transaction{tx: tx, ctx: ctx, objects: map[string]catalog.Record{}, requireTeacherDirectory: r.RequireTeacherDirectory}); e != nil {
+	if e = run(&transaction{tx: tx, ctx: ctx, objects: map[string]catalog.Record{}, requireTeacherDirectory: r.RequireTeacherDirectory && !catalog.TeacherMaintenanceRead(ctx)}); e != nil {
 		return e
 	}
 	return safe(tx.Commit())

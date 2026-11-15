@@ -174,3 +174,46 @@ func TestTeacherSitesAtomicReplayRevocationAndChangedIdentity(t *testing.T) {
 		t.Fatal("private candidate access", err)
 	}
 }
+
+func TestTeacherDirectoryKeepsAuthorizedMaintenanceOfHiddenTeachers(t *testing.T) {
+	s, p, _ := teacherDirectoryFixture(t)
+	ctx := context.Background()
+	hidden, err := s.AdminRead(ctx, p, "teacher4")
+	if err != nil || hidden.ID != "teacher4" {
+		t.Fatal("maintenance cannot inspect hidden record", hidden, err)
+	}
+	if _, err := s.Read(ctx, p, "teacher4"); !errors.Is(err, c.ErrNotFound) {
+		t.Fatal("maintenance filter leaked into public context", err)
+	}
+	page, err := s.AdminList(ctx, p, c.Filter{Kind: "teacher", SchoolID: "school", Limit: 10})
+	if err != nil || len(page.Items) != 4 {
+		t.Fatal("maintenance list", page, err)
+	}
+	changed, err := s.SetState(ctx, p, "teacher4", "hide", c.ObjectState{Revision: hidden.Revision, Inactive: true, Reason: "synthetic cleanup"})
+	if err != nil || !changed.Inactive {
+		t.Fatal("maintenance cannot deactivate hidden record", changed, err)
+	}
+	source, _ := s.AdminRead(ctx, p, "teacher3")
+	target, _ := s.AdminRead(ctx, p, "teacher")
+	in := c.MergeInput{TargetID: target.ID, SourceRevision: source.Revision, TargetRevision: target.Revision, Reason: "synthetic duplicate"}
+	preview, err := s.PreviewMerge(ctx, p, source.ID, in)
+	if err != nil {
+		t.Fatal("maintenance cannot preview hidden duplicate", err)
+	}
+	in.PreviewToken = preview.PreviewToken
+	if _, err := s.Merge(ctx, p, source.ID, "merge", in); err != nil {
+		t.Fatal("maintenance cannot merge hidden duplicate", err)
+	}
+	if _, err := s.AdminRead(ctx, c.Principal{Subject: "reader"}, "teacher4"); !errors.Is(err, c.ErrForbidden) {
+		t.Fatal("unprivileged maintenance read", err)
+	}
+	// Ordinary source import remains possible while public reads require markers.
+	if _, err := s.Import(ctx, p, "hidden-import", c.Import{SchoolID: "school", SourceID: "approved-source", Revision: 2, FetchedAt: time.Now(), Objects: []c.Object{
+		{ID: "teacher5", Kind: "teacher", SchoolID: "school", Name: "teacher5", DepartmentID: "dept"},
+	}}); err != nil {
+		t.Fatal("source import of unmarked teacher", err)
+	}
+	if _, err := s.Read(ctx, p, "teacher5"); !errors.Is(err, c.ErrNotFound) {
+		t.Fatal("source import bypassed public marker", err)
+	}
+}
