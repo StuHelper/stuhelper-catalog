@@ -28,6 +28,8 @@ func (h Handler) Routes() http.Handler {
 	h.scheduleRoutes(m)
 	h.operationRoutes(m)
 	h.adminReadRoutes(m)
+	h.teacherRefreshRoutes(m)
+	m.HandleFunc("GET /api/v1/catalog/filter-options", h.filterOptions)
 	m.HandleFunc("GET /api/v1/catalog/me/references", func(w http.ResponseWriter, r *http.Request) {
 		p, ok := h.principal(w, r)
 		if !ok {

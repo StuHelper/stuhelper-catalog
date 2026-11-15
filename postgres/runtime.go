@@ -21,8 +21,23 @@ func (r *Repository) CheckRuntime(ctx context.Context) error {
 	if r.RequireTeacherDirectory {
 		var ready bool
 		err = r.DB.QueryRowContext(ctx, `SELECT has_table_privilege(current_user,'catalog.teacher_directory','SELECT')
- AND has_table_privilege(current_user,'catalog.teacher_site_sources','SELECT')`).Scan(&ready)
+ AND has_table_privilege(current_user,'catalog.teacher_site_sources','SELECT')
+ AND has_table_privilege(current_user,'catalog.teacher_refresh_runs','SELECT,INSERT,UPDATE')
+ AND has_table_privilege(current_user,'catalog.teacher_unmatched_sites','SELECT,INSERT,DELETE')
+ AND has_table_privilege(current_user,'catalog.teacher_unmatched_snapshots','SELECT,INSERT,UPDATE')
+ AND has_sequence_privilege(current_user,pg_get_serial_sequence('catalog.teacher_refresh_runs','position'),'USAGE')`).Scan(&ready)
 		if err != nil || !ready {
+			return catalog.ErrUnavailable
+		}
+	}
+	if r.RequireDirectoryProjection {
+		var ready bool
+		err = r.DB.QueryRowContext(ctx, `SELECT bool_and(has_table_privilege(current_user,'catalog.'||name,'SELECT,INSERT,UPDATE,DELETE'))
+ FROM unnest(ARRAY['term_orders','projection_generations','projection_heads','projection_failures','projection_imports','projection_objects','projection_variants','projection_relations','projection_teaching_history','projection_options','projection_aliases','projection_summaries','projection_documents','projection_selections']) name`).Scan(&ready)
+		if err != nil || !ready {
+			return catalog.ErrUnavailable
+		}
+		if err = r.DB.QueryRowContext(ctx, `SELECT has_function_privilege(current_user,'catalog.analyze_directory_projection()','EXECUTE')`).Scan(&ready); err != nil || !ready {
 			return catalog.ErrUnavailable
 		}
 	}

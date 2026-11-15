@@ -6,9 +6,40 @@ import (
 )
 
 func (t *transaction) PublicObject(id string) (c.Object, error) {
+	if t.projectionRead {
+		return t.projectedObject(id)
+	}
 	return read[c.Object](t, `SELECT catalog.public_object(data->'object') || CASE WHEN id<>$1 THEN jsonb_build_object('id',$1,'canonical_id',id) ELSE '{}'::jsonb END FROM catalog.objects o WHERE id=catalog.canonical($1)`+t.teacherVisibility("o"), id)
 }
 func (t *transaction) ResolveIDs(id string) ([]string, error) {
+	if t.projectionRead {
+		object, err := t.projectedObject(id)
+		if err != nil {
+			return nil, err
+		}
+		canonical := object.ID
+		if object.CanonicalID != "" {
+			canonical = object.CanonicalID
+		}
+		rows, err := t.tx.QueryContext(t.ctx, `SELECT $2::text AS id UNION SELECT a.alias_id FROM catalog.projection_heads h JOIN catalog.projection_aliases a ON a.version=h.version
+ WHERE h.school_id=$1 AND a.canonical_id=$2 ORDER BY id LIMIT 1001`, object.SchoolID, canonical)
+		if err != nil {
+			return nil, safe(err)
+		}
+		defer rows.Close()
+		out := []string{}
+		for rows.Next() {
+			var id string
+			if err := rows.Scan(&id); err != nil {
+				return nil, safe(err)
+			}
+			out = append(out, id)
+		}
+		if len(out) > 1000 {
+			return nil, c.ErrUnavailable
+		}
+		return out, safe(rows.Err())
+	}
 	rows, e := t.tx.QueryContext(t.ctx, `SELECT id FROM catalog.objects WHERE id=catalog.canonical($1) UNION SELECT alias_id FROM catalog.redirects WHERE canonical_id=catalog.canonical($1) ORDER BY id LIMIT 1001`, id)
 	if e != nil {
 		return nil, safe(e)
@@ -36,6 +67,9 @@ func (t *transaction) redirect(source, target string, at time.Time, reason strin
 	return safe(e)
 }
 func (t *transaction) MergeAliases(source, target, school string, at time.Time, reason string) (int, error) {
+	if err := t.touchProjection(school); err != nil {
+		return 0, err
+	}
 	count := 0
 	if source != "" {
 		if e := t.redirect(source, target, at, reason); e != nil {

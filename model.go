@@ -18,12 +18,17 @@ var (
 
 // Subject is an issuer-qualified account key supplied by verified authentication.
 type Principal struct {
-	Subject     string
-	Schools     []string
-	CanImport   bool
-	CanMaintain bool
+	Subject                string
+	Schools                []string
+	CanImport              bool
+	CanMaintain            bool
+	CanReadTeacherSites    bool
+	CanRefreshTeacherSites bool
 }
 type Object struct {
+	ReadOnly     bool          `json:"read_only,omitempty"`
+	TermOrderKey int           `json:"term_order_key,omitempty"`
+	LatestTermID string        `json:"latest_term_id,omitempty"`
 	ScheduleTime *ScheduleTime `json:"schedule_time,omitempty"`
 	Inactive     bool          `json:"inactive,omitempty"`
 	CanonicalID  string        `json:"canonical_id,omitempty"`

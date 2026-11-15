@@ -65,6 +65,15 @@ func (t *transaction) Directory(q c.DirectoryQuery, cursor c.DirectoryPosition, 
 		return c.DirectoryResult{}, err
 	}
 	out := c.DirectoryResult{Rows: []c.DirectoryRow{}, Total: int64(len(selection.Candidates)), FacetTotal: selection.FacetTotal, CategoryFacets: slices.Clone(selection.CategoryFacets), DepartmentFacets: slices.Clone(selection.DepartmentFacets)}
+	if t.projectionRead {
+		out.Version, err = t.projectionVersion(q.SchoolID)
+		if err != nil {
+			return c.DirectoryResult{}, err
+		}
+		if cursor.ID != "" && cursor.Version != out.Version {
+			return c.DirectoryResult{}, c.ErrConflict
+		}
+	}
 	// The provider slice is read-only for this request. Sorting references avoids
 	// copying five rating arrays into every map value and every ranked row.
 	byID := make(map[string]*c.DirectoryMetric, len(metrics))

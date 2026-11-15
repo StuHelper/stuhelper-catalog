@@ -76,6 +76,7 @@ type DirectoryPage struct {
 	GeneratedAt      time.Time        `json:"generated_at"`
 }
 type DirectoryPosition struct {
+	Version        int64   `json:"version,omitempty"`
 	Scope          string  `json:"scope"`
 	ID             string  `json:"id"`
 	Name           string  `json:"name"`
@@ -92,6 +93,7 @@ type DirectoryRow struct {
 	Rank int           `json:"rank"`
 }
 type DirectoryResult struct {
+	Version          int64            `json:"version"`
 	Rows             []DirectoryRow   `json:"rows"`
 	Total            int64            `json:"total"`
 	FacetTotal       int64            `json:"facet_total"`
@@ -193,7 +195,7 @@ func (s *Service) ReadDirectory(ctx context.Context, p Principal, q DirectoryQue
 	if len(result.Rows) > q.Limit {
 		result.Rows = result.Rows[:q.Limit]
 		last := result.Rows[len(result.Rows)-1]
-		position = DirectoryPosition{scope, last.Item.Object.ID, last.Item.Object.Name, last.Item.Heat, last.Item.ReviewCount, last.Rank}
+		position = DirectoryPosition{Version: result.Version, Scope: scope, ID: last.Item.Object.ID, Name: last.Item.Object.Name, Heat: last.Item.Heat, Reviews: last.Item.ReviewCount, Recommendation: last.Rank}
 		encoded, err := json.Marshal(position)
 		if err != nil {
 			return DirectoryPage{}, ErrUnavailable

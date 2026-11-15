@@ -24,11 +24,15 @@ type Repository struct {
 	DB *sql.DB
 	// Enable in product composition. Maintenance candidate enumeration has its
 	// own authorized port and does not disable this public read filter.
-	RequireTeacherDirectory bool
-	directoryOnce           sync.Once
-	directoryData           *directoryCache
+	RequireTeacherDirectory    bool
+	RequireDirectoryProjection bool
+	directoryOnce              sync.Once
+	directoryData              *directoryCache
 }
 type transaction struct {
+	projectionRead          bool
+	projectionSchools       map[string]bool
+	projectionAttempt       string
 	directoryData           *directoryCache
 	requireTeacherDirectory bool
 	pendingTeachers         map[string]bool
@@ -84,14 +88,27 @@ func (r *Repository) Transaction(ctx context.Context, run func(catalog.Transacti
 		return safe(e)
 	}
 	defer tx.Rollback()
-	t := &transaction{tx: tx, ctx: ctx, objects: map[string]catalog.Record{}, requireTeacherDirectory: r.RequireTeacherDirectory && !catalog.TeacherMaintenanceRead(ctx), directoryData: r.directoryCache()}
+	t := &transaction{tx: tx, ctx: ctx, objects: map[string]catalog.Record{}, requireTeacherDirectory: r.RequireTeacherDirectory && !catalog.TeacherMaintenanceRead(ctx), directoryData: r.directoryCache(), projectionRead: r.RequireDirectoryProjection && !catalog.TeacherMaintenanceRead(ctx)}
 	if e = run(t); e != nil {
+		if t.projectionAttempt != "" {
+			_ = tx.Rollback()
+			r.recordProjectionFailure(t.projectionAttempt, e)
+		}
 		return e
 	}
 	if e = t.flushTeachingDirectory(); e != nil {
 		return e
 	}
-	return safe(tx.Commit())
+	if e = t.flushProjection(); e != nil {
+		_ = tx.Rollback()
+		r.recordProjectionFailure(t.projectionAttempt, e)
+		return e
+	}
+	e = tx.Commit()
+	if e != nil && t.projectionAttempt != "" {
+		r.recordProjectionFailure(t.projectionAttempt, e)
+	}
+	return safe(e)
 }
 func (t *transaction) Lock(key string) error {
 	_, e := t.tx.ExecContext(t.ctx, `SELECT pg_advisory_xact_lock(hashtextextended($1,0))`, "catalog:"+key)
@@ -152,6 +169,9 @@ func (t *transaction) Object(id string) (catalog.Record, error) {
 }
 func (t *transaction) SaveObject(r catalog.Record) error {
 	o := r.Object
+	if e := t.touchProjection(o.SchoolID); e != nil {
+		return e
+	}
 	if o.Kind == "teacher" || o.Kind == "assignment" {
 		if t.pendingTeachers == nil {
 			t.pendingTeachers = map[string]bool{}
@@ -222,7 +242,7 @@ func (t *transaction) Replay(key string) (catalog.Replay, error) {
 func (t *transaction) SaveReplay(key string, v catalog.Replay) error {
 	return t.save(`INSERT INTO catalog.replays(key,data) VALUES($1,$2) ON CONFLICT(key) DO UPDATE SET data=excluded.data`, v, key)
 }
-func (t *transaction) Event(v catalog.Event) error {
+func (t *transaction) recordAudit(v catalog.Event) error {
 	result := v.Result
 	if result == "" {
 		result = "unknown"
@@ -249,6 +269,13 @@ func (t *transaction) Event(v catalog.Event) error {
 	}
 	if e := t.save(`INSERT INTO catalog.audit(id,reason,result,audit_actor,audit_target,audit_action,audit_school,audit_time,data) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9)`, v, v.ID, reason, result, actor, target, action, school, v.Time); e != nil {
 		return e
+	}
+	return nil
+}
+
+func (t *transaction) Event(v catalog.Event) error {
+	if err := t.recordAudit(v); err != nil {
+		return err
 	}
 	return t.saveEnvelope(catalog.Envelope{SpecVersion: "1.0", ID: v.ID, Source: "catalog", Type: v.Type, Subject: v.Subject, Time: v.Time, SchoolID: v.SchoolID, DataContentType: "application/json", Data: catalog.ResultData{Revision: v.Revision}})
 }
