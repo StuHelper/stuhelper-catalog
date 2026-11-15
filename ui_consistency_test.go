@@ -33,7 +33,7 @@ func TestUIDirectoryCacheInvalidatesMetadataAndTeacherMarkers(t *testing.T) {
 	}
 	s.DirectoryMetrics = uiMetrics{rows: []c.DirectoryMetric{{ID: "course", ReviewCount: 1, Recommendation: "unrated"}}}
 	v, err := s.ReadDirectory(ctx, p, q)
-	if err != nil || v.Items[0].ReviewCount != 1 || v.Items[0].Recommendation != "unrated" {
+	if err != nil || v.Items[0].ReviewCount != 1 || v.Items[0].Recommendation != "unrated" || v.CategoryFacets[0].ReviewCount != 1 {
 		t.Fatal("review state was cached", v, err)
 	}
 	object, err := s.Get(ctx, "course")

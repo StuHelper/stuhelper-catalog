@@ -638,6 +638,7 @@ export interface components {
             id: string;
             name: string;
             count: number;
+            /** @description Sum of visible review_count values for distinct directory objects in this facet. A review attributed to several teachers contributes to each teacher. Category facets exclude category_id itself; department facets retain all current filters. */
             review_count: number;
         };
         DirectoryItem: {

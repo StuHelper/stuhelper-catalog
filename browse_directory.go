@@ -164,7 +164,7 @@ func (s *Service) ReadDirectory(ctx context.Context, p Principal, q DirectoryQue
 	if len(metrics) > 100000 {
 		return out, ErrUnavailable
 	}
-	seen := map[string]bool{}
+	seen := make(map[string]bool, len(metrics))
 	for _, metric := range metrics {
 		if !ValidID(metric.ID) || seen[metric.ID] || metric.ReviewCount < 0 || metric.RecentReviews < 0 || metric.Favorites < 0 ||
 			!slices.Contains([]string{"unrated", "not_recommended", "average", "recommended", "strongly_recommended"}, metric.Recommendation) {
