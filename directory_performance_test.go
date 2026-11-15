@@ -45,10 +45,41 @@ INSERT INTO catalog.objects SELECT id,'school-000001',kind,name,department_id,ca
 INSERT INTO catalog.history SELECT id,1,data FROM catalog.objects;
 ANALYZE catalog.objects; ANALYZE catalog.redirects;`
 
+func TestDirectoryTeacherSkewedAssignmentScale(t *testing.T) {
+	repo, migration := database(t)
+	// Real rosters contain many directory teachers and courses with no current
+	// assignments. Concentrate the same number of edges on fewer active targets,
+	// so the planner cannot rely on the uniform baseline's selectivity.
+	seed := strings.NewReplacer("((n-1)%21206+1)", "((n-1)%3000+1)", "(n-1)/21206", "(n-1)/3000", "((n-1)%22964+1)", "(((n-1)%133384)%56653%3000+1+((n-1)/133384)*3000)").Replace(directoryScaleSeed)
+	if _, err := migration.Exec(seed); err != nil {
+		t.Fatal(err)
+	}
+	if err := postgres.Migrate(context.Background(), migration); err != nil {
+		t.Fatal(err)
+	}
+	if err := migration.Close(); err != nil {
+		t.Fatal(err)
+	}
+	s := &c.Service{Repo: repo}
+	for _, f := range []c.Filter{
+		{Kind: "course", SchoolID: "school-000001", TeacherID: "teacher-000003", Limit: 20},
+		{Kind: "course", SchoolID: "school-000001", TeacherID: "teacher-000003", DepartmentID: "department-000004", CategoryID: "category-000004", NatureID: "nature-000004", Limit: 20},
+	} {
+		call, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+		start := time.Now()
+		page, err := s.List(call, f)
+		cancel()
+		if err != nil || len(page.Items) != 1 || page.Items[0].ID != "course-000003" {
+			t.Fatalf("teacher page with nonuniform relations: count=%d duration=%s error=%v", len(page.Items), time.Since(start), err)
+		}
+		t.Logf("skewed assignments: combined=%t returned=%d duration=%s", f.DepartmentID != "", len(page.Items), time.Since(start))
+	}
+}
+
 func TestDirectoryFilterProductionScale(t *testing.T) {
 	repo, migration := database(t)
 	// Exercise upgrading an existing production-sized table, not only new DDL.
-	if _, err := migration.Exec(`DROP INDEX catalog.catalog_department_filter, catalog.catalog_category_filter, catalog.catalog_nature_filter, catalog.catalog_name_tokens, catalog.catalog_offering_course_lookup; DROP FUNCTION catalog.search_tokens(jsonb)`); err != nil {
+	if _, err := migration.Exec(`DROP INDEX catalog.catalog_department_filter, catalog.catalog_category_filter, catalog.catalog_nature_filter, catalog.catalog_name_tokens, catalog.catalog_course_name_tokens, catalog.catalog_teacher_name_tokens, catalog.catalog_offering_course_lookup, catalog.catalog_class_offering_lookup, catalog.catalog_class_directory_lookup, catalog.catalog_offering_directory_lookup; DROP FUNCTION catalog.search_tokens(jsonb)`); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := migration.Exec(directoryScaleSeed); err != nil {
@@ -72,6 +103,7 @@ func TestDirectoryFilterProductionScale(t *testing.T) {
 		t.Fatal(err)
 	}
 	repo.DB.SetMaxOpenConns(3)
+	repo.DB.SetMaxIdleConns(3)
 	s := &c.Service{Repo: repo}
 	ctx := context.Background()
 	for _, kind := range []string{"course", "teacher"} {
@@ -218,6 +250,68 @@ func TestDirectoryClassificationsCannotMixTeachingClasses(t *testing.T) {
 	page, err := s.List(ctx, c.Filter{Kind: "course", DepartmentID: "other-dept", CategoryID: "other-category", Limit: 20})
 	if err != nil || len(page.Items) != 1 {
 		t.Fatal(fmt.Sprint(page), err)
+	}
+}
+
+func TestDirectoryTeacherClassificationsCannotMixClasses(t *testing.T) {
+	s, p, in := fixture(t)
+	ctx := context.Background()
+	in.Objects = append(in.Objects,
+		c.Object{ID: "teacher-other-dept", Kind: "department", SchoolID: "school", Name: "Other department"},
+		c.Object{ID: "teacher-other-category", Kind: "category", SchoolID: "school", Name: "Other category"},
+		c.Object{ID: "teacher-other-class", Kind: "class", SchoolID: "school", Name: "Other class", TermCourseID: "offering1", DepartmentID: "teacher-other-dept", CategoryID: "teacher-other-category"},
+		c.Object{ID: "teacher-other-assignment", Kind: "assignment", SchoolID: "school", Name: "Other assignment", ClassID: "teacher-other-class", TeacherID: "teacher"},
+	)
+	if _, err := s.Import(ctx, p, "teacher-class-seed", in); err != nil {
+		t.Fatal(err)
+	}
+	for _, test := range []struct {
+		teacher, department, category, nature string
+		count                                 int
+	}{
+		{"teacher", "dept", "seminar", "optional", 1},
+		{"teacher", "teacher-other-dept", "teacher-other-category", "", 1},
+		{"teacher", "teacher-other-dept", "seminar", "", 0},
+		{"teacher2", "teacher-other-dept", "", "", 0},
+	} {
+		page, err := s.List(ctx, c.Filter{Kind: "course", SchoolID: "school", TeacherID: test.teacher, DepartmentID: test.department, CategoryID: test.category, NatureID: test.nature, Limit: 20})
+		if err != nil || len(page.Items) != test.count || len(page.Items) == 1 && page.Items[0].ID != "course" {
+			t.Fatalf("teacher and classifications must match one assigned class: count=%d expected=%d error=%v", len(page.Items), test.count, err)
+		}
+	}
+}
+
+func TestDirectoryBroadCategoryPrefixFallbackKeepsCursor(t *testing.T) {
+	s, p, in := fixture(t)
+	in.Objects = append(in.Objects, c.Object{ID: "z-prefix-course", Kind: "course", SchoolID: "school", Name: "Later matching course", CategoryID: "seminar"})
+	if _, err := s.Import(context.Background(), p, "broad-prefix-seed", in); err != nil {
+		t.Fatal(err)
+	}
+	// More than 4096 matching classes select the prefix path, while unrelated
+	// courses fill all 512 positions before either matching course. The complete
+	// fallback must preserve matches, ordering and the caller's page cursor.
+	db := s.Repo.(*postgres.Repository).DB
+	_, err := db.Exec(`WITH extra(kind,n) AS (
+ SELECT 'course',n FROM generate_series(1,600) n UNION ALL SELECT 'class',n FROM generate_series(1,4500) n
+ ), rows AS (
+ SELECT kind,CASE WHEN kind='course' THEN 'a-prefix-' ELSE 'prefix-class-' END||lpad(n::text,5,'0') AS id,
+ CASE WHEN kind='class' THEN 'seminar' ELSE '' END AS category_id,
+ CASE WHEN kind='class' THEN 'offering1' ELSE '' END AS term_course_id FROM extra
+ ) INSERT INTO catalog.objects(id,school_id,kind,name,department_id,category_id,nature_id,course_id,term_id,term_course_id,class_id,teacher_id,data)
+ SELECT id,'school',kind,id,'',category_id,'','','',term_course_id,'','',jsonb_build_object('object',jsonb_build_object('id',id,'school_id','school','kind',kind,'name',id,'category_id',category_id,'term_course_id',term_course_id,'aliases',jsonb_build_array())) FROM rows`)
+	if err != nil {
+		t.Fatal(err)
+	}
+	filter := c.Filter{Kind: "course", SchoolID: "school", CategoryID: "seminar", Limit: 1}
+	for _, expected := range []string{"course", "z-prefix-course"} {
+		page, err := s.List(context.Background(), filter)
+		if err != nil || len(page.Items) != 1 || page.Items[0].ID != expected {
+			t.Fatalf("broad category lost its page: expected=%s page=%+v error=%v", expected, page, err)
+		}
+		if expected == "course" && page.Next != "course" || expected == "z-prefix-course" && page.Next != "" {
+			t.Fatal("broad category cursor differs", page.Next)
+		}
+		filter.After = page.Next
 	}
 }
 
