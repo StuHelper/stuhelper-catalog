@@ -29,8 +29,15 @@ func teacherDirectoryFixture(t *testing.T) (*c.Service, c.Principal, c.TeacherSi
 	if _, err := s.Import(context.Background(), p, "seed", in); err != nil {
 		t.Fatal(err)
 	}
+	if _, err := s.Repo.(*postgres.Repository).DB.Exec(`DELETE FROM catalog.teacher_directory`); err != nil {
+		t.Fatal(err)
+	}
 	s.Repo.(*postgres.Repository).RequireTeacherDirectory = true
-	return s, p, c.TeacherSiteSnapshot{SchoolID: "school", SourceID: "official", Revision: 1, ObservedAt: time.Now().UTC(), Matches: []c.TeacherSiteMatch{
+	candidates, err := s.TeacherCandidates(context.Background(), p, "school", "", 500)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return s, p, c.TeacherSiteSnapshot{CandidateFingerprint: c.TeacherCandidateFingerprint(candidates), SchoolID: "school", SourceID: "official", Revision: 1, ObservedAt: time.Now().UTC(), Matches: []c.TeacherSiteMatch{
 		{TeacherID: "teacher2", Name: "teacher2", DepartmentID: "dept", URL: "https://shi.buaa.edu.cn/synthetic2/zh_CN/index.htm"},
 		{TeacherID: "teacher3", Name: "teacher3", DepartmentID: "dept", URL: "https://shi.buaa.edu.cn/synthetic3/en/index.htm"},
 	}}
@@ -89,16 +96,15 @@ func TestTeacherDirectoryUnionFiltersEveryReadBeforePagination(t *testing.T) {
 	if err != nil || summary.TeacherCount != 2 {
 		t.Fatal("teacher count", summary, err)
 	}
-	// An unmarked assignment added before the next completed refresh cannot leak
-	// through the summary count or related teacher option query.
+	// A source import updates teaching markers in the same transaction.
 	_, err = s.Import(ctx, p, "new-relation", c.Import{SchoolID: "school", SourceID: "approved-source", Revision: 2, FetchedAt: time.Now(),
 		Objects: []c.Object{{ID: "assignment4", Kind: "assignment", SchoolID: "school", Name: "assignment4", ClassID: "class1", TeacherID: "teacher4"}}})
 	if err != nil {
 		t.Fatal(err)
 	}
 	summary, err = s.ReadSummary(ctx, p, "course")
-	if err != nil || summary.TeacherCount != 2 {
-		t.Fatal("unmarked teacher included in count", summary, err)
+	if err != nil || summary.TeacherCount != 3 {
+		t.Fatal("import did not update teacher count", summary, err)
 	}
 	if result, err := s.RefreshTeachingDirectory(ctx, p, "school"); err != nil || result.Eligible != 4 {
 		t.Fatal("periodic teaching refresh", result, err)
@@ -161,6 +167,11 @@ func TestTeacherSitesAtomicReplayRevocationAndChangedIdentity(t *testing.T) {
 		t.Fatal("renamed stale search result", current, err)
 	}
 	conflict.Revision = 3
+	candidates, err := s.TeacherCandidates(ctx, p, "school", "", 500)
+	if err != nil {
+		t.Fatal(err)
+	}
+	conflict.CandidateFingerprint = c.TeacherCandidateFingerprint(candidates)
 	if result, err := s.ImportTeacherSites(ctx, p, conflict); err != nil || result.Eligible != 2 || result.Official != 0 {
 		t.Fatal("official revocation must preserve teaching", result, err)
 	}
@@ -172,5 +183,65 @@ func TestTeacherSitesAtomicReplayRevocationAndChangedIdentity(t *testing.T) {
 	}
 	if _, err := s.TeacherCandidates(ctx, c.Principal{Subject: "reader"}, "school", "", 10); !errors.Is(err, c.ErrForbidden) {
 		t.Fatal("private candidate access", err)
+	}
+}
+
+func TestTeacherDirectoryKeepsAuthorizedMaintenanceOfHiddenTeachers(t *testing.T) {
+	s, p, _ := teacherDirectoryFixture(t)
+	ctx := context.Background()
+	hidden, err := s.AdminRead(ctx, p, "teacher4")
+	if err != nil || hidden.ID != "teacher4" {
+		t.Fatal("maintenance cannot inspect hidden record", hidden, err)
+	}
+	if _, err := s.Read(ctx, p, "teacher4"); !errors.Is(err, c.ErrNotFound) {
+		t.Fatal("maintenance filter leaked into public context", err)
+	}
+	page, err := s.AdminList(ctx, p, c.Filter{Kind: "teacher", SchoolID: "school", Limit: 10})
+	if err != nil || len(page.Items) != 4 {
+		t.Fatal("maintenance list", page, err)
+	}
+	changed, err := s.SetState(ctx, p, "teacher4", "hide", c.ObjectState{Revision: hidden.Revision, Inactive: true, Reason: "synthetic cleanup"})
+	if err != nil || !changed.Inactive {
+		t.Fatal("maintenance cannot deactivate hidden record", changed, err)
+	}
+	source, _ := s.AdminRead(ctx, p, "teacher3")
+	target, _ := s.AdminRead(ctx, p, "teacher")
+	in := c.MergeInput{TargetID: target.ID, SourceRevision: source.Revision, TargetRevision: target.Revision, Reason: "synthetic duplicate"}
+	preview, err := s.PreviewMerge(ctx, p, source.ID, in)
+	if err != nil {
+		t.Fatal("maintenance cannot preview hidden duplicate", err)
+	}
+	in.PreviewToken = preview.PreviewToken
+	if _, err := s.Merge(ctx, p, source.ID, "merge", in); err != nil {
+		t.Fatal("maintenance cannot merge hidden duplicate", err)
+	}
+	if _, err := s.AdminRead(ctx, c.Principal{Subject: "reader"}, "teacher4"); !errors.Is(err, c.ErrForbidden) {
+		t.Fatal("unprivileged maintenance read", err)
+	}
+	// Ordinary source import remains possible while public reads require markers.
+	if _, err := s.Import(ctx, p, "hidden-import", c.Import{SchoolID: "school", SourceID: "approved-source", Revision: 2, FetchedAt: time.Now(), Objects: []c.Object{
+		{ID: "teacher5", Kind: "teacher", SchoolID: "school", Name: "teacher5", DepartmentID: "dept"},
+	}}); err != nil {
+		t.Fatal("source import of unmarked teacher", err)
+	}
+	if _, err := s.Read(ctx, p, "teacher5"); !errors.Is(err, c.ErrNotFound) {
+		t.Fatal("source import bypassed public marker", err)
+	}
+}
+
+func TestTeacherSiteSnapshotRejectsConcurrentHomonym(t *testing.T) {
+	s, p, snapshot := teacherDirectoryFixture(t)
+	ctx := context.Background()
+	if _, err := s.Import(ctx, p, "new-homonym", c.Import{SchoolID: "school", SourceID: "approved-source", Revision: 2, FetchedAt: time.Now(), Objects: []c.Object{
+		{ID: "new-teacher", Kind: "teacher", SchoolID: "school", Name: "teacher3", DepartmentID: "dept"},
+	}}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := s.ImportTeacherSites(ctx, p, snapshot); !errors.Is(err, c.ErrConflict) {
+		t.Fatal("candidate set changed after unique matching", err)
+	}
+	var official int
+	if err := s.Repo.(*postgres.Repository).DB.QueryRow(`SELECT count(*) FROM catalog.teacher_directory WHERE official`).Scan(&official); err != nil || official != 0 {
+		t.Fatal("stale match wrote official evidence", official, err)
 	}
 }

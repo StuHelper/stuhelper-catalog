@@ -31,6 +31,8 @@ type Repository struct {
 type transaction struct {
 	directoryData           *directoryCache
 	requireTeacherDirectory bool
+	pendingTeachers         map[string]bool
+	teachingTime            time.Time
 	tx                      *sql.Tx
 	ctx                     context.Context
 	objects                 map[string]catalog.Record
@@ -82,7 +84,11 @@ func (r *Repository) Transaction(ctx context.Context, run func(catalog.Transacti
 		return safe(e)
 	}
 	defer tx.Rollback()
-	if e = run(&transaction{tx: tx, ctx: ctx, objects: map[string]catalog.Record{}, requireTeacherDirectory: r.RequireTeacherDirectory, directoryData: r.directoryCache()}); e != nil {
+	t := &transaction{tx: tx, ctx: ctx, objects: map[string]catalog.Record{}, requireTeacherDirectory: r.RequireTeacherDirectory && !catalog.TeacherMaintenanceRead(ctx), directoryData: r.directoryCache()}
+	if e = run(t); e != nil {
+		return e
+	}
+	if e = t.flushTeachingDirectory(); e != nil {
 		return e
 	}
 	return safe(tx.Commit())
@@ -146,6 +152,22 @@ func (t *transaction) Object(id string) (catalog.Record, error) {
 }
 func (t *transaction) SaveObject(r catalog.Record) error {
 	o := r.Object
+	if o.Kind == "teacher" || o.Kind == "assignment" {
+		if t.pendingTeachers == nil {
+			t.pendingTeachers = map[string]bool{}
+		}
+		if o.Kind == "teacher" {
+			t.pendingTeachers[o.ID] = true
+		} else {
+			t.pendingTeachers[o.TeacherID] = true
+			if old, ok := t.objects[o.ID]; ok && old.Object.TeacherID != "" {
+				t.pendingTeachers[old.Object.TeacherID] = true
+			}
+		}
+		if o.UpdatedAt.After(t.teachingTime) {
+			t.teachingTime = o.UpdatedAt
+		}
+	}
 	if e := t.save(`INSERT INTO catalog.history(id,revision,data) VALUES($1,$2,$3)`, r, o.ID, o.Revision); e != nil {
 		return e
 	}
