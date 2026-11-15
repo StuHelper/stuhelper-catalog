@@ -63,6 +63,13 @@ scenario_tests:
   ACAD-33:
     - integration_test.go#TestImportRelationsClassificationAndMissingCredits
   ACAD-01:
+    - directory_performance_test.go#TestDirectorySearchPrefixFallsBackWithoutLosingPagination
+    - directory_performance_test.go#TestDirectoryListPoolDeadlineReturnsUnavailable
+    - directory_performance_test.go#TestDirectoryFilterProductionScale
+    - directory_performance_test.go#TestDirectorySearchLiteralUnicodeAliasesAndMigration
+    - directory_performance_test.go#TestDirectoryClassificationsCannotMixTeachingClasses
+    - directory_observability_test.go#TestDirectoryDiagnosticsKeepPhaseWithoutIdentifiers
+    - postgres/directory_diagnostics_test.go#TestDirectoryDatabaseFailureCategoriesAreSanitized
     - directory_test.go#TestDirectorySummaryLookupAndOfferingContext
   ACAD-02:
     - directory_test.go#TestDirectorySummaryLookupAndOfferingContext

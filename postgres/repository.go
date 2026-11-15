@@ -7,7 +7,9 @@ import (
 	_ "embed"
 	"encoding/json"
 	"errors"
+	"log/slog"
 	"strings"
+	"time"
 
 	catalog "github.com/StuHelper/stuhelper-catalog"
 	"github.com/jackc/pgx/v5/pgconn"
@@ -35,13 +37,37 @@ func safe(e error) error {
 		return e
 	}
 	var pg *pgconn.PgError
-	if errors.As(e, &pg) && (pg.Code == "23505" || pg.Code == "40001" || pg.Code == "40P01") {
-		return catalog.ErrConflict
+	if errors.As(e, &pg) {
+		switch pg.Code {
+		case "23505", "40001", "40P01":
+			return catalog.ErrConflict
+		case "57014":
+			return catalog.DirectoryFailure{Reason: "query_canceled"}
+		case "53300":
+			return catalog.DirectoryFailure{Reason: "connections_exhausted"}
+		case "55P03":
+			return catalog.DirectoryFailure{Reason: "lock_unavailable"}
+		case "08000", "08003", "08006", "57P01", "57P02", "57P03":
+			return catalog.DirectoryFailure{Reason: "database_unavailable"}
+		}
 	}
 	return catalog.ErrUnavailable
 }
 func (r *Repository) Transaction(ctx context.Context, run func(catalog.Transaction) error) error {
+	start := time.Now()
 	tx, e := r.DB.BeginTx(ctx, nil)
+	if e != nil || time.Since(start) >= 300*time.Millisecond {
+		stats := r.DB.Stats()
+		reason := "slow"
+		if errors.Is(e, context.DeadlineExceeded) {
+			reason = "deadline_exceeded"
+		} else if errors.Is(e, context.Canceled) {
+			reason = "canceled"
+		} else if e != nil {
+			reason = "database_unavailable"
+		}
+		slog.WarnContext(ctx, "catalog database transaction begin", "reason", reason, "duration_ms", time.Since(start).Milliseconds(), "pool_in_use", stats.InUse, "pool_max_open", stats.MaxOpenConnections, "pool_wait_count", stats.WaitCount)
+	}
 	if e != nil {
 		return safe(e)
 	}
