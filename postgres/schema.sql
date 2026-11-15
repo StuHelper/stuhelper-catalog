@@ -17,6 +17,19 @@ CREATE UNIQUE INDEX IF NOT EXISTS catalog_assignment_unique ON catalog.objects(c
 CREATE INDEX IF NOT EXISTS catalog_directory ON catalog.objects(kind,school_id,id);
 CREATE INDEX IF NOT EXISTS catalog_classes ON catalog.objects(term_course_id) WHERE kind='class';
 CREATE INDEX IF NOT EXISTS catalog_teacher_classes ON catalog.objects(teacher_id,class_id) WHERE kind='assignment';
+-- Persistent directory evidence is independent of teacher source records. A
+-- failed website refresh cannot remove teaching facts or the last complete set.
+CREATE TABLE IF NOT EXISTS catalog.teacher_directory (
+ teacher_id text PRIMARY KEY REFERENCES catalog.objects(id), school_id text NOT NULL,
+ teaching boolean NOT NULL DEFAULT false, official boolean NOT NULL DEFAULT false,
+ matched_name text NOT NULL DEFAULT '', matched_department_id text NOT NULL DEFAULT '', homepage_url text NOT NULL DEFAULT '',
+ teaching_updated_at timestamptz, official_updated_at timestamptz, updated_at timestamptz NOT NULL
+);
+CREATE INDEX IF NOT EXISTS catalog_teacher_directory_school ON catalog.teacher_directory(school_id,teacher_id) WHERE teaching OR official;
+CREATE TABLE IF NOT EXISTS catalog.teacher_site_sources (
+ school_id text PRIMARY KEY REFERENCES catalog.objects(id), source_id text NOT NULL,
+ revision bigint NOT NULL CHECK(revision>0), digest text NOT NULL, observed_at timestamptz NOT NULL, updated_at timestamptz NOT NULL
+);
 CREATE TABLE IF NOT EXISTS catalog.history(id text NOT NULL, revision bigint NOT NULL, data jsonb NOT NULL, PRIMARY KEY(id,revision));
 CREATE TABLE IF NOT EXISTS catalog.enrollments (
  id text PRIMARY KEY, subject text NOT NULL, school_id text NOT NULL, course_id text NOT NULL,

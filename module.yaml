@@ -32,9 +32,16 @@ capability_requires:
     - id: identity
       api: 1
 specifications:
+  - docs/spec/teacher-directory.md
   - docs/spec/enrollment-source.md
   - docs/spec/activity.md
 scenario_tests:
+  CAT-TEACHER-01:
+    - teacher_directory_test.go#TestTeacherDirectoryUnionFiltersEveryReadBeforePagination
+  CAT-TEACHER-02:
+    - teacher_directory_test.go#TestTeacherSitesAtomicReplayRevocationAndChangedIdentity
+  CAT-TEACHER-03:
+    - teacher_directory_test.go#TestTeacherSitesAtomicReplayRevocationAndChangedIdentity
   CAT-SOURCE-01:
     - enrollment_source_test.go#TestOwnSourceRefreshIsAtomicScopedAndDurablyIdempotent
     - source_concurrency_test.go#TestSourceSnapshotCoordinatesWithOrdinaryImport

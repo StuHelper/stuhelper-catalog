@@ -18,5 +18,13 @@ func (r *Repository) CheckRuntime(ctx context.Context) error {
 	if err != nil || unsafe {
 		return catalog.ErrUnavailable
 	}
+	if r.RequireTeacherDirectory {
+		var ready bool
+		err = r.DB.QueryRowContext(ctx, `SELECT has_table_privilege(current_user,'catalog.teacher_directory','SELECT')
+ AND has_table_privilege(current_user,'catalog.teacher_site_sources','SELECT')`).Scan(&ready)
+		if err != nil || !ready {
+			return catalog.ErrUnavailable
+		}
+	}
 	return nil
 }

@@ -3,6 +3,7 @@ package postgres
 import (
 	catalog "github.com/StuHelper/stuhelper-catalog"
 	"github.com/jackc/pgx/v5"
+	"strings"
 )
 
 // Filters follow the same offering and teaching class; independent EXISTS clauses
@@ -16,7 +17,7 @@ func (t *transaction) List(f catalog.Filter) ([]catalog.Object, error) {
 			return nil, safe(err)
 		}
 		if f.Query != "" && f.DepartmentID == "" && f.CategoryID == "" && f.NatureID == "" && f.TeacherID == "" && f.IDs == nil {
-			q, args := directoryPageQuery(f, true)
+			q, args := directoryPageQuery(f, true, t.requireTeacherDirectory)
 			rows, err := list[catalog.Object](t, q, append([]any{pgx.QueryExecModeExec}, args...)...)
 			if err != nil {
 				return nil, err
@@ -25,7 +26,7 @@ func (t *transaction) List(f catalog.Filter) ([]catalog.Object, error) {
 				return rows, nil
 			}
 		}
-		q, args := directoryPageQuery(f, false)
+		q, args := directoryPageQuery(f, false, t.requireTeacherDirectory)
 		// Selectivity differs substantially across departments and categories.
 		// Keep bind parameters, but plan each page for its actual values.
 		return list[catalog.Object](t, q, append([]any{pgx.QueryExecModeExec}, args...)...)
@@ -67,11 +68,11 @@ func (t *transaction) List(f catalog.Filter) ([]catalog.Object, error) {
    OR (o.kind='teacher' AND EXISTS(SELECT 1 FROM catalog.objects a JOIN catalog.objects cl ON cl.id=a.class_id WHERE a.kind='assignment' AND a.teacher_id IN (SELECT o.id::text UNION SELECT alias_id FROM catalog.redirects WHERE canonical_id=o.id) AND cl.term_course_id IN (SELECT $12::text UNION SELECT alias_id FROM catalog.redirects WHERE canonical_id=$12))))
  AND ($13='' OR o.class_id IN (SELECT $13::text UNION SELECT alias_id FROM catalog.redirects WHERE canonical_id=$13) OR o.id=$13
    OR (o.kind='teacher' AND EXISTS(SELECT 1 FROM catalog.objects a WHERE a.kind='assignment' AND a.teacher_id IN (SELECT o.id::text UNION SELECT alias_id FROM catalog.redirects WHERE canonical_id=o.id) AND a.class_id IN (SELECT $13::text UNION SELECT alias_id FROM catalog.redirects WHERE canonical_id=$13))))
- `+directoryCandidates(f)+` ORDER BY o.id LIMIT $11`, f.Kind, f.SchoolID, f.After, f.Query, f.CourseID, f.DepartmentID, f.TermID, f.CategoryID, f.NatureID, f.TeacherID, f.Limit+1, f.TermCourseID, f.ClassID, f.IncludeInactive, f.IDs)
+ `+directoryCandidates(f)+t.teacherVisibility("o")+` ORDER BY o.id LIMIT $11`, f.Kind, f.SchoolID, f.After, f.Query, f.CourseID, f.DepartmentID, f.TermID, f.CategoryID, f.NatureID, f.TeacherID, f.Limit+1, f.TermCourseID, f.ClassID, f.IncludeInactive, f.IDs)
 }
 
 func (t *transaction) Lookup(ids []string) ([]catalog.Object, error) {
-	return list[catalog.Object](t, `SELECT catalog.public_object(o.data->'object') || CASE WHEN o.id<>requested.id THEN jsonb_build_object('id',requested.id,'canonical_id',o.id) ELSE '{}'::jsonb END FROM unnest($1::text[]) requested(id) JOIN catalog.objects o ON o.id=catalog.canonical(requested.id) ORDER BY requested.id`, ids)
+	return list[catalog.Object](t, `SELECT catalog.public_object(o.data->'object') || CASE WHEN o.id<>requested.id THEN jsonb_build_object('id',requested.id,'canonical_id',o.id) ELSE '{}'::jsonb END FROM unnest($1::text[]) requested(id) JOIN catalog.objects o ON o.id=catalog.canonical(requested.id) WHERE true`+t.teacherVisibility("o")+` ORDER BY requested.id`, ids)
 }
 
 func (t *transaction) Summary(object catalog.Object) (catalog.Summary, error) {
@@ -98,6 +99,9 @@ func (t *transaction) Summary(object catalog.Object) (catalog.Summary, error) {
 	query := summaryCourseSQL
 	if object.Kind == "teacher" {
 		query = summaryTeacherSQL
+	}
+	if t.requireTeacherDirectory {
+		query = strings.ReplaceAll(query, "count(DISTINCT catalog.canonical(a.teacher_id))", "count(DISTINCT CASE WHEN EXISTS(SELECT 1 FROM catalog.objects teacher WHERE teacher.id=catalog.canonical(a.teacher_id) AND "+markedTeacherSQL("teacher")+") THEN catalog.canonical(a.teacher_id) END)")
 	}
 	if object.Kind == "course" || object.Kind == "teacher" {
 		err = t.tx.QueryRowContext(t.ctx, query, id).Scan(&out.CourseCount, &out.TeacherCount, &out.OfferingCount)

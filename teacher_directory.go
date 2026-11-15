@@ -1,0 +1,138 @@
+package catalog
+
+import (
+	"context"
+	"net/url"
+	"slices"
+	"strings"
+	"time"
+)
+
+// TeacherCandidate is an authorized maintenance projection. Source staff numbers
+// stay in the school adapter; consumers match only the name and owning unit.
+type TeacherCandidate struct {
+	ID           string `json:"id"`
+	Name         string `json:"name"`
+	DepartmentID string `json:"department_id"`
+	Unit         string `json:"unit"`
+	Title        string `json:"title"`
+	Teaching     bool   `json:"teaching"`
+}
+
+type TeacherSiteMatch struct {
+	TeacherID    string `json:"teacher_id"`
+	Name         string `json:"name"`
+	DepartmentID string `json:"department_id"`
+	URL          string `json:"url"`
+}
+
+// TeacherSiteSnapshot replaces one complete, verified website membership set.
+// An interrupted crawl must not be submitted as a snapshot. Revision is the
+// observation's Unix microsecond timestamp, not a local import attempt counter.
+type TeacherSiteSnapshot struct {
+	SchoolID   string             `json:"school_id"`
+	SourceID   string             `json:"source_id"`
+	Revision   int64              `json:"revision"`
+	ObservedAt time.Time          `json:"observed_at"`
+	Matches    []TeacherSiteMatch `json:"matches"`
+}
+
+type TeacherDirectoryResult struct {
+	Teaching int `json:"teaching"`
+	Official int `json:"official"`
+	Both     int `json:"both"`
+	Eligible int `json:"eligible"`
+}
+
+// TeacherDirectoryTransaction is implemented by the owning repository. It is
+// separate from the ordinary read port because callers must hold import scope.
+type TeacherDirectoryTransaction interface {
+	TeacherCandidates(string, string, int) ([]TeacherCandidate, error)
+	RefreshTeachingDirectory(string, time.Time) (TeacherDirectoryResult, bool, error)
+	ReplaceTeacherSites(TeacherSiteSnapshot, string, time.Time) (TeacherDirectoryResult, error)
+}
+
+func (s *Service) TeacherCandidates(ctx context.Context, p Principal, school, after string, limit int) ([]TeacherCandidate, error) {
+	if !p.CanImport || p.Subject == "" || !allowed(p, school) {
+		return nil, ErrForbidden
+	}
+	if !ValidID(school) || after != "" && !ValidID(after) || limit < 1 || limit > 500 {
+		return nil, ErrInput
+	}
+	var out []TeacherCandidate
+	err := s.Repo.Transaction(ctx, func(t Transaction) error {
+		port, ok := t.(TeacherDirectoryTransaction)
+		if !ok {
+			return ErrUnavailable
+		}
+		var e error
+		out, e = port.TeacherCandidates(school, after, limit)
+		return e
+	})
+	return out, err
+}
+
+func (s *Service) RefreshTeachingDirectory(ctx context.Context, p Principal, school string) (TeacherDirectoryResult, error) {
+	var out TeacherDirectoryResult
+	if !p.CanImport || p.Subject == "" || !allowed(p, school) {
+		return out, ErrForbidden
+	}
+	if !ValidID(school) {
+		return out, ErrInput
+	}
+	err := s.Repo.Transaction(ctx, func(t Transaction) error {
+		if e := t.Lock(school); e != nil {
+			return e
+		}
+		port, ok := t.(TeacherDirectoryTransaction)
+		if !ok {
+			return ErrUnavailable
+		}
+		var e error
+		var changed bool
+		out, changed, e = port.RefreshTeachingDirectory(school, s.now())
+		if e != nil {
+			return e
+		}
+		if !changed {
+			return nil
+		}
+		return t.Event(Event{ID: "teacher-directory:" + digest([]any{school, s.now(), p.Subject}), Subject: "school/" + school,
+			Type: "catalog.teacher-directory.refreshed.v1", SchoolID: school, Actor: p.Subject, Result: "success", Time: s.now(), Revision: s.now().UnixMicro()})
+	})
+	return out, err
+}
+
+func (s *Service) ImportTeacherSites(ctx context.Context, p Principal, in TeacherSiteSnapshot) (TeacherDirectoryResult, error) {
+	var out TeacherDirectoryResult
+	if !p.CanImport || p.Subject == "" || !allowed(p, in.SchoolID) {
+		return out, ErrForbidden
+	}
+	if !ValidID(in.SchoolID) || !ValidID(in.SourceID) || in.Revision < 1 || in.ObservedAt.IsZero() ||
+		in.ObservedAt.After(s.now().Add(5*time.Minute)) || len(in.Matches) > 20000 {
+		return out, ErrInput
+	}
+	in.Matches = append([]TeacherSiteMatch{}, in.Matches...)
+	slices.SortFunc(in.Matches, func(a, b TeacherSiteMatch) int { return strings.Compare(a.TeacherID, b.TeacherID) })
+	for i, match := range in.Matches {
+		u, e := url.Parse(match.URL)
+		if !ValidID(match.TeacherID) || !ValidID(match.DepartmentID) || !validText(match.Name, 256) || strings.TrimSpace(match.Name) == "" ||
+			e != nil || u.Scheme != "https" || u.Host != "shi.buaa.edu.cn" || u.User != nil || u.RawQuery != "" || u.Fragment != "" ||
+			!strings.HasSuffix(u.Path, "/index.htm") || i > 0 && in.Matches[i-1].TeacherID == match.TeacherID {
+			return out, ErrInput
+		}
+	}
+	err := s.Repo.Transaction(ctx, func(t Transaction) error {
+		if e := t.Lock(in.SchoolID); e != nil {
+			return e
+		}
+		port, ok := t.(TeacherDirectoryTransaction)
+		if !ok {
+			return ErrUnavailable
+		}
+		var e error
+		out, e = port.ReplaceTeacherSites(in, p.Subject, s.now())
+		return e
+	})
+	return out, err
+}

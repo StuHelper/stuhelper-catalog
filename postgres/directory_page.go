@@ -9,7 +9,7 @@ import (
 // Build only predicates used by this page. A single optional-filter statement
 // retains unrelated joins/subplans and can trigger expensive JIT compilation.
 // Values remain bind parameters; column names below are module-owned constants.
-func directoryPageQuery(f catalog.Filter, prefix bool) (string, []any) {
+func directoryPageQuery(f catalog.Filter, prefix, requireTeacherDirectory bool) (string, []any) {
 	var search string
 	args := []any{}
 	bind := func(v any) string { args = append(args, v); return fmt.Sprintf("$%d", len(args)) }
@@ -21,6 +21,9 @@ func directoryPageQuery(f catalog.Filter, prefix bool) (string, []any) {
 		kind = "'course'"
 	}
 	where := []string{"o.kind=" + kind, "NOT EXISTS(SELECT 1 FROM catalog.redirects r WHERE r.alias_id=o.id)"}
+	if f.Kind == "teacher" && requireTeacherDirectory {
+		where = append(where, markedTeacherSQL("o"))
+	}
 	if f.SchoolID != "" {
 		where = append(where, "o.school_id="+bind(f.SchoolID))
 	}
