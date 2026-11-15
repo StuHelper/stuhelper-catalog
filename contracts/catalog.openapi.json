@@ -2285,8 +2285,8 @@
               }
             }
           },
-          "503": {
-            "description": "Required dependency unavailable",
+          "422": {
+            "description": "schedule_incomplete",
             "content": {
               "application/json": {
                 "schema": {
@@ -2295,8 +2295,8 @@
               }
             }
           },
-          "422": {
-            "description": "schedule_incomplete",
+          "503": {
+            "description": "Required dependency unavailable",
             "content": {
               "application/json": {
                 "schema": {
@@ -2717,7 +2717,7 @@
             }
           }
         ],
-        "description": "Current visible course/teacher directory, stable sort with ID tie-break and filter-bound cursor. Categories count distinct courses after all filters except category_id. Department groups respect all current filters. Classification filters apply to the same offering/class. Teacher rows and counts require T2 persisted marking; absent marker enforcement returns 503. Scores are read in bounded batches from owning modules, without per-row queries or cross-request caching."
+        "description": "Current visible course/teacher directory, stable sort with ID tie-break and filter-bound cursor. Categories count distinct courses after all filters except category_id. Department groups respect all current filters. Classification filters apply to the same offering/class. Teacher rows and counts require T2 persisted marking; absent marker enforcement returns 503. Scores are read in bounded batches from owning modules, without per-row queries. Catalog membership is cached with transactional revision invalidation; ratings and heat are always current."
       }
     },
     "/api/v1/catalog/me/recent-courses": {
@@ -4046,6 +4046,11 @@
           "generated_at": {
             "type": "string",
             "format": "date-time"
+          },
+          "facet_total": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Distinct objects after all filters except category_id, for the All category badge."
           }
         },
         "required": [
@@ -4054,7 +4059,8 @@
           "total",
           "category_facets",
           "department_facets",
-          "generated_at"
+          "generated_at",
+          "facet_total"
         ]
       },
       "RecentCourse": {

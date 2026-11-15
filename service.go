@@ -16,6 +16,8 @@ import (
 )
 
 type Service struct {
+	DirectoryMetrics DirectoryMetricProvider
+	DirectoryConfig  DirectoryConfig
 	RecentResources  RecentResourceCounts
 	EnrollmentSource EnrollmentSource
 	ActivityLogger   *slog.Logger

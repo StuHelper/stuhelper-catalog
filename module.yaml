@@ -1,5 +1,5 @@
 id: catalog
-version: 0.4.4
+version: 0.5.0
 kind: module
 api: 1
 critical: false
@@ -13,11 +13,18 @@ optional:
     api: 1
   - id: identity
     api: 1
+  - id: reviews
+    api: 1
+  - id: favorites
+    api: 1
+  - id: resources
+    api: 1
 capabilities:
   - catalog.read
   - catalog.import
   - catalog.enrollments
   - catalog.maintain
+  - catalog.directory
 capability_requires:
   catalog.read:
     - id: identity
@@ -31,10 +38,18 @@ capability_requires:
   catalog.maintain:
     - id: identity
       api: 1
+  catalog.directory:
+    - id: identity
+      api: 1
+    - id: reviews
+      api: 1
+    - id: favorites
+      api: 1
 specifications:
   - docs/spec/teacher-directory.md
   - docs/spec/enrollment-source.md
   - docs/spec/activity.md
+  - docs/spec/ui-data.md
 scenario_tests:
   CAT-TEACHER-01:
     - teacher_directory_test.go#TestTeacherDirectoryUnionFiltersEveryReadBeforePagination
@@ -134,3 +149,18 @@ scenario_tests:
     - own_observability_test.go#TestOwnDiagnosticsKeepPhaseAndRemoveSensitiveErrors
   CAT-SOURCE-06:
     - own_performance_test.go#TestOwnScheduleSkewedClassPlanIsBounded
+  CAT-UI-01:
+    - ui_backend_test.go#TestUIDirectoryFacetsSortingVisibilityAndPagination
+    - ui_backend_test.go#TestUIDirectorySameClassFacetCounts
+  CAT-UI-02:
+    - ui_backend_test.go#TestUIRecentCoursesOwnerRetentionConcurrencyAndClear
+    - ui_backend_test.go#TestUIOverviewHTTPRejectsUnownedAndUnavailableSources
+  CAT-UI-03:
+    - ui_consistency_test.go#TestUINextClassDayAuthorizedSourceAndTimeBoundary
+  CAT-UI-04:
+    - ui_consistency_test.go#TestUIDirectoryCacheInvalidatesMetadataAndTeacherMarkers
+    - ui_consistency_test.go#TestUIDirectoryConcurrentCacheAndCancellation
+  CAT-UI-05:
+    - ui_performance_test.go#TestUIDirectoryProductionScale
+  CAT-UI-06:
+    - ui_consistency_test.go#TestUIViewTokensAreDailyAndOldKeysExpire

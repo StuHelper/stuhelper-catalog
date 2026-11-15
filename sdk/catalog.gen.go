@@ -261,10 +261,13 @@ type DirectoryItem struct {
 type DirectoryPage struct {
 	CategoryFacets   []DirectoryFacet `json:"category_facets"`
 	DepartmentFacets []DirectoryFacet `json:"department_facets"`
-	GeneratedAt      time.Time        `json:"generated_at"`
-	Items            []DirectoryItem  `json:"items"`
-	Next             string           `json:"next"`
-	Total            int              `json:"total"`
+
+	// FacetTotal Distinct objects after all filters except category_id, for the All category badge.
+	FacetTotal  int             `json:"facet_total"`
+	GeneratedAt time.Time       `json:"generated_at"`
+	Items       []DirectoryItem `json:"items"`
+	Next        string          `json:"next"`
+	Total       int             `json:"total"`
 }
 
 // Enrollment defines model for Enrollment.
@@ -842,7 +845,7 @@ type ClientInterface interface {
 
 	// ListDirectory performs a GET /api/v1/catalog/directory (the `ListDirectory` operationId) request.
 	//
-	// Current visible course/teacher directory, stable sort with ID tie-break and filter-bound cursor. Categories count distinct courses after all filters except category_id. Department groups respect all current filters. Classification filters apply to the same offering/class. Teacher rows and counts require T2 persisted marking; absent marker enforcement returns 503. Scores are read in bounded batches from owning modules, without per-row queries or cross-request caching.
+	// Current visible course/teacher directory, stable sort with ID tie-break and filter-bound cursor. Categories count distinct courses after all filters except category_id. Department groups respect all current filters. Classification filters apply to the same offering/class. Teacher rows and counts require T2 persisted marking; absent marker enforcement returns 503. Scores are read in bounded batches from owning modules, without per-row queries. Catalog membership is cached with transactional revision invalidation; ratings and heat are always current.
 	ListDirectory(ctx context.Context, params *ListDirectoryParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// ImportCatalogWithBody performs a POST /api/v1/catalog/imports (the `ImportCatalog` operationId) request,
@@ -1091,7 +1094,7 @@ func (c *Client) PutTimetable(ctx context.Context, schoolId string, termId strin
 
 // ListDirectory performs a GET /api/v1/catalog/directory (the `ListDirectory` operationId) request.
 //
-// Current visible course/teacher directory, stable sort with ID tie-break and filter-bound cursor. Categories count distinct courses after all filters except category_id. Department groups respect all current filters. Classification filters apply to the same offering/class. Teacher rows and counts require T2 persisted marking; absent marker enforcement returns 503. Scores are read in bounded batches from owning modules, without per-row queries or cross-request caching.
+// Current visible course/teacher directory, stable sort with ID tie-break and filter-bound cursor. Categories count distinct courses after all filters except category_id. Department groups respect all current filters. Classification filters apply to the same offering/class. Teacher rows and counts require T2 persisted marking; absent marker enforcement returns 503. Scores are read in bounded batches from owning modules, without per-row queries. Catalog membership is cached with transactional revision invalidation; ratings and heat are always current.
 func (c *Client) ListDirectory(ctx context.Context, params *ListDirectoryParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewListDirectoryRequest(c.Server, params)
 	if err != nil {
@@ -3360,7 +3363,7 @@ type ClientWithResponsesInterface interface {
 
 	// ListDirectoryWithResponse performs a GET /api/v1/catalog/directory (the `ListDirectory` operationId) request.
 	//
-	// Current visible course/teacher directory, stable sort with ID tie-break and filter-bound cursor. Categories count distinct courses after all filters except category_id. Department groups respect all current filters. Classification filters apply to the same offering/class. Teacher rows and counts require T2 persisted marking; absent marker enforcement returns 503. Scores are read in bounded batches from owning modules, without per-row queries or cross-request caching.
+	// Current visible course/teacher directory, stable sort with ID tie-break and filter-bound cursor. Categories count distinct courses after all filters except category_id. Department groups respect all current filters. Classification filters apply to the same offering/class. Teacher rows and counts require T2 persisted marking; absent marker enforcement returns 503. Scores are read in bounded batches from owning modules, without per-row queries. Catalog membership is cached with transactional revision invalidation; ratings and heat are always current.
 	//
 	// Returns a wrapper object for the known response body format(s).
 	ListDirectoryWithResponse(ctx context.Context, params *ListDirectoryParams, reqEditors ...RequestEditorFn) (*ListDirectoryResponse, error)
@@ -5957,7 +5960,7 @@ func (c *ClientWithResponses) PutTimetableWithResponse(ctx context.Context, scho
 
 // ListDirectoryWithResponse performs a GET /api/v1/catalog/directory (the `ListDirectory` operationId) request.
 //
-// Current visible course/teacher directory, stable sort with ID tie-break and filter-bound cursor. Categories count distinct courses after all filters except category_id. Department groups respect all current filters. Classification filters apply to the same offering/class. Teacher rows and counts require T2 persisted marking; absent marker enforcement returns 503. Scores are read in bounded batches from owning modules, without per-row queries or cross-request caching.
+// Current visible course/teacher directory, stable sort with ID tie-break and filter-bound cursor. Categories count distinct courses after all filters except category_id. Department groups respect all current filters. Classification filters apply to the same offering/class. Teacher rows and counts require T2 persisted marking; absent marker enforcement returns 503. Scores are read in bounded batches from owning modules, without per-row queries. Catalog membership is cached with transactional revision invalidation; ratings and heat are always current.
 //
 // Returns a wrapper object for the known response body format(s).
 func (c *ClientWithResponses) ListDirectoryWithResponse(ctx context.Context, params *ListDirectoryParams, reqEditors ...RequestEditorFn) (*ListDirectoryResponse, error) {

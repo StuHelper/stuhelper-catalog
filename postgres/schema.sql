@@ -103,7 +103,10 @@ REVOKE ALL ON catalog.view_dedup FROM PUBLIC;
 
 CREATE TABLE IF NOT EXISTS catalog.view_retention(singleton boolean PRIMARY KEY DEFAULT true CHECK(singleton),before_day date NOT NULL DEFAULT '0001-01-01');
 INSERT INTO catalog.view_retention(singleton) VALUES(true) ON CONFLICT DO NOTHING;
+ALTER TABLE catalog.view_retention ADD COLUMN IF NOT EXISTS legacy_until_day date NOT NULL DEFAULT ((CURRENT_TIMESTAMP AT TIME ZONE 'UTC')::date);
 REVOKE ALL ON catalog.view_retention FROM PUBLIC;
+CREATE TABLE IF NOT EXISTS catalog.view_day_keys(day date PRIMARY KEY,key bytea NOT NULL CHECK(octet_length(key)=32));
+REVOKE ALL ON catalog.view_day_keys FROM PUBLIC;
 
 -- Classification candidates include inherited offering/class values. Keep the
 -- selector before school so trusted internal cross-school reads also use it.
@@ -132,3 +135,25 @@ CREATE INDEX IF NOT EXISTS catalog_name_tokens ON catalog.objects USING gin(cata
 
 -- Cover the class-to-offering candidate join without reading JSON heap rows.
 CREATE INDEX IF NOT EXISTS catalog_offering_course_lookup ON catalog.objects(id) INCLUDE(course_id) WHERE kind='term_course';
+
+-- Facets scan bounded classification columns, not the JSON payload of every
+-- class/offering. Existing list/search indexes remain unchanged.
+CREATE INDEX IF NOT EXISTS catalog_active_directory ON catalog.objects(kind,school_id,id) INCLUDE(name,department_id,category_id,nature_id)
+ WHERE kind IN ('course','teacher') AND NOT COALESCE((data->'object'->>'inactive')::boolean,false);
+CREATE INDEX IF NOT EXISTS catalog_directory_offering_facets ON catalog.objects(school_id,course_id,id) INCLUDE(department_id,category_id,nature_id)
+ WHERE kind='term_course' AND NOT COALESCE((data->'object'->>'inactive')::boolean,false);
+CREATE INDEX IF NOT EXISTS catalog_directory_class_facets ON catalog.objects(school_id,term_course_id,id) INCLUDE(department_id,category_id,nature_id)
+ WHERE kind='class' AND NOT COALESCE((data->'object'->>'inactive')::boolean,false);
+CREATE INDEX IF NOT EXISTS catalog_activity_window ON catalog.activity_buckets(school_id,kind,day,target_id) INCLUDE(first_count) WHERE visible;
+
+-- Changes invalidate cached membership in the same transaction as the object,
+-- alias or T2 visibility update. Runtime code only reads this generation.
+CREATE TABLE IF NOT EXISTS catalog.directory_revision(singleton boolean PRIMARY KEY DEFAULT true CHECK(singleton),revision bigint NOT NULL DEFAULT 1);
+INSERT INTO catalog.directory_revision(singleton) VALUES(true) ON CONFLICT DO NOTHING;
+CREATE OR REPLACE FUNCTION catalog.invalidate_directory() RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog AS $$
+BEGIN UPDATE catalog.directory_revision SET revision=revision+1 WHERE singleton; RETURN NULL; END $$;
+REVOKE ALL ON FUNCTION catalog.invalidate_directory() FROM PUBLIC;
+CREATE OR REPLACE TRIGGER invalidate_directory AFTER INSERT OR UPDATE OR DELETE OR TRUNCATE ON catalog.objects FOR EACH STATEMENT EXECUTE FUNCTION catalog.invalidate_directory();
+CREATE OR REPLACE TRIGGER invalidate_directory AFTER INSERT OR UPDATE OR DELETE OR TRUNCATE ON catalog.redirects FOR EACH STATEMENT EXECUTE FUNCTION catalog.invalidate_directory();
+CREATE OR REPLACE TRIGGER invalidate_directory AFTER INSERT OR UPDATE OR DELETE OR TRUNCATE ON catalog.teacher_directory FOR EACH STATEMENT EXECUTE FUNCTION catalog.invalidate_directory();
+REVOKE ALL ON TABLE catalog.directory_revision FROM PUBLIC;

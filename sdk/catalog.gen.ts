@@ -362,7 +362,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** @description Current visible course/teacher directory, stable sort with ID tie-break and filter-bound cursor. Categories count distinct courses after all filters except category_id. Department groups respect all current filters. Classification filters apply to the same offering/class. Teacher rows and counts require T2 persisted marking; absent marker enforcement returns 503. Scores are read in bounded batches from owning modules, without per-row queries or cross-request caching. */
+        /** @description Current visible course/teacher directory, stable sort with ID tie-break and filter-bound cursor. Categories count distinct courses after all filters except category_id. Department groups respect all current filters. Classification filters apply to the same offering/class. Teacher rows and counts require T2 persisted marking; absent marker enforcement returns 503. Scores are read in bounded batches from owning modules, without per-row queries. Catalog membership is cached with transactional revision invalidation; ratings and heat are always current. */
         get: operations["listDirectory"];
         put?: never;
         post?: never;
@@ -657,6 +657,8 @@ export interface components {
             department_facets: components["schemas"]["DirectoryFacet"][];
             /** Format: date-time */
             generated_at: string;
+            /** @description Distinct objects after all filters except category_id, for the All category badge. */
+            facet_total: number;
         };
         RecentCourse: {
             course: components["schemas"]["Object"];
