@@ -630,10 +630,7 @@ type Object struct {
 	Location     *string `json:"location,omitempty"`
 	Name         string  `json:"name"`
 	NatureId     *string `json:"nature_id,omitempty"`
-
-	// ReadOnly 课程或学期不满足当前目录截止规则时为 true。当前有内容权限的用户可通过历史链接、评价或收藏读取旧课程详情；旧课程不进入目录、搜索、热门和推荐，不能发布新评价。
-	ReadOnly *bool `json:"read_only,omitempty"`
-	Revision int   `json:"revision"`
+	Revision     int     `json:"revision"`
 
 	// ScheduleTime ISO weekday Monday=1. Explicit week set; odd/even weeks are expanded by importer. End period >= start. Missing structure means not provided. Recognized time_text grammar: 周一 第1-2节 第1-16周(单), with optional 单/双 suffix.
 	ScheduleTime *ScheduleTime `json:"schedule_time,omitempty"`
@@ -1303,7 +1300,7 @@ type ClientInterface interface {
 
 	// GetObject performs a GET /api/v1/catalog/objects/{id} (the `GetObject` operationId) request.
 	//
-	// Requires current content admission in the served school: valid campus eligibility or verified teacher status. Missing admission returns 403; unavailable required facts return 503. No preview, content, counts or statistics are returned on rejection. 教师公开查询由服务端目录标记过滤：有授课记录或已匹配官网名单即可保留。列表、详情、批量查询、筛选选项及计数使用相同依据。未标记的教师详情返回 not_found。
+	// Requires current content admission in the served school: valid campus eligibility or verified teacher status. Missing admission returns 403; unavailable required facts return 503. No preview, content, counts or statistics are returned on rejection. 教师公开查询由服务端目录标记过滤：有授课记录或已匹配官网名单即可保留。列表、详情、批量查询、筛选选项及计数使用相同依据。未标记的教师详情返回 not_found。 Courses outside the current visible directory projection return not_found, including direct links.
 	GetObject(ctx context.Context, id string, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// CorrectObjectWithBody performs a PATCH /api/v1/catalog/objects/{id} (the `CorrectObject` operationId) request,
@@ -1345,7 +1342,7 @@ type ClientInterface interface {
 
 	// GetObjectSummary performs a GET /api/v1/catalog/objects/{id}/summary (the `GetObjectSummary` operationId) request.
 	//
-	// Requires current content admission in the served school: valid campus eligibility or verified teacher status. Missing admission returns 403; unavailable required facts return 503. No preview, content, counts or statistics are returned on rejection. 教师公开查询由服务端目录标记过滤：有授课记录或已匹配官网名单即可保留。列表、详情、批量查询、筛选选项及计数使用相同依据。未标记的教师详情返回 not_found。
+	// Requires current content admission in the served school: valid campus eligibility or verified teacher status. Missing admission returns 403; unavailable required facts return 503. No preview, content, counts or statistics are returned on rejection. 教师公开查询由服务端目录标记过滤：有授课记录或已匹配官网名单即可保留。列表、详情、批量查询、筛选选项及计数使用相同依据。未标记的教师详情返回 not_found。 Courses outside the current visible directory projection return not_found, including direct links.
 	GetObjectSummary(ctx context.Context, id string, reqEditors ...RequestEditorFn) (*http.Response, error)
 }
 
@@ -1799,7 +1796,7 @@ func (c *Client) LookupObjects(ctx context.Context, params *LookupObjectsParams,
 
 // GetObject performs a GET /api/v1/catalog/objects/{id} (the `GetObject` operationId) request.
 //
-// Requires current content admission in the served school: valid campus eligibility or verified teacher status. Missing admission returns 403; unavailable required facts return 503. No preview, content, counts or statistics are returned on rejection. 教师公开查询由服务端目录标记过滤：有授课记录或已匹配官网名单即可保留。列表、详情、批量查询、筛选选项及计数使用相同依据。未标记的教师详情返回 not_found。
+// Requires current content admission in the served school: valid campus eligibility or verified teacher status. Missing admission returns 403; unavailable required facts return 503. No preview, content, counts or statistics are returned on rejection. 教师公开查询由服务端目录标记过滤：有授课记录或已匹配官网名单即可保留。列表、详情、批量查询、筛选选项及计数使用相同依据。未标记的教师详情返回 not_found。 Courses outside the current visible directory projection return not_found, including direct links.
 func (c *Client) GetObject(ctx context.Context, id string, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewGetObjectRequest(c.Server, id)
 	if err != nil {
@@ -1941,7 +1938,7 @@ func (c *Client) SetObjectState(ctx context.Context, id string, params *SetObjec
 
 // GetObjectSummary performs a GET /api/v1/catalog/objects/{id}/summary (the `GetObjectSummary` operationId) request.
 //
-// Requires current content admission in the served school: valid campus eligibility or verified teacher status. Missing admission returns 403; unavailable required facts return 503. No preview, content, counts or statistics are returned on rejection. 教师公开查询由服务端目录标记过滤：有授课记录或已匹配官网名单即可保留。列表、详情、批量查询、筛选选项及计数使用相同依据。未标记的教师详情返回 not_found。
+// Requires current content admission in the served school: valid campus eligibility or verified teacher status. Missing admission returns 403; unavailable required facts return 503. No preview, content, counts or statistics are returned on rejection. 教师公开查询由服务端目录标记过滤：有授课记录或已匹配官网名单即可保留。列表、详情、批量查询、筛选选项及计数使用相同依据。未标记的教师详情返回 not_found。 Courses outside the current visible directory projection return not_found, including direct links.
 func (c *Client) GetObjectSummary(ctx context.Context, id string, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewGetObjectSummaryRequest(c.Server, id)
 	if err != nil {
@@ -4202,7 +4199,7 @@ type ClientWithResponsesInterface interface {
 
 	// GetObjectWithResponse performs a GET /api/v1/catalog/objects/{id} (the `GetObject` operationId) request.
 	//
-	// Requires current content admission in the served school: valid campus eligibility or verified teacher status. Missing admission returns 403; unavailable required facts return 503. No preview, content, counts or statistics are returned on rejection. 教师公开查询由服务端目录标记过滤：有授课记录或已匹配官网名单即可保留。列表、详情、批量查询、筛选选项及计数使用相同依据。未标记的教师详情返回 not_found。
+	// Requires current content admission in the served school: valid campus eligibility or verified teacher status. Missing admission returns 403; unavailable required facts return 503. No preview, content, counts or statistics are returned on rejection. 教师公开查询由服务端目录标记过滤：有授课记录或已匹配官网名单即可保留。列表、详情、批量查询、筛选选项及计数使用相同依据。未标记的教师详情返回 not_found。 Courses outside the current visible directory projection return not_found, including direct links.
 	//
 	// Returns a wrapper object for the known response body format(s).
 	GetObjectWithResponse(ctx context.Context, id string, reqEditors ...RequestEditorFn) (*GetObjectResponse, error)
@@ -4256,7 +4253,7 @@ type ClientWithResponsesInterface interface {
 
 	// GetObjectSummaryWithResponse performs a GET /api/v1/catalog/objects/{id}/summary (the `GetObjectSummary` operationId) request.
 	//
-	// Requires current content admission in the served school: valid campus eligibility or verified teacher status. Missing admission returns 403; unavailable required facts return 503. No preview, content, counts or statistics are returned on rejection. 教师公开查询由服务端目录标记过滤：有授课记录或已匹配官网名单即可保留。列表、详情、批量查询、筛选选项及计数使用相同依据。未标记的教师详情返回 not_found。
+	// Requires current content admission in the served school: valid campus eligibility or verified teacher status. Missing admission returns 403; unavailable required facts return 503. No preview, content, counts or statistics are returned on rejection. 教师公开查询由服务端目录标记过滤：有授课记录或已匹配官网名单即可保留。列表、详情、批量查询、筛选选项及计数使用相同依据。未标记的教师详情返回 not_found。 Courses outside the current visible directory projection return not_found, including direct links.
 	//
 	// Returns a wrapper object for the known response body format(s).
 	GetObjectSummaryWithResponse(ctx context.Context, id string, reqEditors ...RequestEditorFn) (*GetObjectSummaryResponse, error)
@@ -7298,7 +7295,7 @@ func (c *ClientWithResponses) LookupObjectsWithResponse(ctx context.Context, par
 
 // GetObjectWithResponse performs a GET /api/v1/catalog/objects/{id} (the `GetObject` operationId) request.
 //
-// Requires current content admission in the served school: valid campus eligibility or verified teacher status. Missing admission returns 403; unavailable required facts return 503. No preview, content, counts or statistics are returned on rejection. 教师公开查询由服务端目录标记过滤：有授课记录或已匹配官网名单即可保留。列表、详情、批量查询、筛选选项及计数使用相同依据。未标记的教师详情返回 not_found。
+// Requires current content admission in the served school: valid campus eligibility or verified teacher status. Missing admission returns 403; unavailable required facts return 503. No preview, content, counts or statistics are returned on rejection. 教师公开查询由服务端目录标记过滤：有授课记录或已匹配官网名单即可保留。列表、详情、批量查询、筛选选项及计数使用相同依据。未标记的教师详情返回 not_found。 Courses outside the current visible directory projection return not_found, including direct links.
 //
 // Returns a wrapper object for the known response body format(s).
 func (c *ClientWithResponses) GetObjectWithResponse(ctx context.Context, id string, reqEditors ...RequestEditorFn) (*GetObjectResponse, error) {
@@ -7412,7 +7409,7 @@ func (c *ClientWithResponses) SetObjectStateWithResponse(ctx context.Context, id
 
 // GetObjectSummaryWithResponse performs a GET /api/v1/catalog/objects/{id}/summary (the `GetObjectSummary` operationId) request.
 //
-// Requires current content admission in the served school: valid campus eligibility or verified teacher status. Missing admission returns 403; unavailable required facts return 503. No preview, content, counts or statistics are returned on rejection. 教师公开查询由服务端目录标记过滤：有授课记录或已匹配官网名单即可保留。列表、详情、批量查询、筛选选项及计数使用相同依据。未标记的教师详情返回 not_found。
+// Requires current content admission in the served school: valid campus eligibility or verified teacher status. Missing admission returns 403; unavailable required facts return 503. No preview, content, counts or statistics are returned on rejection. 教师公开查询由服务端目录标记过滤：有授课记录或已匹配官网名单即可保留。列表、详情、批量查询、筛选选项及计数使用相同依据。未标记的教师详情返回 not_found。 Courses outside the current visible directory projection return not_found, including direct links.
 //
 // Returns a wrapper object for the known response body format(s).
 func (c *ClientWithResponses) GetObjectSummaryWithResponse(ctx context.Context, id string, reqEditors ...RequestEditorFn) (*GetObjectSummaryResponse, error) {

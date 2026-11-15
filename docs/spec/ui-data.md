@@ -50,7 +50,7 @@ GET /api/v1/catalog/me/recent-courses 读取本人最近课程。PUT /api/v1/cat
 
 记录在九十天边界立即不可读。backend 每五秒调用有界清理，每批最多一千条。写入时同时删除本人的过期记录及超出二十门的记录。清空只要求本人登录，资格撤销后仍可清空。
 
-读取与写入都重新检查课程准入和当前状态。已归档课程不再计入最近访问列表，也不产生新的浏览热度。返回的资源数量由 resources 批量统计，缺少或故障时 resources_state 为 unavailable，resource_count 为 null。空列表与依赖不可用分别表示。
+读取与写入都重新检查课程准入和当前状态。不在当前投影的课程不计入最近访问列表，也不产生新的浏览热度。返回的资源数量由 resources 批量统计，缺少或故障时 resources_state 为 unavailable，resource_count 为 null。空列表与依赖不可用分别表示。
 
 ## 下一上课日与待评价候选
 

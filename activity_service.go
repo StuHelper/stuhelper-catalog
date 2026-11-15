@@ -30,7 +30,7 @@ func (s *Service) ViewMetrics() ViewMetrics {
 	return ViewMetrics{s.viewStats.recorded.Load(), s.viewStats.duplicates.Load(), s.viewStats.failed.Load()}
 }
 func (s *Service) recordView(ctx context.Context, p Principal, o Object) {
-	if p.Subject == "" || o.ReadOnly || (o.Kind != "course" && o.Kind != "teacher") {
+	if p.Subject == "" || (o.Kind != "course" && o.Kind != "teacher") {
 		return
 	}
 	call, cancel := context.WithTimeout(ctx, 250*time.Millisecond)
@@ -72,7 +72,7 @@ func (s *Service) CurrentActivity(ctx context.Context, p Principal, id string) (
 	if e != nil {
 		return empty, false, e
 	}
-	if object.ID != target.ID || object.Kind != target.Kind || object.Inactive || object.ReadOnly || object.CanonicalID != "" {
+	if object.ID != target.ID || object.Kind != target.Kind || object.Inactive || object.CanonicalID != "" {
 		return empty, false, nil
 	}
 	repo, ok := s.Repo.(ActivityReader)

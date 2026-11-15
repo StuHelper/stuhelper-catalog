@@ -203,6 +203,7 @@ CREATE TABLE IF NOT EXISTS catalog.projection_imports (
  school_id text PRIMARY KEY, batch text NOT NULL, state text NOT NULL CHECK(state IN('running','failed','complete')),
  started_at timestamptz NOT NULL, updated_at timestamptz NOT NULL, deadline timestamptz NOT NULL
 );
+ALTER TABLE catalog.projection_imports ADD COLUMN IF NOT EXISTS attempt_id text NOT NULL DEFAULT '';
 CREATE TABLE IF NOT EXISTS catalog.projection_objects (
  version bigint NOT NULL REFERENCES catalog.projection_generations(version) ON DELETE CASCADE,
  id text NOT NULL, school_id text NOT NULL, kind text NOT NULL, name text NOT NULL,

@@ -68,8 +68,8 @@ func projectionFixture(t *testing.T) (*c.Service, c.Principal, *sql.DB, c.Projec
 	return s, p, admin, report
 }
 
-func TestDirectoryProjectionCutoffOrderingCountsAndArchivedDetails(t *testing.T) {
-	s, p, _, report := projectionFixture(t)
+func TestDirectoryProjectionCutoffOrderingCountsAndAbsentOldCourses(t *testing.T) {
+	s, p, admin, report := projectionFixture(t)
 	ctx := context.Background()
 	if report.Courses != 1 || report.Teachers != 2 || report.InvalidTerms != 1 || report.Marks != (c.TeacherDirectoryResult{Teaching: 1, Official: 1, Both: 0, Eligible: 2}) {
 		t.Fatalf("report: %+v", report)
@@ -123,13 +123,29 @@ func TestDirectoryProjectionCutoffOrderingCountsAndArchivedDetails(t *testing.T)
 		}
 	}
 	for _, id := range []string{"old", "invalid"} {
-		object, err := s.Read(ctx, p, id)
-		if err != nil || !object.ReadOnly {
-			t.Fatal("archive link", object, err)
+		if _, err := s.Read(ctx, p, id); !errors.Is(err, c.ErrNotFound) {
+			t.Fatal("old course detail must be absent", id, err)
 		}
-		page, err := s.ReadList(ctx, p, c.Filter{Kind: "course", Query: object.Name, Limit: 100})
+		if _, err := s.ReadSummary(ctx, p, id); !errors.Is(err, c.ErrNotFound) {
+			t.Fatal("old course summary must be absent", id, err)
+		}
+		page, err := s.ReadList(ctx, p, c.Filter{Kind: "course", IDs: []string{id}, Limit: 100})
 		if err != nil || len(page.Items) != 0 {
-			t.Fatal("archive in search", page, err)
+			t.Fatal("old course in list", page, err)
+		}
+	}
+	var oldRows int
+	if err := admin.QueryRow(`SELECT count(*) FROM catalog.projection_objects WHERE version=$1 AND kind='course' AND NOT visible`, report.Version).Scan(&oldRows); err != nil || oldRows != 0 {
+		t.Fatal("projection retained invisible courses", oldRows, err)
+	}
+	lookup, err := s.ReadLookup(ctx, p, []string{"old", "invalid"})
+	if err != nil || len(lookup.Items) != 0 || len(lookup.MissingIDs) != 2 {
+		t.Fatal("old course in public lookup", lookup, err)
+	}
+	for _, sort := range []string{"hot", "name", "recommend", "reviews"} {
+		page, err := s.ReadDirectory(ctx, p, c.DirectoryQuery{Filter: c.Filter{Kind: "course", Limit: 100}, Sort: sort})
+		if err != nil || page.Total != 1 || len(page.Items) != 1 || page.Items[0].Object.ID != "course" {
+			t.Fatal("old course in directory sort", sort, page, err)
 		}
 	}
 	summary, err := s.ReadSummary(ctx, p, "course")
@@ -147,8 +163,8 @@ func TestDirectoryProjectionCutoffOrderingCountsAndArchivedDetails(t *testing.T)
 	if _, err = s.Read(ctx, p, "legacy"); !errors.Is(err, c.ErrNotFound) {
 		t.Fatal("old teacher detail", err)
 	}
-	if yes, err := s.HasTaught(ctx, []string{"legacy"}, "old"); err != nil || !yes {
-		t.Fatal("historic teacher disclosure evidence lost", yes, err)
+	if yes, err := s.HasTaught(ctx, []string{"legacy"}, "old"); err != nil || yes {
+		t.Fatal("old course retained in teaching projection", yes, err)
 	}
 	docs, err := s.DiscoveryCurrent(ctx, p, []string{"course", "old", "teacher", "legacy", "official"})
 	if err != nil || len(docs) != 3 {
@@ -337,7 +353,7 @@ func TestDirectoryProjectionFailedSourceImportFencesPublicationUntilRetry(t *tes
 		t.Fatal("retry did not atomically publish", result, err)
 	}
 	object, err = s.Read(ctx, p, "pending")
-	if err != nil || object.ReadOnly {
+	if err != nil || object.ID != "pending" {
 		t.Fatal(object, err)
 	}
 }

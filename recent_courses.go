@@ -43,7 +43,7 @@ func (s *Service) saveRecentCourse(ctx context.Context, p Principal, object Obje
 	if p.Subject == "" {
 		return ErrUnauthenticated
 	}
-	if object.Kind != "course" || object.Inactive || object.ReadOnly {
+	if object.Kind != "course" || object.Inactive {
 		return ErrInput
 	}
 	return s.Repo.Transaction(ctx, func(tx Transaction) error {
@@ -56,7 +56,7 @@ func (s *Service) saveRecentCourse(ctx context.Context, p Principal, object Obje
 }
 
 func (s *Service) recordRecentCourse(ctx context.Context, p Principal, object Object) {
-	if object.Kind != "course" || object.ReadOnly {
+	if object.Kind != "course" {
 		return
 	}
 	call, cancel := context.WithTimeout(ctx, 250*time.Millisecond)

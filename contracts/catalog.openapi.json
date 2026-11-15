@@ -292,7 +292,7 @@
             }
           }
         ],
-        "description": "Requires current content admission in the served school: valid campus eligibility or verified teacher status. Missing admission returns 403; unavailable required facts return 503. No preview, content, counts or statistics are returned on rejection. 教师公开查询由服务端目录标记过滤：有授课记录或已匹配官网名单即可保留。列表、详情、批量查询、筛选选项及计数使用相同依据。未标记的教师详情返回 not_found。"
+        "description": "Requires current content admission in the served school: valid campus eligibility or verified teacher status. Missing admission returns 403; unavailable required facts return 503. No preview, content, counts or statistics are returned on rejection. 教师公开查询由服务端目录标记过滤：有授课记录或已匹配官网名单即可保留。列表、详情、批量查询、筛选选项及计数使用相同依据。未标记的教师详情返回 not_found。 Courses outside the current visible directory projection return not_found, including direct links."
       },
       "patch": {
         "operationId": "correctObject",
@@ -820,7 +820,7 @@
             "bearerAuth": []
           }
         ],
-        "description": "Requires current content admission in the served school: valid campus eligibility or verified teacher status. Missing admission returns 403; unavailable required facts return 503. No preview, content, counts or statistics are returned on rejection. 教师公开查询由服务端目录标记过滤：有授课记录或已匹配官网名单即可保留。列表、详情、批量查询、筛选选项及计数使用相同依据。未标记的教师详情返回 not_found。"
+        "description": "Requires current content admission in the served school: valid campus eligibility or verified teacher status. Missing admission returns 403; unavailable required facts return 503. No preview, content, counts or statistics are returned on rejection. 教师公开查询由服务端目录标记过滤：有授课记录或已匹配官网名单即可保留。列表、详情、批量查询、筛选选项及计数使用相同依据。未标记的教师详情返回 not_found。 Courses outside the current visible directory projection return not_found, including direct links."
       }
     },
     "/api/v1/catalog/objects/{id}/merge-preview": {
@@ -3618,11 +3618,6 @@
           },
           "schedule_time": {
             "$ref": "#/components/schemas/ScheduleTime"
-          },
-          "read_only": {
-            "type": "boolean",
-            "readOnly": true,
-            "description": "课程或学期不满足当前目录截止规则时为 true。当前有内容权限的用户可通过历史链接、评价或收藏读取旧课程详情；旧课程不进入目录、搜索、热门和推荐，不能发布新评价。"
           },
           "term_order_key": {
             "type": "integer",

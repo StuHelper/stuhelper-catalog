@@ -2,6 +2,8 @@ package catalog
 
 import (
 	"context"
+	"crypto/rand"
+	"errors"
 	"time"
 )
 
@@ -66,7 +68,7 @@ type DirectoryProjectionTransaction interface {
 	RebuildDirectory(string, *DirectoryPolicy, time.Time) (ProjectionReport, error)
 	RebuildPublishedDirectory(string, time.Time) (*ProjectionReport, error)
 	DirectoryProjection(string) (ProjectionReport, error)
-	BeginDirectoryImport(string, string, time.Time) error
+	BeginDirectoryImport(string, string, string, time.Time) error
 	EndDirectoryImport(string, string, bool, time.Time) error
 }
 
@@ -92,13 +94,22 @@ func (s *Service) RunDirectoryImport(ctx context.Context, p Principal, school, b
 	if !ValidID(school) || !ValidKey(batch) || run == nil {
 		return out, ErrInput
 	}
-	ctx = context.WithValue(DeferDirectoryRebuild(ctx), directoryImportKey{}, batch)
+	var nonce [32]byte
+	if _, err := rand.Read(nonce[:]); err != nil {
+		return out, ErrUnavailable
+	}
+	// Source batches are stable across retries, but each execution needs its own
+	// fence so an expired worker cannot join a replacement using the same batch.
+	attempt := digest([]any{school, batch, nonce})
+	ctx, cancel := context.WithTimeout(ctx, 2*time.Hour)
+	defer cancel()
+	ctx = context.WithValue(DeferDirectoryRebuild(ctx), directoryImportKey{}, attempt)
 	err := s.Repo.Transaction(ctx, func(t Transaction) error {
 		port, ok := t.(DirectoryProjectionTransaction)
 		if !ok {
 			return ErrUnavailable
 		}
-		return port.BeginDirectoryImport(school, batch, s.now())
+		return port.BeginDirectoryImport(school, batch, attempt, s.now())
 	})
 	if err != nil {
 		return out, err
@@ -115,7 +126,7 @@ func (s *Service) RunDirectoryImport(ctx context.Context, p Principal, school, b
 			if e != nil {
 				return e
 			}
-			return port.EndDirectoryImport(school, batch, true, s.now())
+			return port.EndDirectoryImport(school, attempt, true, s.now())
 		})
 	}
 	if err != nil {
@@ -126,8 +137,8 @@ func (s *Service) RunDirectoryImport(ctx context.Context, p Principal, school, b
 			if !ok {
 				return ErrUnavailable
 			}
-			return port.EndDirectoryImport(school, batch, false, s.now())
-		}); e != nil {
+			return port.EndDirectoryImport(school, attempt, false, s.now())
+		}); e != nil && !errors.Is(e, ErrConflict) {
 			return out, ErrUnavailable
 		}
 	}
