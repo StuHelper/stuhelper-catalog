@@ -1,5 +1,5 @@
 id: catalog
-version: 0.4.3
+version: 0.4.4
 kind: module
 api: 1
 critical: false
@@ -118,3 +118,5 @@ scenario_tests:
     - own_performance_test.go#TestUnchangedSnapshotDoesNotWaitForDirectoryWriter
     - own_performance_test.go#TestOwnSchedulePreservesClassAliasesAndCurrentVisibility
     - own_observability_test.go#TestOwnDiagnosticsKeepPhaseAndRemoveSensitiveErrors
+  CAT-SOURCE-06:
+    - own_performance_test.go#TestOwnScheduleSkewedClassPlanIsBounded

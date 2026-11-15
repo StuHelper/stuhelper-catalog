@@ -120,3 +120,42 @@ func TestOwnSchedulePreservesClassAliasesAndCurrentVisibility(t *testing.T) {
 		t.Fatal("class merge crossed owner boundary", err)
 	}
 }
+
+func TestOwnScheduleSkewedClassPlanIsBounded(t *testing.T) {
+	s, admin, in := fixture(t)
+	owner := c.Principal{Subject: "issuer:skewed-student"}
+	in.Enrollments = nil
+	for i := 0; i < 100; i++ {
+		in.Enrollments = append(in.Enrollments, c.Enrollment{ID: fmt.Sprintf("skewed-enrollment-%03d", i), Subject: owner.Subject, SchoolID: "school", CourseID: "course", TermID: "term1", ClassID: "class1", Active: true})
+	}
+	in.Objects = append(in.Objects, c.Object{ID: "owned-single-meeting", Kind: "schedule", SchoolID: "school", Name: "Own meeting", ClassID: "class1", Location: "Own room"})
+	if _, err := s.Import(context.Background(), admin, "skewed-seed", in); err != nil {
+		t.Fatal(err)
+	}
+	db := s.Repo.(*postgres.Repository).DB
+	db.SetMaxOpenConns(1)
+	if _, err := db.Exec(`INSERT INTO catalog.objects(id,school_id,kind,name,department_id,category_id,nature_id,course_id,term_id,term_course_id,class_id,teacher_id,data)
+ SELECT 'background-'||n,'school','schedule','Background','','','','','','','class2','',
+ jsonb_build_object('object',jsonb_build_object('id','background-'||n,'school_id','school','kind','schedule','class_id','class2','name','Background','location','Other room'))
+ FROM generate_series(1,100000) n;
+ ANALYZE catalog.objects; ANALYZE catalog.enrollments;
+ SET plan_cache_mode=force_custom_plan`); err != nil {
+		t.Fatal(err)
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+	start := time.Now()
+	page, err := s.MySchedule(ctx, owner, "term1", "", 100)
+	if err != nil {
+		t.Fatal("custom plan repeated the skewed directory scan", err)
+	}
+	if len(page.Items) != 100 {
+		t.Fatal("incomplete page")
+	}
+	for _, item := range page.Items {
+		if len(item.Meetings) != 1 || item.Meetings[0].Location != "Own room" {
+			t.Fatal("skewed query changed ownership")
+		}
+	}
+	t.Logf("100 own selections with 100000 meetings in another class: %s", time.Since(start))
+}
