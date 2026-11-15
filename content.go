@@ -75,6 +75,7 @@ func (s *Service) Read(ctx context.Context, p Principal, id string) (Object, err
 		return object, e
 	}
 	s.recordView(ctx, p, object)
+	s.recordRecentCourse(ctx, p, object)
 	return object, nil
 }
 func (s *Service) ReadSummary(ctx context.Context, p Principal, id string) (Summary, error) {
@@ -87,6 +88,7 @@ func (s *Service) ReadSummary(ctx context.Context, p Principal, id string) (Summ
 		return summary, e
 	}
 	s.recordView(ctx, p, object)
+	s.recordRecentCourse(ctx, p, object)
 	return summary, nil
 }
 func (s *Service) ReadResolution(ctx context.Context, p Principal, id string) (Resolution, error) {

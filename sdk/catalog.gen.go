@@ -15,7 +15,29 @@ import (
 	"time"
 
 	"github.com/oapi-codegen/runtime"
+	openapi_types "github.com/oapi-codegen/runtime/types"
 )
+
+// Defines values for NextClassDayState.
+const (
+	NextClassDayStateAvailable   NextClassDayState = "available"
+	NextClassDayStateEmpty       NextClassDayState = "empty"
+	NextClassDayStateUnavailable NextClassDayState = "unavailable"
+)
+
+// Valid indicates whether the value is a known member of the NextClassDayState enum.
+func (e NextClassDayState) Valid() bool {
+	switch e {
+	case NextClassDayStateAvailable:
+		return true
+	case NextClassDayStateEmpty:
+		return true
+	case NextClassDayStateUnavailable:
+		return true
+	default:
+		return false
+	}
+}
 
 // Defines values for ObjectKind.
 const (
@@ -56,6 +78,51 @@ func (e ObjectKind) Valid() bool {
 	case ObjectKindTerm:
 		return true
 	case ObjectKindTermCourse:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for RecentCoursesResourcesState.
+const (
+	RecentCoursesResourcesStateAvailable   RecentCoursesResourcesState = "available"
+	RecentCoursesResourcesStateUnavailable RecentCoursesResourcesState = "unavailable"
+)
+
+// Valid indicates whether the value is a known member of the RecentCoursesResourcesState enum.
+func (e RecentCoursesResourcesState) Valid() bool {
+	switch e {
+	case RecentCoursesResourcesStateAvailable:
+		return true
+	case RecentCoursesResourcesStateUnavailable:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for Recommendation.
+const (
+	Average             Recommendation = "average"
+	NotRecommended      Recommendation = "not_recommended"
+	Recommended         Recommendation = "recommended"
+	StronglyRecommended Recommendation = "strongly_recommended"
+	Unrated             Recommendation = "unrated"
+)
+
+// Valid indicates whether the value is a known member of the Recommendation enum.
+func (e Recommendation) Valid() bool {
+	switch e {
+	case Average:
+		return true
+	case NotRecommended:
+		return true
+	case Recommended:
+		return true
+	case StronglyRecommended:
+		return true
+	case Unrated:
 		return true
 	default:
 		return false
@@ -107,6 +174,48 @@ func (e SummaryDepartmentKind) Valid() bool {
 	}
 }
 
+// Defines values for ListDirectoryParamsKind.
+const (
+	ListDirectoryParamsKindCourse  ListDirectoryParamsKind = "course"
+	ListDirectoryParamsKindTeacher ListDirectoryParamsKind = "teacher"
+)
+
+// Valid indicates whether the value is a known member of the ListDirectoryParamsKind enum.
+func (e ListDirectoryParamsKind) Valid() bool {
+	switch e {
+	case ListDirectoryParamsKindCourse:
+		return true
+	case ListDirectoryParamsKindTeacher:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ListDirectoryParamsSort.
+const (
+	Hot       ListDirectoryParamsSort = "hot"
+	Name      ListDirectoryParamsSort = "name"
+	Recommend ListDirectoryParamsSort = "recommend"
+	Reviews   ListDirectoryParamsSort = "reviews"
+)
+
+// Valid indicates whether the value is a known member of the ListDirectoryParamsSort enum.
+func (e ListDirectoryParamsSort) Valid() bool {
+	switch e {
+	case Hot:
+		return true
+	case Name:
+		return true
+	case Recommend:
+		return true
+	case Reviews:
+		return true
+	default:
+		return false
+	}
+}
+
 // Correction defines model for Correction.
 type Correction struct {
 	Biography  *string `json:"biography,omitempty"`
@@ -120,6 +229,42 @@ type Correction struct {
 	Name         *string  `json:"name,omitempty"`
 	NatureId     *string  `json:"nature_id,omitempty"`
 	Revision     int      `json:"revision"`
+}
+
+// DirectoryBand defines model for DirectoryBand.
+type DirectoryBand struct {
+	Courses int `json:"courses"`
+	Level   int `json:"level"`
+	Samples int `json:"samples"`
+}
+
+// DirectoryFacet defines model for DirectoryFacet.
+type DirectoryFacet struct {
+	Count       int    `json:"count"`
+	Id          string `json:"id"`
+	Name        string `json:"name"`
+	ReviewCount int    `json:"review_count"`
+}
+
+// DirectoryItem defines model for DirectoryItem.
+type DirectoryItem struct {
+	Categories     []Object        `json:"categories"`
+	Departments    []Object        `json:"departments"`
+	Dimensions     []DirectoryBand `json:"dimensions"`
+	Heat           float32         `json:"heat"`
+	Object         Object          `json:"object"`
+	Recommendation Recommendation  `json:"recommendation"`
+	ReviewCount    int             `json:"review_count"`
+}
+
+// DirectoryPage defines model for DirectoryPage.
+type DirectoryPage struct {
+	CategoryFacets   []DirectoryFacet `json:"category_facets"`
+	DepartmentFacets []DirectoryFacet `json:"department_facets"`
+	GeneratedAt      time.Time        `json:"generated_at"`
+	Items            []DirectoryItem  `json:"items"`
+	Next             string           `json:"next"`
+	Total            int              `json:"total"`
 }
 
 // Enrollment defines model for Enrollment.
@@ -204,6 +349,30 @@ type MergePreview struct {
 	Target       Object `json:"target"`
 }
 
+// NextClassDay defines model for NextClassDay.
+type NextClassDay struct {
+	Date     *openapi_types.Date `json:"date"`
+	Items    []NextLesson        `json:"items"`
+	Reason   string              `json:"reason"`
+	State    NextClassDayState   `json:"state"`
+	TimeZone string              `json:"time_zone"`
+}
+
+// NextClassDayState defines model for NextClassDay.State.
+type NextClassDayState string
+
+// NextLesson defines model for NextLesson.
+type NextLesson struct {
+	CourseId    string    `json:"course_id"`
+	CourseName  string    `json:"course_name"`
+	EndPeriod   int       `json:"end_period"`
+	EndsAt      time.Time `json:"ends_at"`
+	Location    string    `json:"location"`
+	StartPeriod int       `json:"start_period"`
+	StartsAt    time.Time `json:"starts_at"`
+	Teachers    []Object  `json:"teachers"`
+}
+
 // Object defines model for Object.
 type Object struct {
 	Aliases      []string   `json:"aliases"`
@@ -271,6 +440,35 @@ type Period struct {
 	Number int    `json:"number"`
 	Start  string `json:"start"`
 }
+
+// RecentCleared defines model for RecentCleared.
+type RecentCleared struct {
+	Cleared bool `json:"cleared"`
+}
+
+// RecentCourse defines model for RecentCourse.
+type RecentCourse struct {
+	Course        Object    `json:"course"`
+	ResourceCount *int      `json:"resource_count"`
+	VisitedAt     time.Time `json:"visited_at"`
+}
+
+// RecentCourses defines model for RecentCourses.
+type RecentCourses struct {
+	Items          []RecentCourse              `json:"items"`
+	ResourcesState RecentCoursesResourcesState `json:"resources_state"`
+}
+
+// RecentCoursesResourcesState defines model for RecentCourses.ResourcesState.
+type RecentCoursesResourcesState string
+
+// RecentRecorded defines model for RecentRecorded.
+type RecentRecorded struct {
+	Recorded bool `json:"recorded"`
+}
+
+// Recommendation defines model for Recommendation.
+type Recommendation string
 
 // Reference defines model for Reference.
 type Reference struct {
@@ -389,6 +587,26 @@ type AdminLookupObjectsParams struct {
 	// Ids Comma-separated public object IDs, at most 100. Missing objects are reported without failing the full batch.
 	Ids string `form:"ids" json:"ids"`
 }
+
+// ListDirectoryParams defines parameters for ListDirectory.
+type ListDirectoryParams struct {
+	Kind         ListDirectoryParamsKind  `form:"kind" json:"kind"`
+	SchoolId     *string                  `form:"school_id,omitempty" json:"school_id,omitempty"`
+	Q            *string                  `form:"q,omitempty" json:"q,omitempty"`
+	DepartmentId *string                  `form:"department_id,omitempty" json:"department_id,omitempty"`
+	CategoryId   *string                  `form:"category_id,omitempty" json:"category_id,omitempty"`
+	NatureId     *string                  `form:"nature_id,omitempty" json:"nature_id,omitempty"`
+	TeacherId    *string                  `form:"teacher_id,omitempty" json:"teacher_id,omitempty"`
+	Sort         *ListDirectoryParamsSort `form:"sort,omitempty" json:"sort,omitempty"`
+	After        *string                  `form:"after,omitempty" json:"after,omitempty"`
+	Limit        *int                     `form:"limit,omitempty" json:"limit,omitempty"`
+}
+
+// ListDirectoryParamsKind defines parameters for ListDirectory.
+type ListDirectoryParamsKind string
+
+// ListDirectoryParamsSort defines parameters for ListDirectory.
+type ListDirectoryParamsSort string
 
 // ImportCatalogParams defines parameters for ImportCatalog.
 type ImportCatalogParams struct {
@@ -622,6 +840,11 @@ type ClientInterface interface {
 	// Requires catalog maintain capability and school scope. Missing configuration returns 404.
 	PutTimetable(ctx context.Context, schoolId string, termId string, body PutTimetableJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
+	// ListDirectory performs a GET /api/v1/catalog/directory (the `ListDirectory` operationId) request.
+	//
+	// Current visible course/teacher directory, stable sort with ID tie-break and filter-bound cursor. Categories count distinct courses after all filters except category_id. Department groups respect all current filters. Classification filters apply to the same offering/class. Teacher rows and counts require T2 persisted marking; absent marker enforcement returns 503. Scores are read in bounded batches from owning modules, without per-row queries or cross-request caching.
+	ListDirectory(ctx context.Context, params *ListDirectoryParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
 	// ImportCatalogWithBody performs a POST /api/v1/catalog/imports (the `ImportCatalog` operationId) request,
 	// with any type of body and a specified content type.
 	//
@@ -652,6 +875,26 @@ type ClientInterface interface {
 
 	// MyEnrollments performs a GET /api/v1/catalog/me/enrollments (the `MyEnrollments` operationId) request.
 	MyEnrollments(ctx context.Context, params *MyEnrollmentsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// GetNextClassDay performs a GET /api/v1/catalog/me/next-class-day (the `GetNextClassDay` operationId) request.
+	//
+	// The next school-local day with a class ending after server now. Uses only the authenticated owner and the existing enrollment authorization/source. Missing authorization/source or incomplete schedule returns state=unavailable with no class data; no fallback timetable or relaxed authorization.
+	GetNextClassDay(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// ClearRecentCourses performs a DELETE /api/v1/catalog/me/recent-courses (the `ClearRecentCourses` operationId) request.
+	//
+	// Idempotently clear only the authenticated owner. Current school eligibility is not required to erase personal history.
+	ClearRecentCourses(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// GetRecentCourses performs a GET /api/v1/catalog/me/recent-courses (the `GetRecentCourses` operationId) request.
+	//
+	// Owner-only, current-readable courses visited in the last 90 days, newest first, at most 20. Only owner key, course ID and server visit time are persisted. Expired/invisible courses are excluded immediately. Resource counts are live, batched and current-visible; a disabled resource provider is explicitly unavailable.
+	GetRecentCourses(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// RecordRecentCourse performs a PUT /api/v1/catalog/me/recent-courses/{id} (the `RecordRecentCourse` operationId) request.
+	//
+	// Record a current-readable course using server time. Per-owner serialization preserves the newest 20 unique canonical courses and removes expired records. Repeated visits replace the timestamp; request payloads cannot set an owner or time.
+	RecordRecentCourse(ctx context.Context, id string, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// MyCatalogReferences performs a GET /api/v1/catalog/me/references (the `MyCatalogReferences` operationId) request.
 	//
@@ -846,6 +1089,21 @@ func (c *Client) PutTimetable(ctx context.Context, schoolId string, termId strin
 	return c.Client.Do(req)
 }
 
+// ListDirectory performs a GET /api/v1/catalog/directory (the `ListDirectory` operationId) request.
+//
+// Current visible course/teacher directory, stable sort with ID tie-break and filter-bound cursor. Categories count distinct courses after all filters except category_id. Department groups respect all current filters. Classification filters apply to the same offering/class. Teacher rows and counts require T2 persisted marking; absent marker enforcement returns 503. Scores are read in bounded batches from owning modules, without per-row queries or cross-request caching.
+func (c *Client) ListDirectory(ctx context.Context, params *ListDirectoryParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewListDirectoryRequest(c.Server, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
 // ImportCatalogWithBody performs a POST /api/v1/catalog/imports (the `ImportCatalog` operationId) request,
 // with any type of body and a specified content type.
 //
@@ -937,6 +1195,66 @@ func (c *Client) PreviewImport(ctx context.Context, params *PreviewImportParams,
 // MyEnrollments performs a GET /api/v1/catalog/me/enrollments (the `MyEnrollments` operationId) request.
 func (c *Client) MyEnrollments(ctx context.Context, params *MyEnrollmentsParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewMyEnrollmentsRequest(c.Server, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// GetNextClassDay performs a GET /api/v1/catalog/me/next-class-day (the `GetNextClassDay` operationId) request.
+//
+// The next school-local day with a class ending after server now. Uses only the authenticated owner and the existing enrollment authorization/source. Missing authorization/source or incomplete schedule returns state=unavailable with no class data; no fallback timetable or relaxed authorization.
+func (c *Client) GetNextClassDay(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetNextClassDayRequest(c.Server)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// ClearRecentCourses performs a DELETE /api/v1/catalog/me/recent-courses (the `ClearRecentCourses` operationId) request.
+//
+// Idempotently clear only the authenticated owner. Current school eligibility is not required to erase personal history.
+func (c *Client) ClearRecentCourses(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewClearRecentCoursesRequest(c.Server)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// GetRecentCourses performs a GET /api/v1/catalog/me/recent-courses (the `GetRecentCourses` operationId) request.
+//
+// Owner-only, current-readable courses visited in the last 90 days, newest first, at most 20. Only owner key, course ID and server visit time are persisted. Expired/invisible courses are excluded immediately. Resource counts are live, batched and current-visible; a disabled resource provider is explicitly unavailable.
+func (c *Client) GetRecentCourses(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetRecentCoursesRequest(c.Server)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// RecordRecentCourse performs a PUT /api/v1/catalog/me/recent-courses/{id} (the `RecordRecentCourse` operationId) request.
+//
+// Record a current-readable course using server time. Per-owner serialization preserves the newest 20 unique canonical courses and removes expired records. Repeated visits replace the timestamp; request payloads cannot set an owner or time.
+func (c *Client) RecordRecentCourse(ctx context.Context, id string, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewRecordRecentCourseRequest(c.Server, id)
 	if err != nil {
 		return nil, err
 	}
@@ -1630,6 +1948,164 @@ func NewPutTimetableRequestWithBody(server string, schoolId string, termId strin
 	return req, nil
 }
 
+// NewListDirectoryRequest constructs an http.Request for the ListDirectory method
+func NewListDirectoryRequest(server string, params *ListDirectoryParams) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/catalog/directory")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		// queryValues collects non-styled parameters (passthrough, JSON)
+		// that are safe to round-trip through url.Values.Encode().
+		queryValues := queryURL.Query()
+		// rawQueryFragments collects pre-encoded query fragments from
+		// styled parameters, preserving literal commas as delimiters
+		// per the OpenAPI spec (e.g. "color=blue,black,brown").
+		var rawQueryFragments []string
+
+		if queryFrag, err := runtime.StyleParamWithOptions("form", true, "kind", params.Kind, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+			return nil, err
+		} else {
+			for _, qp := range strings.Split(queryFrag, "&") {
+				rawQueryFragments = append(rawQueryFragments, qp)
+			}
+		}
+
+		if params.SchoolId != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "school_id", *params.SchoolId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.Q != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "q", *params.Q, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.DepartmentId != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "department_id", *params.DepartmentId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.CategoryId != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "category_id", *params.CategoryId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.NatureId != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "nature_id", *params.NatureId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.TeacherId != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "teacher_id", *params.TeacherId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.Sort != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "sort", *params.Sort, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.After != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "after", *params.After, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.Limit != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "limit", *params.Limit, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "integer", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if encoded := queryValues.Encode(); encoded != "" {
+			rawQueryFragments = append(rawQueryFragments, encoded)
+		}
+		queryURL.RawQuery = strings.Join(rawQueryFragments, "&")
+	}
+
+	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
 // NewImportCatalogRequest calls the generic ImportCatalog builder with application/json body
 func NewImportCatalogRequest(server string, params *ImportCatalogParams, body ImportCatalogJSONRequestBody) (*http.Request, error) {
 	var bodyReader io.Reader
@@ -1884,6 +2360,121 @@ func NewMyEnrollmentsRequest(server string, params *MyEnrollmentsParams) (*http.
 	}
 
 	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewGetNextClassDayRequest constructs an http.Request for the GetNextClassDay method
+func NewGetNextClassDayRequest(server string) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/catalog/me/next-class-day")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewClearRecentCoursesRequest constructs an http.Request for the ClearRecentCourses method
+func NewClearRecentCoursesRequest(server string) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/catalog/me/recent-courses")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodDelete, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewGetRecentCoursesRequest constructs an http.Request for the GetRecentCourses method
+func NewGetRecentCoursesRequest(server string) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/catalog/me/recent-courses")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewRecordRecentCourseRequest constructs an http.Request for the RecordRecentCourse method
+func NewRecordRecentCourseRequest(server string, id string) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "id", id, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/catalog/me/recent-courses/%s", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPut, queryURL.String(), nil)
 	if err != nil {
 		return nil, err
 	}
@@ -2767,6 +3358,13 @@ type ClientWithResponsesInterface interface {
 	// Requires catalog maintain capability and school scope. Missing configuration returns 404.
 	PutTimetableWithResponse(ctx context.Context, schoolId string, termId string, body PutTimetableJSONRequestBody, reqEditors ...RequestEditorFn) (*PutTimetableResponse, error)
 
+	// ListDirectoryWithResponse performs a GET /api/v1/catalog/directory (the `ListDirectory` operationId) request.
+	//
+	// Current visible course/teacher directory, stable sort with ID tie-break and filter-bound cursor. Categories count distinct courses after all filters except category_id. Department groups respect all current filters. Classification filters apply to the same offering/class. Teacher rows and counts require T2 persisted marking; absent marker enforcement returns 503. Scores are read in bounded batches from owning modules, without per-row queries or cross-request caching.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	ListDirectoryWithResponse(ctx context.Context, params *ListDirectoryParams, reqEditors ...RequestEditorFn) (*ListDirectoryResponse, error)
+
 	// ImportCatalogWithBodyWithResponse performs a POST /api/v1/catalog/imports (the `ImportCatalog` operationId) request,
 	// with any type of body and a specified content type.
 	//
@@ -2805,6 +3403,34 @@ type ClientWithResponsesInterface interface {
 	//
 	// Returns a wrapper object for the known response body format(s).
 	MyEnrollmentsWithResponse(ctx context.Context, params *MyEnrollmentsParams, reqEditors ...RequestEditorFn) (*MyEnrollmentsResponse, error)
+
+	// GetNextClassDayWithResponse performs a GET /api/v1/catalog/me/next-class-day (the `GetNextClassDay` operationId) request.
+	//
+	// The next school-local day with a class ending after server now. Uses only the authenticated owner and the existing enrollment authorization/source. Missing authorization/source or incomplete schedule returns state=unavailable with no class data; no fallback timetable or relaxed authorization.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	GetNextClassDayWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*GetNextClassDayResponse, error)
+
+	// ClearRecentCoursesWithResponse performs a DELETE /api/v1/catalog/me/recent-courses (the `ClearRecentCourses` operationId) request.
+	//
+	// Idempotently clear only the authenticated owner. Current school eligibility is not required to erase personal history.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	ClearRecentCoursesWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*ClearRecentCoursesResponse, error)
+
+	// GetRecentCoursesWithResponse performs a GET /api/v1/catalog/me/recent-courses (the `GetRecentCourses` operationId) request.
+	//
+	// Owner-only, current-readable courses visited in the last 90 days, newest first, at most 20. Only owner key, course ID and server visit time are persisted. Expired/invisible courses are excluded immediately. Resource counts are live, batched and current-visible; a disabled resource provider is explicitly unavailable.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	GetRecentCoursesWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*GetRecentCoursesResponse, error)
+
+	// RecordRecentCourseWithResponse performs a PUT /api/v1/catalog/me/recent-courses/{id} (the `RecordRecentCourse` operationId) request.
+	//
+	// Record a current-readable course using server time. Per-owner serialization preserves the newest 20 unique canonical courses and removes expired records. Repeated visits replace the timestamp; request payloads cannot set an owner or time.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	RecordRecentCourseWithResponse(ctx context.Context, id string, reqEditors ...RequestEditorFn) (*RecordRecentCourseResponse, error)
 
 	// MyCatalogReferencesWithResponse performs a GET /api/v1/catalog/me/references (the `MyCatalogReferences` operationId) request.
 	//
@@ -3482,6 +4108,89 @@ func (r PutTimetableResponse) ContentType() string {
 	return ""
 }
 
+type ListDirectoryResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *DirectoryPage
+	// JSON400 the response for an HTTP 400 `application/json` response
+	JSON400 *Error
+	// JSON401 the response for an HTTP 401 `application/json` response
+	JSON401 *Error
+	// JSON403 the response for an HTTP 403 `application/json` response
+	JSON403 *Error
+	// JSON404 the response for an HTTP 404 `application/json` response
+	JSON404 *Error
+	// JSON409 the response for an HTTP 409 `application/json` response
+	JSON409 *Error
+	// JSON503 the response for an HTTP 503 `application/json` response
+	JSON503 *Error
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r ListDirectoryResponse) GetJSON200() *DirectoryPage {
+	return r.JSON200
+}
+
+// GetJSON400 returns the response for an HTTP 400 `application/json` response
+func (r ListDirectoryResponse) GetJSON400() *Error {
+	return r.JSON400
+}
+
+// GetJSON401 returns the response for an HTTP 401 `application/json` response
+func (r ListDirectoryResponse) GetJSON401() *Error {
+	return r.JSON401
+}
+
+// GetJSON403 returns the response for an HTTP 403 `application/json` response
+func (r ListDirectoryResponse) GetJSON403() *Error {
+	return r.JSON403
+}
+
+// GetJSON404 returns the response for an HTTP 404 `application/json` response
+func (r ListDirectoryResponse) GetJSON404() *Error {
+	return r.JSON404
+}
+
+// GetJSON409 returns the response for an HTTP 409 `application/json` response
+func (r ListDirectoryResponse) GetJSON409() *Error {
+	return r.JSON409
+}
+
+// GetJSON503 returns the response for an HTTP 503 `application/json` response
+func (r ListDirectoryResponse) GetJSON503() *Error {
+	return r.JSON503
+}
+
+// GetBody returns the raw response body bytes
+func (r ListDirectoryResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r ListDirectoryResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r ListDirectoryResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r ListDirectoryResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
 type ImportCatalogResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -3808,6 +4517,338 @@ func (r MyEnrollmentsResponse) StatusCode() int {
 
 // ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
 func (r MyEnrollmentsResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type GetNextClassDayResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *NextClassDay
+	// JSON400 the response for an HTTP 400 `application/json` response
+	JSON400 *Error
+	// JSON401 the response for an HTTP 401 `application/json` response
+	JSON401 *Error
+	// JSON403 the response for an HTTP 403 `application/json` response
+	JSON403 *Error
+	// JSON404 the response for an HTTP 404 `application/json` response
+	JSON404 *Error
+	// JSON409 the response for an HTTP 409 `application/json` response
+	JSON409 *Error
+	// JSON503 the response for an HTTP 503 `application/json` response
+	JSON503 *Error
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r GetNextClassDayResponse) GetJSON200() *NextClassDay {
+	return r.JSON200
+}
+
+// GetJSON400 returns the response for an HTTP 400 `application/json` response
+func (r GetNextClassDayResponse) GetJSON400() *Error {
+	return r.JSON400
+}
+
+// GetJSON401 returns the response for an HTTP 401 `application/json` response
+func (r GetNextClassDayResponse) GetJSON401() *Error {
+	return r.JSON401
+}
+
+// GetJSON403 returns the response for an HTTP 403 `application/json` response
+func (r GetNextClassDayResponse) GetJSON403() *Error {
+	return r.JSON403
+}
+
+// GetJSON404 returns the response for an HTTP 404 `application/json` response
+func (r GetNextClassDayResponse) GetJSON404() *Error {
+	return r.JSON404
+}
+
+// GetJSON409 returns the response for an HTTP 409 `application/json` response
+func (r GetNextClassDayResponse) GetJSON409() *Error {
+	return r.JSON409
+}
+
+// GetJSON503 returns the response for an HTTP 503 `application/json` response
+func (r GetNextClassDayResponse) GetJSON503() *Error {
+	return r.JSON503
+}
+
+// GetBody returns the raw response body bytes
+func (r GetNextClassDayResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r GetNextClassDayResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetNextClassDayResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r GetNextClassDayResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type ClearRecentCoursesResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *RecentCleared
+	// JSON400 the response for an HTTP 400 `application/json` response
+	JSON400 *Error
+	// JSON401 the response for an HTTP 401 `application/json` response
+	JSON401 *Error
+	// JSON403 the response for an HTTP 403 `application/json` response
+	JSON403 *Error
+	// JSON404 the response for an HTTP 404 `application/json` response
+	JSON404 *Error
+	// JSON409 the response for an HTTP 409 `application/json` response
+	JSON409 *Error
+	// JSON503 the response for an HTTP 503 `application/json` response
+	JSON503 *Error
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r ClearRecentCoursesResponse) GetJSON200() *RecentCleared {
+	return r.JSON200
+}
+
+// GetJSON400 returns the response for an HTTP 400 `application/json` response
+func (r ClearRecentCoursesResponse) GetJSON400() *Error {
+	return r.JSON400
+}
+
+// GetJSON401 returns the response for an HTTP 401 `application/json` response
+func (r ClearRecentCoursesResponse) GetJSON401() *Error {
+	return r.JSON401
+}
+
+// GetJSON403 returns the response for an HTTP 403 `application/json` response
+func (r ClearRecentCoursesResponse) GetJSON403() *Error {
+	return r.JSON403
+}
+
+// GetJSON404 returns the response for an HTTP 404 `application/json` response
+func (r ClearRecentCoursesResponse) GetJSON404() *Error {
+	return r.JSON404
+}
+
+// GetJSON409 returns the response for an HTTP 409 `application/json` response
+func (r ClearRecentCoursesResponse) GetJSON409() *Error {
+	return r.JSON409
+}
+
+// GetJSON503 returns the response for an HTTP 503 `application/json` response
+func (r ClearRecentCoursesResponse) GetJSON503() *Error {
+	return r.JSON503
+}
+
+// GetBody returns the raw response body bytes
+func (r ClearRecentCoursesResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r ClearRecentCoursesResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r ClearRecentCoursesResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r ClearRecentCoursesResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type GetRecentCoursesResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *RecentCourses
+	// JSON400 the response for an HTTP 400 `application/json` response
+	JSON400 *Error
+	// JSON401 the response for an HTTP 401 `application/json` response
+	JSON401 *Error
+	// JSON403 the response for an HTTP 403 `application/json` response
+	JSON403 *Error
+	// JSON404 the response for an HTTP 404 `application/json` response
+	JSON404 *Error
+	// JSON409 the response for an HTTP 409 `application/json` response
+	JSON409 *Error
+	// JSON503 the response for an HTTP 503 `application/json` response
+	JSON503 *Error
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r GetRecentCoursesResponse) GetJSON200() *RecentCourses {
+	return r.JSON200
+}
+
+// GetJSON400 returns the response for an HTTP 400 `application/json` response
+func (r GetRecentCoursesResponse) GetJSON400() *Error {
+	return r.JSON400
+}
+
+// GetJSON401 returns the response for an HTTP 401 `application/json` response
+func (r GetRecentCoursesResponse) GetJSON401() *Error {
+	return r.JSON401
+}
+
+// GetJSON403 returns the response for an HTTP 403 `application/json` response
+func (r GetRecentCoursesResponse) GetJSON403() *Error {
+	return r.JSON403
+}
+
+// GetJSON404 returns the response for an HTTP 404 `application/json` response
+func (r GetRecentCoursesResponse) GetJSON404() *Error {
+	return r.JSON404
+}
+
+// GetJSON409 returns the response for an HTTP 409 `application/json` response
+func (r GetRecentCoursesResponse) GetJSON409() *Error {
+	return r.JSON409
+}
+
+// GetJSON503 returns the response for an HTTP 503 `application/json` response
+func (r GetRecentCoursesResponse) GetJSON503() *Error {
+	return r.JSON503
+}
+
+// GetBody returns the raw response body bytes
+func (r GetRecentCoursesResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r GetRecentCoursesResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetRecentCoursesResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r GetRecentCoursesResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type RecordRecentCourseResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *RecentRecorded
+	// JSON400 the response for an HTTP 400 `application/json` response
+	JSON400 *Error
+	// JSON401 the response for an HTTP 401 `application/json` response
+	JSON401 *Error
+	// JSON403 the response for an HTTP 403 `application/json` response
+	JSON403 *Error
+	// JSON404 the response for an HTTP 404 `application/json` response
+	JSON404 *Error
+	// JSON409 the response for an HTTP 409 `application/json` response
+	JSON409 *Error
+	// JSON503 the response for an HTTP 503 `application/json` response
+	JSON503 *Error
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r RecordRecentCourseResponse) GetJSON200() *RecentRecorded {
+	return r.JSON200
+}
+
+// GetJSON400 returns the response for an HTTP 400 `application/json` response
+func (r RecordRecentCourseResponse) GetJSON400() *Error {
+	return r.JSON400
+}
+
+// GetJSON401 returns the response for an HTTP 401 `application/json` response
+func (r RecordRecentCourseResponse) GetJSON401() *Error {
+	return r.JSON401
+}
+
+// GetJSON403 returns the response for an HTTP 403 `application/json` response
+func (r RecordRecentCourseResponse) GetJSON403() *Error {
+	return r.JSON403
+}
+
+// GetJSON404 returns the response for an HTTP 404 `application/json` response
+func (r RecordRecentCourseResponse) GetJSON404() *Error {
+	return r.JSON404
+}
+
+// GetJSON409 returns the response for an HTTP 409 `application/json` response
+func (r RecordRecentCourseResponse) GetJSON409() *Error {
+	return r.JSON409
+}
+
+// GetJSON503 returns the response for an HTTP 503 `application/json` response
+func (r RecordRecentCourseResponse) GetJSON503() *Error {
+	return r.JSON503
+}
+
+// GetBody returns the raw response body bytes
+func (r RecordRecentCourseResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r RecordRecentCourseResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r RecordRecentCourseResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r RecordRecentCourseResponse) ContentType() string {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.Header.Get("Content-Type")
 	}
@@ -4914,6 +5955,19 @@ func (c *ClientWithResponses) PutTimetableWithResponse(ctx context.Context, scho
 	return ParsePutTimetableResponse(rsp)
 }
 
+// ListDirectoryWithResponse performs a GET /api/v1/catalog/directory (the `ListDirectory` operationId) request.
+//
+// Current visible course/teacher directory, stable sort with ID tie-break and filter-bound cursor. Categories count distinct courses after all filters except category_id. Department groups respect all current filters. Classification filters apply to the same offering/class. Teacher rows and counts require T2 persisted marking; absent marker enforcement returns 503. Scores are read in bounded batches from owning modules, without per-row queries or cross-request caching.
+//
+// Returns a wrapper object for the known response body format(s).
+func (c *ClientWithResponses) ListDirectoryWithResponse(ctx context.Context, params *ListDirectoryParams, reqEditors ...RequestEditorFn) (*ListDirectoryResponse, error) {
+	rsp, err := c.ListDirectory(ctx, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseListDirectoryResponse(rsp)
+}
+
 // ImportCatalogWithBodyWithResponse performs a POST /api/v1/catalog/imports (the `ImportCatalog` operationId) request,
 // with any type of body and a specified content type.
 //
@@ -4993,6 +6047,58 @@ func (c *ClientWithResponses) MyEnrollmentsWithResponse(ctx context.Context, par
 		return nil, err
 	}
 	return ParseMyEnrollmentsResponse(rsp)
+}
+
+// GetNextClassDayWithResponse performs a GET /api/v1/catalog/me/next-class-day (the `GetNextClassDay` operationId) request.
+//
+// The next school-local day with a class ending after server now. Uses only the authenticated owner and the existing enrollment authorization/source. Missing authorization/source or incomplete schedule returns state=unavailable with no class data; no fallback timetable or relaxed authorization.
+//
+// Returns a wrapper object for the known response body format(s).
+func (c *ClientWithResponses) GetNextClassDayWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*GetNextClassDayResponse, error) {
+	rsp, err := c.GetNextClassDay(ctx, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetNextClassDayResponse(rsp)
+}
+
+// ClearRecentCoursesWithResponse performs a DELETE /api/v1/catalog/me/recent-courses (the `ClearRecentCourses` operationId) request.
+//
+// Idempotently clear only the authenticated owner. Current school eligibility is not required to erase personal history.
+//
+// Returns a wrapper object for the known response body format(s).
+func (c *ClientWithResponses) ClearRecentCoursesWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*ClearRecentCoursesResponse, error) {
+	rsp, err := c.ClearRecentCourses(ctx, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseClearRecentCoursesResponse(rsp)
+}
+
+// GetRecentCoursesWithResponse performs a GET /api/v1/catalog/me/recent-courses (the `GetRecentCourses` operationId) request.
+//
+// Owner-only, current-readable courses visited in the last 90 days, newest first, at most 20. Only owner key, course ID and server visit time are persisted. Expired/invisible courses are excluded immediately. Resource counts are live, batched and current-visible; a disabled resource provider is explicitly unavailable.
+//
+// Returns a wrapper object for the known response body format(s).
+func (c *ClientWithResponses) GetRecentCoursesWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*GetRecentCoursesResponse, error) {
+	rsp, err := c.GetRecentCourses(ctx, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetRecentCoursesResponse(rsp)
+}
+
+// RecordRecentCourseWithResponse performs a PUT /api/v1/catalog/me/recent-courses/{id} (the `RecordRecentCourse` operationId) request.
+//
+// Record a current-readable course using server time. Per-owner serialization preserves the newest 20 unique canonical courses and removes expired records. Repeated visits replace the timestamp; request payloads cannot set an owner or time.
+//
+// Returns a wrapper object for the known response body format(s).
+func (c *ClientWithResponses) RecordRecentCourseWithResponse(ctx context.Context, id string, reqEditors ...RequestEditorFn) (*RecordRecentCourseResponse, error) {
+	rsp, err := c.RecordRecentCourse(ctx, id, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseRecordRecentCourseResponse(rsp)
 }
 
 // MyCatalogReferencesWithResponse performs a GET /api/v1/catalog/me/references (the `MyCatalogReferences` operationId) request.
@@ -5661,6 +6767,74 @@ func ParsePutTimetableResponse(rsp *http.Response) (*PutTimetableResponse, error
 	return response, nil
 }
 
+// ParseListDirectoryResponse parses an HTTP response from a ListDirectoryWithResponse call
+func ParseListDirectoryResponse(rsp *http.Response) (*ListDirectoryResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &ListDirectoryResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest DirectoryPage
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 409:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON409 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON503 = &dest
+
+	}
+
+	return response, nil
+}
+
 // ParseImportCatalogResponse parses an HTTP response from a ImportCatalogWithResponse call
 func ParseImportCatalogResponse(rsp *http.Response) (*ImportCatalogResponse, error) {
 	bodyBytes, err := io.ReadAll(rsp.Body)
@@ -5881,6 +7055,278 @@ func ParseMyEnrollmentsResponse(rsp *http.Response) (*MyEnrollmentsResponse, err
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
 		var dest []Enrollment
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 409:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON409 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON503 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseGetNextClassDayResponse parses an HTTP response from a GetNextClassDayWithResponse call
+func ParseGetNextClassDayResponse(rsp *http.Response) (*GetNextClassDayResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetNextClassDayResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest NextClassDay
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 409:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON409 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON503 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseClearRecentCoursesResponse parses an HTTP response from a ClearRecentCoursesWithResponse call
+func ParseClearRecentCoursesResponse(rsp *http.Response) (*ClearRecentCoursesResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &ClearRecentCoursesResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest RecentCleared
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 409:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON409 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON503 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseGetRecentCoursesResponse parses an HTTP response from a GetRecentCoursesWithResponse call
+func ParseGetRecentCoursesResponse(rsp *http.Response) (*GetRecentCoursesResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetRecentCoursesResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest RecentCourses
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 409:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON409 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON503 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseRecordRecentCourseResponse parses an HTTP response from a RecordRecentCourseWithResponse call
+func ParseRecordRecentCourseResponse(rsp *http.Response) (*RecordRecentCourseResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &RecordRecentCourseResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest RecentRecorded
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}

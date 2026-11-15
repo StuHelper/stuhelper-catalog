@@ -16,6 +16,7 @@ import (
 )
 
 type Service struct {
+	RecentResources  RecentResourceCounts
 	EnrollmentSource EnrollmentSource
 	ActivityLogger   *slog.Logger
 	OwnLogger        *slog.Logger

@@ -1,4 +1,11 @@
 CREATE SCHEMA IF NOT EXISTS catalog;
+CREATE TABLE IF NOT EXISTS catalog.recent_courses (
+ owner text NOT NULL, course_id text NOT NULL, visited_at timestamptz NOT NULL,
+ PRIMARY KEY(owner,course_id)
+);
+CREATE INDEX IF NOT EXISTS catalog_recent_courses_owner ON catalog.recent_courses(owner,visited_at DESC,course_id);
+CREATE INDEX IF NOT EXISTS catalog_recent_courses_expiry ON catalog.recent_courses(visited_at,owner,course_id);
+REVOKE ALL ON TABLE catalog.recent_courses FROM PUBLIC;
 CREATE TABLE IF NOT EXISTS catalog.objects (
  id text PRIMARY KEY, school_id text NOT NULL, kind text NOT NULL, name text NOT NULL,
  department_id text NOT NULL, category_id text NOT NULL, nature_id text NOT NULL,
