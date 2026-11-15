@@ -2,7 +2,7 @@
   "openapi": "3.0.3",
   "info": {
     "title": "StuHelper Catalog",
-    "version": "0.5.0"
+    "version": "0.5.2"
   },
   "servers": [
     {
@@ -3954,7 +3954,8 @@
           },
           "review_count": {
             "type": "integer",
-            "minimum": 0
+            "minimum": 0,
+            "description": "Sum of visible review_count values for distinct directory objects in this facet. A review attributed to several teachers contributes to each teacher. Category facets exclude category_id itself; department facets retain all current filters."
           }
         },
         "required": [

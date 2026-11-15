@@ -240,10 +240,12 @@ type DirectoryBand struct {
 
 // DirectoryFacet defines model for DirectoryFacet.
 type DirectoryFacet struct {
-	Count       int    `json:"count"`
-	Id          string `json:"id"`
-	Name        string `json:"name"`
-	ReviewCount int    `json:"review_count"`
+	Count int    `json:"count"`
+	Id    string `json:"id"`
+	Name  string `json:"name"`
+
+	// ReviewCount Sum of visible review_count values for distinct directory objects in this facet. A review attributed to several teachers contributes to each teacher. Category facets exclude category_id itself; department facets retain all current filters.
+	ReviewCount int `json:"review_count"`
 }
 
 // DirectoryItem defines model for DirectoryItem.
