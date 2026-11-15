@@ -45,6 +45,7 @@ func TestUIRecentCoursesOwnerRetentionConcurrencyAndClear(t *testing.T) {
 	ctx := context.Background()
 	now := time.Date(2026, 11, 15, 3, 0, 0, 0, time.UTC)
 	s.Clock = func() time.Time { return now }
+	input.FetchedAt = now
 	for i := 0; i < 25; i++ {
 		input.Objects = append(input.Objects, c.Object{ID: fmt.Sprintf("recent-%02d", i), Kind: "course", SchoolID: "school", Name: fmt.Sprint(i)})
 	}
