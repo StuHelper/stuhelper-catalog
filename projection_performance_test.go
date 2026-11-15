@@ -111,10 +111,10 @@ func TestDirectoryProjectionProductionScaleBeforeAfter(t *testing.T) {
 		if a.Count != b.Count {
 			t.Errorf("%s changed count from %d to %d", name, b.Count, a.Count)
 		}
-		if a.P95MS > 300 || a.P95MS > b.P95MS*1.5+30 {
+		if a.P95MS > b.P95MS*1.5+30 || (!projectionRaceBuild && a.P95MS > 300) {
 			t.Errorf("%s regression before=%.3f after=%.3f ms", name, b.P95MS, a.P95MS)
 		}
-		if a.FirstMS > 1500 {
+		if !projectionRaceBuild && a.FirstMS > 1500 {
 			t.Errorf("%s cold projection query took %.3f ms", name, a.FirstMS)
 		}
 	}
@@ -125,5 +125,5 @@ func TestDirectoryProjectionProductionScaleBeforeAfter(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	t.Logf("projection_benchmark=%s", raw)
+	t.Logf("projection_race_build=%t projection_benchmark=%s", projectionRaceBuild, raw)
 }
