@@ -1,7 +1,7 @@
 ---
 type: spec
 status: Accepted
-updated: 2026-11-09
+updated: 2026-11-15
 ---
 
 # 热门活动来源
@@ -20,7 +20,7 @@ catalog 只发送 views。事件类型为 discovery.activity.v1，source 固定�
 
 公开 Read 和 ReadSummary 成功返回课程或教师详情时计数，列表、批量引用、内部事实读取、管理读取和 CurrentActivity 不计数。同一已登录账号、同一规范对象、同一 UTC 日只计一次；通过别名读取也使用规范对象 ID 去重。
 
-view_dedup 只保存账号与对象组合的 SHA-256 摘要和 UTC 日期。保留当前日及之前 31 日。PruneViewDedup(ctx, now, limit) 每次最多清理 1000 条，清理不修改已累计 views。
+view_dedup 只保存每日独立密钥生成的 HMAC-SHA256 令牌和 UTC 日期，不保存账号或对象明文映射。令牌只保留当日，PruneViewDedup 每次最多删除一千条过期令牌，不修改已累计 views。
 
 清理同时推进不可回填日期下界。即使服务时钟回退，已清理日期也不能再次累计。目录停用或合并会逐批修订相关日快照的 Visible，恢复时保留原计数，不转移其他对象的计数。
 
@@ -28,7 +28,7 @@ view_dedup 只保存账号与对象组合的 SHA-256 摘要和 UTC 日期。保�
 
 失败日志只包含 operation=activity.view 和 unavailable、timeout 或 cancelled 原因，不记录账号、对象、SQL 或错误原文。Service.ViewMetrics() 提供 Recorded、Duplicates、Failures 三个并发安全累计指标，供宿主导出。
 
-运行身份另需 view_dedup 的读取与追加、view_retention 的读取。去重清理身份需要 view_dedup 删除和 view_retention 更新权限。
+运行身份另需 view_dedup 的读取与追加、view_retention 的读取，以及 view_day_keys 的读写和过期删除。去重清理身份只需 view_dedup 删除和 view_retention 更新权限，不读取日密钥。
 
 ## 公开接口与一致性
 
@@ -57,3 +57,9 @@ PruneActivityHistory(ctx, beforeDay, limit) 每次最多删除 1000 条旧修订
 | 场景 | 验证条件 |
 | --- | --- |
 | CAT-ACTIVITY-01 | 本来源计数、权限、并发、回滚、事件 Schema、固定分页、墓碑和清理上限 |
+
+## 日密钥与最近访问
+
+view_day_keys 只保存日期和独立随机密钥。跨日令牌不同。backend 每五秒有界删除过期日密钥，每批最多一千条。密钥删除后，仍待清理的旧令牌也无法用该密钥重新匹配。
+
+升级当日读取旧版去重令牌以防重复计数，后续不再写入旧令牌。本人最近课程使用独立表和九十天保留规则，见[原型数据接口](ui-data.md)。

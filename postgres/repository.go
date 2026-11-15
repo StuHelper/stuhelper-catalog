@@ -9,6 +9,7 @@ import (
 	"errors"
 	"log/slog"
 	"strings"
+	"sync"
 	"time"
 
 	catalog "github.com/StuHelper/stuhelper-catalog"
@@ -24,8 +25,11 @@ type Repository struct {
 	// Enable in product composition. Maintenance candidate enumeration has its
 	// own authorized port and does not disable this public read filter.
 	RequireTeacherDirectory bool
+	directoryOnce           sync.Once
+	directoryData           *directoryCache
 }
 type transaction struct {
+	directoryData           *directoryCache
 	requireTeacherDirectory bool
 	pendingTeachers         map[string]bool
 	teachingTime            time.Time
@@ -80,7 +84,7 @@ func (r *Repository) Transaction(ctx context.Context, run func(catalog.Transacti
 		return safe(e)
 	}
 	defer tx.Rollback()
-	t := &transaction{tx: tx, ctx: ctx, objects: map[string]catalog.Record{}, requireTeacherDirectory: r.RequireTeacherDirectory && !catalog.TeacherMaintenanceRead(ctx)}
+	t := &transaction{tx: tx, ctx: ctx, objects: map[string]catalog.Record{}, requireTeacherDirectory: r.RequireTeacherDirectory && !catalog.TeacherMaintenanceRead(ctx), directoryData: r.directoryCache()}
 	if e = run(t); e != nil {
 		return e
 	}

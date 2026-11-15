@@ -2,8 +2,12 @@ package postgres
 
 import (
 	"context"
+	"crypto/hmac"
+	"crypto/rand"
 	"crypto/sha256"
+	"database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
 	m "github.com/StuHelper/stuhelper-catalog"
 	"time"
@@ -30,18 +34,35 @@ func (t *transaction) RecordView(actor string, o m.Object, at time.Time) (bool, 
 		return false, m.ErrForbidden
 	}
 	day := at.UTC().Truncate(24 * time.Hour)
-	var before time.Time
+	var before, legacyUntil time.Time
 	if _, e = t.tx.ExecContext(t.ctx, `SELECT pg_advisory_xact_lock_shared(hashtextextended('catalog:view-retention',0))`); e != nil {
 		return false, safe(e)
 	}
-	if e = t.tx.QueryRowContext(t.ctx, `SELECT before_day FROM catalog.view_retention WHERE singleton`).Scan(&before); e != nil {
+	if e = t.tx.QueryRowContext(t.ctx, `SELECT before_day,legacy_until_day FROM catalog.view_retention WHERE singleton`).Scan(&before, &legacyUntil); e != nil {
 		return false, safe(e)
 	}
 	if day.Before(before) {
 		return false, m.ErrInput
 	}
-	raw, _ := json.Marshal([]string{"catalog.view.v1", actor, o.Kind, o.ID})
-	key := fmt.Sprintf("%x", sha256.Sum256(raw))
+	secret, e := t.viewDayKey(day)
+	if e != nil {
+		return false, e
+	}
+	defer clear(secret)
+	raw, _ := json.Marshal([]string{"catalog.view.v2", day.Format(time.DateOnly), actor, o.Kind, o.ID})
+	mac := hmac.New(sha256.New, secret)
+	_, _ = mac.Write(raw)
+	key := fmt.Sprintf("%x", mac.Sum(nil))
+	// During the upgrade day, preserve deduplication for a view recorded by the
+	// preceding binary. No new legacy tokens are written.
+	legacySeen := false
+	if !day.After(legacyUntil) {
+		legacy, _ := json.Marshal([]string{"catalog.view.v1", actor, o.Kind, o.ID})
+		legacyKey := fmt.Sprintf("%x", sha256.Sum256(legacy))
+		if e = t.tx.QueryRowContext(t.ctx, `SELECT EXISTS(SELECT 1 FROM catalog.view_dedup WHERE digest=$1 AND day=$2)`, legacyKey, day).Scan(&legacySeen); e != nil {
+			return false, safe(e)
+		}
+	}
 	result, e := t.tx.ExecContext(t.ctx, `INSERT INTO catalog.view_dedup(digest,day) VALUES($1,$2) ON CONFLICT DO NOTHING`, key, day)
 	if e != nil {
 		return false, safe(e)
@@ -50,19 +71,19 @@ func (t *transaction) RecordView(actor string, o m.Object, at time.Time) (bool, 
 	if e != nil {
 		return false, safe(e)
 	}
-	if n == 0 {
+	if n == 0 || legacySeen {
 		return false, nil
 	}
 	e = t.changeActivity(o.Kind, o.ID, o.SchoolID, day, 1, 0, nil, at)
 	return e == nil, e
 }
 
-// Keep the current day plus 31 preceding UTC days. Cleaning never changes counts.
+// Keep only the current UTC day's opaque tokens. Cleaning never changes counts.
 func (r *Repository) PruneViewDedup(ctx context.Context, now time.Time, limit int) (int64, error) {
 	if now.IsZero() || limit < 1 || limit > 1000 {
 		return 0, m.ErrInput
 	}
-	before := now.UTC().Truncate(24*time.Hour).AddDate(0, 0, -31)
+	before := now.UTC().Truncate(24 * time.Hour)
 	tx, e := r.DB.BeginTx(ctx, nil)
 	if e != nil {
 		return 0, safe(e)
@@ -83,6 +104,42 @@ func (r *Repository) PruneViewDedup(ctx context.Context, now time.Time, limit in
 		return 0, safe(e)
 	}
 	return n, safe(tx.Commit())
+}
+
+func (t *transaction) viewDayKey(day time.Time) ([]byte, error) {
+	var key []byte
+	err := t.tx.QueryRowContext(t.ctx, `SELECT key FROM catalog.view_day_keys WHERE day=$1`, day).Scan(&key)
+	if errors.Is(err, sql.ErrNoRows) {
+		generated := make([]byte, 32)
+		if _, err := rand.Read(generated); err != nil {
+			return nil, m.ErrUnavailable
+		}
+		defer clear(generated)
+		err = t.tx.QueryRowContext(t.ctx, `INSERT INTO catalog.view_day_keys(day,key) VALUES($1,$2)
+ ON CONFLICT(day) DO UPDATE SET key=catalog.view_day_keys.key RETURNING key`, day, generated).Scan(&key)
+	}
+	if err != nil {
+		return nil, safe(err)
+	}
+	if len(key) != 32 {
+		clear(key)
+		return nil, m.ErrUnavailable
+	}
+	return key, nil
+}
+
+// Day keys cannot identify a user or object. Removing an old key also prevents
+// linkage of any expired tokens still awaiting the bounded maintenance sweep.
+func (r *Repository) PruneViewKeys(ctx context.Context, now time.Time, limit int) (int64, error) {
+	if now.IsZero() || limit < 1 || limit > 1000 {
+		return 0, m.ErrInput
+	}
+	result, err := r.DB.ExecContext(ctx, `DELETE FROM catalog.view_day_keys WHERE day IN (SELECT day FROM catalog.view_day_keys WHERE day<$1 ORDER BY day LIMIT $2)`, now.UTC().Truncate(24*time.Hour), limit)
+	if err != nil {
+		return 0, safe(err)
+	}
+	n, err := result.RowsAffected()
+	return n, safe(err)
 }
 func (t *transaction) syncActivityVisibility(o m.Object) error {
 	if o.Kind != "course" && o.Kind != "teacher" {
