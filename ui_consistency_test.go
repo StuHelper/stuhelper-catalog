@@ -103,6 +103,12 @@ func TestUIDirectoryConcurrentCacheAndCancellation(t *testing.T) {
 	}
 }
 
+type ownSummaryPermission struct{ err error }
+
+func (a ownSummaryPermission) AuthorizeOwnSummary(context.Context, c.Principal, string) error {
+	return a.err
+}
+
 func TestUINextClassDayAuthorizedSourceAndTimeBoundary(t *testing.T) {
 	s, admin, input := fixture(t)
 	ctx := context.Background()
@@ -119,9 +125,27 @@ func TestUINextClassDayAuthorizedSourceAndTimeBoundary(t *testing.T) {
 	s.EnrollmentSource = sourceStub{snapshot: c.EnrollmentSnapshot{SchoolID: "school", SourceID: "approved-source", Version: "ui-batch", Revision: 2, FetchedAt: now, Enrollments: input.Enrollments}}
 	p := c.Principal{Subject: "issuer:student"}
 	got, err := s.MyNextClassDay(ctx, p)
+	if err != nil || got.State != "unavailable" || len(got.Items) != 0 {
+		t.Fatal("source alone opened enrollment display", got, err)
+	}
+	if _, err := s.MyReviewCandidates(ctx, p); !errors.Is(err, c.ErrUnavailable) {
+		t.Fatal("pending courses bypassed display permission", err)
+	}
+	s.OwnSummaryAccess = ownSummaryPermission{}
+	got, err = s.MyNextClassDay(ctx, p)
 	if err != nil || got.State != "available" || got.Date == nil || *got.Date != "2026-09-07" || len(got.Items) != 1 || got.Items[0].StartPeriod != 1 || got.Items[0].EndPeriod != 2 || got.TimeZone != "Asia/Shanghai" {
 		t.Fatalf("next day: %+v %v", got, err)
 	}
+	candidates, err := s.MyReviewCandidates(ctx, p)
+	if err != nil || len(candidates.Items) == 0 || candidates.Owner != p.Subject {
+		t.Fatal("authorized pending candidates unavailable", candidates, err)
+	}
+	s.OwnSummaryAccess = ownSummaryPermission{err: c.ErrForbidden}
+	got, err = s.MyNextClassDay(ctx, p)
+	if err != nil || got.State != "unavailable" || len(got.Items) != 0 {
+		t.Fatal("revoked display permission ignored", got, err)
+	}
+	s.OwnSummaryAccess = ownSummaryPermission{}
 	now = time.Date(2026, 9, 7, 1, 40, 0, 0, time.UTC)
 	got, err = s.MyNextClassDay(ctx, p)
 	if err != nil || got.Date == nil || *got.Date != "2026-09-14" {

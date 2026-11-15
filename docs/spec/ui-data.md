@@ -1,6 +1,6 @@
 ---
 type: spec
-status: InReview
+status: Accepted
 updated: 2026-11-15
 ---
 
@@ -24,7 +24,7 @@ total 是当前筛选的课程数。facet_total 与 category_facets 排除 categ
 
 ## 热度与数据来源
 
-热度定义保持 InReview。默认窗口为当前 UTC 日及此前二十九日，浏览、收藏、评价权重分别为 1、3、5。DirectoryConfig 允许配置窗口和三个非负权重，至少一个权重大于零。
+热度定义已确认。默认窗口为当前 UTC 日及此前二十九日，浏览、收藏、评价权重分别为 1、3、5。DirectoryConfig 允许配置窗口和三个非负权重，至少一个权重大于零。
 
 浏览来自 catalog 日聚合。评价数量、近窗评价和等级来自 reviews 的公开批量接口。收藏来自 favorites 的日净新增聚合，每日下限为零，跨日取消计入取消日。聚合不包括讨论互动，也不搬运旧目录别名的历史浏览与收藏。
 
@@ -52,7 +52,9 @@ GET /api/v1/catalog/me/recent-courses 读取本人最近课程。PUT /api/v1/cat
 
 ## 下一上课日与待评价候选
 
-GET /api/v1/catalog/me/next-class-day 使用现有本人选课来源和课表，返回下一次仍未结束的课程所在日期、时区、节次、教师与地点。没有后续课程为 empty，缺少来源授权或完整排课为 unavailable，不使用演示课表。
+GET /api/v1/catalog/me/next-class-day 使用现有本人选课来源和课表，返回下一次仍未结束的课程所在日期、时区、节次、教师与地点。没有后续课程为 empty，缺少展示授权、来源授权或完整排课为 unavailable，不使用演示课表。
+
+OwnSummaryAccess 单独授权显示本人选课摘要。未装配时，下一上课日与待评价候选均不可用。当前 backend 保持该端口关闭，评课资格来源本身不授予展示权限。
 
 同一个授权来源通过 MyReviewCandidates 向 reviews 提供本人课程与学期候选。缺少来源时不能读取旧选课缓存代替授权。每次最多两千条候选，只返回课程和学期名称，不返回学生身份或选课证据。
 

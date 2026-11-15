@@ -19,6 +19,7 @@ type Service struct {
 	DirectoryMetrics DirectoryMetricProvider
 	DirectoryConfig  DirectoryConfig
 	RecentResources  RecentResourceCounts
+	OwnSummaryAccess OwnSummaryAccess
 	EnrollmentSource EnrollmentSource
 	ActivityLogger   *slog.Logger
 	OwnLogger        *slog.Logger

@@ -881,7 +881,7 @@ type ClientInterface interface {
 
 	// GetNextClassDay performs a GET /api/v1/catalog/me/next-class-day (the `GetNextClassDay` operationId) request.
 	//
-	// The next school-local day with a class ending after server now. Uses only the authenticated owner and the existing enrollment authorization/source. Missing authorization/source or incomplete schedule returns state=unavailable with no class data; no fallback timetable or relaxed authorization.
+	// Uses the current owner enrollment source and a separate server-side permission to display enrollment summaries. Missing display permission or source authorization returns unavailable without course data.
 	GetNextClassDay(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// ClearRecentCourses performs a DELETE /api/v1/catalog/me/recent-courses (the `ClearRecentCourses` operationId) request.
@@ -1210,7 +1210,7 @@ func (c *Client) MyEnrollments(ctx context.Context, params *MyEnrollmentsParams,
 
 // GetNextClassDay performs a GET /api/v1/catalog/me/next-class-day (the `GetNextClassDay` operationId) request.
 //
-// The next school-local day with a class ending after server now. Uses only the authenticated owner and the existing enrollment authorization/source. Missing authorization/source or incomplete schedule returns state=unavailable with no class data; no fallback timetable or relaxed authorization.
+// Uses the current owner enrollment source and a separate server-side permission to display enrollment summaries. Missing display permission or source authorization returns unavailable without course data.
 func (c *Client) GetNextClassDay(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewGetNextClassDayRequest(c.Server)
 	if err != nil {
@@ -3409,7 +3409,7 @@ type ClientWithResponsesInterface interface {
 
 	// GetNextClassDayWithResponse performs a GET /api/v1/catalog/me/next-class-day (the `GetNextClassDay` operationId) request.
 	//
-	// The next school-local day with a class ending after server now. Uses only the authenticated owner and the existing enrollment authorization/source. Missing authorization/source or incomplete schedule returns state=unavailable with no class data; no fallback timetable or relaxed authorization.
+	// Uses the current owner enrollment source and a separate server-side permission to display enrollment summaries. Missing display permission or source authorization returns unavailable without course data.
 	//
 	// Returns a wrapper object for the known response body format(s).
 	GetNextClassDayWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*GetNextClassDayResponse, error)
@@ -6054,7 +6054,7 @@ func (c *ClientWithResponses) MyEnrollmentsWithResponse(ctx context.Context, par
 
 // GetNextClassDayWithResponse performs a GET /api/v1/catalog/me/next-class-day (the `GetNextClassDay` operationId) request.
 //
-// The next school-local day with a class ending after server now. Uses only the authenticated owner and the existing enrollment authorization/source. Missing authorization/source or incomplete schedule returns state=unavailable with no class data; no fallback timetable or relaxed authorization.
+// Uses the current owner enrollment source and a separate server-side permission to display enrollment summaries. Missing display permission or source authorization returns unavailable without course data.
 //
 // Returns a wrapper object for the known response body format(s).
 func (c *ClientWithResponses) GetNextClassDayWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*GetNextClassDayResponse, error) {

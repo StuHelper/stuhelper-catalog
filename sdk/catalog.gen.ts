@@ -414,7 +414,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** @description The next school-local day with a class ending after server now. Uses only the authenticated owner and the existing enrollment authorization/source. Missing authorization/source or incomplete schedule returns state=unavailable with no class data; no fallback timetable or relaxed authorization. */
+        /** @description Uses the current owner enrollment source and a separate server-side permission to display enrollment summaries. Missing display permission or source authorization returns unavailable without course data. */
         get: operations["getNextClassDay"];
         put?: never;
         post?: never;

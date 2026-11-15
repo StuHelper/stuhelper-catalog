@@ -55,4 +55,4 @@ MySchedule 是供模块使用的公开接口，只读取当前账号的有效选
 
 教师公开目录按“有授课记录或匹配官网”保存持久标记。完整来源刷新、并发重放、详情与搜索过滤见[教师目录标记](docs/spec/teacher-directory.md)。产品 Repository 启用 RequireTeacherDirectory 后，缺少标记的教师不进入公开查询。
 
-原型目录的分面、排序、本人最近课程和下一上课日见[原型数据接口](docs/spec/ui-data.md)。教师目录依赖 T2 持久标记，热度及推荐定义保持 InReview。
+原型目录的分面、排序、本人最近课程和下一上课日见[原型数据接口](docs/spec/ui-data.md)。教师目录依赖 T2 持久标记，热度及推荐默认值已确认。

@@ -26,6 +26,20 @@ type NextClassDay struct {
 	Items    []NextLesson `json:"items"`
 }
 
+// OwnSummaryAccess authorizes displaying enrollment-derived data. An enrollment
+// source used for review eligibility does not by itself grant this permission.
+// Applications leave this port unset while owner-facing course display is closed.
+type OwnSummaryAccess interface {
+	AuthorizeOwnSummary(context.Context, Principal, string) error
+}
+
+func (s *Service) authorizeOwnSummary(ctx context.Context, p Principal, school string) error {
+	if s.OwnSummaryAccess == nil {
+		return ErrUnavailable
+	}
+	return s.OwnSummaryAccess.AuthorizeOwnSummary(ctx, p, school)
+}
+
 // MyNextClassDay does not use cached enrollment rows without the current owner
 // source. The same source enforces authorization for MySchedule and Evidence.
 func (s *Service) MyNextClassDay(ctx context.Context, p Principal) (NextClassDay, error) {
@@ -35,6 +49,12 @@ func (s *Service) MyNextClassDay(ctx context.Context, p Principal) (NextClassDay
 		return out, err
 	}
 	if s.EnrollmentSource == nil {
+		return out, nil
+	}
+	if err := s.authorizeOwnSummary(ctx, p, school); err != nil {
+		if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
+			return NextClassDay{}, err
+		}
 		return out, nil
 	}
 	type candidate struct {
@@ -172,6 +192,9 @@ func (s *Service) MyReviewCandidates(ctx context.Context, p Principal) (OwnRevie
 	}
 	if s.EnrollmentSource == nil {
 		return out, ErrUnavailable
+	}
+	if err := s.authorizeOwnSummary(ctx, p, school); err != nil {
+		return out, err
 	}
 	if err := s.refreshOwn(ctx, p); err != nil {
 		return out, err
