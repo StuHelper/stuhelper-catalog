@@ -13,6 +13,19 @@ type viewCounters struct{ recorded, duplicates, failed atomic.Uint64 }
 // ViewMetrics exposes low-cardinality counters for the host metrics exporter.
 type ViewMetrics struct{ Recorded, Duplicates, Failures uint64 }
 
+func (s *Service) PruneViewKeys(ctx context.Context, limit int) (int64, error) {
+	if limit < 1 || limit > 1000 {
+		return 0, ErrInput
+	}
+	port, ok := s.Repo.(interface {
+		PruneViewKeys(context.Context, time.Time, int) (int64, error)
+	})
+	if !ok {
+		return 0, ErrUnavailable
+	}
+	return port.PruneViewKeys(ctx, s.now(), limit)
+}
+
 func (s *Service) ViewMetrics() ViewMetrics {
 	return ViewMetrics{s.viewStats.recorded.Load(), s.viewStats.duplicates.Load(), s.viewStats.failed.Load()}
 }
