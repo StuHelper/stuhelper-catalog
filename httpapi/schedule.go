@@ -21,7 +21,17 @@ func (h Handler) scheduleRoutes(m *http.ServeMux) {
 			respond(w, nil, e)
 			return
 		}
+		includeOrder, e := termOrderRequested(r)
+		if e != nil {
+			respond(w, nil, e)
+			return
+		}
 		v, e := h.Service.MySchedule(r.Context(), p, q.Get("term_id"), q.Get("after"), n)
+		if !includeOrder {
+			for i := range v.Items {
+				v.Items[i].Enrollment.TermOrderKey = nil
+			}
+		}
 		respond(w, v, e)
 	})
 	m.HandleFunc("GET /api/v1/catalog/me/schedule/calendar", func(w http.ResponseWriter, r *http.Request) {

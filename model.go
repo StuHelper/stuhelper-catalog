@@ -62,6 +62,7 @@ type Record struct {
 	Manual         map[string]string `json:"manual"`
 }
 type Enrollment struct {
+	TermOrderKey   *int      `json:"term_order_key,omitempty"`
 	ID             string    `json:"id"`
 	Subject        string    `json:"subject"`
 	SchoolID       string    `json:"school_id"`
