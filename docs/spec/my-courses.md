@@ -1,7 +1,7 @@
 ---
 type: spec
 status: Accepted
-updated: 2026-11-09
+updated: 2026-11-17
 ---
 
 # 结构化课表与日历
@@ -45,3 +45,11 @@ GET 和 PUT /api/v1/catalog/admin/schools/{school_id}/terms/{term_id}/timetable 
 上课提醒尚未接入通知模块。backend 可从 MySchedule 和 ExpandSchedule 获取确定的 UID、Start 与 End，结合用户提醒偏好生成通知任务。catalog.timetable.updated.v1 及 catalog.imported.v1 由 LISTEN/outbox relay 投递，通知模块以 inbox 去重后更新任务，撤销旧时间任务。
 
 通知模块仍需处理提前量、渠道、用户退订及选课变化。relay 的重连补读、60 秒兜底、退避和待处理队列由 backend 按 EVENT-DELIVERY.md 装配。个人日程编辑与真实学校数据验收继续由对应任务处理。
+
+## 学期顺序
+
+学期对象与本人选课记录提供 term_order_key，使用自然年乘十加季节：春为一、夏为二、秋为三。例如 20243 表示 2024 年秋季，与目录截止学期使用同一排序规则。名称只用于显示，不参与排序。
+
+学期选项及选课记录按排序键倒序、ID 升序。选课的 after 仍使用上一页最后一个选课 ID，游标必须属于当前用户并符合当前筛选。已知时间相同的记录按 ID 稳定分页。
+
+选课缺少可靠学期信息时返回零并排在末尾，保留已有选课事实。公开目录投影继续隐藏无法解析、截止学期以前或没有可见开课的学期。内部未启用投影的目录也返回已保存的排序键，未知键为零。

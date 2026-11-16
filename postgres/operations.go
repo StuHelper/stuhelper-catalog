@@ -9,7 +9,7 @@ func (t *transaction) PublicObject(id string) (c.Object, error) {
 	if t.projectionRead {
 		return t.projectedObject(id)
 	}
-	return read[c.Object](t, `SELECT catalog.public_object(data->'object') || CASE WHEN id<>$1 THEN jsonb_build_object('id',$1,'canonical_id',id) ELSE '{}'::jsonb END FROM catalog.objects o WHERE id=catalog.canonical($1)`+t.teacherVisibility("o"), id)
+	return read[c.Object](t, `SELECT catalog.public_object(o.data->'object') || CASE WHEN o.kind='term' THEN jsonb_build_object('term_order_key',COALESCE(tr.sort_key,0)) ELSE '{}'::jsonb END || CASE WHEN o.id<>$1 THEN jsonb_build_object('id',$1,'canonical_id',o.id) ELSE '{}'::jsonb END FROM catalog.objects o LEFT JOIN catalog.term_orders tr ON tr.id=o.id AND tr.school_id=o.school_id WHERE o.id=catalog.canonical($1)`+t.teacherVisibility("o"), id)
 }
 func (t *transaction) ResolveIDs(id string) ([]string, error) {
 	if t.projectionRead {
