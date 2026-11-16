@@ -109,6 +109,7 @@ scenario_tests:
   ACAD-33:
     - integration_test.go#TestImportRelationsClassificationAndMissingCredits
   ACAD-01:
+    - term_order_test.go#TestTermOrderReadFieldPreservesLegacyImportReplay
     - term_order_test.go#TestEnrollmentAndTermOptionsUseStructuredOrder
     - directory_performance_test.go#TestDirectoryTeacherSkewedAssignmentScale
     - directory_performance_test.go#TestDirectoryTeacherClassificationsCannotMixClasses

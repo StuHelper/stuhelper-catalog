@@ -1,7 +1,11 @@
 package catalog_test
 
 import (
+	"bytes"
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
+	"encoding/json"
 	"errors"
 	"fmt"
 	c "github.com/StuHelper/stuhelper-catalog"
@@ -36,7 +40,10 @@ func TestEnrollmentAndTermOptionsUseStructuredOrder(t *testing.T) {
 		}
 		for _, en := range page {
 			ids = append(ids, en.ID)
-			keys = append(keys, en.TermOrderKey)
+			if en.TermOrderKey == nil {
+				t.Fatal("missing read order key")
+			}
+			keys = append(keys, *en.TermOrderKey)
 		}
 		after = page[len(page)-1].ID
 	}
@@ -99,5 +106,44 @@ func TestEnrollmentAndTermOptionsUseStructuredOrder(t *testing.T) {
 	}
 	if _, err = s.ReadList(ctx, c.Principal{}, c.Filter{Kind: "term", Limit: 20}); !errors.Is(err, c.ErrUnauthenticated) {
 		t.Fatal("anonymous terms", err)
+	}
+}
+
+func TestTermOrderReadFieldPreservesLegacyImportReplay(t *testing.T) {
+	s, p, in := fixture(t)
+	ctx := context.Background()
+	result, err := s.Import(ctx, p, "legacy-replay", in)
+	if err != nil {
+		t.Fatal(err)
+	}
+	raw, err := json.Marshal(in)
+	if err != nil {
+		t.Fatal(err)
+	}
+	// Reproduce the exact pre-B2 input shape, including its original JSON order.
+	legacy := bytes.ReplaceAll(raw, []byte(`"term_order_key":0,`), nil)
+	sum := sha256.Sum256(legacy)
+	err = s.Repo.Transaction(ctx, func(tx c.Transaction) error {
+		receipt, e := tx.Replay(result.ID)
+		if e != nil {
+			return e
+		}
+		receipt.Digest = hex.EncodeToString(sum[:])
+		return tx.SaveReplay(result.ID, receipt)
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	again, err := s.Import(ctx, p, "legacy-replay", in)
+	if err != nil || again.ID != result.ID {
+		t.Fatal("legacy replay changed", again, err)
+	}
+	if bytes.Contains(raw, []byte(`"term_order_key"`)) {
+		t.Fatal("derived read field changed persisted source input")
+	}
+	zero := 0
+	in.Enrollments[0].TermOrderKey = &zero
+	if _, err = s.Import(ctx, p, "forged-read-field", in); !errors.Is(err, c.ErrInput) {
+		t.Fatal("import accepted derived order key", err)
 	}
 }
