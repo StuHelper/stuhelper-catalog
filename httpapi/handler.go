@@ -200,6 +200,27 @@ func (h Handler) enrollments(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	q := r.URL.Query()
+	includeOrder, e := termOrderRequested(r)
+	if e != nil {
+		respond(w, nil, e)
+		return
+	}
 	v, e := h.Service.MyEnrollments(r.Context(), p, q.Get("school_id"), q.Get("course_id"), q.Get("term_id"), q.Get("after"), n)
+	if !includeOrder {
+		for i := range v {
+			v[i].TermOrderKey = nil
+		}
+	}
 	respond(w, v, e)
+}
+
+func termOrderRequested(r *http.Request) (bool, error) {
+	values, ok := r.URL.Query()["include_term_order"]
+	if !ok {
+		return false, nil
+	}
+	if len(values) != 1 || values[0] != "true" && values[0] != "false" {
+		return false, catalog.ErrInput
+	}
+	return values[0] == "true", nil
 }

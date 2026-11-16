@@ -532,7 +532,7 @@ export interface components {
             /** Format: date-time */
             fetched_at?: string;
             active: boolean;
-            /** @description 选课学期的结构化排序键，与 Object.term_order_key 相同。0 表示来源缺失或无法解析，排在已知学期后。列表按此键倒序、选课 ID 升序；after 仍传上一页最后一个选课 ID。 */
+            /** @description 选课学期的结构化排序键，与 Object.term_order_key 相同。0 表示来源缺失或无法解析，排在已知学期后。列表按此键倒序、选课 ID 升序；after 仍传上一页最后一个选课 ID。 仅 include_term_order=true 的 HTTP 请求返回。 */
             readonly term_order_key?: number;
         };
         Import: {
@@ -1191,6 +1191,8 @@ export interface operations {
                 term_id?: string;
                 after?: string;
                 limit?: number;
+                /** @description 在选课对象中返回 term_order_key。默认 false，保留旧客户端的封闭 Enrollment 结构。返回顺序始终按结构化时间倒序。 */
+                include_term_order?: boolean;
             };
             header?: never;
             path?: never;
@@ -2378,6 +2380,8 @@ export interface operations {
                 term_id: string;
                 after?: string;
                 limit?: number;
+                /** @description 在选课对象中返回 term_order_key。默认 false，保留旧客户端的封闭 Enrollment 结构。返回顺序始终按结构化时间倒序。 */
+                include_term_order?: boolean;
             };
             header?: never;
             path?: never;

@@ -499,7 +499,7 @@ type Enrollment struct {
 	TeacherIds     []string   `json:"teacher_ids"`
 	TermId         string     `json:"term_id"`
 
-	// TermOrderKey 选课学期的结构化排序键，与 Object.term_order_key 相同。0 表示来源缺失或无法解析，排在已知学期后。列表按此键倒序、选课 ID 升序；after 仍传上一页最后一个选课 ID。
+	// TermOrderKey 选课学期的结构化排序键，与 Object.term_order_key 相同。0 表示来源缺失或无法解析，排在已知学期后。列表按此键倒序、选课 ID 升序；after 仍传上一页最后一个选课 ID。 仅 include_term_order=true 的 HTTP 请求返回。
 	TermOrderKey *int `json:"term_order_key,omitempty"`
 }
 
@@ -982,6 +982,9 @@ type MyEnrollmentsParams struct {
 	TermId   *string `form:"term_id,omitempty" json:"term_id,omitempty"`
 	After    *string `form:"after,omitempty" json:"after,omitempty"`
 	Limit    *int    `form:"limit,omitempty" json:"limit,omitempty"`
+
+	// IncludeTermOrder 在选课对象中返回 term_order_key。默认 false，保留旧客户端的封闭 Enrollment 结构。返回顺序始终按结构化时间倒序。
+	IncludeTermOrder *bool `form:"include_term_order,omitempty" json:"include_term_order,omitempty"`
 }
 
 // MyCatalogReferencesParams defines parameters for MyCatalogReferences.
@@ -995,6 +998,9 @@ type MyScheduleParams struct {
 	TermId string  `form:"term_id" json:"term_id"`
 	After  *string `form:"after,omitempty" json:"after,omitempty"`
 	Limit  *int    `form:"limit,omitempty" json:"limit,omitempty"`
+
+	// IncludeTermOrder 在选课对象中返回 term_order_key。默认 false，保留旧客户端的封闭 Enrollment 结构。返回顺序始终按结构化时间倒序。
+	IncludeTermOrder *bool `form:"include_term_order,omitempty" json:"include_term_order,omitempty"`
 }
 
 // MyCalendarParams defines parameters for MyCalendar.
@@ -3057,6 +3063,18 @@ func NewMyEnrollmentsRequest(server string, params *MyEnrollmentsParams) (*http.
 
 		}
 
+		if params.IncludeTermOrder != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "include_term_order", *params.IncludeTermOrder, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "boolean", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
 		if encoded := queryValues.Encode(); encoded != "" {
 			rawQueryFragments = append(rawQueryFragments, encoded)
 		}
@@ -3287,6 +3305,18 @@ func NewMyScheduleRequest(server string, params *MyScheduleParams) (*http.Reques
 		if params.Limit != nil {
 
 			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "limit", *params.Limit, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "integer", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.IncludeTermOrder != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "include_term_order", *params.IncludeTermOrder, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "boolean", Format: ""}); err != nil {
 				return nil, err
 			} else {
 				for _, qp := range strings.Split(queryFrag, "&") {
