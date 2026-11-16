@@ -1,5 +1,5 @@
 id: catalog
-version: 0.6.0
+version: 0.7.0
 kind: module
 api: 1
 critical: false
@@ -109,6 +109,9 @@ scenario_tests:
   ACAD-33:
     - integration_test.go#TestImportRelationsClassificationAndMissingCredits
   ACAD-01:
+    - http_compatibility_test.go#TestLegacyEnrollmentHTTPShapeAndExplicitTermOrder
+    - term_order_test.go#TestTermOrderReadFieldPreservesLegacyImportReplay
+    - term_order_test.go#TestEnrollmentAndTermOptionsUseStructuredOrder
     - directory_performance_test.go#TestDirectoryTeacherSkewedAssignmentScale
     - directory_performance_test.go#TestDirectoryTeacherClassificationsCannotMixClasses
     - directory_performance_test.go#TestDirectoryBroadCategoryPrefixFallbackKeepsCursor

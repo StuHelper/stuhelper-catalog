@@ -62,6 +62,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /** @description 只返回当前用户的有效选课，按 term_order_key 倒序、选课 ID 升序。未知学期键为 0。after 绑定本人且须符合当前筛选，返回后续记录。 */
         get: operations["myEnrollments"];
         put?: never;
         post?: never;
@@ -509,7 +510,7 @@ export interface components {
             inactive?: boolean;
             canonical_id?: string;
             schedule_time?: components["schemas"]["ScheduleTime"];
-            /** @description 学期结构化排序键：自然年乘 10 加季节（春 1、夏 2、秋 3）。来自学校适配器解析的学年与学期序号；无法可靠解析的学期不返回。 */
+            /** @description 结构化时间排序键，与截止学期使用同一规则：自然年 × 10 + 季节（春 1、夏 2、秋 3），例如 20243 表示 2024 秋。不是学年起始年份。学期选项按键倒序、ID 升序；公开目录投影不返回无法解析的学期。 */
             readonly term_order_key?: number;
             /** @description 课程在当前目录投影中最近一次开课的学期 ID，按结构化学期排序键确定。 */
             readonly latest_term_id?: string;
@@ -531,6 +532,8 @@ export interface components {
             /** Format: date-time */
             fetched_at?: string;
             active: boolean;
+            /** @description 选课学期的结构化排序键，与 Object.term_order_key 相同。0 表示来源缺失或无法解析，排在已知学期后。列表按此键倒序、选课 ID 升序；after 仍传上一页最后一个选课 ID。 仅 include_term_order=true 的 HTTP 请求返回。 */
+            readonly term_order_key?: number;
         };
         Import: {
             school_id: string;
@@ -1188,6 +1191,8 @@ export interface operations {
                 term_id?: string;
                 after?: string;
                 limit?: number;
+                /** @description 在选课对象中返回 term_order_key。默认 false，保留旧客户端的封闭 Enrollment 结构。返回顺序始终按结构化时间倒序。 */
+                include_term_order?: boolean;
             };
             header?: never;
             path?: never;
@@ -2375,6 +2380,8 @@ export interface operations {
                 term_id: string;
                 after?: string;
                 limit?: number;
+                /** @description 在选课对象中返回 term_order_key。默认 false，保留旧客户端的封闭 Enrollment 结构。返回顺序始终按结构化时间倒序。 */
+                include_term_order?: boolean;
             };
             header?: never;
             path?: never;

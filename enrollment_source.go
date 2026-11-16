@@ -74,7 +74,7 @@ func (s *Service) ReplaceOwnEnrollments(ctx context.Context, p Principal, in Enr
 	})
 	for i := range in.Enrollments {
 		en := &in.Enrollments[i]
-		if en.Subject != in.Subject || en.SchoolID != in.SchoolID || !en.Active || i > 0 && en.ID == in.Enrollments[i-1].ID {
+		if en.TermOrderKey != nil || en.Subject != in.Subject || en.SchoolID != in.SchoolID || !en.Active || i > 0 && en.ID == in.Enrollments[i-1].ID {
 			return out, ErrInput
 		}
 		en.TeacherIDs = slices.Clone(en.TeacherIDs)

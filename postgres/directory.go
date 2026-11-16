@@ -48,11 +48,12 @@ func (t *transaction) List(f catalog.Filter) ([]catalog.Object, error) {
 		// Keep bind parameters, but plan each page for its actual values.
 		return list[catalog.Object](t, q, append([]any{pgx.QueryExecModeExec}, args...)...)
 	}
-	return list[catalog.Object](t, `SELECT catalog.public_object(o.data->'object') FROM catalog.objects o
+	return list[catalog.Object](t, `SELECT catalog.public_object(o.data->'object') || CASE WHEN o.kind='term' THEN jsonb_build_object('term_order_key',COALESCE(tr.sort_key,0)) ELSE '{}'::jsonb END FROM catalog.objects o
+ LEFT JOIN catalog.term_orders tr ON tr.id=o.id AND tr.school_id=o.school_id
  LEFT JOIN catalog.objects parent_class ON parent_class.id=o.class_id AND parent_class.kind='class'
  LEFT JOIN catalog.redirects parent_redirect ON parent_redirect.alias_id=COALESCE(NULLIF(o.term_course_id,''),parent_class.term_course_id)
  LEFT JOIN catalog.objects parent_offering ON parent_offering.id=COALESCE(parent_redirect.canonical_id,NULLIF(o.term_course_id,''),parent_class.term_course_id) AND parent_offering.kind='term_course'
- WHERE o.kind=$1 AND NOT EXISTS(SELECT 1 FROM catalog.redirects redirect WHERE redirect.alias_id=o.id) AND ($14 OR NOT COALESCE((o.data->'object'->>'inactive')::boolean,false)) AND ($2='' OR o.school_id=$2) AND o.id>$3
+ WHERE o.kind=$1 AND NOT EXISTS(SELECT 1 FROM catalog.redirects redirect WHERE redirect.alias_id=o.id) AND ($14 OR NOT COALESCE((o.data->'object'->>'inactive')::boolean,false)) AND ($2='' OR o.school_id=$2) AND ($3='' OR ($1<>'term' AND o.id>$3) OR ($1='term' AND (-COALESCE(tr.sort_key,0),o.id)>(-COALESCE((SELECT sort_key FROM catalog.term_orders WHERE id=catalog.canonical($3) AND school_id=o.school_id),0),$3)))
  AND ($15::text[] IS NULL OR o.id=ANY($15))
  AND ($4='' OR CASE WHEN o.kind='school' AND $4 ~ '^[0-9]+$' THEN
    o.id=$4 OR o.data->'object'->>'code'=$4
@@ -85,14 +86,14 @@ func (t *transaction) List(f catalog.Filter) ([]catalog.Object, error) {
    OR (o.kind='teacher' AND EXISTS(SELECT 1 FROM catalog.objects a JOIN catalog.objects cl ON cl.id=a.class_id WHERE a.kind='assignment' AND a.teacher_id IN (SELECT o.id::text UNION SELECT alias_id FROM catalog.redirects WHERE canonical_id=o.id) AND cl.term_course_id IN (SELECT $12::text UNION SELECT alias_id FROM catalog.redirects WHERE canonical_id=$12))))
  AND ($13='' OR o.class_id IN (SELECT $13::text UNION SELECT alias_id FROM catalog.redirects WHERE canonical_id=$13) OR o.id=$13
    OR (o.kind='teacher' AND EXISTS(SELECT 1 FROM catalog.objects a WHERE a.kind='assignment' AND a.teacher_id IN (SELECT o.id::text UNION SELECT alias_id FROM catalog.redirects WHERE canonical_id=o.id) AND a.class_id IN (SELECT $13::text UNION SELECT alias_id FROM catalog.redirects WHERE canonical_id=$13))))
- `+directoryCandidates(f)+t.teacherVisibility("o")+` ORDER BY o.id LIMIT $11`, f.Kind, f.SchoolID, f.After, f.Query, f.CourseID, f.DepartmentID, f.TermID, f.CategoryID, f.NatureID, f.TeacherID, f.Limit+1, f.TermCourseID, f.ClassID, f.IncludeInactive, f.IDs)
+ `+directoryCandidates(f)+t.teacherVisibility("o")+` ORDER BY CASE WHEN o.kind='term' THEN COALESCE(tr.sort_key,0) ELSE 0 END DESC,o.id LIMIT $11`, f.Kind, f.SchoolID, f.After, f.Query, f.CourseID, f.DepartmentID, f.TermID, f.CategoryID, f.NatureID, f.TeacherID, f.Limit+1, f.TermCourseID, f.ClassID, f.IncludeInactive, f.IDs)
 }
 
 func (t *transaction) Lookup(ids []string) ([]catalog.Object, error) {
 	if t.projectionRead {
 		return t.projectedLookup(ids)
 	}
-	return list[catalog.Object](t, `SELECT catalog.public_object(o.data->'object') || CASE WHEN o.id<>requested.id THEN jsonb_build_object('id',requested.id,'canonical_id',o.id) ELSE '{}'::jsonb END FROM unnest($1::text[]) requested(id) JOIN catalog.objects o ON o.id=catalog.canonical(requested.id) WHERE true`+t.teacherVisibility("o")+` ORDER BY requested.id`, ids)
+	return list[catalog.Object](t, `SELECT catalog.public_object(o.data->'object') || CASE WHEN o.kind='term' THEN jsonb_build_object('term_order_key',COALESCE(tr.sort_key,0)) ELSE '{}'::jsonb END || CASE WHEN o.id<>requested.id THEN jsonb_build_object('id',requested.id,'canonical_id',o.id) ELSE '{}'::jsonb END FROM unnest($1::text[]) requested(id) JOIN catalog.objects o ON o.id=catalog.canonical(requested.id) LEFT JOIN catalog.term_orders tr ON tr.id=o.id AND tr.school_id=o.school_id WHERE true`+t.teacherVisibility("o")+` ORDER BY requested.id`, ids)
 }
 
 func (t *transaction) Summary(object catalog.Object) (catalog.Summary, error) {

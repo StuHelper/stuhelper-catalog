@@ -10,7 +10,7 @@ func importEnrollment(t Transaction, en Enrollment, in Import) error {
 }
 
 func importEnrollmentState(t Transaction, en Enrollment, in Import, reactivate bool) error {
-	if !ValidID(en.ID) || en.Subject == "" || len(en.Subject) > 512 || en.SchoolID != in.SchoolID || len(en.TeacherIDs) > 100 {
+	if en.TermOrderKey != nil || !ValidID(en.ID) || en.Subject == "" || len(en.Subject) > 512 || en.SchoolID != in.SchoolID || len(en.TeacherIDs) > 100 {
 		return ErrInput
 	}
 	for id, kind := range map[string]string{en.CourseID: "course", en.TermID: "term"} {

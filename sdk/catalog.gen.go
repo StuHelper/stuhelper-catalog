@@ -498,6 +498,9 @@ type Enrollment struct {
 	Subject        string     `json:"subject"`
 	TeacherIds     []string   `json:"teacher_ids"`
 	TermId         string     `json:"term_id"`
+
+	// TermOrderKey 选课学期的结构化排序键，与 Object.term_order_key 相同。0 表示来源缺失或无法解析，排在已知学期后。列表按此键倒序、选课 ID 升序；after 仍传上一页最后一个选课 ID。 仅 include_term_order=true 的 HTTP 请求返回。
+	TermOrderKey *int `json:"term_order_key,omitempty"`
 }
 
 // Error defines model for Error.
@@ -639,7 +642,7 @@ type Object struct {
 	TermCourseId *string       `json:"term_course_id,omitempty"`
 	TermId       *string       `json:"term_id,omitempty"`
 
-	// TermOrderKey 学期结构化排序键：自然年乘 10 加季节（春 1、夏 2、秋 3）。来自学校适配器解析的学年与学期序号；无法可靠解析的学期不返回。
+	// TermOrderKey 结构化时间排序键，与截止学期使用同一规则：自然年 × 10 + 季节（春 1、夏 2、秋 3），例如 20243 表示 2024 秋。不是学年起始年份。学期选项按键倒序、ID 升序；公开目录投影不返回无法解析的学期。
 	TermOrderKey *int      `json:"term_order_key,omitempty"`
 	TimeText     *string   `json:"time_text,omitempty"`
 	UpdatedAt    time.Time `json:"updated_at"`
@@ -979,6 +982,9 @@ type MyEnrollmentsParams struct {
 	TermId   *string `form:"term_id,omitempty" json:"term_id,omitempty"`
 	After    *string `form:"after,omitempty" json:"after,omitempty"`
 	Limit    *int    `form:"limit,omitempty" json:"limit,omitempty"`
+
+	// IncludeTermOrder 在选课对象中返回 term_order_key。默认 false，保留旧客户端的封闭 Enrollment 结构。返回顺序始终按结构化时间倒序。
+	IncludeTermOrder *bool `form:"include_term_order,omitempty" json:"include_term_order,omitempty"`
 }
 
 // MyCatalogReferencesParams defines parameters for MyCatalogReferences.
@@ -992,6 +998,9 @@ type MyScheduleParams struct {
 	TermId string  `form:"term_id" json:"term_id"`
 	After  *string `form:"after,omitempty" json:"after,omitempty"`
 	Limit  *int    `form:"limit,omitempty" json:"limit,omitempty"`
+
+	// IncludeTermOrder 在选课对象中返回 term_order_key。默认 false，保留旧客户端的封闭 Enrollment 结构。返回顺序始终按结构化时间倒序。
+	IncludeTermOrder *bool `form:"include_term_order,omitempty" json:"include_term_order,omitempty"`
 }
 
 // MyCalendarParams defines parameters for MyCalendar.
@@ -1253,6 +1262,8 @@ type ClientInterface interface {
 	PreviewImport(ctx context.Context, params *PreviewImportParams, body PreviewImportJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// MyEnrollments performs a GET /api/v1/catalog/me/enrollments (the `MyEnrollments` operationId) request.
+	//
+	// 只返回当前用户的有效选课，按 term_order_key 倒序、选课 ID 升序。未知学期键为 0。after 绑定本人且须符合当前筛选，返回后续记录。.
 	MyEnrollments(ctx context.Context, params *MyEnrollmentsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// GetNextClassDay performs a GET /api/v1/catalog/me/next-class-day (the `GetNextClassDay` operationId) request.
@@ -1649,6 +1660,8 @@ func (c *Client) PreviewImport(ctx context.Context, params *PreviewImportParams,
 }
 
 // MyEnrollments performs a GET /api/v1/catalog/me/enrollments (the `MyEnrollments` operationId) request.
+//
+// 只返回当前用户的有效选课，按 term_order_key 倒序、选课 ID 升序。未知学期键为 0。after 绑定本人且须符合当前筛选，返回后续记录。.
 func (c *Client) MyEnrollments(ctx context.Context, params *MyEnrollmentsParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewMyEnrollmentsRequest(c.Server, params)
 	if err != nil {
@@ -3050,6 +3063,18 @@ func NewMyEnrollmentsRequest(server string, params *MyEnrollmentsParams) (*http.
 
 		}
 
+		if params.IncludeTermOrder != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "include_term_order", *params.IncludeTermOrder, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "boolean", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
 		if encoded := queryValues.Encode(); encoded != "" {
 			rawQueryFragments = append(rawQueryFragments, encoded)
 		}
@@ -3280,6 +3305,18 @@ func NewMyScheduleRequest(server string, params *MyScheduleParams) (*http.Reques
 		if params.Limit != nil {
 
 			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "limit", *params.Limit, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "integer", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.IncludeTermOrder != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "include_term_order", *params.IncludeTermOrder, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "boolean", Format: ""}); err != nil {
 				return nil, err
 			} else {
 				for _, qp := range strings.Split(queryFrag, "&") {
@@ -4132,6 +4169,8 @@ type ClientWithResponsesInterface interface {
 	PreviewImportWithResponse(ctx context.Context, params *PreviewImportParams, body PreviewImportJSONRequestBody, reqEditors ...RequestEditorFn) (*PreviewImportResponse, error)
 
 	// MyEnrollmentsWithResponse performs a GET /api/v1/catalog/me/enrollments (the `MyEnrollments` operationId) request.
+	//
+	// 只返回当前用户的有效选课，按 term_order_key 倒序、选课 ID 升序。未知学期键为 0。after 绑定本人且须符合当前筛选，返回后续记录。.
 	//
 	// Returns a wrapper object for the known response body format(s).
 	MyEnrollmentsWithResponse(ctx context.Context, params *MyEnrollmentsParams, reqEditors ...RequestEditorFn) (*MyEnrollmentsResponse, error)
@@ -7168,6 +7207,8 @@ func (c *ClientWithResponses) PreviewImportWithResponse(ctx context.Context, par
 }
 
 // MyEnrollmentsWithResponse performs a GET /api/v1/catalog/me/enrollments (the `MyEnrollments` operationId) request.
+//
+// 只返回当前用户的有效选课，按 term_order_key 倒序、选课 ID 升序。未知学期键为 0。after 绑定本人且须符合当前筛选，返回后续记录。.
 //
 // Returns a wrapper object for the known response body format(s).
 func (c *ClientWithResponses) MyEnrollmentsWithResponse(ctx context.Context, params *MyEnrollmentsParams, reqEditors ...RequestEditorFn) (*MyEnrollmentsResponse, error) {
