@@ -220,6 +220,20 @@ CREATE INDEX IF NOT EXISTS projection_objects_course ON catalog.projection_objec
 CREATE INDEX IF NOT EXISTS projection_objects_class ON catalog.projection_objects(version,class_id,kind,id);
 CREATE INDEX IF NOT EXISTS projection_objects_offering ON catalog.projection_objects(version,term_course_id,kind,id);
 CREATE INDEX IF NOT EXISTS projection_objects_teacher ON catalog.projection_objects(version,teacher_id,kind,id);
+-- Source-to-project membership is versioned with the public directory. Unknown
+-- classes retain a reason for aggregate diagnostics and never receive a target.
+CREATE TABLE IF NOT EXISTS catalog.projection_sports_sources (
+ version bigint NOT NULL REFERENCES catalog.projection_generations(version) ON DELETE CASCADE,
+ course_id text NOT NULL, PRIMARY KEY(version,course_id)
+);
+CREATE TABLE IF NOT EXISTS catalog.projection_sports_classes (
+ version bigint NOT NULL REFERENCES catalog.projection_generations(version) ON DELETE CASCADE,
+ class_id text NOT NULL, source_course_id text NOT NULL, term_id text NOT NULL,
+ project_id text NOT NULL, offering_id text NOT NULL, reason text NOT NULL,
+ PRIMARY KEY(version,class_id), CHECK(reason IN('','missing_project_code','unknown_project_code','missing_teacher'))
+);
+CREATE INDEX IF NOT EXISTS projection_sports_project ON catalog.projection_sports_classes(version,project_id,class_id) WHERE reason='';
+REVOKE ALL ON catalog.projection_sports_sources,catalog.projection_sports_classes FROM PUBLIC;
 CREATE TABLE IF NOT EXISTS catalog.projection_variants (
  version bigint NOT NULL REFERENCES catalog.projection_generations(version) ON DELETE CASCADE,
  course_id text NOT NULL, offering_id text NOT NULL, class_id text NOT NULL, term_id text NOT NULL,
@@ -268,6 +282,8 @@ CREATE TABLE IF NOT EXISTS catalog.projection_selections (
 CREATE OR REPLACE FUNCTION catalog.analyze_directory_projection() RETURNS void
 LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog AS $$ BEGIN
  ANALYZE catalog.projection_objects;
+ ANALYZE catalog.projection_sports_sources;
+ ANALYZE catalog.projection_sports_classes;
  ANALYZE catalog.projection_variants;
  ANALYZE catalog.projection_relations;
  ANALYZE catalog.projection_options;

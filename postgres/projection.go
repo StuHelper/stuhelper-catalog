@@ -236,6 +236,11 @@ func (t *transaction) RebuildDirectory(school string, policy *c.DirectoryPolicy,
 			slog.ErrorContext(t.ctx, "catalog projection build failed", "step", index+1, "reason", projectionErrorCode(e))
 			return out, safe(e)
 		}
+		if index == 6 {
+			if e := t.applyDisplayPolicy(school, &out); e != nil {
+				return out, e
+			}
+		}
 		if duration := time.Since(stepStarted); duration > 300*time.Millisecond {
 			slog.InfoContext(t.ctx, "catalog projection build stage", "step", index+1, "duration_ms", duration.Milliseconds())
 		}
@@ -277,7 +282,7 @@ func (t *transaction) RebuildDirectory(school string, policy *c.DirectoryPolicy,
  (SELECT count(*) FROM catalog.projection_selections WHERE version=$1)`, out.Version).Scan(&out.Relations, &out.TeachingHistory, &out.Summaries, &out.Documents, &out.Aliases, &out.Selections); err != nil {
 		return out, safe(err)
 	}
-	out.Rows = out.Objects + out.Variants + out.Relations + out.TeachingHistory + out.Options + out.Summaries + out.Documents + out.Aliases + out.Selections
+	out.Rows = out.SportsClasses + out.SportsSourceCourses + out.Objects + out.Variants + out.Relations + out.TeachingHistory + out.Options + out.Summaries + out.Documents + out.Aliases + out.Selections
 	if err = t.publishProjectionDocuments(school, out.Version, at); err != nil {
 		return out, err
 	}
@@ -304,7 +309,7 @@ func (t *transaction) RebuildDirectory(school string, policy *c.DirectoryPolicy,
 	}
 	out.Bytes += selectionBytes
 	if err = t.tx.QueryRowContext(t.ctx, `SELECT sum(pg_total_relation_size(('catalog.'||name)::regclass)) FROM
- unnest(ARRAY['projection_generations','projection_heads','projection_objects','projection_variants','projection_relations','projection_teaching_history','projection_options','projection_aliases','projection_summaries','projection_documents','projection_selections']) name`).Scan(&out.StorageBytes); err != nil {
+ unnest(ARRAY['projection_generations','projection_heads','projection_objects','projection_sports_sources','projection_sports_classes','projection_variants','projection_relations','projection_teaching_history','projection_options','projection_aliases','projection_summaries','projection_documents','projection_selections']) name`).Scan(&out.StorageBytes); err != nil {
 		return out, safe(err)
 	}
 	out.DurationMS = time.Since(started).Milliseconds()
@@ -342,7 +347,9 @@ func (t *transaction) validateProjection(school string, out *c.ProjectionReport)
  UNION ALL SELECT pg_column_size(v) FROM catalog.projection_options v WHERE version=$1
  UNION ALL SELECT pg_column_size(v) FROM catalog.projection_aliases v WHERE version=$1
  UNION ALL SELECT pg_column_size(v) FROM catalog.projection_summaries v WHERE version=$1
- UNION ALL SELECT pg_column_size(v) FROM catalog.projection_documents v WHERE version=$1) sizes`, out.Version).Scan(&extra)
+ UNION ALL SELECT pg_column_size(v) FROM catalog.projection_documents v WHERE version=$1
+ UNION ALL SELECT pg_column_size(v) FROM catalog.projection_sports_sources v WHERE version=$1
+ UNION ALL SELECT pg_column_size(v) FROM catalog.projection_sports_classes v WHERE version=$1) sizes`, out.Version).Scan(&extra)
 	if err != nil {
 		return safe(err)
 	}
