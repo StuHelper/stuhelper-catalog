@@ -176,7 +176,7 @@ func (s *Service) Merge(ctx context.Context, p Principal, id, key string, in Mer
 			return e
 		}
 		data, _ := json.Marshal(out)
-		return t.SaveReplay(rk, Replay{h, data, s.now().Add(24 * time.Hour)})
+		return t.SaveReplay(rk, Replay{Digest: h, Result: data, Until: s.now().Add(24 * time.Hour), Expires: true})
 	})
 	return out, err
 }
@@ -239,7 +239,7 @@ func (s *Service) SetState(ctx context.Context, p Principal, id, key string, in 
 			return e
 		}
 		data, _ := json.Marshal(out)
-		return t.SaveReplay(rk, Replay{h, data, s.now().Add(24 * time.Hour)})
+		return t.SaveReplay(rk, Replay{Digest: h, Result: data, Until: s.now().Add(24 * time.Hour), Expires: true})
 	})
 	return out, err
 }

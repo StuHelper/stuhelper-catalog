@@ -167,18 +167,42 @@ func (s *Service) ImportTeacherSites(ctx context.Context, p Principal, in Teache
 	return out, err
 }
 
+func (s *Service) allowedTeacherSiteHosts(school string) []string {
+	if len(s.TeacherSiteHosts) > 0 {
+		return s.TeacherSiteHosts[school]
+	}
+	return []string{"shi.buaa.edu.cn"}
+}
+
+func validTeacherSiteHost(host string, allowed []string) bool {
+	if host == "" {
+		return false
+	}
+	for _, item := range allowed {
+		candidate := strings.TrimSpace(item)
+		if candidate != "" && strings.EqualFold(host, candidate) {
+			return true
+		}
+	}
+	return false
+}
+
 func (s *Service) validateTeacherSites(in *TeacherSiteSnapshot) error {
 	fingerprint, fingerprintError := hex.DecodeString(in.CandidateFingerprint)
 	if fingerprintError != nil || len(fingerprint) != 32 || !ValidID(in.SchoolID) || !ValidID(in.SourceID) || in.Revision < 1 || in.ObservedAt.IsZero() ||
 		in.ObservedAt.After(s.now().Add(5*time.Minute)) || len(in.Matches) > 20000 {
 		return ErrInput
 	}
+	hosts := s.allowedTeacherSiteHosts(in.SchoolID)
 	in.Matches = append([]TeacherSiteMatch{}, in.Matches...)
 	slices.SortFunc(in.Matches, func(a, b TeacherSiteMatch) int { return strings.Compare(a.TeacherID, b.TeacherID) })
 	for i, match := range in.Matches {
+		if !validText(match.URL, 512) {
+			return ErrInput
+		}
 		u, e := url.Parse(match.URL)
 		if !ValidID(match.TeacherID) || !ValidID(match.DepartmentID) || !validText(match.Name, 256) || strings.TrimSpace(match.Name) == "" ||
-			e != nil || u.Scheme != "https" || u.Host != "shi.buaa.edu.cn" || u.User != nil || u.RawQuery != "" || u.Fragment != "" ||
+			e != nil || u.Scheme != "https" || !validTeacherSiteHost(u.Host, hosts) || u.User != nil || u.RawQuery != "" || u.Fragment != "" ||
 			!strings.HasSuffix(u.Path, "/index.htm") || i > 0 && in.Matches[i-1].TeacherID == match.TeacherID {
 			return ErrInput
 		}

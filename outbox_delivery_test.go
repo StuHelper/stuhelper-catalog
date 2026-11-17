@@ -357,3 +357,200 @@ func TestOutboxExcludedSubjectsDoNotBlockOtherSubjects(t *testing.T) {
 		t.Fatal("excluded events changed", e)
 	}
 }
+
+func TestBoundedPruningHostAllowlistAndOperationalMetrics(t *testing.T) {
+	s, p, in := fixture(t)
+	s.ReadAccess = &readAccess{}
+	p.CanReadTeacherSites = true
+	p.CanRefreshTeacherSites = true
+	repo := s.Repo.(*postgres.Repository)
+	ctx := context.Background()
+	now := time.Date(2026, 11, 18, 0, 0, 0, 0, time.UTC)
+	s.Clock = func() time.Time { return now }
+
+	for i := range in.Objects {
+		if in.Objects[i].ID == "teacher" {
+			in.Objects[i].DepartmentID = "dept"
+		}
+	}
+	in.Objects = append(in.Objects,
+		c.Object{ID: "course-old", Kind: "course", SchoolID: "school", Name: "Old Code Course", Code: "OLD1", Aliases: []string{}},
+		c.Object{ID: "course-new", Kind: "course", SchoolID: "school", Name: "New Code Course", Code: "NEW1", Aliases: []string{}},
+	)
+	in.FetchedAt = now
+	if _, err := s.Import(ctx, p, "durable-import", in); err != nil {
+		t.Fatal(err)
+	}
+	identities := c.CourseIdentities{
+		SchoolID: "school", SourceID: in.SourceID, Revision: in.Revision,
+		Mappings: []c.CourseIdentityMapping{{SourceID: "course-old", TargetID: "course-new"}},
+	}
+	if _, err := s.ApplyCourseIdentities(ctx, p, "durable-identities", identities); err != nil {
+		t.Fatal(err)
+	}
+
+	// Create 3 expiring maintenance replays via Correct.
+	for i := 1; i <= 3; i++ {
+		name := fmt.Sprintf("Course v%d", i)
+		if _, err := s.Correct(ctx, p, "course", fmt.Sprintf("edit-%d", i), c.Correction{Revision: int64(i), Name: &name}); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	// Input bounds validation across all 3 prune ports.
+	for _, badLimit := range []int{0, 1001} {
+		if _, err := repo.PruneReplays(ctx, now, badLimit); !errors.Is(err, c.ErrInput) {
+			t.Fatalf("PruneReplays limit %d: %v", badLimit, err)
+		}
+		if _, err := repo.PruneSentOutbox(ctx, now, badLimit); !errors.Is(err, c.ErrInput) {
+			t.Fatalf("PruneSentOutbox limit %d: %v", badLimit, err)
+		}
+		if _, err := repo.PruneTeacherRefreshRuns(ctx, now, badLimit); !errors.Is(err, c.ErrInput) {
+			t.Fatalf("PruneTeacherRefreshRuns limit %d: %v", badLimit, err)
+		}
+	}
+	if _, err := repo.PruneReplays(ctx, time.Time{}, 10); !errors.Is(err, c.ErrInput) {
+		t.Fatal("zero before accepted", err)
+	}
+
+	// Advance 30 days: bounded PruneReplays deletes only expiring maintenance replays, never durable Import/CourseIdentities receipts.
+	now = now.Add(30 * 24 * time.Hour)
+	if n, err := s.PruneReplays(ctx, 2); err != nil || n != 2 {
+		t.Fatalf("first PruneReplays batch: n=%d err=%v", n, err)
+	}
+	if n, err := s.PruneReplays(ctx, 10); err != nil || n != 1 {
+		t.Fatalf("second PruneReplays batch: n=%d err=%v", n, err)
+	}
+	if _, err := s.Import(ctx, p, "durable-import", in); err != nil {
+		t.Fatalf("durable Import receipt was pruned: %v", err)
+	}
+	if _, err := s.ApplyCourseIdentities(ctx, p, "durable-identities", identities); err != nil {
+		t.Fatalf("durable ApplyCourseIdentities receipt was pruned: %v", err)
+	}
+
+	// PruneSentOutbox deletes only confirmed rows older than cutoff, sparing pending and newer confirmed rows.
+	pending, err := repo.PendingOutbox(ctx, 100, nil)
+	if err != nil || len(pending) < 4 {
+		t.Fatalf("pending outbox: %d %v", len(pending), err)
+	}
+	for i := 0; i < 3; i++ {
+		if err := repo.ConfirmOutbox(ctx, pending[i].ID); err != nil {
+			t.Fatal(err)
+		}
+	}
+	sentCutoff := time.Now().UTC().Add(-time.Hour)
+	if _, err := repo.DB.ExecContext(ctx, `UPDATE catalog.outbox SET sent_at=$1 WHERE id IN ($2,$3)`, sentCutoff.Add(-time.Minute), pending[0].ID, pending[1].ID); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := repo.DB.ExecContext(ctx, `UPDATE catalog.outbox SET sent_at=$1 WHERE id=$2`, sentCutoff.Add(time.Minute), pending[2].ID); err != nil {
+		t.Fatal(err)
+	}
+	if n, err := repo.PruneSentOutbox(ctx, sentCutoff, 1); err != nil || n != 1 {
+		t.Fatalf("first PruneSentOutbox: n=%d err=%v", n, err)
+	}
+	if n, err := repo.PruneSentOutbox(ctx, sentCutoff, 10); err != nil || n != 1 {
+		t.Fatalf("second PruneSentOutbox: n=%d err=%v", n, err)
+	}
+	stillPending, err := repo.PendingOutbox(ctx, 100, nil)
+	if err != nil || len(stillPending) != len(pending)-3 {
+		t.Fatalf("pending outbox altered by prune: got=%d want=%d err=%v", len(stillPending), len(pending)-3, err)
+	}
+
+	// TeacherSiteHosts per-school allowlist validation.
+	candidates, err := s.TeacherCandidates(ctx, p, "school", "", 500)
+	if err != nil {
+		t.Fatal(err)
+	}
+	fp := c.TeacherCandidateFingerprint(candidates)
+	s.TeacherSiteHosts = map[string][]string{"school": {"faculty.example.edu.cn"}}
+	if _, err := s.ImportTeacherSites(ctx, p, c.TeacherSiteSnapshot{
+		CandidateFingerprint: fp, SchoolID: "school", SourceID: "sites", Revision: 1, ObservedAt: now,
+		Matches: []c.TeacherSiteMatch{{TeacherID: "teacher", Name: "teacher", DepartmentID: "dept", URL: "https://shi.buaa.edu.cn/t1/index.htm"}},
+	}); !errors.Is(err, c.ErrInput) {
+		t.Fatalf("disallowed default host accepted when custom allowlist configured: %v", err)
+	}
+	if _, err := s.ImportTeacherSites(ctx, p, c.TeacherSiteSnapshot{
+		CandidateFingerprint: fp, SchoolID: "school", SourceID: "sites", Revision: 1, ObservedAt: now,
+		Matches: []c.TeacherSiteMatch{{TeacherID: "teacher", Name: "teacher", DepartmentID: "dept", URL: "https://faculty.example.edu.cn/t1/index.htm"}},
+	}); err != nil {
+		t.Fatalf("configured school host rejected: %v", err)
+	}
+
+	// PruneTeacherRefreshRuns deletes older terminal runs while preserving the latest run per school and any active run.
+	for i := 1; i <= 3; i++ {
+		run, err := s.QueueTeacherRefresh(ctx, p, "school", "incremental", "manual", fmt.Sprintf("run-%d", i))
+		if err != nil {
+			t.Fatal(err)
+		}
+		if _, err := s.ClaimTeacherRefresh(ctx, p, "school"); err != nil {
+			t.Fatal(err)
+		}
+		if _, err := s.CompleteTeacherRefresh(ctx, p, run.ID, c.TeacherRefreshCompletion{FailureReason: "crawl_failed"}); err != nil {
+			t.Fatal(err)
+		}
+		now = now.Add(time.Hour)
+	}
+	if n, err := repo.PruneTeacherRefreshRuns(ctx, now, 10); err != nil || n != 2 {
+		t.Fatalf("PruneTeacherRefreshRuns should delete 2 older terminal runs and keep latest: n=%d err=%v", n, err)
+	}
+	status, err := s.TeacherRefreshStatus(ctx, p, "school")
+	if err != nil || status.Latest == nil {
+		t.Fatalf("latest refresh run lost after prune: %+v %v", status, err)
+	}
+	queued, err := s.QueueTeacherRefresh(ctx, p, "school", "full", "manual", "active-run")
+	if err != nil {
+		t.Fatal(err)
+	}
+	now = now.Add(10 * time.Minute)
+	if n, err := repo.PruneTeacherRefreshRuns(ctx, now.Add(-time.Minute), 10); err != nil || n != 1 {
+		t.Fatalf("previous terminal run should prune once newer queued run becomes latest, while keeping queued run: n=%d err=%v", n, err)
+	}
+	claimed, err := s.ClaimTeacherRefresh(ctx, p, "school")
+	if err != nil || claimed == nil || claimed.ID != queued.ID {
+		t.Fatalf("active queued run removed by prune: %+v %v", claimed, err)
+	}
+
+	// DirectoryCacheMetrics & OperationalMetrics verification.
+	if err := s.SaveTermOrders(ctx, p, "school", []c.TermOrder{{ID: "term1", Year: 2024, Season: "autumn"}, {ID: "term2", Year: 2025, Season: "spring"}}); err != nil {
+		t.Fatal(err)
+	}
+	repo.RequireDirectoryProjection = true
+	s.DirectoryMetrics = uiMetrics{}
+	builtAt := now
+	s.Clock = func() time.Time { return builtAt }
+	report, err := s.RebuildDirectory(ctx, p, "school", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	// Trigger 1 miss + 1 hit on default course query, then 4 more distinct queries to trigger eviction (cache capacity = 4).
+	student := c.Principal{Subject: "issuer:student"}
+	if _, err := s.ReadDirectory(ctx, student, c.DirectoryQuery{Filter: c.Filter{Kind: "course", Limit: 10}, Sort: "name"}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := s.ReadDirectory(ctx, student, c.DirectoryQuery{Filter: c.Filter{Kind: "course", Limit: 10}, Sort: "name"}); err != nil {
+		t.Fatal(err)
+	}
+	for i := 1; i <= 4; i++ {
+		if _, err := s.ReadDirectory(ctx, student, c.DirectoryQuery{Filter: c.Filter{Kind: "course", Query: fmt.Sprintf("q%d", i), Limit: 10}, Sort: "name"}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if _, err := repo.DB.ExecContext(ctx, `INSERT INTO catalog.projection_failures(school_id,failed_at,reason) VALUES('school',$1,'build_timeout') ON CONFLICT(school_id) DO UPDATE SET failed_at=excluded.failed_at,reason=excluded.reason`, builtAt.Add(30*time.Second)); err != nil {
+		t.Fatal(err)
+	}
+	s.Clock = func() time.Time { return builtAt.Add(90 * time.Second) }
+	metrics, err := s.OperationalMetrics(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if metrics.Cache.Misses != 5 || metrics.Cache.Hits != 1 || metrics.Cache.Evictions < 1 || metrics.Cache.Entries != 4 {
+		t.Fatalf("unexpected cache metrics: %+v", metrics.Cache)
+	}
+	if metrics.PendingOutbox < 1 || len(metrics.Projections) != 1 {
+		t.Fatalf("unexpected operational metrics: %+v", metrics)
+	}
+	proj := metrics.Projections[0]
+	if proj.SchoolID != "school" || proj.Version != report.Version || proj.AgeSeconds != 90 || proj.LastFailureReason != "build_timeout" || proj.LastFailedAt == nil {
+		t.Fatalf("unexpected projection metrics: %+v", proj)
+	}
+}

@@ -1,7 +1,7 @@
 ---
 type: spec
 status: Accepted
-updated: 2026-11-15
+updated: 2026-11-18
 ---
 
 # 教师目录标记
@@ -69,6 +69,8 @@ TeacherCandidates 只返回目录 ID、姓名、院系名称、已批准职称�
 管理读取使用 PostgreSQL 一致快照，记录查看审计时保留原快照。读取不持有刷新或学校写锁，因此重建期间仍可查看运行状态和上一完整清单。
 
 当前清单每学校最多二万条，姓名最多 256 字符、单位最多 512 字符。任务历史最多一万条，满额拒绝新增并返回 unavailable，保留既有记录供维护。审计沿用模块现行保留规则，不增加共享缓存或付费存储。
+
+TeacherSiteHosts 可按学校注入允许的 HTTPS 主页域名白名单，未配置时默认允许 shi.buaa.edu.cn。PruneTeacherRefreshRuns(ctx, before, limit) 每次最多删除 1000 条已终结旧任务，保留运行或排队任务及每校最新一条记录。
 
 | 场景 | 预期结果 |
 | --- | --- |

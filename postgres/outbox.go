@@ -3,6 +3,7 @@ package postgres
 import (
 	"context"
 	c "github.com/StuHelper/stuhelper-catalog"
+	"time"
 )
 
 var _ c.OutboxReader = (*Repository)(nil)
@@ -37,6 +38,18 @@ func (r *Repository) ConfirmOutbox(ctx context.Context, id string) error {
 		return c.ErrNotFound
 	}
 	return nil
+}
+
+func (r *Repository) PruneSentOutbox(ctx context.Context, before time.Time, limit int) (int64, error) {
+	if before.IsZero() || limit < 1 || limit > 1000 {
+		return 0, c.ErrInput
+	}
+	result, err := r.DB.ExecContext(ctx, `DELETE FROM catalog.outbox WHERE id IN (SELECT id FROM catalog.outbox WHERE sent_at IS NOT NULL AND sent_at<$1 ORDER BY sent_at,id LIMIT $2)`, before.UTC(), limit)
+	if err != nil {
+		return 0, safe(err)
+	}
+	n, err := result.RowsAffected()
+	return n, safe(err)
 }
 func (t *transaction) saveEnvelope(v c.Envelope) error {
 	if v.SpecVersion != "1.0" || v.Source != "catalog" || v.ID == "" || len(v.ID) > 200 || v.Subject == "" || v.Type == "" || v.Time.IsZero() || v.Data.Revision < 1 {
