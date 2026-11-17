@@ -33,34 +33,45 @@ func TermOrderKey(year int, season string) int {
 }
 
 type DirectoryPolicy struct {
-	CutoffYear   int    `json:"cutoff_year"`
-	CutoffSeason string `json:"cutoff_season"`
+	CutoffYear            int                    `json:"cutoff_year"`
+	CutoffSeason          string                 `json:"cutoff_season"`
+	ExcludedCourseNames   []string               `json:"excluded_course_names,omitempty"`
+	ExcludedCategoryNames []string               `json:"excluded_category_names,omitempty"`
+	CategoryAliases       []CategoryAlias        `json:"category_aliases,omitempty"`
+	Sports                *SportsDirectoryPolicy `json:"sports,omitempty"`
 }
 
-func DefaultDirectoryPolicy() DirectoryPolicy { return DirectoryPolicy{2023, "autumn"} }
-func (p DirectoryPolicy) Valid() bool         { return TermOrderKey(p.CutoffYear, p.CutoffSeason) > 0 }
+func DefaultDirectoryPolicy() DirectoryPolicy {
+	return DirectoryPolicy{CutoffYear: 2023, CutoffSeason: "autumn"}
+}
 
 type ProjectionReport struct {
-	Version         int64                  `json:"version"`
-	Policy          DirectoryPolicy        `json:"policy"`
-	Objects         int64                  `json:"objects"`
-	Courses         int64                  `json:"courses"`
-	Teachers        int64                  `json:"teachers"`
-	Variants        int64                  `json:"variants"`
-	Relations       int64                  `json:"relations"`
-	TeachingHistory int64                  `json:"teaching_history"`
-	Summaries       int64                  `json:"summaries"`
-	Documents       int64                  `json:"documents"`
-	Aliases         int64                  `json:"aliases"`
-	Selections      int64                  `json:"selections"`
-	Rows            int64                  `json:"rows"`
-	Options         int64                  `json:"options"`
-	InvalidTerms    int64                  `json:"invalid_terms"`
-	Bytes           int64                  `json:"bytes"`
-	StorageBytes    int64                  `json:"storage_bytes"`
-	DurationMS      int64                  `json:"duration_ms"`
-	Marks           TeacherDirectoryResult `json:"marks"`
-	BuiltAt         time.Time              `json:"built_at"`
+	ExcludedCourses         int64                  `json:"excluded_courses,omitempty"`
+	SportsProjects          int64                  `json:"sports_projects,omitempty"`
+	SportsSourceCourses     int64                  `json:"sports_source_courses,omitempty"`
+	SportsClasses           int64                  `json:"sports_classes,omitempty"`
+	UnresolvedSportsClasses int64                  `json:"unresolved_sports_classes,omitempty"`
+	SportsUnresolvedReasons map[string]int64       `json:"sports_unresolved_reasons,omitempty"`
+	Version                 int64                  `json:"version"`
+	Policy                  DirectoryPolicy        `json:"policy"`
+	Objects                 int64                  `json:"objects"`
+	Courses                 int64                  `json:"courses"`
+	Teachers                int64                  `json:"teachers"`
+	Variants                int64                  `json:"variants"`
+	Relations               int64                  `json:"relations"`
+	TeachingHistory         int64                  `json:"teaching_history"`
+	Summaries               int64                  `json:"summaries"`
+	Documents               int64                  `json:"documents"`
+	Aliases                 int64                  `json:"aliases"`
+	Selections              int64                  `json:"selections"`
+	Rows                    int64                  `json:"rows"`
+	Options                 int64                  `json:"options"`
+	InvalidTerms            int64                  `json:"invalid_terms"`
+	Bytes                   int64                  `json:"bytes"`
+	StorageBytes            int64                  `json:"storage_bytes"`
+	DurationMS              int64                  `json:"duration_ms"`
+	Marks                   TeacherDirectoryResult `json:"marks"`
+	BuiltAt                 time.Time              `json:"built_at"`
 }
 
 type DirectoryProjectionTransaction interface {
@@ -228,7 +239,9 @@ func (s *Service) RebuildDirectory(ctx context.Context, p Principal, school stri
 	if !ValidID(school) || policy != nil && !policy.Valid() {
 		return out, ErrInput
 	}
-	ctx, cancel := context.WithTimeout(ctx, 2*time.Minute)
+	// Large complete generations can take several minutes. Keep the publication
+	// deadline consistent with the teacher worker while preserving per-statement bounds.
+	ctx, cancel := context.WithTimeout(ctx, 10*time.Minute)
 	defer cancel()
 	err := s.Repo.Transaction(ctx, func(t Transaction) error {
 		port, ok := t.(DirectoryProjectionTransaction)

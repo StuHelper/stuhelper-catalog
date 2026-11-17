@@ -26,31 +26,33 @@ type Principal struct {
 	CanRefreshTeacherSites bool
 }
 type Object struct {
-	TermOrderKey int           `json:"term_order_key,omitempty"`
-	LatestTermID string        `json:"latest_term_id,omitempty"`
-	ScheduleTime *ScheduleTime `json:"schedule_time,omitempty"`
-	Inactive     bool          `json:"inactive,omitempty"`
-	CanonicalID  string        `json:"canonical_id,omitempty"`
-	ID           string        `json:"id"`
-	Kind         string        `json:"kind"`
-	SchoolID     string        `json:"school_id"`
-	Name         string        `json:"name"`
-	Code         string        `json:"code,omitempty"`
-	DepartmentID string        `json:"department_id,omitempty"`
-	CategoryID   string        `json:"category_id,omitempty"`
-	NatureID     string        `json:"nature_id,omitempty"`
-	CourseID     string        `json:"course_id,omitempty"`
-	TermID       string        `json:"term_id,omitempty"`
-	TermCourseID string        `json:"term_course_id,omitempty"`
-	ClassID      string        `json:"class_id,omitempty"`
-	TeacherID    string        `json:"teacher_id,omitempty"`
-	Credits      *float64      `json:"credits"`
-	Biography    string        `json:"biography,omitempty"`
-	Location     string        `json:"location,omitempty"`
-	TimeText     string        `json:"time_text,omitempty"`
-	Aliases      []string      `json:"aliases"`
-	Revision     int64         `json:"revision"`
-	UpdatedAt    time.Time     `json:"updated_at"`
+	CourseType        string        `json:"course_type,omitempty"`
+	SportsProjectCode string        `json:"sports_project_code,omitempty"`
+	TermOrderKey      int           `json:"term_order_key,omitempty"`
+	LatestTermID      string        `json:"latest_term_id,omitempty"`
+	ScheduleTime      *ScheduleTime `json:"schedule_time,omitempty"`
+	Inactive          bool          `json:"inactive,omitempty"`
+	CanonicalID       string        `json:"canonical_id,omitempty"`
+	ID                string        `json:"id"`
+	Kind              string        `json:"kind"`
+	SchoolID          string        `json:"school_id"`
+	Name              string        `json:"name"`
+	Code              string        `json:"code,omitempty"`
+	DepartmentID      string        `json:"department_id,omitempty"`
+	CategoryID        string        `json:"category_id,omitempty"`
+	NatureID          string        `json:"nature_id,omitempty"`
+	CourseID          string        `json:"course_id,omitempty"`
+	TermID            string        `json:"term_id,omitempty"`
+	TermCourseID      string        `json:"term_course_id,omitempty"`
+	ClassID           string        `json:"class_id,omitempty"`
+	TeacherID         string        `json:"teacher_id,omitempty"`
+	Credits           *float64      `json:"credits"`
+	Biography         string        `json:"biography,omitempty"`
+	Location          string        `json:"location,omitempty"`
+	TimeText          string        `json:"time_text,omitempty"`
+	Aliases           []string      `json:"aliases"`
+	Revision          int64         `json:"revision"`
+	UpdatedAt         time.Time     `json:"updated_at"`
 }
 
 // Record retains provenance separately from the public directory projection.

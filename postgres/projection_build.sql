@@ -91,7 +91,7 @@ UPDATE catalog.projection_objects SET data=data || jsonb_build_object('term_orde
 WHERE version=$2 AND kind='term' AND term_key>0;
 -- step
 INSERT INTO catalog.projection_aliases(version,alias_id,canonical_id)
-SELECT $2,r.alias_id,r.canonical_id FROM catalog.redirects r JOIN catalog.objects o ON o.id=r.canonical_id AND o.school_id=$1;
+SELECT $2,r.alias_id,COALESCE((SELECT canonical_id FROM catalog.projection_aliases a WHERE a.version=$2 AND a.alias_id=r.canonical_id),r.canonical_id) FROM catalog.redirects r JOIN catalog.objects o ON o.id=r.canonical_id AND o.school_id=$1 ON CONFLICT(version,alias_id) DO NOTHING;
 -- step
 WITH counts AS (
  SELECT course_id AS id,count(DISTINCT offering_id) FILTER(WHERE offering_id<>'') AS offerings
@@ -142,3 +142,9 @@ JOIN catalog.objects cl ON cl.id=catalog.canonical(a.class_id) AND cl.kind='clas
 JOIN catalog.objects tc ON tc.id=catalog.canonical(cl.term_course_id) AND tc.kind='term_course' AND tc.school_id=a.school_id
 JOIN catalog.projection_objects co ON co.version=$2 AND co.kind='course' AND co.visible AND co.id=catalog.canonical(tc.course_id)
 WHERE a.kind='assignment' AND a.school_id=$1;
+
+-- step
+INSERT INTO catalog.projection_teaching_history(version,teacher_id,course_id)
+SELECT DISTINCT $2,r.teacher_id,r.course_id FROM catalog.projection_relations r
+JOIN catalog.projection_objects co ON co.version=$2 AND co.id=r.course_id AND co.data->>'course_type'='sports_project'
+WHERE r.version=$2 ON CONFLICT DO NOTHING;

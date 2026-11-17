@@ -8,7 +8,9 @@ func (t *transaction) OwnReviewCandidates(owner, school string) ([]c.ReviewCours
  FROM catalog.enrollments en JOIN catalog.projection_heads h ON h.school_id=en.school_id
  LEFT JOIN catalog.projection_aliases ca ON ca.version=h.version AND ca.alias_id=en.course_id
  LEFT JOIN catalog.projection_aliases ta ON ta.version=h.version AND ta.alias_id=en.term_id
- JOIN catalog.projection_objects co ON co.version=h.version AND co.id=COALESCE(ca.canonical_id,en.course_id) AND co.kind='course' AND co.visible
+ LEFT JOIN catalog.projection_sports_classes sport ON sport.version=h.version AND sport.class_id=catalog.canonical(COALESCE(en.data->>'class_id',''))
+ AND sport.source_course_id=COALESCE(ca.canonical_id,en.course_id) AND sport.term_id=COALESCE(ta.canonical_id,en.term_id) AND sport.reason=''
+ JOIN catalog.projection_objects co ON co.version=h.version AND co.id=COALESCE(sport.project_id,ca.canonical_id,en.course_id) AND co.kind='course' AND co.visible
  JOIN catalog.projection_objects tm ON tm.version=h.version AND tm.id=COALESCE(ta.canonical_id,en.term_id) AND tm.kind='term' AND tm.visible
  WHERE en.subject=$1 AND en.school_id=$2 AND en.active
  AND EXISTS(SELECT 1 FROM catalog.projection_variants v WHERE v.version=h.version AND v.course_id=co.id AND v.term_id=tm.id)

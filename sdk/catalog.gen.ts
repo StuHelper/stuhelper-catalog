@@ -11,7 +11,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** @description 读取当前学校的可展示目录投影，当前内容权限在每次请求时检查。课程须在服务端截止学期（默认 2023 秋）及以后有开课记录。kind=term 仅返回截止学期及以后且有可见课程的学期，按 term_order_key 降序、ID 升序分页；前端保持返回顺序。其他类型按 ID 升序。 */
+        /** @description 读取当前学校的可展示目录投影，当前内容权限在每次请求时检查。课程须在服务端截止学期（默认 2023 秋）及以后有开课记录。kind=term 仅返回截止学期及以后且有可见课程的学期，按 term_order_key 降序、ID 升序分页；前端保持返回顺序。其他类型按 ID 升序。 体育项目作为 kind=course 条目返回 course_type=sports_project。按项目 course_id 查询教师、教学班与开课，筛选计数按项目去重。 */
         get: operations["listObjects"];
         put?: never;
         post?: never;
@@ -514,6 +514,13 @@ export interface components {
             readonly term_order_key?: number;
             /** @description 课程在当前目录投影中最近一次开课的学期 ID，按结构化学期排序键确定。 */
             readonly latest_term_id?: string;
+            /**
+             * @description 体育项目使用 kind=course 和稳定的项目 ID。普通课程省略此字段。项目详情、教师、学期及评价复用课程接口；编号体育课程原 ID 返回不存在。
+             * @enum {string}
+             */
+            readonly course_type?: "sports_project";
+            /** @description 仅教学班导入使用的来源体育项目代码。由学校适配器读取明确字段，目录规则通过配置将代码映射到项目；不从场地或教师推断。 */
+            sports_project_code?: string;
         };
         Page: {
             items: components["schemas"]["Object"][];
