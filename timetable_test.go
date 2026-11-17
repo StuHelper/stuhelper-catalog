@@ -57,7 +57,7 @@ func TestScheduleExpansionWeeksTimezoneAndMissing(t *testing.T) {
 			t.Fatal(e)
 		}
 	}
-	for _, text := range []string{"Monday unknown", "周一 第1-2节 第1-61周", "周一 第3-2节 第1-4周", "周一 第1-2节 第0-4周"} {
+	for _, text := range []string{"Monday unknown", "周一 第1-2节 第1-61周", "周一 第3-2节 第1-4周", "周一 第1-2节 第0-4周", "周一 第0节 第1-4周", "周一 第31节 第1-4周", "周一 第5节 第8周(单)", "周一 第1-2节 第1-4,4-8周", "周一 第1-2节 第5,3周", "周一 第1-2节 第1-4周(单）", "周一 第1-2节 第1-4周（双)"} {
 		if c.ParseSchedule(text) != nil {
 			t.Fatal(text)
 		}
@@ -348,5 +348,57 @@ func TestCalendarEscapingFoldingAndDSTOffsets(t *testing.T) {
 	unfolded := strings.ReplaceAll(calendar, "\r\n ", "")
 	if strings.Count(unfolded, "\r\nEND:VEVENT\r\n") != 2 || !strings.Contains(unfolded, "\\,\\;\\\\\\nEND:VEVENT") {
 		t.Fatal(unfolded)
+	}
+}
+
+func TestParseScheduleExtendedBeihangGrammar(t *testing.T) {
+	cases := []struct {
+		text        string
+		weekday     int
+		startPeriod int
+		endPeriod   int
+		weeks       []int
+	}{
+		{"周一 第5节 第8周", 1, 5, 5, []int{8}},
+		{"周三 第3-4节 第1-4,6,8-10周", 3, 3, 4, []int{1, 2, 3, 4, 6, 8, 9, 10}},
+		{"周五 第1-2节 第1,3,5,7周", 5, 1, 2, []int{1, 3, 5, 7}},
+		{"周二 第6节 第1-6周（双）", 2, 6, 6, []int{2, 4, 6}},
+		{"周四 第1-2节 第1-4,7-10周（单）", 4, 1, 2, []int{1, 3, 7, 9}},
+		{"周日 第10节 第2,5-6周(双)", 7, 10, 10, []int{2, 6}},
+		{"周天 第2节 第9周（单）", 7, 2, 2, []int{9}},
+	}
+	for _, tc := range cases {
+		got := c.ParseSchedule(tc.text)
+		if got == nil || got.Weekday != tc.weekday || got.StartPeriod != tc.startPeriod || got.EndPeriod != tc.endPeriod || len(got.Weeks) != len(tc.weeks) {
+			t.Fatalf("ParseSchedule(%q) = %+v", tc.text, got)
+		}
+		for i, w := range tc.weeks {
+			if got.Weeks[i] != w {
+				t.Fatalf("ParseSchedule(%q) week[%d] = %d, want %d", tc.text, i, got.Weeks[i], w)
+			}
+		}
+	}
+
+	s, admin, in := fixture(t)
+	ctx := context.Background()
+	in.Objects = append(in.Objects,
+		c.Object{ID: "jump-meeting", Kind: "schedule", SchoolID: "school", ClassID: "class1", Name: "Jump", TimeText: "周三 第5节 第1-3,6周（双）", Location: "实验楼"},
+		c.Object{ID: "overlap-meeting", Kind: "schedule", SchoolID: "school", ClassID: "class2", Name: "Overlap", TimeText: "周三 第5节 第1-4,4-6周", Location: "实验楼"},
+	)
+	preview, err := s.PreviewImport(ctx, admin, in)
+	if err != nil || !preview.Valid {
+		t.Fatal(preview, err)
+	}
+	in.PreviewToken = preview.PreviewToken
+	if _, err := s.Import(ctx, admin, "jump-seed", in); err != nil {
+		t.Fatal(err)
+	}
+	jump, err := s.Get(ctx, "jump-meeting")
+	if err != nil || jump.ScheduleTime == nil || jump.ScheduleTime.StartPeriod != 5 || jump.ScheduleTime.EndPeriod != 5 || len(jump.ScheduleTime.Weeks) != 2 || jump.ScheduleTime.Weeks[0] != 2 || jump.ScheduleTime.Weeks[1] != 6 {
+		t.Fatalf("imported jump schedule: %+v %v", jump, err)
+	}
+	overlap, err := s.Get(ctx, "overlap-meeting")
+	if err != nil || overlap.ScheduleTime != nil || overlap.TimeText != "周三 第5节 第1-4,4-6周" {
+		t.Fatalf("overlapping week segment should stay unparsed: %+v %v", overlap, err)
 	}
 }
