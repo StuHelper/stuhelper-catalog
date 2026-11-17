@@ -549,6 +549,42 @@ export interface components {
             /** @description 当前课程主档的学时；未知时省略或为 null，0 表示已确认的零学时。 */
             hours?: number | null;
         };
+        NullableObject: {
+            id: string;
+            /** @enum {string} */
+            kind: "school" | "department" | "category" | "nature" | "term" | "course" | "teacher" | "term_course" | "class" | "assignment" | "schedule";
+            school_id: string;
+            name: string;
+            code?: string;
+            department_id?: string;
+            category_id?: string;
+            nature_id?: string;
+            course_id?: string;
+            term_id?: string;
+            term_course_id?: string;
+            class_id?: string;
+            teacher_id?: string;
+            credits: number | null;
+            biography?: string;
+            location?: string;
+            time_text?: string;
+            aliases: string[];
+            revision: number;
+            /** Format: date-time */
+            updated_at: string;
+            inactive?: boolean;
+            canonical_id?: string;
+            schedule_time?: components["schemas"]["ScheduleTime"];
+            readonly term_order_key?: number;
+            readonly latest_term_id?: string;
+            /** @enum {string} */
+            readonly course_type?: "sports_project";
+            sports_project_code?: string;
+            english_name?: string;
+            former_codes?: string[];
+            former_names?: string[];
+            hours?: number | null;
+        } | null;
         Page: {
             items: components["schemas"]["Object"][];
             next: string;
@@ -607,30 +643,7 @@ export interface components {
         Summary: {
             object: components["schemas"]["Object"];
             school: components["schemas"]["Object"];
-            department: {
-                id: string;
-                /** @enum {string} */
-                kind: "school" | "department" | "category" | "nature" | "term" | "course" | "teacher" | "term_course" | "class" | "assignment" | "schedule";
-                school_id: string;
-                name: string;
-                code?: string;
-                department_id?: string;
-                category_id?: string;
-                nature_id?: string;
-                course_id?: string;
-                term_id?: string;
-                term_course_id?: string;
-                class_id?: string;
-                teacher_id?: string;
-                credits: number | null;
-                biography?: string;
-                location?: string;
-                time_text?: string;
-                aliases: string[];
-                revision: number;
-                /** Format: date-time */
-                updated_at: string;
-            } | null;
+            department: components["schemas"]["NullableObject"];
             categories: components["schemas"]["Object"][];
             natures: components["schemas"]["Object"][];
             /** @description 当前目录投影中关联的可展示课程数量。 */
@@ -885,30 +898,7 @@ export interface components {
         PublicSummary: {
             object: components["schemas"]["Object"];
             school: components["schemas"]["Object"];
-            department: {
-                id: string;
-                /** @enum {string} */
-                kind: "school" | "department" | "category" | "nature" | "term" | "course" | "teacher" | "term_course" | "class" | "assignment" | "schedule";
-                school_id: string;
-                name: string;
-                code?: string;
-                department_id?: string;
-                category_id?: string;
-                nature_id?: string;
-                course_id?: string;
-                term_id?: string;
-                term_course_id?: string;
-                class_id?: string;
-                teacher_id?: string;
-                credits: number | null;
-                biography?: string;
-                location?: string;
-                time_text?: string;
-                aliases: string[];
-                revision: number;
-                /** Format: date-time */
-                updated_at: string;
-            } | null;
+            department: components["schemas"]["NullableObject"];
             categories: components["schemas"]["Object"][];
             natures: components["schemas"]["Object"][];
             /** @description 当前目录投影中关联的可展示课程数量。 */

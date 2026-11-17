@@ -366,73 +366,39 @@ func (s *Service) MyEnrollments(ctx context.Context, p Principal, school, course
 	return out, err
 }
 func (s *Service) Correct(ctx context.Context, p Principal, id, key string, in Correction) (Object, error) {
-	ctx = teacherMaintenanceContext(ctx)
-	var out Object
+	if err := maintainRead(p); err != nil {
+		return Object{}, err
+	}
 	if !ValidID(id) || !ValidKey(key) || in.Revision < 1 || (in.Name == nil && in.Biography == nil && in.DepartmentID == nil && in.CategoryID == nil && in.NatureID == nil && in.Code == nil && in.Credits == nil && !in.ClearCredits) || (in.Credits != nil && in.ClearCredits) {
-		return out, ErrInput
+		return Object{}, ErrInput
 	}
 	if in.Name != nil && (strings.TrimSpace(*in.Name) == "" || !validText(*in.Name, 256)) {
-		return out, ErrInput
+		return Object{}, ErrInput
 	}
 	if in.Biography != nil && !validText(*in.Biography, 8000) {
-		return out, ErrInput
+		return Object{}, ErrInput
 	}
-	err := s.Repo.Transaction(ctx, func(t Transaction) error {
-		r, e := t.Object(id)
-		if e != nil {
-			return e
-		}
-		if !p.CanMaintain || !allowed(p, r.Object.SchoolID) {
-			return ErrForbidden
-		}
-		if e = t.Lock(r.Object.SchoolID); e != nil {
-			return e
-		}
-		r, e = t.Object(id)
-		if e != nil {
-			return e
-		}
-		rk := digest([]string{p.Subject, "correct", id, key})
-		h := digest(in)
-		replay, e := t.Replay(rk)
-		if e == nil && s.now().Before(replay.Until) {
-			if replay.Digest != h {
-				return ErrConflict
-			}
-			return json.Unmarshal(replay.Result, &out)
-		}
-		if e != nil && !errors.Is(e, ErrNotFound) {
-			return e
-		}
+	return s.maintainWrite(ctx, p, id, "correct", key, in, func(t Transaction, r Record, rk string, now time.Time) (Object, Event, error) {
 		if r.Object.Revision != in.Revision {
-			return ErrConflict
+			return Object{}, Event{}, ErrConflict
 		}
 		if (in.Credits != nil || in.ClearCredits || in.CategoryID != nil || in.NatureID != nil) && r.Object.Kind != "course" {
-			return ErrInput
+			return Object{}, Event{}, ErrInput
 		}
-		if e = recordCorrection(&r, in); e != nil {
-			return e
+		if e := recordCorrection(&r, in); e != nil {
+			return Object{}, Event{}, e
 		}
-		if e = validateObject(r.Object, r.Object.SchoolID); e != nil {
-			return e
+		if e := validateObject(r.Object, r.Object.SchoolID); e != nil {
+			return Object{}, Event{}, e
 		}
-		if e = relations(t, r.Object); e != nil {
-			return e
+		if e := relations(t, r.Object); e != nil {
+			return Object{}, Event{}, e
 		}
 		r.Object.Revision++
-		r.Object.UpdatedAt = s.now()
-		if e = t.SaveObject(r); e != nil {
-			return e
+		r.Object.UpdatedAt = now
+		if e := t.SaveObject(r); e != nil {
+			return Object{}, Event{}, e
 		}
-		out = r.Object
-		if e = t.Event(Event{Result: "success", ID: rk, Subject: fmt.Sprintf("object/%s", id), Type: "catalog.corrected.v1", SchoolID: r.Object.SchoolID, Actor: p.Subject, Revision: r.Object.Revision, Time: s.now()}); e != nil {
-			return e
-		}
-		b, e := json.Marshal(out)
-		if e != nil {
-			return e
-		}
-		return t.SaveReplay(rk, Replay{Digest: h, Result: b, Until: s.now().Add(24 * time.Hour)})
+		return r.Object, Event{Result: "success", ID: rk, Subject: fmt.Sprintf("object/%s", id), Type: "catalog.corrected.v1", SchoolID: r.Object.SchoolID, Actor: p.Subject, Revision: r.Object.Revision, Time: now}, nil
 	})
-	return out, err
 }

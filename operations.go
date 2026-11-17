@@ -51,7 +51,10 @@ func (s *Service) Resolve(ctx context.Context, id string) (Resolution, error) {
 }
 func mergePlan(t Transaction, p Principal, id string, in MergeInput) (MergePreview, error) {
 	out := MergePreview{}
-	if !p.CanMaintain || !ValidID(id) || !ValidID(in.TargetID) || id == in.TargetID || strings.TrimSpace(in.Reason) == "" || !validText(in.Reason, 2000) {
+	if err := maintainRead(p); err != nil {
+		return out, err
+	}
+	if !ValidID(id) || !ValidID(in.TargetID) || id == in.TargetID || strings.TrimSpace(in.Reason) == "" || !validText(in.Reason, 2000) {
 		return out, ErrInput
 	}
 	source, e := t.Object(id)
@@ -102,32 +105,44 @@ func mergePlan(t Transaction, p Principal, id string, in MergeInput) (MergePrevi
 	return out, nil
 }
 func (s *Service) PreviewMerge(ctx context.Context, p Principal, id string, in MergeInput) (MergePreview, error) {
+	if err := maintainRead(p); err != nil {
+		return MergePreview{}, err
+	}
 	ctx = teacherMaintenanceContext(ctx)
 	var out MergePreview
 	err := s.Repo.Transaction(ctx, func(t Transaction) error { var e error; out, e = mergePlan(t, p, id, in); return e })
 	return out, err
 }
-func (s *Service) Merge(ctx context.Context, p Principal, id, key string, in MergeInput) (Object, error) {
+
+func (s *Service) maintainWrite(ctx context.Context, p Principal, id, action, key string, input any, fn func(t Transaction, rec Record, rk string, now time.Time) (Object, Event, error)) (Object, error) {
+	if err := maintainRead(p); err != nil {
+		return Object{}, err
+	}
+	if !ValidID(id) || !ValidKey(key) {
+		return Object{}, ErrInput
+	}
 	ctx = teacherMaintenanceContext(ctx)
 	var out Object
-	if !ValidKey(key) || in.PreviewToken == "" {
-		return out, ErrInput
-	}
-	rk := digest([]string{p.Subject, "merge", id, key})
-	h := digest(in)
+	rk := digest([]string{p.Subject, action, id, key})
+	h := digest(input)
 	err := s.Repo.Transaction(ctx, func(t Transaction) error {
-		original, e := t.Object(id)
+		initial, e := t.Object(id)
 		if e != nil {
 			return e
 		}
-		if !p.CanMaintain || !allowed(p, original.Object.SchoolID) {
+		if !allowed(p, initial.Object.SchoolID) {
 			return ErrForbidden
 		}
-		if e = t.Lock(original.Object.SchoolID); e != nil {
+		if e = t.Lock(initial.Object.SchoolID); e != nil {
 			return e
 		}
+		rec, e := t.Object(id)
+		if e != nil {
+			return e
+		}
+		now := s.now()
 		cached, e := t.Replay(rk)
-		if e == nil && s.now().Before(cached.Until) {
+		if e == nil && now.Before(cached.Until) {
 			if cached.Digest != h {
 				return ErrConflict
 			}
@@ -135,86 +150,6 @@ func (s *Service) Merge(ctx context.Context, p Principal, id, key string, in Mer
 		}
 		if e != nil && !errors.Is(e, ErrNotFound) {
 			return e
-		}
-		plan, e := mergePlan(t, p, id, in)
-		if e != nil {
-			return e
-		}
-		if plan.PreviewToken != in.PreviewToken {
-			return ErrConflict
-		}
-		if _, e = t.MergeAliases(id, in.TargetID, plan.Source.SchoolID, s.now(), in.Reason); e != nil {
-			return e
-		}
-		source, e := t.Object(id)
-		if e != nil {
-			return e
-		}
-		source.Object.Revision++
-		source.Object.UpdatedAt = s.now()
-		if e = t.SaveObject(source); e != nil {
-			return e
-		}
-		target, e := t.Object(in.TargetID)
-		if e != nil {
-			return e
-		}
-		target.Object.Revision++
-		target.Object.UpdatedAt = s.now()
-		if plan.Source.Kind == "course" {
-			if err := addFormer(&target.Object, plan.Source); err != nil {
-				return err
-			}
-		} else if !slices.Contains(target.Object.Aliases, plan.Source.Name) {
-			target.Object.Aliases = append(target.Object.Aliases, plan.Source.Name)
-		}
-		if e = t.SaveObject(target); e != nil {
-			return e
-		}
-		out = target.Object
-		if e = t.Event(Event{Result: "success", ID: rk, Subject: id, Type: "catalog.merged.v1", Reason: "catalog.merge", SchoolID: out.SchoolID, Actor: p.Subject, Revision: source.Object.Revision, Time: s.now()}); e != nil {
-			return e
-		}
-		data, _ := json.Marshal(out)
-		return t.SaveReplay(rk, Replay{h, data, s.now().Add(24 * time.Hour)})
-	})
-	return out, err
-}
-func (s *Service) SetState(ctx context.Context, p Principal, id, key string, in ObjectState) (Object, error) {
-	ctx = teacherMaintenanceContext(ctx)
-	var out Object
-	if !ValidID(id) || !ValidKey(key) || strings.TrimSpace(in.Reason) == "" || !validText(in.Reason, 2000) {
-		return out, ErrInput
-	}
-	rk := digest([]string{p.Subject, "state", id, key})
-	h := digest(in)
-	err := s.Repo.Transaction(ctx, func(t Transaction) error {
-		old, e := t.Object(id)
-		if e != nil {
-			return e
-		}
-		if !p.CanMaintain || !allowed(p, old.Object.SchoolID) {
-			return ErrForbidden
-		}
-		if e = t.Lock(old.Object.SchoolID); e != nil {
-			return e
-		}
-		old, e = t.Object(id)
-		if e != nil {
-			return e
-		}
-		cached, e := t.Replay(rk)
-		if e == nil && s.now().Before(cached.Until) {
-			if cached.Digest != h {
-				return ErrConflict
-			}
-			return json.Unmarshal(cached.Result, &out)
-		}
-		if e != nil && !errors.Is(e, ErrNotFound) {
-			return e
-		}
-		if old.Object.Revision != in.Revision || !slices.Contains([]string{"course", "teacher"}, old.Object.Kind) {
-			return ErrConflict
 		}
 		public, e := t.PublicObject(id)
 		if e != nil {
@@ -223,6 +158,81 @@ func (s *Service) SetState(ctx context.Context, p Principal, id, key string, in 
 		if public.CanonicalID != "" {
 			return ErrConflict
 		}
+		var ev Event
+		out, ev, e = fn(t, rec, rk, now)
+		if e != nil {
+			return e
+		}
+		if e = t.Event(ev); e != nil {
+			return e
+		}
+		data, e := json.Marshal(out)
+		if e != nil {
+			return e
+		}
+		return t.SaveReplay(rk, Replay{Digest: h, Result: data, Until: now.Add(24 * time.Hour)})
+	})
+	return out, err
+}
+
+func (s *Service) Merge(ctx context.Context, p Principal, id, key string, in MergeInput) (Object, error) {
+	if err := maintainRead(p); err != nil {
+		return Object{}, err
+	}
+	if !ValidID(id) || !ValidKey(key) || in.PreviewToken == "" {
+		return Object{}, ErrInput
+	}
+	return s.maintainWrite(ctx, p, id, "merge", key, in, func(t Transaction, _ Record, rk string, now time.Time) (Object, Event, error) {
+		plan, e := mergePlan(t, p, id, in)
+		if e != nil {
+			return Object{}, Event{}, e
+		}
+		if plan.PreviewToken != in.PreviewToken {
+			return Object{}, Event{}, ErrConflict
+		}
+		if _, e = t.MergeAliases(id, in.TargetID, plan.Source.SchoolID, now, in.Reason); e != nil {
+			return Object{}, Event{}, e
+		}
+		source, e := t.Object(id)
+		if e != nil {
+			return Object{}, Event{}, e
+		}
+		source.Object.Revision++
+		source.Object.UpdatedAt = now
+		if e = t.SaveObject(source); e != nil {
+			return Object{}, Event{}, e
+		}
+		target, e := t.Object(in.TargetID)
+		if e != nil {
+			return Object{}, Event{}, e
+		}
+		target.Object.Revision++
+		target.Object.UpdatedAt = now
+		if plan.Source.Kind == "course" {
+			if err := addFormer(&target.Object, plan.Source); err != nil {
+				return Object{}, Event{}, err
+			}
+		} else if !slices.Contains(target.Object.Aliases, plan.Source.Name) {
+			target.Object.Aliases = append(target.Object.Aliases, plan.Source.Name)
+		}
+		if e = t.SaveObject(target); e != nil {
+			return Object{}, Event{}, e
+		}
+		return target.Object, Event{Result: "success", ID: rk, Subject: id, Type: "catalog.merged.v1", Reason: "catalog.merge", SchoolID: target.Object.SchoolID, Actor: p.Subject, Revision: source.Object.Revision, Time: now}, nil
+	})
+}
+
+func (s *Service) SetState(ctx context.Context, p Principal, id, key string, in ObjectState) (Object, error) {
+	if err := maintainRead(p); err != nil {
+		return Object{}, err
+	}
+	if !ValidID(id) || !ValidKey(key) || strings.TrimSpace(in.Reason) == "" || !validText(in.Reason, 2000) {
+		return Object{}, ErrInput
+	}
+	return s.maintainWrite(ctx, p, id, "state", key, in, func(t Transaction, old Record, rk string, now time.Time) (Object, Event, error) {
+		if old.Object.Revision != in.Revision || !slices.Contains([]string{"course", "teacher"}, old.Object.Kind) {
+			return Object{}, Event{}, ErrConflict
+		}
 		if old.Manual == nil {
 			old.Manual = map[string]string{}
 		}
@@ -230,18 +240,12 @@ func (s *Service) SetState(ctx context.Context, p Principal, id, key string, in 
 		old.Manual["inactive"] = strconv.FormatBool(in.Inactive)
 		old.Object.Inactive = in.Inactive
 		old.Object.Revision++
-		old.Object.UpdatedAt = s.now()
-		if e = t.SaveObject(old); e != nil {
-			return e
+		old.Object.UpdatedAt = now
+		if e := t.SaveObject(old); e != nil {
+			return Object{}, Event{}, e
 		}
-		out = old.Object
-		if e = t.Event(Event{Result: "success", ID: rk, Subject: id, Type: "catalog.state_changed.v1", Reason: "catalog.state_change", SchoolID: out.SchoolID, Actor: p.Subject, Revision: out.Revision, Time: s.now()}); e != nil {
-			return e
-		}
-		data, _ := json.Marshal(out)
-		return t.SaveReplay(rk, Replay{h, data, s.now().Add(24 * time.Hour)})
+		return old.Object, Event{Result: "success", ID: rk, Subject: id, Type: "catalog.state_changed.v1", Reason: "catalog.state_change", SchoolID: old.Object.SchoolID, Actor: p.Subject, Revision: old.Object.Revision, Time: now}, nil
 	})
-	return out, err
 }
 
 // Delete logically removes a directory object while preserving academic history.

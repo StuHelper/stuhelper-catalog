@@ -67,6 +67,9 @@ func (t *transaction) redirect(source, target string, at time.Time, reason strin
 	return safe(e)
 }
 func (t *transaction) MergeAliases(source, target, school string, at time.Time, reason string) (int, error) {
+	if at.After(t.projectionTime) {
+		t.projectionTime = at
+	}
 	if err := t.touchProjection(school); err != nil {
 		return 0, err
 	}

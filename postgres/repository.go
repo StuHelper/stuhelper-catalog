@@ -38,6 +38,7 @@ type transaction struct {
 	projectionRead          bool
 	projectionSchools       map[string]bool
 	projectionAttempt       string
+	projectionTime          time.Time
 	directoryData           *directoryCache
 	requireTeacherDirectory bool
 	pendingTeachers         map[string]bool
@@ -174,6 +175,9 @@ func (t *transaction) Object(id string) (catalog.Record, error) {
 }
 func (t *transaction) SaveObject(r catalog.Record) error {
 	o := r.Object
+	if o.UpdatedAt.After(t.projectionTime) {
+		t.projectionTime = o.UpdatedAt
+	}
 	if e := t.touchProjection(o.SchoolID); e != nil {
 		return e
 	}

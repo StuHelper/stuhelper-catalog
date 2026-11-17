@@ -120,17 +120,11 @@ func (t *transaction) projectionVersion(school string) (int64, error) {
 }
 
 func (t *transaction) rebuildActive(school string) error {
-	if c.DirectoryRebuildDeferred(t.ctx) {
-		return nil
+	at := t.projectionTime
+	if at.IsZero() {
+		at = time.Now().UTC()
 	}
-	var exists bool
-	if err := t.tx.QueryRowContext(t.ctx, `SELECT EXISTS(SELECT 1 FROM catalog.projection_heads WHERE school_id=$1)`, school).Scan(&exists); err != nil {
-		return safe(err)
-	}
-	if !exists {
-		return nil
-	}
-	_, err := t.RebuildDirectory(school, nil, time.Now().UTC())
+	_, err := t.RebuildPublishedDirectory(school, at)
 	return err
 }
 

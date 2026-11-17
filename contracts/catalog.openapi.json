@@ -3817,6 +3817,159 @@
           "updated_at"
         ]
       },
+      "NullableObject": {
+        "type": "object",
+        "nullable": true,
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "school",
+              "department",
+              "category",
+              "nature",
+              "term",
+              "course",
+              "teacher",
+              "term_course",
+              "class",
+              "assignment",
+              "schedule"
+            ]
+          },
+          "school_id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "code": {
+            "type": "string"
+          },
+          "department_id": {
+            "type": "string"
+          },
+          "category_id": {
+            "type": "string"
+          },
+          "nature_id": {
+            "type": "string"
+          },
+          "course_id": {
+            "type": "string"
+          },
+          "term_id": {
+            "type": "string"
+          },
+          "term_course_id": {
+            "type": "string"
+          },
+          "class_id": {
+            "type": "string"
+          },
+          "teacher_id": {
+            "type": "string"
+          },
+          "credits": {
+            "type": "number",
+            "nullable": true
+          },
+          "biography": {
+            "type": "string"
+          },
+          "location": {
+            "type": "string"
+          },
+          "time_text": {
+            "type": "string"
+          },
+          "aliases": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "revision": {
+            "type": "integer"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "inactive": {
+            "type": "boolean"
+          },
+          "canonical_id": {
+            "type": "string"
+          },
+          "schedule_time": {
+            "$ref": "#/components/schemas/ScheduleTime"
+          },
+          "term_order_key": {
+            "type": "integer",
+            "readOnly": true
+          },
+          "latest_term_id": {
+            "type": "string",
+            "readOnly": true
+          },
+          "course_type": {
+            "type": "string",
+            "enum": [
+              "sports_project"
+            ],
+            "readOnly": true
+          },
+          "sports_project_code": {
+            "type": "string",
+            "maxLength": 64
+          },
+          "english_name": {
+            "type": "string",
+            "maxLength": 256
+          },
+          "former_codes": {
+            "type": "array",
+            "maxItems": 50,
+            "uniqueItems": true,
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            }
+          },
+          "former_names": {
+            "type": "array",
+            "maxItems": 50,
+            "uniqueItems": true,
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
+            }
+          },
+          "hours": {
+            "type": "number",
+            "nullable": true,
+            "minimum": 0,
+            "maximum": 10000
+          }
+        },
+        "required": [
+          "id",
+          "kind",
+          "school_id",
+          "name",
+          "credits",
+          "aliases",
+          "revision",
+          "updated_at"
+        ]
+      },
       "Page": {
         "type": "object",
         "additionalProperties": false,
@@ -4040,99 +4193,7 @@
             "$ref": "#/components/schemas/Object"
           },
           "department": {
-            "type": "object",
-            "additionalProperties": false,
-            "properties": {
-              "id": {
-                "type": "string"
-              },
-              "kind": {
-                "type": "string",
-                "enum": [
-                  "school",
-                  "department",
-                  "category",
-                  "nature",
-                  "term",
-                  "course",
-                  "teacher",
-                  "term_course",
-                  "class",
-                  "assignment",
-                  "schedule"
-                ]
-              },
-              "school_id": {
-                "type": "string"
-              },
-              "name": {
-                "type": "string"
-              },
-              "code": {
-                "type": "string"
-              },
-              "department_id": {
-                "type": "string"
-              },
-              "category_id": {
-                "type": "string"
-              },
-              "nature_id": {
-                "type": "string"
-              },
-              "course_id": {
-                "type": "string"
-              },
-              "term_id": {
-                "type": "string"
-              },
-              "term_course_id": {
-                "type": "string"
-              },
-              "class_id": {
-                "type": "string"
-              },
-              "teacher_id": {
-                "type": "string"
-              },
-              "credits": {
-                "type": "number",
-                "nullable": true
-              },
-              "biography": {
-                "type": "string"
-              },
-              "location": {
-                "type": "string"
-              },
-              "time_text": {
-                "type": "string"
-              },
-              "aliases": {
-                "type": "array",
-                "items": {
-                  "type": "string"
-                }
-              },
-              "revision": {
-                "type": "integer"
-              },
-              "updated_at": {
-                "type": "string",
-                "format": "date-time"
-              }
-            },
-            "required": [
-              "id",
-              "kind",
-              "school_id",
-              "name",
-              "credits",
-              "aliases",
-              "revision",
-              "updated_at"
-            ],
-            "nullable": true
+            "$ref": "#/components/schemas/NullableObject"
           },
           "categories": {
             "type": "array",
@@ -5193,99 +5254,7 @@
             "$ref": "#/components/schemas/Object"
           },
           "department": {
-            "type": "object",
-            "additionalProperties": false,
-            "properties": {
-              "id": {
-                "type": "string"
-              },
-              "kind": {
-                "type": "string",
-                "enum": [
-                  "school",
-                  "department",
-                  "category",
-                  "nature",
-                  "term",
-                  "course",
-                  "teacher",
-                  "term_course",
-                  "class",
-                  "assignment",
-                  "schedule"
-                ]
-              },
-              "school_id": {
-                "type": "string"
-              },
-              "name": {
-                "type": "string"
-              },
-              "code": {
-                "type": "string"
-              },
-              "department_id": {
-                "type": "string"
-              },
-              "category_id": {
-                "type": "string"
-              },
-              "nature_id": {
-                "type": "string"
-              },
-              "course_id": {
-                "type": "string"
-              },
-              "term_id": {
-                "type": "string"
-              },
-              "term_course_id": {
-                "type": "string"
-              },
-              "class_id": {
-                "type": "string"
-              },
-              "teacher_id": {
-                "type": "string"
-              },
-              "credits": {
-                "type": "number",
-                "nullable": true
-              },
-              "biography": {
-                "type": "string"
-              },
-              "location": {
-                "type": "string"
-              },
-              "time_text": {
-                "type": "string"
-              },
-              "aliases": {
-                "type": "array",
-                "items": {
-                  "type": "string"
-                }
-              },
-              "revision": {
-                "type": "integer"
-              },
-              "updated_at": {
-                "type": "string",
-                "format": "date-time"
-              }
-            },
-            "required": [
-              "id",
-              "kind",
-              "school_id",
-              "name",
-              "credits",
-              "aliases",
-              "revision",
-              "updated_at"
-            ],
-            "nullable": true
+            "$ref": "#/components/schemas/NullableObject"
           },
           "categories": {
             "type": "array",

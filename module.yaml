@@ -141,6 +141,7 @@ scenario_tests:
   CO-08:
     - operations_test.go#TestMergeKeepsOldLinksOfferingsAndEnrollmentsAndSupportsDeactivation
     - operations_test.go#TestMergeRejectsFullAliasListWithoutDroppingSourceName
+    - operations_test.go#TestMaintenanceWriteUnifiedAuthAliasGuardAndOpenAPISchema
   CO-09:
     - operations_test.go#TestMergeKeepsOldLinksOfferingsAndEnrollmentsAndSupportsDeactivation
   CO-10:
@@ -213,6 +214,7 @@ scenario_tests:
   CAT-PROJECTION-03:
     - projection_test.go#TestDirectoryProjectionAutoRebuildAndCompleteImportBoundary
     - projection_test.go#TestDirectoryProjectionFailedSourceImportFencesPublicationUntilRetry
+    - projection_test.go#TestProjectionMaintenanceRebuildUsesInjectedClock
     - projection_import_test.go#TestDirectoryProjectionRetiredImportCannotWriteOrPublish
     - projection_import_test.go#TestDirectoryProjectionCompletedAndExpiredImportsRejectFurtherPages
   CAT-PROJECTION-04:

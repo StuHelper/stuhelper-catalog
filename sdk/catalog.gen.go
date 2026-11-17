@@ -57,15 +57,75 @@ func (e NextClassDayState) Valid() bool {
 	}
 }
 
+// Defines values for NullableObjectCourseType.
+const (
+	NullableObjectCourseTypeSportsProject NullableObjectCourseType = "sports_project"
+)
+
+// Valid indicates whether the value is a known member of the NullableObjectCourseType enum.
+func (e NullableObjectCourseType) Valid() bool {
+	switch e {
+	case NullableObjectCourseTypeSportsProject:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for NullableObjectKind.
+const (
+	NullableObjectKindAssignment NullableObjectKind = "assignment"
+	NullableObjectKindCategory   NullableObjectKind = "category"
+	NullableObjectKindClass      NullableObjectKind = "class"
+	NullableObjectKindCourse     NullableObjectKind = "course"
+	NullableObjectKindDepartment NullableObjectKind = "department"
+	NullableObjectKindNature     NullableObjectKind = "nature"
+	NullableObjectKindSchedule   NullableObjectKind = "schedule"
+	NullableObjectKindSchool     NullableObjectKind = "school"
+	NullableObjectKindTeacher    NullableObjectKind = "teacher"
+	NullableObjectKindTerm       NullableObjectKind = "term"
+	NullableObjectKindTermCourse NullableObjectKind = "term_course"
+)
+
+// Valid indicates whether the value is a known member of the NullableObjectKind enum.
+func (e NullableObjectKind) Valid() bool {
+	switch e {
+	case NullableObjectKindAssignment:
+		return true
+	case NullableObjectKindCategory:
+		return true
+	case NullableObjectKindClass:
+		return true
+	case NullableObjectKindCourse:
+		return true
+	case NullableObjectKindDepartment:
+		return true
+	case NullableObjectKindNature:
+		return true
+	case NullableObjectKindSchedule:
+		return true
+	case NullableObjectKindSchool:
+		return true
+	case NullableObjectKindTeacher:
+		return true
+	case NullableObjectKindTerm:
+		return true
+	case NullableObjectKindTermCourse:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for ObjectCourseType.
 const (
-	SportsProject ObjectCourseType = "sports_project"
+	ObjectCourseTypeSportsProject ObjectCourseType = "sports_project"
 )
 
 // Valid indicates whether the value is a known member of the ObjectCourseType enum.
 func (e ObjectCourseType) Valid() bool {
 	switch e {
-	case SportsProject:
+	case ObjectCourseTypeSportsProject:
 		return true
 	default:
 		return false
@@ -117,51 +177,6 @@ func (e ObjectKind) Valid() bool {
 	}
 }
 
-// Defines values for PublicSummaryDepartmentKind.
-const (
-	PublicSummaryDepartmentKindAssignment PublicSummaryDepartmentKind = "assignment"
-	PublicSummaryDepartmentKindCategory   PublicSummaryDepartmentKind = "category"
-	PublicSummaryDepartmentKindClass      PublicSummaryDepartmentKind = "class"
-	PublicSummaryDepartmentKindCourse     PublicSummaryDepartmentKind = "course"
-	PublicSummaryDepartmentKindDepartment PublicSummaryDepartmentKind = "department"
-	PublicSummaryDepartmentKindNature     PublicSummaryDepartmentKind = "nature"
-	PublicSummaryDepartmentKindSchedule   PublicSummaryDepartmentKind = "schedule"
-	PublicSummaryDepartmentKindSchool     PublicSummaryDepartmentKind = "school"
-	PublicSummaryDepartmentKindTeacher    PublicSummaryDepartmentKind = "teacher"
-	PublicSummaryDepartmentKindTerm       PublicSummaryDepartmentKind = "term"
-	PublicSummaryDepartmentKindTermCourse PublicSummaryDepartmentKind = "term_course"
-)
-
-// Valid indicates whether the value is a known member of the PublicSummaryDepartmentKind enum.
-func (e PublicSummaryDepartmentKind) Valid() bool {
-	switch e {
-	case PublicSummaryDepartmentKindAssignment:
-		return true
-	case PublicSummaryDepartmentKindCategory:
-		return true
-	case PublicSummaryDepartmentKindClass:
-		return true
-	case PublicSummaryDepartmentKindCourse:
-		return true
-	case PublicSummaryDepartmentKindDepartment:
-		return true
-	case PublicSummaryDepartmentKindNature:
-		return true
-	case PublicSummaryDepartmentKindSchedule:
-		return true
-	case PublicSummaryDepartmentKindSchool:
-		return true
-	case PublicSummaryDepartmentKindTeacher:
-		return true
-	case PublicSummaryDepartmentKindTerm:
-		return true
-	case PublicSummaryDepartmentKindTermCourse:
-		return true
-	default:
-		return false
-	}
-}
-
 // Defines values for RecentCoursesResourcesState.
 const (
 	RecentCoursesResourcesStateAvailable   RecentCoursesResourcesState = "available"
@@ -201,51 +216,6 @@ func (e Recommendation) Valid() bool {
 	case StronglyRecommended:
 		return true
 	case Unrated:
-		return true
-	default:
-		return false
-	}
-}
-
-// Defines values for SummaryDepartmentKind.
-const (
-	SummaryDepartmentKindAssignment SummaryDepartmentKind = "assignment"
-	SummaryDepartmentKindCategory   SummaryDepartmentKind = "category"
-	SummaryDepartmentKindClass      SummaryDepartmentKind = "class"
-	SummaryDepartmentKindCourse     SummaryDepartmentKind = "course"
-	SummaryDepartmentKindDepartment SummaryDepartmentKind = "department"
-	SummaryDepartmentKindNature     SummaryDepartmentKind = "nature"
-	SummaryDepartmentKindSchedule   SummaryDepartmentKind = "schedule"
-	SummaryDepartmentKindSchool     SummaryDepartmentKind = "school"
-	SummaryDepartmentKindTeacher    SummaryDepartmentKind = "teacher"
-	SummaryDepartmentKindTerm       SummaryDepartmentKind = "term"
-	SummaryDepartmentKindTermCourse SummaryDepartmentKind = "term_course"
-)
-
-// Valid indicates whether the value is a known member of the SummaryDepartmentKind enum.
-func (e SummaryDepartmentKind) Valid() bool {
-	switch e {
-	case SummaryDepartmentKindAssignment:
-		return true
-	case SummaryDepartmentKindCategory:
-		return true
-	case SummaryDepartmentKindClass:
-		return true
-	case SummaryDepartmentKindCourse:
-		return true
-	case SummaryDepartmentKindDepartment:
-		return true
-	case SummaryDepartmentKindNature:
-		return true
-	case SummaryDepartmentKindSchedule:
-		return true
-	case SummaryDepartmentKindSchool:
-		return true
-	case SummaryDepartmentKindTeacher:
-		return true
-	case SummaryDepartmentKindTerm:
-		return true
-	case SummaryDepartmentKindTermCourse:
 		return true
 	default:
 		return false
@@ -702,6 +672,49 @@ type NextLesson struct {
 	Teachers    []Object  `json:"teachers"`
 }
 
+// NullableObject defines model for NullableObject.
+type NullableObject struct {
+	Aliases      []string                  `json:"aliases"`
+	Biography    *string                   `json:"biography,omitempty"`
+	CanonicalId  *string                   `json:"canonical_id,omitempty"`
+	CategoryId   *string                   `json:"category_id,omitempty"`
+	ClassId      *string                   `json:"class_id,omitempty"`
+	Code         *string                   `json:"code,omitempty"`
+	CourseId     *string                   `json:"course_id,omitempty"`
+	CourseType   *NullableObjectCourseType `json:"course_type,omitempty"`
+	Credits      *float32                  `json:"credits"`
+	DepartmentId *string                   `json:"department_id,omitempty"`
+	EnglishName  *string                   `json:"english_name,omitempty"`
+	FormerCodes  *[]string                 `json:"former_codes,omitempty"`
+	FormerNames  *[]string                 `json:"former_names,omitempty"`
+	Hours        *float32                  `json:"hours,omitempty"`
+	Id           string                    `json:"id"`
+	Inactive     *bool                     `json:"inactive,omitempty"`
+	Kind         NullableObjectKind        `json:"kind"`
+	LatestTermId *string                   `json:"latest_term_id,omitempty"`
+	Location     *string                   `json:"location,omitempty"`
+	Name         string                    `json:"name"`
+	NatureId     *string                   `json:"nature_id,omitempty"`
+	Revision     int                       `json:"revision"`
+
+	// ScheduleTime ISO weekday Monday=1. Explicit week set; odd/even weeks are expanded by importer. End period >= start. Missing structure means not provided. Recognized time_text grammar: 周一 第1-2节 第1-16周(单), with optional 单/双 suffix.
+	ScheduleTime      *ScheduleTime `json:"schedule_time,omitempty"`
+	SchoolId          string        `json:"school_id"`
+	SportsProjectCode *string       `json:"sports_project_code,omitempty"`
+	TeacherId         *string       `json:"teacher_id,omitempty"`
+	TermCourseId      *string       `json:"term_course_id,omitempty"`
+	TermId            *string       `json:"term_id,omitempty"`
+	TermOrderKey      *int          `json:"term_order_key,omitempty"`
+	TimeText          *string       `json:"time_text,omitempty"`
+	UpdatedAt         time.Time     `json:"updated_at"`
+}
+
+// NullableObjectCourseType defines model for NullableObject.CourseType.
+type NullableObjectCourseType string
+
+// NullableObjectKind defines model for NullableObject.Kind.
+type NullableObjectKind string
+
 // Object defines model for Object.
 type Object struct {
 	// Aliases 保留的通用别名字段。学院曾用名继续使用；课程英文名、曾用课程号和曾用名分别使用独立字段。
@@ -803,39 +816,15 @@ type PublicSummary struct {
 	Categories []Object `json:"categories"`
 
 	// CourseCount 当前目录投影中关联的可展示课程数量。
-	CourseCount int `json:"course_count"`
-	Department  *struct {
-		Aliases      []string                    `json:"aliases"`
-		Biography    *string                     `json:"biography,omitempty"`
-		CategoryId   *string                     `json:"category_id,omitempty"`
-		ClassId      *string                     `json:"class_id,omitempty"`
-		Code         *string                     `json:"code,omitempty"`
-		CourseId     *string                     `json:"course_id,omitempty"`
-		Credits      *float32                    `json:"credits"`
-		DepartmentId *string                     `json:"department_id,omitempty"`
-		Id           string                      `json:"id"`
-		Kind         PublicSummaryDepartmentKind `json:"kind"`
-		Location     *string                     `json:"location,omitempty"`
-		Name         string                      `json:"name"`
-		NatureId     *string                     `json:"nature_id,omitempty"`
-		Revision     int                         `json:"revision"`
-		SchoolId     string                      `json:"school_id"`
-		TeacherId    *string                     `json:"teacher_id,omitempty"`
-		TermCourseId *string                     `json:"term_course_id,omitempty"`
-		TermId       *string                     `json:"term_id,omitempty"`
-		TimeText     *string                     `json:"time_text,omitempty"`
-		UpdatedAt    time.Time                   `json:"updated_at"`
-	} `json:"department"`
-	Natures []Object `json:"natures"`
-	Object  Object   `json:"object"`
-	School  Object   `json:"school"`
+	CourseCount int             `json:"course_count"`
+	Department  *NullableObject `json:"department"`
+	Natures     []Object        `json:"natures"`
+	Object      Object          `json:"object"`
+	School      Object          `json:"school"`
 
 	// TeacherCount 当前目录投影中关联的可展示教师数量。
 	TeacherCount int `json:"teacher_count"`
 }
-
-// PublicSummaryDepartmentKind defines model for PublicSummary.Department.Kind.
-type PublicSummaryDepartmentKind string
 
 // RecentCleared defines model for RecentCleared.
 type RecentCleared struct {
@@ -909,31 +898,10 @@ type Summary struct {
 	Categories []Object `json:"categories"`
 
 	// CourseCount 当前目录投影中关联的可展示课程数量。
-	CourseCount int `json:"course_count"`
-	Department  *struct {
-		Aliases      []string              `json:"aliases"`
-		Biography    *string               `json:"biography,omitempty"`
-		CategoryId   *string               `json:"category_id,omitempty"`
-		ClassId      *string               `json:"class_id,omitempty"`
-		Code         *string               `json:"code,omitempty"`
-		CourseId     *string               `json:"course_id,omitempty"`
-		Credits      *float32              `json:"credits"`
-		DepartmentId *string               `json:"department_id,omitempty"`
-		Id           string                `json:"id"`
-		Kind         SummaryDepartmentKind `json:"kind"`
-		Location     *string               `json:"location,omitempty"`
-		Name         string                `json:"name"`
-		NatureId     *string               `json:"nature_id,omitempty"`
-		Revision     int                   `json:"revision"`
-		SchoolId     string                `json:"school_id"`
-		TeacherId    *string               `json:"teacher_id,omitempty"`
-		TermCourseId *string               `json:"term_course_id,omitempty"`
-		TermId       *string               `json:"term_id,omitempty"`
-		TimeText     *string               `json:"time_text,omitempty"`
-		UpdatedAt    time.Time             `json:"updated_at"`
-	} `json:"department"`
-	Natures []Object `json:"natures"`
-	Object  Object   `json:"object"`
+	CourseCount int             `json:"course_count"`
+	Department  *NullableObject `json:"department"`
+	Natures     []Object        `json:"natures"`
+	Object      Object          `json:"object"`
 
 	// OfferingCount 截止学期及以后纳入当前投影的开课记录数量。
 	OfferingCount int    `json:"offering_count"`
@@ -942,9 +910,6 @@ type Summary struct {
 	// TeacherCount 当前目录投影中关联的可展示教师数量。
 	TeacherCount int `json:"teacher_count"`
 }
-
-// SummaryDepartmentKind defines model for Summary.Department.Kind.
-type SummaryDepartmentKind string
 
 // TeacherMarkCounts defines model for TeacherMarkCounts.
 type TeacherMarkCounts struct {

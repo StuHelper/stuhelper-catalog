@@ -361,3 +361,54 @@ func TestDirectoryProjectionFailedSourceImportFencesPublicationUntilRetry(t *tes
 		t.Fatal(object, err)
 	}
 }
+
+func TestProjectionMaintenanceRebuildUsesInjectedClock(t *testing.T) {
+	s, p, _, initial := projectionFixture(t)
+	ctx := context.Background()
+	repo := s.Repo.(*postgres.Repository)
+	repo.RequireDirectoryProjection = true
+	repo.RequireTeacherDirectory = true
+
+	fixedClock := initial.BuiltAt.Add(2 * time.Hour).Truncate(time.Second)
+	s.Clock = func() time.Time { return fixedClock }
+
+	updatedName := "Clock Controlled Course"
+	course, err := s.AdminRead(ctx, p, "course")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := s.Correct(ctx, p, "course", "clock-correct", c.Correction{Revision: course.Revision, Name: &updatedName}); err != nil {
+		t.Fatal(err)
+	}
+
+	report, err := s.DirectoryProjection(ctx, p, "school")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !report.BuiltAt.Equal(fixedClock) {
+		t.Fatalf("rebuildActive ignored Service.Clock: got BuiltAt=%v want=%v", report.BuiltAt, fixedClock)
+	}
+	readCourse, err := s.Read(ctx, p, "course")
+	if err != nil || readCourse.Name != updatedName {
+		t.Fatalf("projected Read did not reflect corrected name: %+v %v", readCourse, err)
+	}
+
+	// Verify ImportTeacherSites also forwards s.Clock into RebuildPublishedDirectory.
+	nextClock := fixedClock.Add(30 * time.Minute)
+	s.Clock = func() time.Time { return nextClock }
+	candidates, err := s.TeacherCandidates(ctx, p, "school", "", 500)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := s.ImportTeacherSites(ctx, p, c.TeacherSiteSnapshot{
+		CandidateFingerprint: c.TeacherCandidateFingerprint(candidates),
+		SchoolID:             "school", SourceID: "official", Revision: 2, ObservedAt: nextClock,
+		Matches: []c.TeacherSiteMatch{{TeacherID: "official", Name: "Official", DepartmentID: "dept", URL: "https://shi.buaa.edu.cn/official/index.htm"}},
+	}); err != nil {
+		t.Fatal(err)
+	}
+	report2, err := s.DirectoryProjection(ctx, p, "school")
+	if err != nil || !report2.BuiltAt.Equal(nextClock) {
+		t.Fatalf("ImportTeacherSites rebuild ignored Service.Clock: got=%+v want=%v err=%v", report2, nextClock, err)
+	}
+}

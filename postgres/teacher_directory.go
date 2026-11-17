@@ -204,7 +204,7 @@ func (t *transaction) ReplaceTeacherSites(in c.TeacherSiteSnapshot, actor string
 		Type: "catalog.teacher-sites.refreshed.v1", SchoolID: in.SchoolID, Actor: actor, Revision: in.Revision, Result: "success", Time: at}); err != nil {
 		return c.TeacherDirectoryResult{}, err
 	}
-	if err := t.rebuildActive(in.SchoolID); err != nil {
+	if _, err := t.RebuildPublishedDirectory(in.SchoolID, at); err != nil {
 		return c.TeacherDirectoryResult{}, err
 	}
 	return t.directoryCounts(in.SchoolID)
