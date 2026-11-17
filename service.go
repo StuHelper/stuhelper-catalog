@@ -73,7 +73,10 @@ func validText(v string, n int) bool {
 var kinds = []string{"school", "department", "category", "nature", "term", "course", "teacher", "term_course", "class", "assignment", "schedule"}
 
 func validateObject(o Object, school string) error {
-	if o.TermOrderKey != 0 || o.LatestTermID != "" {
+	if o.TermOrderKey != 0 || o.LatestTermID != "" || o.CourseType != "" {
+		return ErrInput
+	}
+	if !validText(o.SportsProjectCode, 64) || (o.SportsProjectCode != "" && (o.Kind != "class" || o.SportsProjectCode != strings.TrimSpace(o.SportsProjectCode))) {
 		return ErrInput
 	}
 	if !validSchedule(o.ScheduleTime) || (o.ScheduleTime != nil && o.Kind != "schedule") {

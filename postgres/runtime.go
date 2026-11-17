@@ -33,7 +33,7 @@ func (r *Repository) CheckRuntime(ctx context.Context) error {
 	if r.RequireDirectoryProjection {
 		var ready bool
 		err = r.DB.QueryRowContext(ctx, `SELECT bool_and(has_table_privilege(current_user,'catalog.'||name,'SELECT,INSERT,UPDATE,DELETE'))
- FROM unnest(ARRAY['term_orders','projection_generations','projection_heads','projection_failures','projection_imports','projection_objects','projection_variants','projection_relations','projection_teaching_history','projection_options','projection_aliases','projection_summaries','projection_documents','projection_selections']) name`).Scan(&ready)
+ FROM unnest(ARRAY['term_orders','projection_generations','projection_heads','projection_failures','projection_imports','projection_objects','projection_sports_sources','projection_sports_classes','projection_variants','projection_relations','projection_teaching_history','projection_options','projection_aliases','projection_summaries','projection_documents','projection_selections']) name`).Scan(&ready)
 		if err != nil || !ready {
 			return catalog.ErrUnavailable
 		}

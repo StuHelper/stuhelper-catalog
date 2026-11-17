@@ -22,6 +22,14 @@ func TestDirectoryProjectionProductionScaleBeforeAfter(t *testing.T) {
 	if _, err := admin.Exec(`INSERT INTO catalog.teacher_directory(teacher_id,school_id,teaching,updated_at) SELECT id,school_id,true,now() FROM catalog.objects WHERE kind='teacher'; ANALYZE catalog.teacher_directory`); err != nil {
 		t.Fatal(err)
 	}
+	// Keep the source cardinality fixed while supplying explicit sports metadata.
+	if _, err := admin.Exec(`UPDATE catalog.objects SET name=CASE id WHEN 'category-000001' THEN 'Synthetic sports' ELSE 'Synthetic sports alias' END,
+ data=jsonb_set(data,'{object,name}',to_jsonb(CASE id WHEN 'category-000001' THEN 'Synthetic sports' ELSE 'Synthetic sports alias' END))
+ WHERE id IN('category-000001','category-000002');
+ UPDATE catalog.objects SET data=jsonb_set(data,'{object,sports_project_code}',to_jsonb('sport-'||((substring(id from 7)::integer/63)%3+1)::text))
+ WHERE kind='class' AND category_id IN('category-000001','category-000002')`); err != nil {
+		t.Fatal(err)
+	}
 	repo.RequireTeacherDirectory = true
 	repo.DB.SetMaxOpenConns(3)
 	repo.DB.SetMaxIdleConns(3)
@@ -118,10 +126,33 @@ func TestDirectoryProjectionProductionScaleBeforeAfter(t *testing.T) {
 			t.Errorf("%s cold projection query took %.3f ms", name, a.FirstMS)
 		}
 	}
+	policy := c.DefaultDirectoryPolicy()
+	policy.ExcludedCourseNames = []string{"工程数学课程1"}
+	policy.CategoryAliases = []c.CategoryAlias{{From: "Synthetic sports alias", To: "Synthetic sports"}}
+	policy.Sports = &c.SportsDirectoryPolicy{CategoryName: "Synthetic sports", Projects: []c.SportsProject{
+		{Key: "one", Name: "Synthetic project one", SourceCodes: []string{"sport-1"}},
+		{Key: "two", Name: "Synthetic project two", SourceCodes: []string{"sport-2"}},
+		{Key: "three", Name: "Synthetic project three", SourceCodes: []string{"sport-3"}},
+	}}
+	displayReport, err := s.RebuildDirectory(ctx, p, "school-000001", &policy)
+	if err != nil || displayReport.SportsProjects != 3 || displayReport.ExcludedCourses != 1 {
+		t.Fatal("display projection", displayReport, err)
+	}
+	display := measure(true)
+	if display["course-name"].Count != display["options-counts"].Count || display["course-name"].Count != displayReport.Courses {
+		t.Fatal("display count mismatch", display)
+	}
+	for name, baseline := range after {
+		if display[name].P95MS > baseline.P95MS*1.5+10 {
+			t.Errorf("display rules regression %s before=%.3f after=%.3f ms", name, baseline.P95MS, display[name].P95MS)
+		}
+	}
 	raw, err := json.Marshal(struct {
 		Report        c.ProjectionReport `json:"report"`
 		Before, After map[string]measurement
-	}{report, before, after})
+		DisplayReport c.ProjectionReport     `json:"display_report"`
+		Display       map[string]measurement `json:"display"`
+	}{report, before, after, displayReport, display})
 	if err != nil {
 		t.Fatal(err)
 	}

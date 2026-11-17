@@ -57,6 +57,21 @@ func (e NextClassDayState) Valid() bool {
 	}
 }
 
+// Defines values for ObjectCourseType.
+const (
+	SportsProject ObjectCourseType = "sports_project"
+)
+
+// Valid indicates whether the value is a known member of the ObjectCourseType enum.
+func (e ObjectCourseType) Valid() bool {
+	switch e {
+	case SportsProject:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for ObjectKind.
 const (
 	ObjectKindAssignment ObjectKind = "assignment"
@@ -615,18 +630,21 @@ type NextLesson struct {
 
 // Object defines model for Object.
 type Object struct {
-	Aliases      []string   `json:"aliases"`
-	Biography    *string    `json:"biography,omitempty"`
-	CanonicalId  *string    `json:"canonical_id,omitempty"`
-	CategoryId   *string    `json:"category_id,omitempty"`
-	ClassId      *string    `json:"class_id,omitempty"`
-	Code         *string    `json:"code,omitempty"`
-	CourseId     *string    `json:"course_id,omitempty"`
-	Credits      *float32   `json:"credits"`
-	DepartmentId *string    `json:"department_id,omitempty"`
-	Id           string     `json:"id"`
-	Inactive     *bool      `json:"inactive,omitempty"`
-	Kind         ObjectKind `json:"kind"`
+	Aliases     []string `json:"aliases"`
+	Biography   *string  `json:"biography,omitempty"`
+	CanonicalId *string  `json:"canonical_id,omitempty"`
+	CategoryId  *string  `json:"category_id,omitempty"`
+	ClassId     *string  `json:"class_id,omitempty"`
+	Code        *string  `json:"code,omitempty"`
+	CourseId    *string  `json:"course_id,omitempty"`
+
+	// CourseType 体育项目使用 kind=course 和稳定的项目 ID。普通课程省略此字段。项目详情、教师、学期及评价复用课程接口；编号体育课程原 ID 返回不存在。
+	CourseType   *ObjectCourseType `json:"course_type,omitempty"`
+	Credits      *float32          `json:"credits"`
+	DepartmentId *string           `json:"department_id,omitempty"`
+	Id           string            `json:"id"`
+	Inactive     *bool             `json:"inactive,omitempty"`
+	Kind         ObjectKind        `json:"kind"`
 
 	// LatestTermId 课程在当前目录投影中最近一次开课的学期 ID，按结构化学期排序键确定。
 	LatestTermId *string `json:"latest_term_id,omitempty"`
@@ -638,15 +656,21 @@ type Object struct {
 	// ScheduleTime ISO weekday Monday=1. Explicit week set; odd/even weeks are expanded by importer. End period >= start. Missing structure means not provided. Recognized time_text grammar: 周一 第1-2节 第1-16周(单), with optional 单/双 suffix.
 	ScheduleTime *ScheduleTime `json:"schedule_time,omitempty"`
 	SchoolId     string        `json:"school_id"`
-	TeacherId    *string       `json:"teacher_id,omitempty"`
-	TermCourseId *string       `json:"term_course_id,omitempty"`
-	TermId       *string       `json:"term_id,omitempty"`
+
+	// SportsProjectCode 仅教学班导入使用的来源体育项目代码。由学校适配器读取明确字段，目录规则通过配置将代码映射到项目；不从场地或教师推断。
+	SportsProjectCode *string `json:"sports_project_code,omitempty"`
+	TeacherId         *string `json:"teacher_id,omitempty"`
+	TermCourseId      *string `json:"term_course_id,omitempty"`
+	TermId            *string `json:"term_id,omitempty"`
 
 	// TermOrderKey 结构化时间排序键，与截止学期使用同一规则：自然年 × 10 + 季节（春 1、夏 2、秋 3），例如 20243 表示 2024 秋。不是学年起始年份。学期选项按键倒序、ID 升序；公开目录投影不返回无法解析的学期。
 	TermOrderKey *int      `json:"term_order_key,omitempty"`
 	TimeText     *string   `json:"time_text,omitempty"`
 	UpdatedAt    time.Time `json:"updated_at"`
 }
+
+// ObjectCourseType 体育项目使用 kind=course 和稳定的项目 ID。普通课程省略此字段。项目详情、教师、学期及评价复用课程接口；编号体育课程原 ID 返回不存在。
+type ObjectCourseType string
 
 // ObjectKind defines model for Object.Kind.
 type ObjectKind string
@@ -1301,7 +1325,7 @@ type ClientInterface interface {
 
 	// ListObjects performs a GET /api/v1/catalog/objects (the `ListObjects` operationId) request.
 	//
-	// 读取当前学校的可展示目录投影，当前内容权限在每次请求时检查。课程须在服务端截止学期（默认 2023 秋）及以后有开课记录。kind=term 仅返回截止学期及以后且有可见课程的学期，按 term_order_key 降序、ID 升序分页；前端保持返回顺序。其他类型按 ID 升序。.
+	// 读取当前学校的可展示目录投影，当前内容权限在每次请求时检查。课程须在服务端截止学期（默认 2023 秋）及以后有开课记录。kind=term 仅返回截止学期及以后且有可见课程的学期，按 term_order_key 降序、ID 升序分页；前端保持返回顺序。其他类型按 ID 升序。 体育项目作为 kind=course 条目返回 course_type=sports_project。按项目 course_id 查询教师、教学班与开课，筛选计数按项目去重。.
 	ListObjects(ctx context.Context, params *ListObjectsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// LookupObjects performs a GET /api/v1/catalog/objects/lookup (the `LookupObjects` operationId) request.
@@ -1779,7 +1803,7 @@ func (c *Client) MyCalendar(ctx context.Context, params *MyCalendarParams, reqEd
 
 // ListObjects performs a GET /api/v1/catalog/objects (the `ListObjects` operationId) request.
 //
-// 读取当前学校的可展示目录投影，当前内容权限在每次请求时检查。课程须在服务端截止学期（默认 2023 秋）及以后有开课记录。kind=term 仅返回截止学期及以后且有可见课程的学期，按 term_order_key 降序、ID 升序分页；前端保持返回顺序。其他类型按 ID 升序。.
+// 读取当前学校的可展示目录投影，当前内容权限在每次请求时检查。课程须在服务端截止学期（默认 2023 秋）及以后有开课记录。kind=term 仅返回截止学期及以后且有可见课程的学期，按 term_order_key 降序、ID 升序分页；前端保持返回顺序。其他类型按 ID 升序。 体育项目作为 kind=course 条目返回 course_type=sports_project。按项目 course_id 查询教师、教学班与开课，筛选计数按项目去重。.
 func (c *Client) ListObjects(ctx context.Context, params *ListObjectsParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewListObjectsRequest(c.Server, params)
 	if err != nil {
@@ -4224,7 +4248,7 @@ type ClientWithResponsesInterface interface {
 
 	// ListObjectsWithResponse performs a GET /api/v1/catalog/objects (the `ListObjects` operationId) request.
 	//
-	// 读取当前学校的可展示目录投影，当前内容权限在每次请求时检查。课程须在服务端截止学期（默认 2023 秋）及以后有开课记录。kind=term 仅返回截止学期及以后且有可见课程的学期，按 term_order_key 降序、ID 升序分页；前端保持返回顺序。其他类型按 ID 升序。.
+	// 读取当前学校的可展示目录投影，当前内容权限在每次请求时检查。课程须在服务端截止学期（默认 2023 秋）及以后有开课记录。kind=term 仅返回截止学期及以后且有可见课程的学期，按 term_order_key 降序、ID 升序分页；前端保持返回顺序。其他类型按 ID 升序。 体育项目作为 kind=course 条目返回 course_type=sports_project。按项目 course_id 查询教师、教学班与开课，筛选计数按项目去重。.
 	//
 	// Returns a wrapper object for the known response body format(s).
 	ListObjectsWithResponse(ctx context.Context, params *ListObjectsParams, reqEditors ...RequestEditorFn) (*ListObjectsResponse, error)
@@ -7310,7 +7334,7 @@ func (c *ClientWithResponses) MyCalendarWithResponse(ctx context.Context, params
 
 // ListObjectsWithResponse performs a GET /api/v1/catalog/objects (the `ListObjects` operationId) request.
 //
-// 读取当前学校的可展示目录投影，当前内容权限在每次请求时检查。课程须在服务端截止学期（默认 2023 秋）及以后有开课记录。kind=term 仅返回截止学期及以后且有可见课程的学期，按 term_order_key 降序、ID 升序分页；前端保持返回顺序。其他类型按 ID 升序。.
+// 读取当前学校的可展示目录投影，当前内容权限在每次请求时检查。课程须在服务端截止学期（默认 2023 秋）及以后有开课记录。kind=term 仅返回截止学期及以后且有可见课程的学期，按 term_order_key 降序、ID 升序分页；前端保持返回顺序。其他类型按 ID 升序。 体育项目作为 kind=course 条目返回 course_type=sports_project。按项目 course_id 查询教师、教学班与开课，筛选计数按项目去重。.
 //
 // Returns a wrapper object for the known response body format(s).
 func (c *ClientWithResponses) ListObjectsWithResponse(ctx context.Context, params *ListObjectsParams, reqEditors ...RequestEditorFn) (*ListObjectsResponse, error) {
