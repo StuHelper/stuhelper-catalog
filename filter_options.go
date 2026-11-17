@@ -23,6 +23,9 @@ type FilterOptionsTransaction interface {
 // ReadFilterOptions describes the complete visible directory. Selection-specific
 // facets stay on ReadDirectory, so picking a filter cannot remove other choices.
 func (s *Service) ReadFilterOptions(ctx context.Context, p Principal, kind, school string) (FilterOptions, error) {
+	if teachingDetail(kind) {
+		return FilterOptions{}, ErrForbidden
+	}
 	if kind != "course" && kind != "teacher" {
 		return FilterOptions{}, ErrInput
 	}

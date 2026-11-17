@@ -1,5 +1,5 @@
 id: catalog
-version: 0.8.0
+version: 0.9.0
 kind: module
 api: 1
 critical: false
@@ -60,6 +60,8 @@ specifications:
   - docs/spec/activity.md
   - docs/spec/ui-data.md
 scenario_tests:
+  CAT-PUBLIC-01:
+    - teaching_visibility_test.go#TestTeachingDetailsHiddenAcrossPublicReads
   CAT-DISPLAY-01:
     - display_policy_test.go#TestDisplayProjectionMigrationPreservesPublishedDirectoryAndRuntimeBoundary
     - display_policy_test.go#TestDirectoryDisplayRulesProjectsCountsAndEnrollmentOwnership

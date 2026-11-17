@@ -80,10 +80,17 @@ func TestDirectoryDisplayRulesProjectsCountsAndEnrollmentOwnership(t *testing.T)
 		}
 	}
 	summary, err := s.ReadSummary(ctx, p, tt)
-	if err != nil || summary.TeacherCount != 2 || summary.OfferingCount != 1 || summary.Object.CourseType != "sports_project" || summary.Object.LatestTermID != "z-boundary" {
+	if err != nil || summary.TeacherCount != 2 || summary.Object.CourseType != "sports_project" || summary.Object.LatestTermID != "z-boundary" {
 		t.Fatal(summary, err)
 	}
-	offering, err := s.Read(ctx, p, c.SportsOfferingID(tt, "z-boundary"))
+	if _, err := s.Read(ctx, p, c.SportsOfferingID(tt, "z-boundary")); !errors.Is(err, c.ErrNotFound) {
+		t.Fatal("sports offering exposed by public read", err)
+	}
+	internalSummary, err := s.Summary(ctx, tt)
+	if err != nil || internalSummary.OfferingCount != 1 {
+		t.Fatal("trusted sports offering count", internalSummary, err)
+	}
+	offering, err := s.Get(ctx, c.SportsOfferingID(tt, "z-boundary"))
 	if err != nil || offering.CourseID != tt || offering.TermID != "z-boundary" {
 		t.Fatal(offering, err)
 	}
