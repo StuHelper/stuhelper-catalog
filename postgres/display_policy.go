@@ -129,6 +129,12 @@ func (t *transaction) buildSportsProjects(school string, report *c.ProjectionRep
 			codes = append(codes, sportsCode{code, c.SportsProjectID(school, project.Key), project.Name})
 		}
 	}
+	sourceCategories := []string{c.PolicyName(policy.CategoryName)}
+	for _, alias := range report.Policy.CategoryAliases {
+		if c.PolicyName(alias.To) == c.PolicyName(policy.CategoryName) {
+			sourceCategories = append(sourceCategories, c.PolicyName(alias.From))
+		}
+	}
 	raw, err := json.Marshal(codes)
 	if err != nil {
 		return c.ErrInput
@@ -140,11 +146,11 @@ func (t *transaction) buildSportsProjects(school string, report *c.ProjectionRep
 	for index, step := range strings.Split(sportsBuildSQL, "-- step\n") {
 		started := time.Now()
 		step = strings.TrimSpace(step)
-		prefix := `WITH args AS(SELECT $1::bigint AS version,$2::text AS school,$3::text AS category,$4::text[] AS course_names,$5::jsonb AS codes) `
+		prefix := `WITH args AS(SELECT $1::bigint AS version,$2::text AS school,$3::text AS category,$4::text[] AS course_names,$5::jsonb AS codes,$6::text[] AS source_categories) `
 		if strings.HasPrefix(step, "WITH ") {
 			step = "," + strings.TrimPrefix(step, "WITH ")
 		}
-		if _, err = t.tx.ExecContext(t.ctx, prefix+step, report.Version, school, category, normalizedNames(policy.CourseNames), string(raw)); err != nil {
+		if _, err = t.tx.ExecContext(t.ctx, prefix+step, report.Version, school, category, normalizedNames(policy.CourseNames), string(raw), sourceCategories); err != nil {
 			slog.ErrorContext(t.ctx, "catalog sports projection failed", "step", index+1, "reason", projectionErrorCode(err))
 			return safe(err)
 		}

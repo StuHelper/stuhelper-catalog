@@ -50,6 +50,9 @@ func TestDirectoryDisplayRulesProjectsCountsAndEnrollmentOwnership(t *testing.T)
 		c.Object{ID: "sport-swim", Kind: "assignment", Name: "Teaching", ClassID: "swim-class", TeacherID: "sports-teacher-b"},
 		c.Object{ID: "sport-unknown", Kind: "assignment", Name: "Teaching", ClassID: "unknown-class", TeacherID: "sports-teacher-a"},
 	)
+	objects = append(objects, c.Object{ID: "sports-old-offering", Kind: "term_course", Name: "Old sports", CourseID: "semester1", TermID: "a-old"},
+		c.Object{ID: "sports-old-class", Kind: "class", Name: "Old class", TermCourseID: "sports-old-offering", CategoryID: "sports-other", SportsProjectCode: "tt1"},
+		c.Object{ID: "sports-old-assignment", Kind: "assignment", Name: "Old teaching", ClassID: "sports-old-class", TeacherID: "legacy"})
 	for i := range objects {
 		objects[i].SchoolID = "school"
 		objects[i].Aliases = []string{}
@@ -141,6 +144,9 @@ func TestDirectoryDisplayRulesProjectsCountsAndEnrollmentOwnership(t *testing.T)
 	}
 	if yes, err := s.HasTaught(ctx, []string{"sports-teacher-a"}, tt); err != nil || !yes {
 		t.Fatal(yes, err)
+	}
+	if yes, err := s.HasTaught(ctx, []string{"legacy"}, tt); err != nil || !yes {
+		t.Fatal("historical project teaching lost", yes, err)
 	}
 	if yes, err := s.HasTaught(ctx, []string{"sports-teacher-a"}, swim); err != nil || yes {
 		t.Fatal(yes, err)

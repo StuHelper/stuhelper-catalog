@@ -46,3 +46,17 @@ AND o.kind IN('assignment','schedule') AND o.class_id=m.class_id;
 -- step
 DELETE FROM catalog.projection_objects o WHERE o.version=$1 AND (o.id IN(SELECT course_id FROM catalog.projection_sports_sources WHERE version=$1)
  OR o.course_id IN(SELECT course_id FROM catalog.projection_sports_sources WHERE version=$1));
+-- step
+WITH codes AS(SELECT * FROM jsonb_to_recordset($5::jsonb) AS x(code text,id text,name text)),
+classes AS MATERIALIZED(
+ SELECT cl.id,m.id AS project_id FROM catalog.objects cl
+ JOIN catalog.objects tc ON tc.id=catalog.canonical(cl.term_course_id) AND tc.kind='term_course' AND tc.school_id=cl.school_id
+ JOIN catalog.objects co ON co.id=catalog.canonical(tc.course_id) AND co.kind='course' AND co.school_id=cl.school_id
+ JOIN codes m ON m.code=cl.data->'object'->>'sports_project_code'
+ JOIN catalog.projection_objects target ON target.version=$1 AND target.id=m.id AND target.visible
+ LEFT JOIN catalog.objects category ON category.id=catalog.canonical(COALESCE(NULLIF(cl.category_id,''),NULLIF(tc.category_id,''),co.category_id)) AND category.kind='category'
+ WHERE cl.school_id=$2 AND cl.kind='class' AND (lower(btrim(co.name))=ANY($4::text[]) OR lower(btrim(category.name))=ANY($6::text[]))
+)
+INSERT INTO catalog.projection_teaching_history(version,teacher_id,course_id)
+SELECT DISTINCT $1,catalog.canonical(a.teacher_id),cl.project_id FROM classes cl JOIN catalog.objects a
+ ON a.class_id=cl.id AND a.kind='assignment' AND a.school_id=$2 ON CONFLICT DO NOTHING;
