@@ -755,9 +755,10 @@ export interface components {
             total: number;
             category_facets: components["schemas"]["DirectoryFacet"][];
             department_facets: components["schemas"]["DirectoryFacet"][];
+            nature_facets: components["schemas"]["DirectoryFacet"][];
             /** Format: date-time */
             generated_at: string;
-            /** @description Distinct objects after all filters except category_id, for the All category badge. */
+            /** @description Distinct objects after all filters except category_id / category_ids, for the All category badge. */
             facet_total: number;
         };
         RecentCourse: {
@@ -2795,9 +2796,17 @@ export interface operations {
                 school_id?: string;
                 q?: string;
                 department_id?: string;
+                /** @description 逗号分隔的多个学院 ID（最多 20 项），不能与 department_id 同时传入。 */
+                department_ids?: string;
                 category_id?: string;
+                /** @description 逗号分隔的多个课程类别 ID（最多 20 项，仅 kind=course），不能与 category_id 同时传入。 */
+                category_ids?: string;
                 nature_id?: string;
                 teacher_id?: string;
+                /** @description 课程最低学分（含，0 至 100，仅 kind=course）；未知学分课程不匹配学分区间筛选。 */
+                credits_min?: number;
+                /** @description 课程最高学分（含，0 至 100，仅 kind=course）；未知学分课程不匹配学分区间筛选。 */
+                credits_max?: number;
                 sort?: "hot" | "recommend" | "reviews" | "name";
                 after?: string;
                 limit?: number;

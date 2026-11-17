@@ -64,7 +64,11 @@ func (t *transaction) Directory(q c.DirectoryQuery, cursor c.DirectoryPosition, 
 	if err != nil {
 		return c.DirectoryResult{}, err
 	}
-	out := c.DirectoryResult{Rows: []c.DirectoryRow{}, Total: int64(len(selection.Candidates)), FacetTotal: selection.FacetTotal, CategoryFacets: slices.Clone(selection.CategoryFacets), DepartmentFacets: slices.Clone(selection.DepartmentFacets)}
+	natureFacets := slices.Clone(selection.NatureFacets)
+	if natureFacets == nil {
+		natureFacets = []c.DirectoryFacet{}
+	}
+	out := c.DirectoryResult{Rows: []c.DirectoryRow{}, Total: int64(len(selection.Candidates)), FacetTotal: selection.FacetTotal, CategoryFacets: slices.Clone(selection.CategoryFacets), DepartmentFacets: slices.Clone(selection.DepartmentFacets), NatureFacets: natureFacets}
 	if t.projectionRead {
 		out.Version, err = t.projectionVersion(q.SchoolID)
 		if err != nil {
@@ -88,13 +92,18 @@ func (t *transaction) Directory(q c.DirectoryQuery, cursor c.DirectoryPosition, 
 	for i, facet := range out.DepartmentFacets {
 		departments[facet.ID] = i
 	}
+	natures := make(map[string]int, len(out.NatureFacets))
+	for i, facet := range out.NatureFacets {
+		natures[facet.ID] = i
+	}
+	hasCategoryFilter := q.CategoryID != "" || len(q.CategoryIDs) > 0
 	// Category tabs exclude their own selection. Their cached membership is
 	// therefore separate from the filtered page candidates, while counts always
 	// use this request's live review metrics.
 	categories := make(map[string]int, len(out.CategoryFacets))
 	for i, facet := range out.CategoryFacets {
 		categories[facet.ID] = i
-		if q.CategoryID != "" {
+		if hasCategoryFilter {
 			for _, id := range selection.CategoryMembers[facet.ID] {
 				if metric := byID[id]; metric != nil {
 					out.CategoryFacets[i].ReviewCount += metric.ReviewCount
@@ -116,7 +125,12 @@ func (t *transaction) Directory(q c.DirectoryQuery, cursor c.DirectoryPosition, 
 				out.DepartmentFacets[index].ReviewCount += metric.ReviewCount
 			}
 		}
-		if q.CategoryID == "" {
+		for _, nature := range candidate.Natures {
+			if index, ok := natures[nature]; ok {
+				out.NatureFacets[index].ReviewCount += metric.ReviewCount
+			}
+		}
+		if !hasCategoryFilter {
 			// Without a selected category, these candidates already are the full
 			// facet membership. Reuse the metric read needed for ranking.
 			for _, category := range candidate.Categories {

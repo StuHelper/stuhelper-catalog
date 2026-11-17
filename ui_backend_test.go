@@ -137,7 +137,7 @@ func TestUIDirectoryFacetsSortingVisibilityAndPagination(t *testing.T) {
 	if err != nil || first.Total != 2 || first.FacetTotal != 2 || len(first.Items) != 1 || first.Items[0].Object.ID != "course" || first.Items[0].Heat != 13 || first.Next == "" {
 		t.Fatalf("hot: %+v %v", first, err)
 	}
-	if len(first.CategoryFacets) != 1 || first.CategoryFacets[0].Count != 2 || first.CategoryFacets[0].ReviewCount != 8 || len(first.DepartmentFacets) != 1 || first.DepartmentFacets[0].Count != 2 || first.DepartmentFacets[0].ReviewCount != 8 {
+	if len(first.CategoryFacets) != 1 || first.CategoryFacets[0].Count != 2 || first.CategoryFacets[0].ReviewCount != 8 || len(first.DepartmentFacets) != 1 || first.DepartmentFacets[0].Count != 2 || first.DepartmentFacets[0].ReviewCount != 8 || len(first.NatureFacets) != 1 || first.NatureFacets[0].Count != 1 || first.NatureFacets[0].ReviewCount != 3 {
 		t.Fatalf("facets: %+v", first)
 	}
 	q.After = first.Next
@@ -263,5 +263,112 @@ func TestUIDirectorySameClassFacetCounts(t *testing.T) {
 	index := slices.IndexFunc(got.CategoryFacets, func(f c.DirectoryFacet) bool { return f.ID == "seminar" })
 	if index < 0 || got.CategoryFacets[index].Count != 0 {
 		t.Fatal("facet crossed classes", got)
+	}
+}
+
+func TestUIDirectoryNatureFacetsMultiSelectAndCreditsRange(t *testing.T) {
+	for _, projected := range []bool{false, true} {
+		t.Run(fmt.Sprintf("projection=%t", projected), func(t *testing.T) {
+			s, admin, input := fixture(t)
+			ctx := context.Background()
+			c1, c2, c4 := 1.0, 2.0, 4.0
+			input.Objects = append(input.Objects,
+				c.Object{ID: "dept2", Kind: "department", SchoolID: "school", Name: "Dept 2"},
+				c.Object{ID: "cat2", Kind: "category", SchoolID: "school", Name: "Cat 2"},
+				c.Object{ID: "nature2", Kind: "nature", SchoolID: "school", Name: "Elective"},
+				c.Object{ID: "course-c1", Kind: "course", SchoolID: "school", Name: "Course 1cr", DepartmentID: "dept", CategoryID: "seminar", NatureID: "optional", Credits: &c1},
+				c.Object{ID: "course-c2", Kind: "course", SchoolID: "school", Name: "Course 2cr", DepartmentID: "dept2", CategoryID: "cat2", NatureID: "nature2", Credits: &c2},
+				c.Object{ID: "course-c4", Kind: "course", SchoolID: "school", Name: "Course 4cr", DepartmentID: "dept2", CategoryID: "cat2", NatureID: "optional", Credits: &c4},
+				c.Object{ID: "tc-c1", Kind: "term_course", SchoolID: "school", Name: "TC1", CourseID: "course-c1", TermID: "term1"},
+				c.Object{ID: "tc-c2", Kind: "term_course", SchoolID: "school", Name: "TC2", CourseID: "course-c2", TermID: "term1"},
+				c.Object{ID: "tc-c4", Kind: "term_course", SchoolID: "school", Name: "TC4", CourseID: "course-c4", TermID: "term1"},
+			)
+			if _, err := s.Import(ctx, admin, "multi-filter-seed", input); err != nil {
+				t.Fatal(err)
+			}
+			repo := s.Repo.(*postgres.Repository)
+			repo.RequireTeacherDirectory = true
+			if _, err := s.RefreshTeachingDirectory(ctx, admin, "school"); err != nil {
+				t.Fatal(err)
+			}
+			if projected {
+				if err := s.SaveTermOrders(ctx, admin, "school", []c.TermOrder{{ID: "term1", Year: 2024, Season: "autumn"}, {ID: "term2", Year: 2025, Season: "spring"}}); err != nil {
+					t.Fatal(err)
+				}
+				if _, err := s.RebuildDirectory(ctx, admin, "school", nil); err != nil {
+					t.Fatal(err)
+				}
+				repo.RequireDirectoryProjection = true
+			}
+			s.DirectoryMetrics = uiMetrics{rows: []c.DirectoryMetric{
+				{ID: "course", ReviewCount: 2, Recommendation: "average"},
+				{ID: "course-c1", ReviewCount: 3, Recommendation: "recommended"},
+				{ID: "course-c2", ReviewCount: 5, Recommendation: "strongly_recommended"},
+				{ID: "course-c4", ReviewCount: 7, Recommendation: "recommended"},
+			}}
+			p := c.Principal{Subject: "issuer:student"}
+
+			// Credits range excludes unknown-credit "course" (nil credits) and 4.0cr "course-c4".
+			minCr, maxCr := 1.0, 2.0
+			byCredits, err := s.ReadDirectory(ctx, p, c.DirectoryQuery{
+				Filter:     c.Filter{Kind: "course", Limit: 20},
+				CreditsMin: &minCr,
+				CreditsMax: &maxCr,
+				Sort:       "name",
+			})
+			if err != nil || byCredits.Total != 2 || len(byCredits.Items) != 2 || byCredits.Items[0].Object.ID != "course-c1" || byCredits.Items[1].Object.ID != "course-c2" {
+				t.Fatalf("credits filter: %+v %v", byCredits, err)
+			}
+			if len(byCredits.NatureFacets) != 2 {
+				t.Fatalf("nature facets missing: %+v", byCredits.NatureFacets)
+			}
+			for _, nf := range byCredits.NatureFacets {
+				if nf.ID == "optional" && (nf.Count != 1 || nf.ReviewCount != 3) {
+					t.Fatalf("optional nature facet mismatch: %+v", nf)
+				}
+				if nf.ID == "nature2" && (nf.Count != 1 || nf.ReviewCount != 5) {
+					t.Fatalf("nature2 facet mismatch: %+v", nf)
+				}
+			}
+
+			// Multi-department + multi-category via HTTP, verifying category_facets preserve non-category totals.
+			h := httpapi.Handler{Service: s, Authenticate: func(*http.Request) (c.Principal, error) { return p, nil }}.Routes()
+			req := httptest.NewRequest(http.MethodGet, "/api/v1/catalog/directory?kind=course&department_ids=dept2,dept&category_ids=cat2&credits_min=1&credits_max=3&sort=name", nil)
+			w := httptest.NewRecorder()
+			h.ServeHTTP(w, req)
+			if w.Code != 200 {
+				t.Fatalf("http multi filter: %d %s", w.Code, w.Body.String())
+			}
+			var httpPage c.DirectoryPage
+			if err := json.Unmarshal(w.Body.Bytes(), &httpPage); err != nil || httpPage.Total != 1 || httpPage.FacetTotal != 2 || httpPage.Items[0].Object.ID != "course-c2" {
+				t.Fatalf("http multi filter body: %+v %v", httpPage, err)
+			}
+			for _, cf := range httpPage.CategoryFacets {
+				if cf.ID == "seminar" && (cf.Count != 1 || cf.ReviewCount != 3) {
+					t.Fatalf("seminar category facet lost review count under category_ids: %+v", cf)
+				}
+				if cf.ID == "cat2" && (cf.Count != 1 || cf.ReviewCount != 5) {
+					t.Fatalf("cat2 category facet mismatch: %+v", cf)
+				}
+			}
+
+			// Invalid combinations return 400.
+			for _, bad := range []string{
+				"/api/v1/catalog/directory?kind=course&department_id=dept&department_ids=dept2",
+				"/api/v1/catalog/directory?kind=course&category_id=seminar&category_ids=cat2",
+				"/api/v1/catalog/directory?kind=course&department_ids=",
+				"/api/v1/catalog/directory?kind=course&department_ids=dept,,dept2",
+				"/api/v1/catalog/directory?kind=course&credits_min=4&credits_max=2",
+				"/api/v1/catalog/directory?kind=course&credits_min=-1",
+				"/api/v1/catalog/directory?kind=teacher&credits_min=1",
+				"/api/v1/catalog/directory?kind=teacher&category_ids=cat2",
+			} {
+				rec := httptest.NewRecorder()
+				h.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, bad, nil))
+				if rec.Code != 400 {
+					t.Fatalf("%s expected 400, got %d %s", bad, rec.Code, rec.Body.String())
+				}
+			}
+		})
 	}
 }

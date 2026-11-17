@@ -563,12 +563,13 @@ type DirectoryPage struct {
 	CategoryFacets   []DirectoryFacet `json:"category_facets"`
 	DepartmentFacets []DirectoryFacet `json:"department_facets"`
 
-	// FacetTotal Distinct objects after all filters except category_id, for the All category badge.
-	FacetTotal  int             `json:"facet_total"`
-	GeneratedAt time.Time       `json:"generated_at"`
-	Items       []DirectoryItem `json:"items"`
-	Next        string          `json:"next"`
-	Total       int             `json:"total"`
+	// FacetTotal Distinct objects after all filters except category_id / category_ids, for the All category badge.
+	FacetTotal   int              `json:"facet_total"`
+	GeneratedAt  time.Time        `json:"generated_at"`
+	Items        []DirectoryItem  `json:"items"`
+	NatureFacets []DirectoryFacet `json:"nature_facets"`
+	Next         string           `json:"next"`
+	Total        int              `json:"total"`
 }
 
 // Enrollment defines model for Enrollment.
@@ -1088,16 +1089,28 @@ type ApplyCourseIdentitiesParams struct {
 
 // ListDirectoryParams defines parameters for ListDirectory.
 type ListDirectoryParams struct {
-	Kind         ListDirectoryParamsKind  `form:"kind" json:"kind"`
-	SchoolId     *string                  `form:"school_id,omitempty" json:"school_id,omitempty"`
-	Q            *string                  `form:"q,omitempty" json:"q,omitempty"`
-	DepartmentId *string                  `form:"department_id,omitempty" json:"department_id,omitempty"`
-	CategoryId   *string                  `form:"category_id,omitempty" json:"category_id,omitempty"`
-	NatureId     *string                  `form:"nature_id,omitempty" json:"nature_id,omitempty"`
-	TeacherId    *string                  `form:"teacher_id,omitempty" json:"teacher_id,omitempty"`
-	Sort         *ListDirectoryParamsSort `form:"sort,omitempty" json:"sort,omitempty"`
-	After        *string                  `form:"after,omitempty" json:"after,omitempty"`
-	Limit        *int                     `form:"limit,omitempty" json:"limit,omitempty"`
+	Kind         ListDirectoryParamsKind `form:"kind" json:"kind"`
+	SchoolId     *string                 `form:"school_id,omitempty" json:"school_id,omitempty"`
+	Q            *string                 `form:"q,omitempty" json:"q,omitempty"`
+	DepartmentId *string                 `form:"department_id,omitempty" json:"department_id,omitempty"`
+
+	// DepartmentIds 逗号分隔的多个学院 ID（最多 20 项），不能与 department_id 同时传入。
+	DepartmentIds *string `form:"department_ids,omitempty" json:"department_ids,omitempty"`
+	CategoryId    *string `form:"category_id,omitempty" json:"category_id,omitempty"`
+
+	// CategoryIds 逗号分隔的多个课程类别 ID（最多 20 项，仅 kind=course），不能与 category_id 同时传入。
+	CategoryIds *string `form:"category_ids,omitempty" json:"category_ids,omitempty"`
+	NatureId    *string `form:"nature_id,omitempty" json:"nature_id,omitempty"`
+	TeacherId   *string `form:"teacher_id,omitempty" json:"teacher_id,omitempty"`
+
+	// CreditsMin 课程最低学分（含，0 至 100，仅 kind=course）；未知学分课程不匹配学分区间筛选。
+	CreditsMin *float32 `form:"credits_min,omitempty" json:"credits_min,omitempty"`
+
+	// CreditsMax 课程最高学分（含，0 至 100，仅 kind=course）；未知学分课程不匹配学分区间筛选。
+	CreditsMax *float32                 `form:"credits_max,omitempty" json:"credits_max,omitempty"`
+	Sort       *ListDirectoryParamsSort `form:"sort,omitempty" json:"sort,omitempty"`
+	After      *string                  `form:"after,omitempty" json:"after,omitempty"`
+	Limit      *int                     `form:"limit,omitempty" json:"limit,omitempty"`
 }
 
 // ListDirectoryParamsKind defines parameters for ListDirectory.
@@ -2928,9 +2941,33 @@ func NewListDirectoryRequest(server string, params *ListDirectoryParams) (*http.
 
 		}
 
+		if params.DepartmentIds != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "department_ids", *params.DepartmentIds, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
 		if params.CategoryId != nil {
 
 			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "category_id", *params.CategoryId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.CategoryIds != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "category_ids", *params.CategoryIds, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
 				return nil, err
 			} else {
 				for _, qp := range strings.Split(queryFrag, "&") {
@@ -2955,6 +2992,30 @@ func NewListDirectoryRequest(server string, params *ListDirectoryParams) (*http.
 		if params.TeacherId != nil {
 
 			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "teacher_id", *params.TeacherId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.CreditsMin != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "credits_min", *params.CreditsMin, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "number", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.CreditsMax != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "credits_max", *params.CreditsMax, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "number", Format: ""}); err != nil {
 				return nil, err
 			} else {
 				for _, qp := range strings.Split(queryFrag, "&") {

@@ -21,6 +21,7 @@ type directoryCandidate struct {
 	Name        string   `json:"name"`
 	Departments []string `json:"departments"`
 	Categories  []string `json:"categories"`
+	Natures     []string `json:"natures"`
 }
 type directorySelection struct {
 	NatureFacets     []c.DirectoryFacet   `json:"nature_facets"`
@@ -124,7 +125,7 @@ func (t *transaction) directorySelection(q c.DirectoryQuery) (*directorySelectio
 	} else if err := t.tx.QueryRowContext(t.ctx, `SELECT revision FROM catalog.directory_revision WHERE singleton`).Scan(&revision); err != nil {
 		return nil, safe(err)
 	}
-	input, err := json.Marshal([]any{q.Kind, q.SchoolID, q.Query, q.DepartmentID, q.CategoryID, q.NatureID, q.TeacherID, t.requireTeacherDirectory, t.projectionRead})
+	input, err := json.Marshal([]any{q.Kind, q.SchoolID, q.Query, q.DepartmentID, q.DepartmentIDs, q.CategoryID, q.CategoryIDs, q.NatureID, q.TeacherID, q.CreditsMin, q.CreditsMax, t.requireTeacherDirectory, t.projectionRead})
 	if err != nil {
 		return nil, c.ErrInput
 	}
@@ -134,7 +135,7 @@ func (t *transaction) directorySelection(q c.DirectoryQuery) (*directorySelectio
 		query, args, err := directorySelectionQuery(q)
 		if t.projectionRead {
 			query, args, err = projectedSelectionQuery(q, revision)
-			if q.Query == "" && q.DepartmentID == "" && q.CategoryID == "" && q.NatureID == "" && q.TeacherID == "" {
+			if q.Query == "" && q.DepartmentID == "" && len(q.DepartmentIDs) == 0 && q.CategoryID == "" && len(q.CategoryIDs) == 0 && q.NatureID == "" && q.TeacherID == "" && q.CreditsMin == nil && q.CreditsMax == nil {
 				query = `SELECT data FROM catalog.projection_selections WHERE version=$1 AND kind=$2`
 				args = []any{revision, q.Kind}
 			}
