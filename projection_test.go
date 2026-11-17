@@ -149,8 +149,12 @@ func TestDirectoryProjectionCutoffOrderingCountsAndAbsentOldCourses(t *testing.T
 		}
 	}
 	summary, err := s.ReadSummary(ctx, p, "course")
-	if err != nil || summary.OfferingCount != 4 || summary.TeacherCount != 1 || summary.CourseCount != 1 {
+	if err != nil || summary.TeacherCount != 1 || summary.CourseCount != 1 {
 		t.Fatal("summary", summary, err)
+	}
+	internalSummary, err := s.Summary(ctx, "course")
+	if err != nil || internalSummary.OfferingCount != 4 {
+		t.Fatal("trusted offering count", internalSummary, err)
 	}
 	page, err := s.ReadList(ctx, p, c.Filter{Kind: "course", TeacherID: "teacher", CategoryID: "category", NatureID: "nature", Limit: 100})
 	if err != nil || len(page.Items) != 1 {

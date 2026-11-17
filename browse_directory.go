@@ -114,6 +114,9 @@ func (s *Service) ReadDirectory(ctx context.Context, p Principal, q DirectoryQue
 	if err != nil {
 		return out, err
 	}
+	if err := publicFilter(q.Filter); err != nil {
+		return out, err
+	}
 	q.SchoolID = school
 	q.Query = strings.TrimSpace(q.Query)
 	if q.Sort == "" {

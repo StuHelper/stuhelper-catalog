@@ -2,6 +2,7 @@ package catalog
 
 import (
 	"context"
+	"slices"
 	"time"
 )
 
@@ -9,6 +10,19 @@ import (
 // Internal catalog facts remain available to authorized module composition.
 type ContentAccess interface {
 	Scope(context.Context, Principal, string) (string, error)
+}
+
+// Teaching details remain available through scoped maintenance and owner-only
+// APIs. Trusted module ports also need them to validate enrollment and reviews.
+func teachingDetail(kind string) bool {
+	return kind == "term_course" || kind == "class" || kind == "assignment" || kind == "schedule"
+}
+
+func publicFilter(f Filter) error {
+	if teachingDetail(f.Kind) || f.TermCourseID != "" || f.ClassID != "" {
+		return ErrForbidden
+	}
+	return nil
 }
 
 func (s *Service) readScope(ctx context.Context, p Principal, requested string) (string, error) {
@@ -38,6 +52,9 @@ func (s *Service) readObject(ctx context.Context, p Principal, id string) (Objec
 	if e != nil {
 		return Object{}, e
 	}
+	if teachingDetail(object.Kind) {
+		return Object{}, ErrNotFound
+	}
 	if object.SchoolID != school {
 		return Object{}, ErrForbidden
 	}
@@ -48,6 +65,9 @@ func (s *Service) ReadList(ctx context.Context, p Principal, f Filter) (Page, er
 	school, e := s.readScope(ctx, p, f.SchoolID)
 	s.observeDirectory(ctx, "authorization", start, e)
 	if e != nil {
+		return Page{}, e
+	}
+	if e := publicFilter(f); e != nil {
 		return Page{}, e
 	}
 	f.SchoolID = school
@@ -62,11 +82,19 @@ func (s *Service) ReadLookup(ctx context.Context, p Principal, ids []string) (Lo
 	if e != nil {
 		return Lookup{}, e
 	}
+	visible := make([]Object, 0, len(out.Items))
 	for _, item := range out.Items {
+		if teachingDetail(item.Kind) {
+			out.MissingIDs = append(out.MissingIDs, item.ID)
+			continue
+		}
 		if item.SchoolID != school {
 			return Lookup{}, ErrForbidden
 		}
+		visible = append(visible, item)
 	}
+	out.Items = visible
+	slices.Sort(out.MissingIDs)
 	return out, nil
 }
 func (s *Service) Read(ctx context.Context, p Principal, id string) (Object, error) {
@@ -78,18 +106,22 @@ func (s *Service) Read(ctx context.Context, p Principal, id string) (Object, err
 	s.recordRecentCourse(ctx, p, object)
 	return object, nil
 }
-func (s *Service) ReadSummary(ctx context.Context, p Principal, id string) (Summary, error) {
+func (s *Service) ReadSummary(ctx context.Context, p Principal, id string) (PublicSummary, error) {
 	object, e := s.readObject(ctx, p, id)
 	if e != nil {
-		return Summary{}, e
+		return PublicSummary{}, e
 	}
 	summary, e := s.Summary(ctx, id)
 	if e != nil {
-		return summary, e
+		return PublicSummary{}, e
 	}
 	s.recordView(ctx, p, object)
 	s.recordRecentCourse(ctx, p, object)
-	return summary, nil
+	return PublicSummary{
+		Object: summary.Object, School: summary.School, Department: summary.Department,
+		Categories: summary.Categories, Natures: summary.Natures,
+		CourseCount: summary.CourseCount, TeacherCount: summary.TeacherCount,
+	}, nil
 }
 func (s *Service) ReadResolution(ctx context.Context, p Principal, id string) (Resolution, error) {
 	school, e := s.readScope(ctx, p, "")
@@ -99,6 +131,9 @@ func (s *Service) ReadResolution(ctx context.Context, p Principal, id string) (R
 	out, e := s.Resolve(ctx, id)
 	if e != nil {
 		return Resolution{}, e
+	}
+	if teachingDetail(out.Object.Kind) {
+		return Resolution{}, ErrNotFound
 	}
 	if out.Object.SchoolID != school {
 		return Resolution{}, ErrForbidden

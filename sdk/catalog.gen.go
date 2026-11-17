@@ -117,6 +117,51 @@ func (e ObjectKind) Valid() bool {
 	}
 }
 
+// Defines values for PublicSummaryDepartmentKind.
+const (
+	PublicSummaryDepartmentKindAssignment PublicSummaryDepartmentKind = "assignment"
+	PublicSummaryDepartmentKindCategory   PublicSummaryDepartmentKind = "category"
+	PublicSummaryDepartmentKindClass      PublicSummaryDepartmentKind = "class"
+	PublicSummaryDepartmentKindCourse     PublicSummaryDepartmentKind = "course"
+	PublicSummaryDepartmentKindDepartment PublicSummaryDepartmentKind = "department"
+	PublicSummaryDepartmentKindNature     PublicSummaryDepartmentKind = "nature"
+	PublicSummaryDepartmentKindSchedule   PublicSummaryDepartmentKind = "schedule"
+	PublicSummaryDepartmentKindSchool     PublicSummaryDepartmentKind = "school"
+	PublicSummaryDepartmentKindTeacher    PublicSummaryDepartmentKind = "teacher"
+	PublicSummaryDepartmentKindTerm       PublicSummaryDepartmentKind = "term"
+	PublicSummaryDepartmentKindTermCourse PublicSummaryDepartmentKind = "term_course"
+)
+
+// Valid indicates whether the value is a known member of the PublicSummaryDepartmentKind enum.
+func (e PublicSummaryDepartmentKind) Valid() bool {
+	switch e {
+	case PublicSummaryDepartmentKindAssignment:
+		return true
+	case PublicSummaryDepartmentKindCategory:
+		return true
+	case PublicSummaryDepartmentKindClass:
+		return true
+	case PublicSummaryDepartmentKindCourse:
+		return true
+	case PublicSummaryDepartmentKindDepartment:
+		return true
+	case PublicSummaryDepartmentKindNature:
+		return true
+	case PublicSummaryDepartmentKindSchedule:
+		return true
+	case PublicSummaryDepartmentKindSchool:
+		return true
+	case PublicSummaryDepartmentKindTeacher:
+		return true
+	case PublicSummaryDepartmentKindTerm:
+		return true
+	case PublicSummaryDepartmentKindTermCourse:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for RecentCoursesResourcesState.
 const (
 	RecentCoursesResourcesStateAvailable   RecentCoursesResourcesState = "available"
@@ -711,6 +756,45 @@ type Period struct {
 	Start  string `json:"start"`
 }
 
+// PublicSummary 普通目录课程或教师摘要。仅保留课程与教师数量，不包含 offering_count 或其他教学班粒度计数。
+type PublicSummary struct {
+	Categories []Object `json:"categories"`
+
+	// CourseCount 当前目录投影中关联的可展示课程数量。
+	CourseCount int `json:"course_count"`
+	Department  *struct {
+		Aliases      []string                    `json:"aliases"`
+		Biography    *string                     `json:"biography,omitempty"`
+		CategoryId   *string                     `json:"category_id,omitempty"`
+		ClassId      *string                     `json:"class_id,omitempty"`
+		Code         *string                     `json:"code,omitempty"`
+		CourseId     *string                     `json:"course_id,omitempty"`
+		Credits      *float32                    `json:"credits"`
+		DepartmentId *string                     `json:"department_id,omitempty"`
+		Id           string                      `json:"id"`
+		Kind         PublicSummaryDepartmentKind `json:"kind"`
+		Location     *string                     `json:"location,omitempty"`
+		Name         string                      `json:"name"`
+		NatureId     *string                     `json:"nature_id,omitempty"`
+		Revision     int                         `json:"revision"`
+		SchoolId     string                      `json:"school_id"`
+		TeacherId    *string                     `json:"teacher_id,omitempty"`
+		TermCourseId *string                     `json:"term_course_id,omitempty"`
+		TermId       *string                     `json:"term_id,omitempty"`
+		TimeText     *string                     `json:"time_text,omitempty"`
+		UpdatedAt    time.Time                   `json:"updated_at"`
+	} `json:"department"`
+	Natures []Object `json:"natures"`
+	Object  Object   `json:"object"`
+	School  Object   `json:"school"`
+
+	// TeacherCount 当前目录投影中关联的可展示教师数量。
+	TeacherCount int `json:"teacher_count"`
+}
+
+// PublicSummaryDepartmentKind defines model for PublicSummary.Department.Kind.
+type PublicSummaryDepartmentKind string
+
 // RecentCleared defines model for RecentCleared.
 type RecentCleared struct {
 	Cleared bool `json:"cleared"`
@@ -778,7 +862,7 @@ type ScheduleTime struct {
 	Weeks       []int `json:"weeks"`
 }
 
-// Summary defines model for Summary.
+// Summary 管理端与受信进程内服务使用的完整摘要；offering_count 仅供这些调用方读取。
 type Summary struct {
 	Categories []Object `json:"categories"`
 
@@ -1034,6 +1118,7 @@ type MyCalendarParams struct {
 
 // ListObjectsParams defines parameters for ListObjects.
 type ListObjectsParams struct {
+	// Kind 普通目录支持 school、department、category、nature、term、course、teacher；请求其余四类教学班对象返回 403 forbidden。
 	Kind         *string `form:"kind,omitempty" json:"kind,omitempty"`
 	SchoolId     *string `form:"school_id,omitempty" json:"school_id,omitempty"`
 	DepartmentId *string `form:"department_id,omitempty" json:"department_id,omitempty"`
@@ -1048,10 +1133,10 @@ type ListObjectsParams struct {
 	After *string `form:"after,omitempty" json:"after,omitempty"`
 	Limit *int    `form:"limit,omitempty" json:"limit,omitempty"`
 
-	// TermCourseId Restrict relationships to this offering or teaching class.
+	// TermCourseId 普通目录禁止使用此教学班粒度筛选，返回 403 forbidden；管理端使用 /catalog/admin/objects。
 	TermCourseId *string `form:"term_course_id,omitempty" json:"term_course_id,omitempty"`
 
-	// ClassId Restrict relationships to this offering or teaching class.
+	// ClassId 普通目录禁止使用此教学班粒度筛选，返回 403 forbidden；管理端使用 /catalog/admin/objects。
 	ClassId         *string `form:"class_id,omitempty" json:"class_id,omitempty"`
 	IncludeInactive *bool   `form:"include_inactive,omitempty" json:"include_inactive,omitempty"`
 }
@@ -1249,12 +1334,12 @@ type ClientInterface interface {
 
 	// ListDirectory performs a GET /api/v1/catalog/directory (the `ListDirectory` operationId) request.
 	//
-	// Current visible course/teacher directory, stable sort with ID tie-break and filter-bound cursor. Categories count distinct courses after all filters except category_id. Department groups respect all current filters. Classification filters apply to the same offering/class. Teacher rows and counts require T2 persisted marking; absent marker enforcement returns 503. Scores are read in bounded batches from owning modules, without per-row queries. Catalog membership is cached with transactional revision invalidation; ratings and heat are always current. 目录成员和分面来自同一持久投影版本，实时评分与热度按 ID 关联。游标绑定投影版本，重建后使用旧游标返回 409，应从第一页重新读取。
+	// Current visible course/teacher directory, stable sort with ID tie-break and filter-bound cursor. Categories count distinct courses after all filters except category_id. Department groups respect all current filters. Classification filters apply to the same offering/class. Teacher rows and counts require T2 persisted marking; absent marker enforcement returns 503. Scores are read in bounded batches from owning modules, without per-row queries. Catalog membership is cached with transactional revision invalidation; ratings and heat are always current. 目录成员和分面来自同一持久投影版本，实时评分与热度按 ID 关联。游标绑定投影版本，重建后使用旧游标返回 409，应从第一页重新读取。 普通目录仅提供学校、院系、分类、性质、学期、课程和教师；term_course、class、assignment、schedule 仅供管理端或受信服务使用。
 	ListDirectory(ctx context.Context, params *ListDirectoryParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// GetFilterOptions performs a GET /api/v1/catalog/filter-options (the `GetFilterOptions` operationId) request.
 	//
-	// 读取与公开列表相同投影版本的筛选选项，只返回数量大于零的项。课程截止学期、内容状态、学校和教师标记均已应用；当前内容权限在每次请求时检查。.
+	// 读取与公开列表相同投影版本的筛选选项，只返回数量大于零的项。课程截止学期、内容状态、学校和教师标记均已应用；当前内容权限在每次请求时检查。 普通目录仅提供学校、院系、分类、性质、学期、课程和教师；term_course、class、assignment、schedule 仅供管理端或受信服务使用。.
 	GetFilterOptions(ctx context.Context, params *GetFilterOptionsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// ImportCatalogWithBody performs a POST /api/v1/catalog/imports (the `ImportCatalog` operationId) request,
@@ -1287,7 +1372,7 @@ type ClientInterface interface {
 
 	// MyEnrollments performs a GET /api/v1/catalog/me/enrollments (the `MyEnrollments` operationId) request.
 	//
-	// 只返回当前用户的有效选课，按 term_order_key 倒序、选课 ID 升序。未知学期键为 0。after 绑定本人且须符合当前筛选，返回后续记录。.
+	// 只返回当前用户的有效选课，按 term_order_key 倒序、选课 ID 升序。未知学期键为 0。after 绑定本人且须符合当前筛选，返回后续记录。 本人接口按认证账号归属读取，保留本人教学班引用与课表；不受普通目录教学班隐藏规则影响。.
 	MyEnrollments(ctx context.Context, params *MyEnrollmentsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// GetNextClassDay performs a GET /api/v1/catalog/me/next-class-day (the `GetNextClassDay` operationId) request.
@@ -1312,10 +1397,12 @@ type ClientInterface interface {
 
 	// MyCatalogReferences performs a GET /api/v1/catalog/me/references (the `MyCatalogReferences` operationId) request.
 	//
-	// Login and ownership only. Returns names for IDs referenced by the caller own current or historical enrollment records; current content admission is not required. An unowned requested ID rejects the entire request with 404. At most 100 IDs. This response never includes biographies, scores, schedules or other public detail.
+	// Login and ownership only. Returns names for IDs referenced by the caller own current or historical enrollment records; current content admission is not required. An unowned requested ID rejects the entire request with 404. At most 100 IDs. This response never includes biographies, scores, schedules or other public detail. 本人接口按认证账号归属读取，保留本人教学班引用与课表；不受普通目录教学班隐藏规则影响。
 	MyCatalogReferences(ctx context.Context, params *MyCatalogReferencesParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// MySchedule performs a GET /api/v1/catalog/me/schedule (the `MySchedule` operationId) request.
+	//
+	//  本人接口按认证账号归属读取，保留本人教学班引用与课表；不受普通目录教学班隐藏规则影响。.
 	MySchedule(ctx context.Context, params *MyScheduleParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// MyCalendar performs a GET /api/v1/catalog/me/schedule/calendar (the `MyCalendar` operationId) request.
@@ -1325,17 +1412,17 @@ type ClientInterface interface {
 
 	// ListObjects performs a GET /api/v1/catalog/objects (the `ListObjects` operationId) request.
 	//
-	// 读取当前学校的可展示目录投影，当前内容权限在每次请求时检查。课程须在服务端截止学期（默认 2023 秋）及以后有开课记录。kind=term 仅返回截止学期及以后且有可见课程的学期，按 term_order_key 降序、ID 升序分页；前端保持返回顺序。其他类型按 ID 升序。 体育项目作为 kind=course 条目返回 course_type=sports_project。按项目 course_id 查询教师、教学班与开课，筛选计数按项目去重。.
+	// 读取当前学校的可展示目录投影，当前内容权限在每次请求时检查。课程须在服务端截止学期（默认 2023 秋）及以后有开课记录。kind=term 仅返回截止学期及以后且有可见课程的学期，按 term_order_key 降序、ID 升序分页；前端保持返回顺序。其他类型按 ID 升序。 体育项目作为 kind=course 条目返回 course_type=sports_project。按项目 course_id 查询教师，筛选计数按项目去重。 普通目录仅提供学校、院系、分类、性质、学期、课程和教师；term_course、class、assignment、schedule 仅供管理端或受信服务使用。 kind=teacher&course_id=…、kind=course&teacher_id=… 和 kind=term 保持可用；授课事实只用于计算关联，不返回教学班。.
 	ListObjects(ctx context.Context, params *ListObjectsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// LookupObjects performs a GET /api/v1/catalog/objects/lookup (the `LookupObjects` operationId) request.
 	//
-	// Requires current content admission in the served school: valid campus eligibility or verified teacher status. Missing admission returns 403; unavailable required facts return 503. No preview, content, counts or statistics are returned on rejection. 教师公开查询由服务端目录标记过滤：有授课记录或已匹配官网名单即可保留。列表、详情、批量查询、筛选选项及计数使用相同依据。未标记的教师详情返回 not_found。
+	// Requires current content admission in the served school: valid campus eligibility or verified teacher status. Missing admission returns 403; unavailable required facts return 503. No preview, content, counts or statistics are returned on rejection. 教师公开查询由服务端目录标记过滤：有授课记录或已匹配官网名单即可保留。列表、详情、批量查询、筛选选项及计数使用相同依据。未标记的教师详情返回 not_found。 普通目录仅提供学校、院系、分类、性质、学期、课程和教师；term_course、class、assignment、schedule 仅供管理端或受信服务使用。 教学班相关 ID 与未知 ID 一样列入 missing_ids，不返回其对象。混合查询仍返回其余可见课程和教师。
 	LookupObjects(ctx context.Context, params *LookupObjectsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// GetObject performs a GET /api/v1/catalog/objects/{id} (the `GetObject` operationId) request.
 	//
-	// Requires current content admission in the served school: valid campus eligibility or verified teacher status. Missing admission returns 403; unavailable required facts return 503. No preview, content, counts or statistics are returned on rejection. 教师公开查询由服务端目录标记过滤：有授课记录或已匹配官网名单即可保留。列表、详情、批量查询、筛选选项及计数使用相同依据。未标记的教师详情返回 not_found。 Courses outside the current visible directory projection return not_found, including direct links.
+	// Requires current content admission in the served school: valid campus eligibility or verified teacher status. Missing admission returns 403; unavailable required facts return 503. No preview, content, counts or statistics are returned on rejection. 教师公开查询由服务端目录标记过滤：有授课记录或已匹配官网名单即可保留。列表、详情、批量查询、筛选选项及计数使用相同依据。未标记的教师详情返回 not_found。 Courses outside the current visible directory projection return not_found, including direct links. 普通目录仅提供学校、院系、分类、性质、学期、课程和教师；term_course、class、assignment、schedule 仅供管理端或受信服务使用。
 	GetObject(ctx context.Context, id string, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// CorrectObjectWithBody performs a PATCH /api/v1/catalog/objects/{id} (the `CorrectObject` operationId) request,
@@ -1364,7 +1451,7 @@ type ClientInterface interface {
 
 	// ResolveObject performs a GET /api/v1/catalog/objects/{id}/resolution (the `ResolveObject` operationId) request.
 	//
-	// Requires current content admission in the served school: valid campus eligibility or verified teacher status. Missing admission returns 403; unavailable required facts return 503. No preview, content, counts or statistics are returned on rejection. 教师公开查询由服务端目录标记过滤：有授课记录或已匹配官网名单即可保留。列表、详情、批量查询、筛选选项及计数使用相同依据。未标记的教师详情返回 not_found。
+	// Requires current content admission in the served school: valid campus eligibility or verified teacher status. Missing admission returns 403; unavailable required facts return 503. No preview, content, counts or statistics are returned on rejection. 教师公开查询由服务端目录标记过滤：有授课记录或已匹配官网名单即可保留。列表、详情、批量查询、筛选选项及计数使用相同依据。未标记的教师详情返回 not_found。 普通目录仅提供学校、院系、分类、性质、学期、课程和教师；term_course、class、assignment、schedule 仅供管理端或受信服务使用。
 	ResolveObject(ctx context.Context, id string, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// SetObjectStateWithBody performs a POST /api/v1/catalog/objects/{id}/state (the `SetObjectState` operationId) request,
@@ -1377,7 +1464,7 @@ type ClientInterface interface {
 
 	// GetObjectSummary performs a GET /api/v1/catalog/objects/{id}/summary (the `GetObjectSummary` operationId) request.
 	//
-	// Requires current content admission in the served school: valid campus eligibility or verified teacher status. Missing admission returns 403; unavailable required facts return 503. No preview, content, counts or statistics are returned on rejection. 教师公开查询由服务端目录标记过滤：有授课记录或已匹配官网名单即可保留。列表、详情、批量查询、筛选选项及计数使用相同依据。未标记的教师详情返回 not_found。 Courses outside the current visible directory projection return not_found, including direct links.
+	// Requires current content admission in the served school: valid campus eligibility or verified teacher status. Missing admission returns 403; unavailable required facts return 503. No preview, content, counts or statistics are returned on rejection. 教师公开查询由服务端目录标记过滤：有授课记录或已匹配官网名单即可保留。列表、详情、批量查询、筛选选项及计数使用相同依据。未标记的教师详情返回 not_found。 Courses outside the current visible directory projection return not_found, including direct links. 普通目录仅提供学校、院系、分类、性质、学期、课程和教师；term_course、class、assignment、schedule 仅供管理端或受信服务使用。
 	GetObjectSummary(ctx context.Context, id string, reqEditors ...RequestEditorFn) (*http.Response, error)
 }
 
@@ -1567,7 +1654,7 @@ func (c *Client) PutTimetable(ctx context.Context, schoolId string, termId strin
 
 // ListDirectory performs a GET /api/v1/catalog/directory (the `ListDirectory` operationId) request.
 //
-// Current visible course/teacher directory, stable sort with ID tie-break and filter-bound cursor. Categories count distinct courses after all filters except category_id. Department groups respect all current filters. Classification filters apply to the same offering/class. Teacher rows and counts require T2 persisted marking; absent marker enforcement returns 503. Scores are read in bounded batches from owning modules, without per-row queries. Catalog membership is cached with transactional revision invalidation; ratings and heat are always current. 目录成员和分面来自同一持久投影版本，实时评分与热度按 ID 关联。游标绑定投影版本，重建后使用旧游标返回 409，应从第一页重新读取。
+// Current visible course/teacher directory, stable sort with ID tie-break and filter-bound cursor. Categories count distinct courses after all filters except category_id. Department groups respect all current filters. Classification filters apply to the same offering/class. Teacher rows and counts require T2 persisted marking; absent marker enforcement returns 503. Scores are read in bounded batches from owning modules, without per-row queries. Catalog membership is cached with transactional revision invalidation; ratings and heat are always current. 目录成员和分面来自同一持久投影版本，实时评分与热度按 ID 关联。游标绑定投影版本，重建后使用旧游标返回 409，应从第一页重新读取。 普通目录仅提供学校、院系、分类、性质、学期、课程和教师；term_course、class、assignment、schedule 仅供管理端或受信服务使用。
 func (c *Client) ListDirectory(ctx context.Context, params *ListDirectoryParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewListDirectoryRequest(c.Server, params)
 	if err != nil {
@@ -1582,7 +1669,7 @@ func (c *Client) ListDirectory(ctx context.Context, params *ListDirectoryParams,
 
 // GetFilterOptions performs a GET /api/v1/catalog/filter-options (the `GetFilterOptions` operationId) request.
 //
-// 读取与公开列表相同投影版本的筛选选项，只返回数量大于零的项。课程截止学期、内容状态、学校和教师标记均已应用；当前内容权限在每次请求时检查。.
+// 读取与公开列表相同投影版本的筛选选项，只返回数量大于零的项。课程截止学期、内容状态、学校和教师标记均已应用；当前内容权限在每次请求时检查。 普通目录仅提供学校、院系、分类、性质、学期、课程和教师；term_course、class、assignment、schedule 仅供管理端或受信服务使用。.
 func (c *Client) GetFilterOptions(ctx context.Context, params *GetFilterOptionsParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewGetFilterOptionsRequest(c.Server, params)
 	if err != nil {
@@ -1685,7 +1772,7 @@ func (c *Client) PreviewImport(ctx context.Context, params *PreviewImportParams,
 
 // MyEnrollments performs a GET /api/v1/catalog/me/enrollments (the `MyEnrollments` operationId) request.
 //
-// 只返回当前用户的有效选课，按 term_order_key 倒序、选课 ID 升序。未知学期键为 0。after 绑定本人且须符合当前筛选，返回后续记录。.
+// 只返回当前用户的有效选课，按 term_order_key 倒序、选课 ID 升序。未知学期键为 0。after 绑定本人且须符合当前筛选，返回后续记录。 本人接口按认证账号归属读取，保留本人教学班引用与课表；不受普通目录教学班隐藏规则影响。.
 func (c *Client) MyEnrollments(ctx context.Context, params *MyEnrollmentsParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewMyEnrollmentsRequest(c.Server, params)
 	if err != nil {
@@ -1760,7 +1847,7 @@ func (c *Client) RecordRecentCourse(ctx context.Context, id string, reqEditors .
 
 // MyCatalogReferences performs a GET /api/v1/catalog/me/references (the `MyCatalogReferences` operationId) request.
 //
-// Login and ownership only. Returns names for IDs referenced by the caller own current or historical enrollment records; current content admission is not required. An unowned requested ID rejects the entire request with 404. At most 100 IDs. This response never includes biographies, scores, schedules or other public detail.
+// Login and ownership only. Returns names for IDs referenced by the caller own current or historical enrollment records; current content admission is not required. An unowned requested ID rejects the entire request with 404. At most 100 IDs. This response never includes biographies, scores, schedules or other public detail. 本人接口按认证账号归属读取，保留本人教学班引用与课表；不受普通目录教学班隐藏规则影响。
 func (c *Client) MyCatalogReferences(ctx context.Context, params *MyCatalogReferencesParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewMyCatalogReferencesRequest(c.Server, params)
 	if err != nil {
@@ -1774,6 +1861,8 @@ func (c *Client) MyCatalogReferences(ctx context.Context, params *MyCatalogRefer
 }
 
 // MySchedule performs a GET /api/v1/catalog/me/schedule (the `MySchedule` operationId) request.
+//
+//	本人接口按认证账号归属读取，保留本人教学班引用与课表；不受普通目录教学班隐藏规则影响。.
 func (c *Client) MySchedule(ctx context.Context, params *MyScheduleParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewMyScheduleRequest(c.Server, params)
 	if err != nil {
@@ -1803,7 +1892,7 @@ func (c *Client) MyCalendar(ctx context.Context, params *MyCalendarParams, reqEd
 
 // ListObjects performs a GET /api/v1/catalog/objects (the `ListObjects` operationId) request.
 //
-// 读取当前学校的可展示目录投影，当前内容权限在每次请求时检查。课程须在服务端截止学期（默认 2023 秋）及以后有开课记录。kind=term 仅返回截止学期及以后且有可见课程的学期，按 term_order_key 降序、ID 升序分页；前端保持返回顺序。其他类型按 ID 升序。 体育项目作为 kind=course 条目返回 course_type=sports_project。按项目 course_id 查询教师、教学班与开课，筛选计数按项目去重。.
+// 读取当前学校的可展示目录投影，当前内容权限在每次请求时检查。课程须在服务端截止学期（默认 2023 秋）及以后有开课记录。kind=term 仅返回截止学期及以后且有可见课程的学期，按 term_order_key 降序、ID 升序分页；前端保持返回顺序。其他类型按 ID 升序。 体育项目作为 kind=course 条目返回 course_type=sports_project。按项目 course_id 查询教师，筛选计数按项目去重。 普通目录仅提供学校、院系、分类、性质、学期、课程和教师；term_course、class、assignment、schedule 仅供管理端或受信服务使用。 kind=teacher&course_id=…、kind=course&teacher_id=… 和 kind=term 保持可用；授课事实只用于计算关联，不返回教学班。.
 func (c *Client) ListObjects(ctx context.Context, params *ListObjectsParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewListObjectsRequest(c.Server, params)
 	if err != nil {
@@ -1818,7 +1907,7 @@ func (c *Client) ListObjects(ctx context.Context, params *ListObjectsParams, req
 
 // LookupObjects performs a GET /api/v1/catalog/objects/lookup (the `LookupObjects` operationId) request.
 //
-// Requires current content admission in the served school: valid campus eligibility or verified teacher status. Missing admission returns 403; unavailable required facts return 503. No preview, content, counts or statistics are returned on rejection. 教师公开查询由服务端目录标记过滤：有授课记录或已匹配官网名单即可保留。列表、详情、批量查询、筛选选项及计数使用相同依据。未标记的教师详情返回 not_found。
+// Requires current content admission in the served school: valid campus eligibility or verified teacher status. Missing admission returns 403; unavailable required facts return 503. No preview, content, counts or statistics are returned on rejection. 教师公开查询由服务端目录标记过滤：有授课记录或已匹配官网名单即可保留。列表、详情、批量查询、筛选选项及计数使用相同依据。未标记的教师详情返回 not_found。 普通目录仅提供学校、院系、分类、性质、学期、课程和教师；term_course、class、assignment、schedule 仅供管理端或受信服务使用。 教学班相关 ID 与未知 ID 一样列入 missing_ids，不返回其对象。混合查询仍返回其余可见课程和教师。
 func (c *Client) LookupObjects(ctx context.Context, params *LookupObjectsParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewLookupObjectsRequest(c.Server, params)
 	if err != nil {
@@ -1833,7 +1922,7 @@ func (c *Client) LookupObjects(ctx context.Context, params *LookupObjectsParams,
 
 // GetObject performs a GET /api/v1/catalog/objects/{id} (the `GetObject` operationId) request.
 //
-// Requires current content admission in the served school: valid campus eligibility or verified teacher status. Missing admission returns 403; unavailable required facts return 503. No preview, content, counts or statistics are returned on rejection. 教师公开查询由服务端目录标记过滤：有授课记录或已匹配官网名单即可保留。列表、详情、批量查询、筛选选项及计数使用相同依据。未标记的教师详情返回 not_found。 Courses outside the current visible directory projection return not_found, including direct links.
+// Requires current content admission in the served school: valid campus eligibility or verified teacher status. Missing admission returns 403; unavailable required facts return 503. No preview, content, counts or statistics are returned on rejection. 教师公开查询由服务端目录标记过滤：有授课记录或已匹配官网名单即可保留。列表、详情、批量查询、筛选选项及计数使用相同依据。未标记的教师详情返回 not_found。 Courses outside the current visible directory projection return not_found, including direct links. 普通目录仅提供学校、院系、分类、性质、学期、课程和教师；term_course、class、assignment、schedule 仅供管理端或受信服务使用。
 func (c *Client) GetObject(ctx context.Context, id string, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewGetObjectRequest(c.Server, id)
 	if err != nil {
@@ -1932,7 +2021,7 @@ func (c *Client) PreviewMerge(ctx context.Context, id string, params *PreviewMer
 
 // ResolveObject performs a GET /api/v1/catalog/objects/{id}/resolution (the `ResolveObject` operationId) request.
 //
-// Requires current content admission in the served school: valid campus eligibility or verified teacher status. Missing admission returns 403; unavailable required facts return 503. No preview, content, counts or statistics are returned on rejection. 教师公开查询由服务端目录标记过滤：有授课记录或已匹配官网名单即可保留。列表、详情、批量查询、筛选选项及计数使用相同依据。未标记的教师详情返回 not_found。
+// Requires current content admission in the served school: valid campus eligibility or verified teacher status. Missing admission returns 403; unavailable required facts return 503. No preview, content, counts or statistics are returned on rejection. 教师公开查询由服务端目录标记过滤：有授课记录或已匹配官网名单即可保留。列表、详情、批量查询、筛选选项及计数使用相同依据。未标记的教师详情返回 not_found。 普通目录仅提供学校、院系、分类、性质、学期、课程和教师；term_course、class、assignment、schedule 仅供管理端或受信服务使用。
 func (c *Client) ResolveObject(ctx context.Context, id string, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewResolveObjectRequest(c.Server, id)
 	if err != nil {
@@ -1975,7 +2064,7 @@ func (c *Client) SetObjectState(ctx context.Context, id string, params *SetObjec
 
 // GetObjectSummary performs a GET /api/v1/catalog/objects/{id}/summary (the `GetObjectSummary` operationId) request.
 //
-// Requires current content admission in the served school: valid campus eligibility or verified teacher status. Missing admission returns 403; unavailable required facts return 503. No preview, content, counts or statistics are returned on rejection. 教师公开查询由服务端目录标记过滤：有授课记录或已匹配官网名单即可保留。列表、详情、批量查询、筛选选项及计数使用相同依据。未标记的教师详情返回 not_found。 Courses outside the current visible directory projection return not_found, including direct links.
+// Requires current content admission in the served school: valid campus eligibility or verified teacher status. Missing admission returns 403; unavailable required facts return 503. No preview, content, counts or statistics are returned on rejection. 教师公开查询由服务端目录标记过滤：有授课记录或已匹配官网名单即可保留。列表、详情、批量查询、筛选选项及计数使用相同依据。未标记的教师详情返回 not_found。 Courses outside the current visible directory projection return not_found, including direct links. 普通目录仅提供学校、院系、分类、性质、学期、课程和教师；term_course、class、assignment、schedule 仅供管理端或受信服务使用。
 func (c *Client) GetObjectSummary(ctx context.Context, id string, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewGetObjectSummaryRequest(c.Server, id)
 	if err != nil {
@@ -4146,14 +4235,14 @@ type ClientWithResponsesInterface interface {
 
 	// ListDirectoryWithResponse performs a GET /api/v1/catalog/directory (the `ListDirectory` operationId) request.
 	//
-	// Current visible course/teacher directory, stable sort with ID tie-break and filter-bound cursor. Categories count distinct courses after all filters except category_id. Department groups respect all current filters. Classification filters apply to the same offering/class. Teacher rows and counts require T2 persisted marking; absent marker enforcement returns 503. Scores are read in bounded batches from owning modules, without per-row queries. Catalog membership is cached with transactional revision invalidation; ratings and heat are always current. 目录成员和分面来自同一持久投影版本，实时评分与热度按 ID 关联。游标绑定投影版本，重建后使用旧游标返回 409，应从第一页重新读取。
+	// Current visible course/teacher directory, stable sort with ID tie-break and filter-bound cursor. Categories count distinct courses after all filters except category_id. Department groups respect all current filters. Classification filters apply to the same offering/class. Teacher rows and counts require T2 persisted marking; absent marker enforcement returns 503. Scores are read in bounded batches from owning modules, without per-row queries. Catalog membership is cached with transactional revision invalidation; ratings and heat are always current. 目录成员和分面来自同一持久投影版本，实时评分与热度按 ID 关联。游标绑定投影版本，重建后使用旧游标返回 409，应从第一页重新读取。 普通目录仅提供学校、院系、分类、性质、学期、课程和教师；term_course、class、assignment、schedule 仅供管理端或受信服务使用。
 	//
 	// Returns a wrapper object for the known response body format(s).
 	ListDirectoryWithResponse(ctx context.Context, params *ListDirectoryParams, reqEditors ...RequestEditorFn) (*ListDirectoryResponse, error)
 
 	// GetFilterOptionsWithResponse performs a GET /api/v1/catalog/filter-options (the `GetFilterOptions` operationId) request.
 	//
-	// 读取与公开列表相同投影版本的筛选选项，只返回数量大于零的项。课程截止学期、内容状态、学校和教师标记均已应用；当前内容权限在每次请求时检查。.
+	// 读取与公开列表相同投影版本的筛选选项，只返回数量大于零的项。课程截止学期、内容状态、学校和教师标记均已应用；当前内容权限在每次请求时检查。 普通目录仅提供学校、院系、分类、性质、学期、课程和教师；term_course、class、assignment、schedule 仅供管理端或受信服务使用。.
 	//
 	// Returns a wrapper object for the known response body format(s).
 	GetFilterOptionsWithResponse(ctx context.Context, params *GetFilterOptionsParams, reqEditors ...RequestEditorFn) (*GetFilterOptionsResponse, error)
@@ -4194,7 +4283,7 @@ type ClientWithResponsesInterface interface {
 
 	// MyEnrollmentsWithResponse performs a GET /api/v1/catalog/me/enrollments (the `MyEnrollments` operationId) request.
 	//
-	// 只返回当前用户的有效选课，按 term_order_key 倒序、选课 ID 升序。未知学期键为 0。after 绑定本人且须符合当前筛选，返回后续记录。.
+	// 只返回当前用户的有效选课，按 term_order_key 倒序、选课 ID 升序。未知学期键为 0。after 绑定本人且须符合当前筛选，返回后续记录。 本人接口按认证账号归属读取，保留本人教学班引用与课表；不受普通目录教学班隐藏规则影响。.
 	//
 	// Returns a wrapper object for the known response body format(s).
 	MyEnrollmentsWithResponse(ctx context.Context, params *MyEnrollmentsParams, reqEditors ...RequestEditorFn) (*MyEnrollmentsResponse, error)
@@ -4229,12 +4318,14 @@ type ClientWithResponsesInterface interface {
 
 	// MyCatalogReferencesWithResponse performs a GET /api/v1/catalog/me/references (the `MyCatalogReferences` operationId) request.
 	//
-	// Login and ownership only. Returns names for IDs referenced by the caller own current or historical enrollment records; current content admission is not required. An unowned requested ID rejects the entire request with 404. At most 100 IDs. This response never includes biographies, scores, schedules or other public detail.
+	// Login and ownership only. Returns names for IDs referenced by the caller own current or historical enrollment records; current content admission is not required. An unowned requested ID rejects the entire request with 404. At most 100 IDs. This response never includes biographies, scores, schedules or other public detail. 本人接口按认证账号归属读取，保留本人教学班引用与课表；不受普通目录教学班隐藏规则影响。
 	//
 	// Returns a wrapper object for the known response body format(s).
 	MyCatalogReferencesWithResponse(ctx context.Context, params *MyCatalogReferencesParams, reqEditors ...RequestEditorFn) (*MyCatalogReferencesResponse, error)
 
 	// MyScheduleWithResponse performs a GET /api/v1/catalog/me/schedule (the `MySchedule` operationId) request.
+	//
+	//  本人接口按认证账号归属读取，保留本人教学班引用与课表；不受普通目录教学班隐藏规则影响。.
 	//
 	// Returns a wrapper object for the known response body format(s).
 	MyScheduleWithResponse(ctx context.Context, params *MyScheduleParams, reqEditors ...RequestEditorFn) (*MyScheduleResponse, error)
@@ -4248,21 +4339,21 @@ type ClientWithResponsesInterface interface {
 
 	// ListObjectsWithResponse performs a GET /api/v1/catalog/objects (the `ListObjects` operationId) request.
 	//
-	// 读取当前学校的可展示目录投影，当前内容权限在每次请求时检查。课程须在服务端截止学期（默认 2023 秋）及以后有开课记录。kind=term 仅返回截止学期及以后且有可见课程的学期，按 term_order_key 降序、ID 升序分页；前端保持返回顺序。其他类型按 ID 升序。 体育项目作为 kind=course 条目返回 course_type=sports_project。按项目 course_id 查询教师、教学班与开课，筛选计数按项目去重。.
+	// 读取当前学校的可展示目录投影，当前内容权限在每次请求时检查。课程须在服务端截止学期（默认 2023 秋）及以后有开课记录。kind=term 仅返回截止学期及以后且有可见课程的学期，按 term_order_key 降序、ID 升序分页；前端保持返回顺序。其他类型按 ID 升序。 体育项目作为 kind=course 条目返回 course_type=sports_project。按项目 course_id 查询教师，筛选计数按项目去重。 普通目录仅提供学校、院系、分类、性质、学期、课程和教师；term_course、class、assignment、schedule 仅供管理端或受信服务使用。 kind=teacher&course_id=…、kind=course&teacher_id=… 和 kind=term 保持可用；授课事实只用于计算关联，不返回教学班。.
 	//
 	// Returns a wrapper object for the known response body format(s).
 	ListObjectsWithResponse(ctx context.Context, params *ListObjectsParams, reqEditors ...RequestEditorFn) (*ListObjectsResponse, error)
 
 	// LookupObjectsWithResponse performs a GET /api/v1/catalog/objects/lookup (the `LookupObjects` operationId) request.
 	//
-	// Requires current content admission in the served school: valid campus eligibility or verified teacher status. Missing admission returns 403; unavailable required facts return 503. No preview, content, counts or statistics are returned on rejection. 教师公开查询由服务端目录标记过滤：有授课记录或已匹配官网名单即可保留。列表、详情、批量查询、筛选选项及计数使用相同依据。未标记的教师详情返回 not_found。
+	// Requires current content admission in the served school: valid campus eligibility or verified teacher status. Missing admission returns 403; unavailable required facts return 503. No preview, content, counts or statistics are returned on rejection. 教师公开查询由服务端目录标记过滤：有授课记录或已匹配官网名单即可保留。列表、详情、批量查询、筛选选项及计数使用相同依据。未标记的教师详情返回 not_found。 普通目录仅提供学校、院系、分类、性质、学期、课程和教师；term_course、class、assignment、schedule 仅供管理端或受信服务使用。 教学班相关 ID 与未知 ID 一样列入 missing_ids，不返回其对象。混合查询仍返回其余可见课程和教师。
 	//
 	// Returns a wrapper object for the known response body format(s).
 	LookupObjectsWithResponse(ctx context.Context, params *LookupObjectsParams, reqEditors ...RequestEditorFn) (*LookupObjectsResponse, error)
 
 	// GetObjectWithResponse performs a GET /api/v1/catalog/objects/{id} (the `GetObject` operationId) request.
 	//
-	// Requires current content admission in the served school: valid campus eligibility or verified teacher status. Missing admission returns 403; unavailable required facts return 503. No preview, content, counts or statistics are returned on rejection. 教师公开查询由服务端目录标记过滤：有授课记录或已匹配官网名单即可保留。列表、详情、批量查询、筛选选项及计数使用相同依据。未标记的教师详情返回 not_found。 Courses outside the current visible directory projection return not_found, including direct links.
+	// Requires current content admission in the served school: valid campus eligibility or verified teacher status. Missing admission returns 403; unavailable required facts return 503. No preview, content, counts or statistics are returned on rejection. 教师公开查询由服务端目录标记过滤：有授课记录或已匹配官网名单即可保留。列表、详情、批量查询、筛选选项及计数使用相同依据。未标记的教师详情返回 not_found。 Courses outside the current visible directory projection return not_found, including direct links. 普通目录仅提供学校、院系、分类、性质、学期、课程和教师；term_course、class、assignment、schedule 仅供管理端或受信服务使用。
 	//
 	// Returns a wrapper object for the known response body format(s).
 	GetObjectWithResponse(ctx context.Context, id string, reqEditors ...RequestEditorFn) (*GetObjectResponse, error)
@@ -4299,7 +4390,7 @@ type ClientWithResponsesInterface interface {
 
 	// ResolveObjectWithResponse performs a GET /api/v1/catalog/objects/{id}/resolution (the `ResolveObject` operationId) request.
 	//
-	// Requires current content admission in the served school: valid campus eligibility or verified teacher status. Missing admission returns 403; unavailable required facts return 503. No preview, content, counts or statistics are returned on rejection. 教师公开查询由服务端目录标记过滤：有授课记录或已匹配官网名单即可保留。列表、详情、批量查询、筛选选项及计数使用相同依据。未标记的教师详情返回 not_found。
+	// Requires current content admission in the served school: valid campus eligibility or verified teacher status. Missing admission returns 403; unavailable required facts return 503. No preview, content, counts or statistics are returned on rejection. 教师公开查询由服务端目录标记过滤：有授课记录或已匹配官网名单即可保留。列表、详情、批量查询、筛选选项及计数使用相同依据。未标记的教师详情返回 not_found。 普通目录仅提供学校、院系、分类、性质、学期、课程和教师；term_course、class、assignment、schedule 仅供管理端或受信服务使用。
 	//
 	// Returns a wrapper object for the known response body format(s).
 	ResolveObjectWithResponse(ctx context.Context, id string, reqEditors ...RequestEditorFn) (*ResolveObjectResponse, error)
@@ -4316,7 +4407,7 @@ type ClientWithResponsesInterface interface {
 
 	// GetObjectSummaryWithResponse performs a GET /api/v1/catalog/objects/{id}/summary (the `GetObjectSummary` operationId) request.
 	//
-	// Requires current content admission in the served school: valid campus eligibility or verified teacher status. Missing admission returns 403; unavailable required facts return 503. No preview, content, counts or statistics are returned on rejection. 教师公开查询由服务端目录标记过滤：有授课记录或已匹配官网名单即可保留。列表、详情、批量查询、筛选选项及计数使用相同依据。未标记的教师详情返回 not_found。 Courses outside the current visible directory projection return not_found, including direct links.
+	// Requires current content admission in the served school: valid campus eligibility or verified teacher status. Missing admission returns 403; unavailable required facts return 503. No preview, content, counts or statistics are returned on rejection. 教师公开查询由服务端目录标记过滤：有授课记录或已匹配官网名单即可保留。列表、详情、批量查询、筛选选项及计数使用相同依据。未标记的教师详情返回 not_found。 Courses outside the current visible directory projection return not_found, including direct links. 普通目录仅提供学校、院系、分类、性质、学期、课程和教师；term_course、class、assignment、schedule 仅供管理端或受信服务使用。
 	//
 	// Returns a wrapper object for the known response body format(s).
 	GetObjectSummaryWithResponse(ctx context.Context, id string, reqEditors ...RequestEditorFn) (*GetObjectSummaryResponse, error)
@@ -6899,7 +6990,7 @@ type GetObjectSummaryResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
 	// JSON200 the response for an HTTP 200 `application/json` response
-	JSON200 *Summary
+	JSON200 *PublicSummary
 	// JSON400 the response for an HTTP 400 `application/json` response
 	JSON400 *Error
 	// JSON401 the response for an HTTP 401 `application/json` response
@@ -6915,7 +7006,7 @@ type GetObjectSummaryResponse struct {
 }
 
 // GetJSON200 returns the response for an HTTP 200 `application/json` response
-func (r GetObjectSummaryResponse) GetJSON200() *Summary {
+func (r GetObjectSummaryResponse) GetJSON200() *PublicSummary {
 	return r.JSON200
 }
 
@@ -7136,7 +7227,7 @@ func (c *ClientWithResponses) PutTimetableWithResponse(ctx context.Context, scho
 
 // ListDirectoryWithResponse performs a GET /api/v1/catalog/directory (the `ListDirectory` operationId) request.
 //
-// Current visible course/teacher directory, stable sort with ID tie-break and filter-bound cursor. Categories count distinct courses after all filters except category_id. Department groups respect all current filters. Classification filters apply to the same offering/class. Teacher rows and counts require T2 persisted marking; absent marker enforcement returns 503. Scores are read in bounded batches from owning modules, without per-row queries. Catalog membership is cached with transactional revision invalidation; ratings and heat are always current. 目录成员和分面来自同一持久投影版本，实时评分与热度按 ID 关联。游标绑定投影版本，重建后使用旧游标返回 409，应从第一页重新读取。
+// Current visible course/teacher directory, stable sort with ID tie-break and filter-bound cursor. Categories count distinct courses after all filters except category_id. Department groups respect all current filters. Classification filters apply to the same offering/class. Teacher rows and counts require T2 persisted marking; absent marker enforcement returns 503. Scores are read in bounded batches from owning modules, without per-row queries. Catalog membership is cached with transactional revision invalidation; ratings and heat are always current. 目录成员和分面来自同一持久投影版本，实时评分与热度按 ID 关联。游标绑定投影版本，重建后使用旧游标返回 409，应从第一页重新读取。 普通目录仅提供学校、院系、分类、性质、学期、课程和教师；term_course、class、assignment、schedule 仅供管理端或受信服务使用。
 //
 // Returns a wrapper object for the known response body format(s).
 func (c *ClientWithResponses) ListDirectoryWithResponse(ctx context.Context, params *ListDirectoryParams, reqEditors ...RequestEditorFn) (*ListDirectoryResponse, error) {
@@ -7149,7 +7240,7 @@ func (c *ClientWithResponses) ListDirectoryWithResponse(ctx context.Context, par
 
 // GetFilterOptionsWithResponse performs a GET /api/v1/catalog/filter-options (the `GetFilterOptions` operationId) request.
 //
-// 读取与公开列表相同投影版本的筛选选项，只返回数量大于零的项。课程截止学期、内容状态、学校和教师标记均已应用；当前内容权限在每次请求时检查。.
+// 读取与公开列表相同投影版本的筛选选项，只返回数量大于零的项。课程截止学期、内容状态、学校和教师标记均已应用；当前内容权限在每次请求时检查。 普通目录仅提供学校、院系、分类、性质、学期、课程和教师；term_course、class、assignment、schedule 仅供管理端或受信服务使用。.
 //
 // Returns a wrapper object for the known response body format(s).
 func (c *ClientWithResponses) GetFilterOptionsWithResponse(ctx context.Context, params *GetFilterOptionsParams, reqEditors ...RequestEditorFn) (*GetFilterOptionsResponse, error) {
@@ -7232,7 +7323,7 @@ func (c *ClientWithResponses) PreviewImportWithResponse(ctx context.Context, par
 
 // MyEnrollmentsWithResponse performs a GET /api/v1/catalog/me/enrollments (the `MyEnrollments` operationId) request.
 //
-// 只返回当前用户的有效选课，按 term_order_key 倒序、选课 ID 升序。未知学期键为 0。after 绑定本人且须符合当前筛选，返回后续记录。.
+// 只返回当前用户的有效选课，按 term_order_key 倒序、选课 ID 升序。未知学期键为 0。after 绑定本人且须符合当前筛选，返回后续记录。 本人接口按认证账号归属读取，保留本人教学班引用与课表；不受普通目录教学班隐藏规则影响。.
 //
 // Returns a wrapper object for the known response body format(s).
 func (c *ClientWithResponses) MyEnrollmentsWithResponse(ctx context.Context, params *MyEnrollmentsParams, reqEditors ...RequestEditorFn) (*MyEnrollmentsResponse, error) {
@@ -7297,7 +7388,7 @@ func (c *ClientWithResponses) RecordRecentCourseWithResponse(ctx context.Context
 
 // MyCatalogReferencesWithResponse performs a GET /api/v1/catalog/me/references (the `MyCatalogReferences` operationId) request.
 //
-// Login and ownership only. Returns names for IDs referenced by the caller own current or historical enrollment records; current content admission is not required. An unowned requested ID rejects the entire request with 404. At most 100 IDs. This response never includes biographies, scores, schedules or other public detail.
+// Login and ownership only. Returns names for IDs referenced by the caller own current or historical enrollment records; current content admission is not required. An unowned requested ID rejects the entire request with 404. At most 100 IDs. This response never includes biographies, scores, schedules or other public detail. 本人接口按认证账号归属读取，保留本人教学班引用与课表；不受普通目录教学班隐藏规则影响。
 //
 // Returns a wrapper object for the known response body format(s).
 func (c *ClientWithResponses) MyCatalogReferencesWithResponse(ctx context.Context, params *MyCatalogReferencesParams, reqEditors ...RequestEditorFn) (*MyCatalogReferencesResponse, error) {
@@ -7309,6 +7400,8 @@ func (c *ClientWithResponses) MyCatalogReferencesWithResponse(ctx context.Contex
 }
 
 // MyScheduleWithResponse performs a GET /api/v1/catalog/me/schedule (the `MySchedule` operationId) request.
+//
+//	本人接口按认证账号归属读取，保留本人教学班引用与课表；不受普通目录教学班隐藏规则影响。.
 //
 // Returns a wrapper object for the known response body format(s).
 func (c *ClientWithResponses) MyScheduleWithResponse(ctx context.Context, params *MyScheduleParams, reqEditors ...RequestEditorFn) (*MyScheduleResponse, error) {
@@ -7334,7 +7427,7 @@ func (c *ClientWithResponses) MyCalendarWithResponse(ctx context.Context, params
 
 // ListObjectsWithResponse performs a GET /api/v1/catalog/objects (the `ListObjects` operationId) request.
 //
-// 读取当前学校的可展示目录投影，当前内容权限在每次请求时检查。课程须在服务端截止学期（默认 2023 秋）及以后有开课记录。kind=term 仅返回截止学期及以后且有可见课程的学期，按 term_order_key 降序、ID 升序分页；前端保持返回顺序。其他类型按 ID 升序。 体育项目作为 kind=course 条目返回 course_type=sports_project。按项目 course_id 查询教师、教学班与开课，筛选计数按项目去重。.
+// 读取当前学校的可展示目录投影，当前内容权限在每次请求时检查。课程须在服务端截止学期（默认 2023 秋）及以后有开课记录。kind=term 仅返回截止学期及以后且有可见课程的学期，按 term_order_key 降序、ID 升序分页；前端保持返回顺序。其他类型按 ID 升序。 体育项目作为 kind=course 条目返回 course_type=sports_project。按项目 course_id 查询教师，筛选计数按项目去重。 普通目录仅提供学校、院系、分类、性质、学期、课程和教师；term_course、class、assignment、schedule 仅供管理端或受信服务使用。 kind=teacher&course_id=…、kind=course&teacher_id=… 和 kind=term 保持可用；授课事实只用于计算关联，不返回教学班。.
 //
 // Returns a wrapper object for the known response body format(s).
 func (c *ClientWithResponses) ListObjectsWithResponse(ctx context.Context, params *ListObjectsParams, reqEditors ...RequestEditorFn) (*ListObjectsResponse, error) {
@@ -7347,7 +7440,7 @@ func (c *ClientWithResponses) ListObjectsWithResponse(ctx context.Context, param
 
 // LookupObjectsWithResponse performs a GET /api/v1/catalog/objects/lookup (the `LookupObjects` operationId) request.
 //
-// Requires current content admission in the served school: valid campus eligibility or verified teacher status. Missing admission returns 403; unavailable required facts return 503. No preview, content, counts or statistics are returned on rejection. 教师公开查询由服务端目录标记过滤：有授课记录或已匹配官网名单即可保留。列表、详情、批量查询、筛选选项及计数使用相同依据。未标记的教师详情返回 not_found。
+// Requires current content admission in the served school: valid campus eligibility or verified teacher status. Missing admission returns 403; unavailable required facts return 503. No preview, content, counts or statistics are returned on rejection. 教师公开查询由服务端目录标记过滤：有授课记录或已匹配官网名单即可保留。列表、详情、批量查询、筛选选项及计数使用相同依据。未标记的教师详情返回 not_found。 普通目录仅提供学校、院系、分类、性质、学期、课程和教师；term_course、class、assignment、schedule 仅供管理端或受信服务使用。 教学班相关 ID 与未知 ID 一样列入 missing_ids，不返回其对象。混合查询仍返回其余可见课程和教师。
 //
 // Returns a wrapper object for the known response body format(s).
 func (c *ClientWithResponses) LookupObjectsWithResponse(ctx context.Context, params *LookupObjectsParams, reqEditors ...RequestEditorFn) (*LookupObjectsResponse, error) {
@@ -7360,7 +7453,7 @@ func (c *ClientWithResponses) LookupObjectsWithResponse(ctx context.Context, par
 
 // GetObjectWithResponse performs a GET /api/v1/catalog/objects/{id} (the `GetObject` operationId) request.
 //
-// Requires current content admission in the served school: valid campus eligibility or verified teacher status. Missing admission returns 403; unavailable required facts return 503. No preview, content, counts or statistics are returned on rejection. 教师公开查询由服务端目录标记过滤：有授课记录或已匹配官网名单即可保留。列表、详情、批量查询、筛选选项及计数使用相同依据。未标记的教师详情返回 not_found。 Courses outside the current visible directory projection return not_found, including direct links.
+// Requires current content admission in the served school: valid campus eligibility or verified teacher status. Missing admission returns 403; unavailable required facts return 503. No preview, content, counts or statistics are returned on rejection. 教师公开查询由服务端目录标记过滤：有授课记录或已匹配官网名单即可保留。列表、详情、批量查询、筛选选项及计数使用相同依据。未标记的教师详情返回 not_found。 Courses outside the current visible directory projection return not_found, including direct links. 普通目录仅提供学校、院系、分类、性质、学期、课程和教师；term_course、class、assignment、schedule 仅供管理端或受信服务使用。
 //
 // Returns a wrapper object for the known response body format(s).
 func (c *ClientWithResponses) GetObjectWithResponse(ctx context.Context, id string, reqEditors ...RequestEditorFn) (*GetObjectResponse, error) {
@@ -7439,7 +7532,7 @@ func (c *ClientWithResponses) PreviewMergeWithResponse(ctx context.Context, id s
 
 // ResolveObjectWithResponse performs a GET /api/v1/catalog/objects/{id}/resolution (the `ResolveObject` operationId) request.
 //
-// Requires current content admission in the served school: valid campus eligibility or verified teacher status. Missing admission returns 403; unavailable required facts return 503. No preview, content, counts or statistics are returned on rejection. 教师公开查询由服务端目录标记过滤：有授课记录或已匹配官网名单即可保留。列表、详情、批量查询、筛选选项及计数使用相同依据。未标记的教师详情返回 not_found。
+// Requires current content admission in the served school: valid campus eligibility or verified teacher status. Missing admission returns 403; unavailable required facts return 503. No preview, content, counts or statistics are returned on rejection. 教师公开查询由服务端目录标记过滤：有授课记录或已匹配官网名单即可保留。列表、详情、批量查询、筛选选项及计数使用相同依据。未标记的教师详情返回 not_found。 普通目录仅提供学校、院系、分类、性质、学期、课程和教师；term_course、class、assignment、schedule 仅供管理端或受信服务使用。
 //
 // Returns a wrapper object for the known response body format(s).
 func (c *ClientWithResponses) ResolveObjectWithResponse(ctx context.Context, id string, reqEditors ...RequestEditorFn) (*ResolveObjectResponse, error) {
@@ -7474,7 +7567,7 @@ func (c *ClientWithResponses) SetObjectStateWithResponse(ctx context.Context, id
 
 // GetObjectSummaryWithResponse performs a GET /api/v1/catalog/objects/{id}/summary (the `GetObjectSummary` operationId) request.
 //
-// Requires current content admission in the served school: valid campus eligibility or verified teacher status. Missing admission returns 403; unavailable required facts return 503. No preview, content, counts or statistics are returned on rejection. 教师公开查询由服务端目录标记过滤：有授课记录或已匹配官网名单即可保留。列表、详情、批量查询、筛选选项及计数使用相同依据。未标记的教师详情返回 not_found。 Courses outside the current visible directory projection return not_found, including direct links.
+// Requires current content admission in the served school: valid campus eligibility or verified teacher status. Missing admission returns 403; unavailable required facts return 503. No preview, content, counts or statistics are returned on rejection. 教师公开查询由服务端目录标记过滤：有授课记录或已匹配官网名单即可保留。列表、详情、批量查询、筛选选项及计数使用相同依据。未标记的教师详情返回 not_found。 Courses outside the current visible directory projection return not_found, including direct links. 普通目录仅提供学校、院系、分类、性质、学期、课程和教师；term_course、class、assignment、schedule 仅供管理端或受信服务使用。
 //
 // Returns a wrapper object for the known response body format(s).
 func (c *ClientWithResponses) GetObjectSummaryWithResponse(ctx context.Context, id string, reqEditors ...RequestEditorFn) (*GetObjectSummaryResponse, error) {
@@ -9608,7 +9701,7 @@ func ParseGetObjectSummaryResponse(rsp *http.Response) (*GetObjectSummaryRespons
 
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest Summary
+		var dest PublicSummary
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
