@@ -73,6 +73,9 @@ func validText(v string, n int) bool {
 var kinds = []string{"school", "department", "category", "nature", "term", "course", "teacher", "term_course", "class", "assignment", "schedule"}
 
 func validateObject(o Object, school string) error {
+	if !validCourseFields(o) {
+		return ErrInput
+	}
 	if o.TermOrderKey != 0 || o.LatestTermID != "" || o.CourseType != "" {
 		return ErrInput
 	}
@@ -157,7 +160,7 @@ func (s *Service) Import(ctx context.Context, p Principal, key string, in Import
 	in.Objects = normalizeSchedules(in.Objects)
 	seen := map[string]bool{}
 	for _, o := range in.Objects {
-		if validateObject(o, in.SchoolID) != nil || seen[o.ID] {
+		if validateObject(o, in.SchoolID) != nil || seen[o.ID] || (in.SeparateCourseNames && o.Kind == "course" && len(o.Aliases) != 0) {
 			return out, ErrInput
 		}
 		seen[o.ID] = true
@@ -236,13 +239,20 @@ func (s *Service) Import(ctx context.Context, p Principal, key string, in Import
 				rec := Record{Object: o, Imported: imported, SourceID: in.SourceID, SourceRevision: in.Revision, Manual: old.Manual}
 				rec.Object.Revision = old.Object.Revision + 1
 				rec.Object.UpdatedAt = now
-				for _, alias := range old.Object.Aliases {
-					if !slices.Contains(rec.Object.Aliases, alias) && len(rec.Object.Aliases) < 50 {
-						rec.Object.Aliases = append(rec.Object.Aliases, alias)
+				if o.Kind == "course" {
+					if err := preserveCourseNames(&rec, old, in.SeparateCourseNames); err != nil {
+						return err
 					}
 				}
-				if old.Object.Name != "" && old.Object.Name != o.Name && !slices.Contains(rec.Object.Aliases, old.Object.Name) && len(rec.Object.Aliases) < 50 {
-					rec.Object.Aliases = append(rec.Object.Aliases, old.Object.Name)
+				if o.Kind != "course" || !in.SeparateCourseNames {
+					for _, alias := range old.Object.Aliases {
+						if !slices.Contains(rec.Object.Aliases, alias) && len(rec.Object.Aliases) < 50 {
+							rec.Object.Aliases = append(rec.Object.Aliases, alias)
+						}
+					}
+					if o.Kind != "course" && old.Object.Name != "" && old.Object.Name != o.Name && !slices.Contains(rec.Object.Aliases, old.Object.Name) && len(rec.Object.Aliases) < 50 {
+						rec.Object.Aliases = append(rec.Object.Aliases, old.Object.Name)
+					}
 				}
 				if rec.Object.Aliases == nil {
 					rec.Object.Aliases = []string{}

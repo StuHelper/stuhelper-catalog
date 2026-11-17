@@ -504,6 +504,32 @@ type Correction struct {
 	Revision     int      `json:"revision"`
 }
 
+// CourseIdentities defines model for CourseIdentities.
+type CourseIdentities struct {
+	Mappings []CourseIdentityMapping `json:"mappings"`
+	Revision int                     `json:"revision"`
+	SchoolId string                  `json:"school_id"`
+
+	// SourceId 已导入课程的来源标识。
+	SourceId string `json:"source_id"`
+}
+
+// CourseIdentitiesResult defines model for CourseIdentitiesResult.
+type CourseIdentitiesResult struct {
+	Id        string `json:"id"`
+	Mappings  int    `json:"mappings"`
+	Redirects int    `json:"redirects"`
+}
+
+// CourseIdentityMapping defines model for CourseIdentityMapping.
+type CourseIdentityMapping struct {
+	// SourceId 原课程稳定 ID。
+	SourceId string `json:"source_id"`
+
+	// TargetId 新课程号生成的稳定 ID。
+	TargetId string `json:"target_id"`
+}
+
 // DirectoryBand defines model for DirectoryBand.
 type DirectoryBand struct {
 	Courses int `json:"courses"`
@@ -595,7 +621,10 @@ type Import struct {
 	PreviewToken *string      `json:"preview_token,omitempty"`
 	Revision     int          `json:"revision"`
 	SchoolId     string       `json:"school_id"`
-	SourceId     string       `json:"source_id"`
+
+	// SeparateCourseNames 来源迁移选项：确认此来源此前导入的课程 aliases 仅存英文名。将历史人工课程名保留为 former_names，移除旧英文别名；当前课程输入的 aliases 必须为空。学院等对象不受影响。
+	SeparateCourseNames *bool  `json:"separate_course_names,omitempty"`
+	SourceId            string `json:"source_id"`
 }
 
 // ImportChange defines model for ImportChange.
@@ -675,6 +704,7 @@ type NextLesson struct {
 
 // Object defines model for Object.
 type Object struct {
+	// Aliases 保留的通用别名字段。学院曾用名继续使用；课程英文名、曾用课程号和曾用名分别使用独立字段。
 	Aliases     []string `json:"aliases"`
 	Biography   *string  `json:"biography,omitempty"`
 	CanonicalId *string  `json:"canonical_id,omitempty"`
@@ -687,9 +717,21 @@ type Object struct {
 	CourseType   *ObjectCourseType `json:"course_type,omitempty"`
 	Credits      *float32          `json:"credits"`
 	DepartmentId *string           `json:"department_id,omitempty"`
-	Id           string            `json:"id"`
-	Inactive     *bool             `json:"inactive,omitempty"`
-	Kind         ObjectKind        `json:"kind"`
+
+	// EnglishName 课程英文名。独立于 aliases；缺失时省略。
+	EnglishName *string `json:"english_name,omitempty"`
+
+	// FormerCodes 已确认属于同一课程的曾用课程号，可搜索。
+	FormerCodes *[]string `json:"former_codes,omitempty"`
+
+	// FormerNames 课程曾用名，可搜索并在详情显示；不包含英文名或曾用课程号。
+	FormerNames *[]string `json:"former_names,omitempty"`
+
+	// Hours 当前课程主档的学时；未知时省略或为 null，0 表示已确认的零学时。
+	Hours    *float32   `json:"hours,omitempty"`
+	Id       string     `json:"id"`
+	Inactive *bool      `json:"inactive,omitempty"`
+	Kind     ObjectKind `json:"kind"`
 
 	// LatestTermId 课程在当前目录投影中最近一次开课的学期 ID，按结构化学期排序键确定。
 	LatestTermId *string `json:"latest_term_id,omitempty"`
@@ -1039,6 +1081,11 @@ type ListUnmatchedTeacherSitesParams struct {
 // ListUnmatchedTeacherSitesParamsReason defines parameters for ListUnmatchedTeacherSites.
 type ListUnmatchedTeacherSitesParamsReason string
 
+// ApplyCourseIdentitiesParams defines parameters for ApplyCourseIdentities.
+type ApplyCourseIdentitiesParams struct {
+	IdempotencyKey string `json:"Idempotency-Key"`
+}
+
 // ListDirectoryParams defines parameters for ListDirectory.
 type ListDirectoryParams struct {
 	Kind         ListDirectoryParamsKind  `form:"kind" json:"kind"`
@@ -1172,6 +1219,9 @@ type StartTeacherRefreshJSONRequestBody = TeacherRefreshInput
 
 // PutTimetableJSONRequestBody defines body for PutTimetable for application/json ContentType.
 type PutTimetableJSONRequestBody = Timetable
+
+// ApplyCourseIdentitiesJSONRequestBody defines body for ApplyCourseIdentities for application/json ContentType.
+type ApplyCourseIdentitiesJSONRequestBody = CourseIdentities
 
 // ImportCatalogJSONRequestBody defines body for ImportCatalog for application/json ContentType.
 type ImportCatalogJSONRequestBody = Import
@@ -1331,6 +1381,18 @@ type ClientInterface interface {
 	//
 	// Requires catalog maintain capability and school scope. Missing configuration returns 404.
 	PutTimetable(ctx context.Context, schoolId string, termId string, body PutTimetableJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// ApplyCourseIdentitiesWithBody performs a POST /api/v1/catalog/course-identities (the `ApplyCourseIdentities` operationId) request,
+	// with any type of body and a specified content type.
+	//
+	// 原子应用来源已确认的一对一课程换号关系。要求学校导入权限，两端均已按相同来源修订导入，拒绝缺失、跨学校、链、循环和冲突映射。保留源记录及所有新写入，旧 ID 解析到新课。幂等回执持续保留；同键不同请求返回 409。.
+	ApplyCourseIdentitiesWithBody(ctx context.Context, params *ApplyCourseIdentitiesParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// ApplyCourseIdentities performs a POST /api/v1/catalog/course-identities (the `ApplyCourseIdentities` operationId) request.
+	// Takes a body of the `application/json` content type.
+	//
+	// 原子应用来源已确认的一对一课程换号关系。要求学校导入权限，两端均已按相同来源修订导入，拒绝缺失、跨学校、链、循环和冲突映射。保留源记录及所有新写入，旧 ID 解析到新课。幂等回执持续保留；同键不同请求返回 409。.
+	ApplyCourseIdentities(ctx context.Context, params *ApplyCourseIdentitiesParams, body ApplyCourseIdentitiesJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// ListDirectory performs a GET /api/v1/catalog/directory (the `ListDirectory` operationId) request.
 	//
@@ -1642,6 +1704,38 @@ func (c *Client) PutTimetableWithBody(ctx context.Context, schoolId string, term
 // Requires catalog maintain capability and school scope. Missing configuration returns 404.
 func (c *Client) PutTimetable(ctx context.Context, schoolId string, termId string, body PutTimetableJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewPutTimetableRequest(c.Server, schoolId, termId, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// ApplyCourseIdentitiesWithBody performs a POST /api/v1/catalog/course-identities (the `ApplyCourseIdentities` operationId) request,
+// with any type of body and a specified content type.
+//
+// 原子应用来源已确认的一对一课程换号关系。要求学校导入权限，两端均已按相同来源修订导入，拒绝缺失、跨学校、链、循环和冲突映射。保留源记录及所有新写入，旧 ID 解析到新课。幂等回执持续保留；同键不同请求返回 409。.
+func (c *Client) ApplyCourseIdentitiesWithBody(ctx context.Context, params *ApplyCourseIdentitiesParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewApplyCourseIdentitiesRequestWithBody(c.Server, params, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// ApplyCourseIdentities performs a POST /api/v1/catalog/course-identities (the `ApplyCourseIdentities` operationId) request.
+// Takes a body of the `application/json` content type.
+//
+// 原子应用来源已确认的一对一课程换号关系。要求学校导入权限，两端均已按相同来源修订导入，拒绝缺失、跨学校、链、循环和冲突映射。保留源记录及所有新写入，旧 ID 解析到新课。幂等回执持续保留；同键不同请求返回 409。.
+func (c *Client) ApplyCourseIdentities(ctx context.Context, params *ApplyCourseIdentitiesParams, body ApplyCourseIdentitiesJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewApplyCourseIdentitiesRequest(c.Server, params, body)
 	if err != nil {
 		return nil, err
 	}
@@ -2705,6 +2799,59 @@ func NewPutTimetableRequestWithBody(server string, schoolId string, termId strin
 	}
 
 	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+// NewApplyCourseIdentitiesRequest calls the generic ApplyCourseIdentities builder with application/json body
+func NewApplyCourseIdentitiesRequest(server string, params *ApplyCourseIdentitiesParams, body ApplyCourseIdentitiesJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewApplyCourseIdentitiesRequestWithBody(server, params, "application/json", bodyReader)
+}
+
+// NewApplyCourseIdentitiesRequestWithBody constructs an http.Request for the ApplyCourseIdentities method, with any body, and a specified content type
+func NewApplyCourseIdentitiesRequestWithBody(server string, params *ApplyCourseIdentitiesParams, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/catalog/course-identities")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPost, queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	if params != nil {
+
+		var headerParam0 string
+
+		headerParam0, err = runtime.StyleParamWithOptions("simple", false, "Idempotency-Key", params.IdempotencyKey, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationHeader, Type: "string", Format: ""})
+		if err != nil {
+			return nil, err
+		}
+
+		req.Header.Set("Idempotency-Key", headerParam0)
+
+	}
 
 	return req, nil
 }
@@ -4233,6 +4380,20 @@ type ClientWithResponsesInterface interface {
 	// Requires catalog maintain capability and school scope. Missing configuration returns 404.
 	PutTimetableWithResponse(ctx context.Context, schoolId string, termId string, body PutTimetableJSONRequestBody, reqEditors ...RequestEditorFn) (*PutTimetableResponse, error)
 
+	// ApplyCourseIdentitiesWithBodyWithResponse performs a POST /api/v1/catalog/course-identities (the `ApplyCourseIdentities` operationId) request,
+	// with any type of body and a specified content type.
+	//
+	// 原子应用来源已确认的一对一课程换号关系。要求学校导入权限，两端均已按相同来源修订导入，拒绝缺失、跨学校、链、循环和冲突映射。保留源记录及所有新写入，旧 ID 解析到新课。幂等回执持续保留；同键不同请求返回 409。.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	ApplyCourseIdentitiesWithBodyWithResponse(ctx context.Context, params *ApplyCourseIdentitiesParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*ApplyCourseIdentitiesResponse, error)
+
+	// ApplyCourseIdentitiesWithResponse performs a POST /api/v1/catalog/course-identities (the `ApplyCourseIdentities` operationId) request.
+	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+	//
+	// 原子应用来源已确认的一对一课程换号关系。要求学校导入权限，两端均已按相同来源修订导入，拒绝缺失、跨学校、链、循环和冲突映射。保留源记录及所有新写入，旧 ID 解析到新课。幂等回执持续保留；同键不同请求返回 409。.
+	ApplyCourseIdentitiesWithResponse(ctx context.Context, params *ApplyCourseIdentitiesParams, body ApplyCourseIdentitiesJSONRequestBody, reqEditors ...RequestEditorFn) (*ApplyCourseIdentitiesResponse, error)
+
 	// ListDirectoryWithResponse performs a GET /api/v1/catalog/directory (the `ListDirectory` operationId) request.
 	//
 	// Current visible course/teacher directory, stable sort with ID tie-break and filter-bound cursor. Categories count distinct courses after all filters except category_id. Department groups respect all current filters. Classification filters apply to the same offering/class. Teacher rows and counts require T2 persisted marking; absent marker enforcement returns 503. Scores are read in bounded batches from owning modules, without per-row queries. Catalog membership is cached with transactional revision invalidation; ratings and heat are always current. 目录成员和分面来自同一持久投影版本，实时评分与热度按 ID 关联。游标绑定投影版本，重建后使用旧游标返回 409，应从第一页重新读取。 普通目录仅提供学校、院系、分类、性质、学期、课程和教师；term_course、class、assignment、schedule 仅供管理端或受信服务使用。
@@ -5237,6 +5398,89 @@ func (r PutTimetableResponse) StatusCode() int {
 
 // ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
 func (r PutTimetableResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type ApplyCourseIdentitiesResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *CourseIdentitiesResult
+	// JSON400 the response for an HTTP 400 `application/json` response
+	JSON400 *Error
+	// JSON401 the response for an HTTP 401 `application/json` response
+	JSON401 *Error
+	// JSON403 the response for an HTTP 403 `application/json` response
+	JSON403 *Error
+	// JSON404 the response for an HTTP 404 `application/json` response
+	JSON404 *Error
+	// JSON409 the response for an HTTP 409 `application/json` response
+	JSON409 *Error
+	// JSON503 the response for an HTTP 503 `application/json` response
+	JSON503 *Error
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r ApplyCourseIdentitiesResponse) GetJSON200() *CourseIdentitiesResult {
+	return r.JSON200
+}
+
+// GetJSON400 returns the response for an HTTP 400 `application/json` response
+func (r ApplyCourseIdentitiesResponse) GetJSON400() *Error {
+	return r.JSON400
+}
+
+// GetJSON401 returns the response for an HTTP 401 `application/json` response
+func (r ApplyCourseIdentitiesResponse) GetJSON401() *Error {
+	return r.JSON401
+}
+
+// GetJSON403 returns the response for an HTTP 403 `application/json` response
+func (r ApplyCourseIdentitiesResponse) GetJSON403() *Error {
+	return r.JSON403
+}
+
+// GetJSON404 returns the response for an HTTP 404 `application/json` response
+func (r ApplyCourseIdentitiesResponse) GetJSON404() *Error {
+	return r.JSON404
+}
+
+// GetJSON409 returns the response for an HTTP 409 `application/json` response
+func (r ApplyCourseIdentitiesResponse) GetJSON409() *Error {
+	return r.JSON409
+}
+
+// GetJSON503 returns the response for an HTTP 503 `application/json` response
+func (r ApplyCourseIdentitiesResponse) GetJSON503() *Error {
+	return r.JSON503
+}
+
+// GetBody returns the raw response body bytes
+func (r ApplyCourseIdentitiesResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r ApplyCourseIdentitiesResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r ApplyCourseIdentitiesResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r ApplyCourseIdentitiesResponse) ContentType() string {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.Header.Get("Content-Type")
 	}
@@ -7225,6 +7469,32 @@ func (c *ClientWithResponses) PutTimetableWithResponse(ctx context.Context, scho
 	return ParsePutTimetableResponse(rsp)
 }
 
+// ApplyCourseIdentitiesWithBodyWithResponse performs a POST /api/v1/catalog/course-identities (the `ApplyCourseIdentities` operationId) request,
+// with any type of body and a specified content type.
+//
+// 原子应用来源已确认的一对一课程换号关系。要求学校导入权限，两端均已按相同来源修订导入，拒绝缺失、跨学校、链、循环和冲突映射。保留源记录及所有新写入，旧 ID 解析到新课。幂等回执持续保留；同键不同请求返回 409。.
+//
+// Returns a wrapper object for the known response body format(s).
+func (c *ClientWithResponses) ApplyCourseIdentitiesWithBodyWithResponse(ctx context.Context, params *ApplyCourseIdentitiesParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*ApplyCourseIdentitiesResponse, error) {
+	rsp, err := c.ApplyCourseIdentitiesWithBody(ctx, params, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseApplyCourseIdentitiesResponse(rsp)
+}
+
+// ApplyCourseIdentitiesWithResponse performs a POST /api/v1/catalog/course-identities (the `ApplyCourseIdentities` operationId) request.
+// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+//
+// 原子应用来源已确认的一对一课程换号关系。要求学校导入权限，两端均已按相同来源修订导入，拒绝缺失、跨学校、链、循环和冲突映射。保留源记录及所有新写入，旧 ID 解析到新课。幂等回执持续保留；同键不同请求返回 409。.
+func (c *ClientWithResponses) ApplyCourseIdentitiesWithResponse(ctx context.Context, params *ApplyCourseIdentitiesParams, body ApplyCourseIdentitiesJSONRequestBody, reqEditors ...RequestEditorFn) (*ApplyCourseIdentitiesResponse, error) {
+	rsp, err := c.ApplyCourseIdentities(ctx, params, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseApplyCourseIdentitiesResponse(rsp)
+}
+
 // ListDirectoryWithResponse performs a GET /api/v1/catalog/directory (the `ListDirectory` operationId) request.
 //
 // Current visible course/teacher directory, stable sort with ID tie-break and filter-bound cursor. Categories count distinct courses after all filters except category_id. Department groups respect all current filters. Classification filters apply to the same offering/class. Teacher rows and counts require T2 persisted marking; absent marker enforcement returns 503. Scores are read in bounded batches from owning modules, without per-row queries. Catalog membership is cached with transactional revision invalidation; ratings and heat are always current. 目录成员和分面来自同一持久投影版本，实时评分与热度按 ID 关联。游标绑定投影版本，重建后使用旧游标返回 409，应从第一页重新读取。 普通目录仅提供学校、院系、分类、性质、学期、课程和教师；term_course、class、assignment、schedule 仅供管理端或受信服务使用。
@@ -8206,6 +8476,74 @@ func ParsePutTimetableResponse(rsp *http.Response) (*PutTimetableResponse, error
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
 		var dest Timetable
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 409:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON409 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON503 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseApplyCourseIdentitiesResponse parses an HTTP response from a ApplyCourseIdentitiesWithResponse call
+func ParseApplyCourseIdentitiesResponse(rsp *http.Response) (*ApplyCourseIdentitiesResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &ApplyCourseIdentitiesResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest CourseIdentitiesResult
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}

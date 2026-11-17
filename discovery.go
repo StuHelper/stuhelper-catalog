@@ -15,6 +15,10 @@ type DiscoveryTarget struct {
 // DiscoveryDocument matches the search discovery event schema. Ratings are zero
 // because catalog does not own rating facts. Invisible documents are tombstones.
 type DiscoveryDocument struct {
+	EnglishName string   `json:"english_name,omitempty"`
+	FormerCodes []string `json:"former_codes,omitempty"`
+	FormerNames []string `json:"former_names,omitempty"`
+
 	Code     string          `json:"code,omitempty"`
 	Aliases  []string        `json:"aliases,omitempty"`
 	Target   DiscoveryTarget `json:"target"`

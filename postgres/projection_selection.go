@@ -16,7 +16,7 @@ func projectedSelectionQuery(q c.DirectoryQuery, version int64) (string, []any, 
 	baseWhere := []string{"o.version=$1", "o.kind=$2", "o.visible"}
 	if q.Query != "" {
 		p := bind(q.Query)
-		baseWhere = append(baseWhere, `(strpos(lower(o.name),lower(`+p+`))>0 OR strpos(lower(o.data->>'code'),lower(`+p+`))>0 OR EXISTS(SELECT 1 FROM jsonb_array_elements_text(COALESCE(NULLIF(o.data->'aliases','null'::jsonb),'[]'::jsonb)) a WHERE strpos(lower(a),lower(`+p+`))>0))`)
+		baseWhere = append(baseWhere, `catalog.matches_query(o.data,`+p+`)`)
 	}
 	variants := `SELECT id,department_id,category_id,nature_id FROM base`
 	if q.Kind == "course" {

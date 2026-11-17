@@ -39,9 +39,9 @@ func directoryPageQuery(f catalog.Filter, prefixLimit int, requireTeacherDirecto
 	baseWhere := append([]string(nil), where...)
 	if f.Query != "" {
 		v := bind(f.Query)
-		search = "(strpos(lower(o.name),lower(" + v + "))>0 OR strpos(lower(o.data->'object'->>'code'),lower(" + v + "))>0 OR EXISTS(SELECT 1 FROM jsonb_array_elements_text(o.data->'object'->'aliases') a WHERE strpos(lower(a),lower(" + v + "))>0))"
+		search = "catalog.matches_query(o.data->'object'," + v + ")"
 		if prefixLimit == 0 {
-			where = append(where, "catalog.search_tokens(o.data->'object') @> catalog.search_tokens(jsonb_build_object('name',"+v+"::text))", search)
+			where = append(where, "catalog.search_tokens_v2(o.data->'object') @> catalog.search_tokens_v2(jsonb_build_object('name',"+v+"::text))", search)
 		}
 	}
 
