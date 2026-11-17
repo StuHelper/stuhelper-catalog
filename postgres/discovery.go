@@ -22,9 +22,14 @@ func (t *transaction) saveDiscovery(o c.Object) error {
 		return safe(e)
 	}
 	d := c.DiscoveryDocument{Target: c.DiscoveryTarget{Source: "catalog", ID: o.ID, Kind: o.Kind}, Revision: o.Revision, Title: o.Name, SchoolID: o.SchoolID, Visible: !o.Inactive && canonical == o.ID, At: o.UpdatedAt}
-	if o.Kind == "school" && d.Visible {
+	if (o.Kind == "school" || o.Kind == "course") && d.Visible {
 		d.Code = o.Code
 		d.Aliases = append([]string{}, o.Aliases...)
+	}
+	if o.Kind == "course" && d.Visible {
+		d.EnglishName = o.EnglishName
+		d.FormerCodes = append([]string{}, o.FormerCodes...)
+		d.FormerNames = append([]string{}, o.FormerNames...)
 	}
 	if !d.Visible {
 		d.Title = ""
@@ -33,7 +38,7 @@ func (t *transaction) saveDiscovery(o c.Object) error {
 		return e
 	}
 	eventID := fmt.Sprintf("discovery:%s:%d", o.ID, o.Revision)
-	return t.saveEnvelope(c.Envelope{SpecVersion: "1.0", ID: eventID, Source: "catalog", Type: "catalog.discovery.v1", Subject: o.ID, Time: o.UpdatedAt, Data: c.ResultData{Code: d.Code, Aliases: d.Aliases, Revision: d.Revision, Target: &d.Target, Title: &d.Title, SchoolID: &d.SchoolID, Visible: &d.Visible, Ratings: &d.Ratings, At: &d.At}})
+	return t.saveEnvelope(c.Envelope{SpecVersion: "1.0", ID: eventID, Source: "catalog", Type: "catalog.discovery.v1", Subject: o.ID, Time: o.UpdatedAt, Data: c.ResultData{EnglishName: d.EnglishName, FormerCodes: d.FormerCodes, FormerNames: d.FormerNames, Code: d.Code, Aliases: d.Aliases, Revision: d.Revision, Target: &d.Target, Title: &d.Title, SchoolID: &d.SchoolID, Visible: &d.Visible, Ratings: &d.Ratings, At: &d.At}})
 }
 func (t *transaction) DiscoveryCurrent(school string, ids []string) ([]c.DiscoveryDocument, error) {
 	if t.projectionRead {

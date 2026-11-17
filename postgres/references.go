@@ -5,7 +5,7 @@ import c "github.com/StuHelper/stuhelper-catalog"
 func (t *transaction) OwnedReferences(subject string, ids []string) ([]string, error) {
 	rows, e := t.tx.QueryContext(t.ctx, `SELECT requested.id FROM unnest($2::text[]) requested(id)
  WHERE EXISTS(SELECT 1 FROM catalog.enrollments en WHERE en.subject=$1
- AND (requested.id IN (en.school_id,en.course_id,en.term_id,COALESCE(en.data->>'class_id',''))
+ AND (requested.id IN (en.school_id,en.course_id,en.term_id,COALESCE(en.data->>'class_id','')) OR catalog.canonical(requested.id)=catalog.canonical(en.course_id)
  OR COALESCE(en.data->'teacher_ids','[]'::jsonb) ? requested.id)) OR EXISTS(SELECT 1 FROM catalog.enrollments en JOIN catalog.projection_heads h ON h.school_id=en.school_id
  JOIN catalog.projection_sports_classes m ON m.version=h.version AND m.class_id=catalog.canonical(COALESCE(en.data->>'class_id',''))
  AND m.source_course_id=catalog.canonical(en.course_id) AND m.term_id=catalog.canonical(en.term_id) AND m.reason=''

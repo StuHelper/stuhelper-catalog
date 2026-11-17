@@ -124,7 +124,7 @@ func TestMergeRejectsFullAliasListWithoutDroppingSourceName(t *testing.T) {
 	for i := 0; i < 50; i++ {
 		aliases = append(aliases, fmt.Sprintf("Known name %d", i))
 	}
-	in.Objects = append(in.Objects, c.Object{ID: "target", Kind: "course", SchoolID: "school", Name: "Target course", Aliases: aliases})
+	in.Objects = append(in.Objects, c.Object{ID: "target", Kind: "course", SchoolID: "school", Name: "Target course", FormerNames: aliases})
 	if _, err := s.Import(ctx, p, "seed", in); err != nil {
 		t.Fatal(err)
 	}

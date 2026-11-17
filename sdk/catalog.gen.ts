@@ -478,6 +478,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/catalog/course-identities": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description 原子应用来源已确认的一对一课程换号关系。要求学校导入权限，两端均已按相同来源修订导入，拒绝缺失、跨学校、链、循环和冲突映射。保留源记录及所有新写入，旧 ID 解析到新课。幂等回执持续保留；同键不同请求返回 409。 */
+        post: operations["applyCourseIdentities"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -504,6 +521,7 @@ export interface components {
             biography?: string;
             location?: string;
             time_text?: string;
+            /** @description 保留的通用别名字段。学院曾用名继续使用；课程英文名、曾用课程号和曾用名分别使用独立字段。 */
             aliases: string[];
             revision: number;
             /** Format: date-time */
@@ -522,6 +540,14 @@ export interface components {
             readonly course_type?: "sports_project";
             /** @description 仅教学班导入使用的来源体育项目代码。由学校适配器读取明确字段，目录规则通过配置将代码映射到项目；不从场地或教师推断。 */
             sports_project_code?: string;
+            /** @description 课程英文名。独立于 aliases；缺失时省略。 */
+            english_name?: string;
+            /** @description 已确认属于同一课程的曾用课程号，可搜索。 */
+            former_codes?: string[];
+            /** @description 课程曾用名，可搜索并在详情显示；不包含英文名或曾用课程号。 */
+            former_names?: string[];
+            /** @description 当前课程主档的学时；未知时省略或为 null，0 表示已确认的零学时。 */
+            hours?: number | null;
         };
         Page: {
             items: components["schemas"]["Object"][];
@@ -552,6 +578,8 @@ export interface components {
             objects: components["schemas"]["Object"][];
             enrollments: components["schemas"]["Enrollment"][];
             preview_token?: string;
+            /** @description 来源迁移选项：确认此来源此前导入的课程 aliases 仅存英文名。将历史人工课程名保留为 former_names，移除旧英文别名；当前课程输入的 aliases 必须为空。学院等对象不受影响。 */
+            separate_course_names?: boolean;
         };
         ImportResult: {
             id: string;
@@ -887,6 +915,24 @@ export interface components {
             course_count: number;
             /** @description 当前目录投影中关联的可展示教师数量。 */
             teacher_count: number;
+        };
+        CourseIdentityMapping: {
+            /** @description 原课程稳定 ID。 */
+            source_id: string;
+            /** @description 新课程号生成的稳定 ID。 */
+            target_id: string;
+        };
+        CourseIdentities: {
+            school_id: string;
+            /** @description 已导入课程的来源标识。 */
+            source_id: string;
+            revision: number;
+            mappings: components["schemas"]["CourseIdentityMapping"][];
+        };
+        CourseIdentitiesResult: {
+            id: string;
+            mappings: number;
+            redirects: number;
         };
     };
     responses: never;
@@ -3382,6 +3428,86 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["UnmatchedTeacherSitePage"];
+                };
+            };
+            /** @description Invalid input */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Authentication required */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not permitted */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Revision or idempotency conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Required dependency unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    applyCourseIdentities: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CourseIdentities"];
+            };
+        };
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CourseIdentitiesResult"];
                 };
             };
             /** @description Invalid input */

@@ -59,8 +59,7 @@ func (t *transaction) List(f catalog.Filter) ([]catalog.Object, error) {
    o.id=$4 OR o.data->'object'->>'code'=$4
    OR (length($4)=5 AND ((o.id ~ '^[0-9]{10}$' AND right(o.id,5)=$4)
      OR (o.data->'object'->>'code' ~ '^[0-9]{10}$' AND right(o.data->'object'->>'code',5)=$4)))
- ELSE strpos(lower(o.name),lower($4))>0 OR strpos(lower(o.data->'object'->>'code'),lower($4))>0
-   OR EXISTS(SELECT 1 FROM jsonb_array_elements_text(o.data->'object'->'aliases') alias WHERE strpos(lower(alias),lower($4))>0) END)
+ ELSE catalog.matches_query(o.data->'object',$4) END)
 
  AND ($5='' OR o.course_id IN (SELECT $5::text UNION SELECT alias_id FROM catalog.redirects WHERE canonical_id=$5) OR (o.kind='course' AND o.id=$5) OR parent_offering.course_id IN (SELECT $5::text UNION SELECT alias_id FROM catalog.redirects WHERE canonical_id=$5)
    OR (o.kind='teacher' AND EXISTS(SELECT 1 FROM catalog.objects a JOIN catalog.objects cl ON cl.id=a.class_id JOIN catalog.objects tc ON tc.id=cl.term_course_id

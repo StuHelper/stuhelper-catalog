@@ -26,6 +26,11 @@ type Principal struct {
 	CanRefreshTeacherSites bool
 }
 type Object struct {
+	EnglishName string   `json:"english_name,omitempty"`
+	FormerCodes []string `json:"former_codes,omitempty"`
+	FormerNames []string `json:"former_names,omitempty"`
+	Hours       *float64 `json:"hours,omitempty"`
+
 	CourseType        string        `json:"course_type,omitempty"`
 	SportsProjectCode string        `json:"sports_project_code,omitempty"`
 	TermOrderKey      int           `json:"term_order_key,omitempty"`
@@ -78,13 +83,14 @@ type Enrollment struct {
 	Active         bool      `json:"active"`
 }
 type Import struct {
-	PreviewToken string       `json:"preview_token,omitempty"`
-	SchoolID     string       `json:"school_id"`
-	SourceID     string       `json:"source_id"`
-	Revision     int64        `json:"revision"`
-	FetchedAt    time.Time    `json:"fetched_at"`
-	Objects      []Object     `json:"objects"`
-	Enrollments  []Enrollment `json:"enrollments"`
+	SeparateCourseNames bool         `json:"separate_course_names,omitempty"`
+	PreviewToken        string       `json:"preview_token,omitempty"`
+	SchoolID            string       `json:"school_id"`
+	SourceID            string       `json:"source_id"`
+	Revision            int64        `json:"revision"`
+	FetchedAt           time.Time    `json:"fetched_at"`
+	Objects             []Object     `json:"objects"`
+	Enrollments         []Enrollment `json:"enrollments"`
 }
 type ImportResult struct {
 	ID                   string `json:"id"`

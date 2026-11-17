@@ -79,7 +79,12 @@ func mergePlan(t Transaction, p Principal, id string, in MergeInput) (MergePrevi
 	if a.CanonicalID != "" || b.CanonicalID != "" {
 		return out, ErrConflict
 	}
-	if !slices.Contains(target.Object.Aliases, source.Object.Name) && len(target.Object.Aliases) >= 50 {
+	if source.Object.Kind == "course" {
+		copy := target.Object
+		if err := addFormer(&copy, source.Object); err != nil {
+			return out, err
+		}
+	} else if !slices.Contains(target.Object.Aliases, source.Object.Name) && len(target.Object.Aliases) >= 50 {
 		return out, ErrInput
 	}
 	ids, e := t.ResolveIDs(id)
@@ -156,7 +161,11 @@ func (s *Service) Merge(ctx context.Context, p Principal, id, key string, in Mer
 		}
 		target.Object.Revision++
 		target.Object.UpdatedAt = s.now()
-		if !slices.Contains(target.Object.Aliases, plan.Source.Name) {
+		if plan.Source.Kind == "course" {
+			if err := addFormer(&target.Object, plan.Source); err != nil {
+				return err
+			}
+		} else if !slices.Contains(target.Object.Aliases, plan.Source.Name) {
 			target.Object.Aliases = append(target.Object.Aliases, plan.Source.Name)
 		}
 		if e = t.SaveObject(target); e != nil {
