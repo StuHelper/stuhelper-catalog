@@ -468,7 +468,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** @description Requires catalog.teacher-sites.read and current school management scope. Every view is audited. Current complete unmatched snapshot only; failed refresh preserves it. Returns public website name/unit, fixed reason and count of same-name catalog candidates, never candidate IDs, staff numbers or contacts. reason_counts covers the entire snapshot; total respects reason. Cursor binds school, reason and snapshot revision; a changed snapshot returns 409. Sorted by site_id. */
+        /** @description Requires catalog.teacher-sites.read and current school management scope. Every view is audited. Current complete unmatched snapshot only; failed refresh preserves it. Returns public website name/unit, fixed reason and count of same-name catalog candidates, never candidate IDs, staff numbers or contacts. reason_counts covers the entire snapshot; total respects reason and q. Cursor binds school, reason, q and snapshot revision; a changed snapshot returns 409. Sorted by site_id. */
         get: operations["listUnmatchedTeacherSites"];
         put?: never;
         post?: never;
@@ -3410,6 +3410,8 @@ export interface operations {
         parameters: {
             query?: {
                 reason?: "catalog_name_absent" | "catalog_unit_missing" | "site_unit_missing" | "unit_mismatch" | "ambiguous_catalog" | "ambiguous_site";
+                /** @description 对未匹配记录的公开姓名与单位做不区分大小写的字面子串筛选，百分号与下划线不作为通配符。 */
+                q?: string;
                 limit?: number;
                 after?: string;
             };

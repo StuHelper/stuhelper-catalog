@@ -1074,8 +1074,11 @@ type StartTeacherRefreshParams struct {
 // ListUnmatchedTeacherSitesParams defines parameters for ListUnmatchedTeacherSites.
 type ListUnmatchedTeacherSitesParams struct {
 	Reason *ListUnmatchedTeacherSitesParamsReason `form:"reason,omitempty" json:"reason,omitempty"`
-	Limit  *int                                   `form:"limit,omitempty" json:"limit,omitempty"`
-	After  *string                                `form:"after,omitempty" json:"after,omitempty"`
+
+	// Q 对未匹配记录的公开姓名与单位做不区分大小写的字面子串筛选，百分号与下划线不作为通配符。
+	Q     *string `form:"q,omitempty" json:"q,omitempty"`
+	Limit *int    `form:"limit,omitempty" json:"limit,omitempty"`
+	After *string `form:"after,omitempty" json:"after,omitempty"`
 }
 
 // ListUnmatchedTeacherSitesParamsReason defines parameters for ListUnmatchedTeacherSites.
@@ -1362,7 +1365,7 @@ type ClientInterface interface {
 
 	// ListUnmatchedTeacherSites performs a GET /api/v1/catalog/admin/schools/{school_id}/teacher-sites/unmatched (the `ListUnmatchedTeacherSites` operationId) request.
 	//
-	// Requires catalog.teacher-sites.read and current school management scope. Every view is audited. Current complete unmatched snapshot only; failed refresh preserves it. Returns public website name/unit, fixed reason and count of same-name catalog candidates, never candidate IDs, staff numbers or contacts. reason_counts covers the entire snapshot; total respects reason. Cursor binds school, reason and snapshot revision; a changed snapshot returns 409. Sorted by site_id.
+	// Requires catalog.teacher-sites.read and current school management scope. Every view is audited. Current complete unmatched snapshot only; failed refresh preserves it. Returns public website name/unit, fixed reason and count of same-name catalog candidates, never candidate IDs, staff numbers or contacts. reason_counts covers the entire snapshot; total respects reason and q. Cursor binds school, reason, q and snapshot revision; a changed snapshot returns 409. Sorted by site_id.
 	ListUnmatchedTeacherSites(ctx context.Context, schoolId string, params *ListUnmatchedTeacherSitesParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// GetTimetable performs a GET /api/v1/catalog/admin/schools/{school_id}/terms/{term_id}/timetable (the `GetTimetable` operationId) request.
@@ -1654,7 +1657,7 @@ func (c *Client) StartTeacherRefresh(ctx context.Context, schoolId string, param
 
 // ListUnmatchedTeacherSites performs a GET /api/v1/catalog/admin/schools/{school_id}/teacher-sites/unmatched (the `ListUnmatchedTeacherSites` operationId) request.
 //
-// Requires catalog.teacher-sites.read and current school management scope. Every view is audited. Current complete unmatched snapshot only; failed refresh preserves it. Returns public website name/unit, fixed reason and count of same-name catalog candidates, never candidate IDs, staff numbers or contacts. reason_counts covers the entire snapshot; total respects reason. Cursor binds school, reason and snapshot revision; a changed snapshot returns 409. Sorted by site_id.
+// Requires catalog.teacher-sites.read and current school management scope. Every view is audited. Current complete unmatched snapshot only; failed refresh preserves it. Returns public website name/unit, fixed reason and count of same-name catalog candidates, never candidate IDs, staff numbers or contacts. reason_counts covers the entire snapshot; total respects reason and q. Cursor binds school, reason, q and snapshot revision; a changed snapshot returns 409. Sorted by site_id.
 func (c *Client) ListUnmatchedTeacherSites(ctx context.Context, schoolId string, params *ListUnmatchedTeacherSitesParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewListUnmatchedTeacherSitesRequest(c.Server, schoolId, params)
 	if err != nil {
@@ -2661,6 +2664,18 @@ func NewListUnmatchedTeacherSitesRequest(server string, schoolId string, params 
 		if params.Reason != nil {
 
 			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "reason", *params.Reason, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.Q != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "q", *params.Q, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
 				return nil, err
 			} else {
 				for _, qp := range strings.Split(queryFrag, "&") {
@@ -4354,7 +4369,7 @@ type ClientWithResponsesInterface interface {
 
 	// ListUnmatchedTeacherSitesWithResponse performs a GET /api/v1/catalog/admin/schools/{school_id}/teacher-sites/unmatched (the `ListUnmatchedTeacherSites` operationId) request.
 	//
-	// Requires catalog.teacher-sites.read and current school management scope. Every view is audited. Current complete unmatched snapshot only; failed refresh preserves it. Returns public website name/unit, fixed reason and count of same-name catalog candidates, never candidate IDs, staff numbers or contacts. reason_counts covers the entire snapshot; total respects reason. Cursor binds school, reason and snapshot revision; a changed snapshot returns 409. Sorted by site_id.
+	// Requires catalog.teacher-sites.read and current school management scope. Every view is audited. Current complete unmatched snapshot only; failed refresh preserves it. Returns public website name/unit, fixed reason and count of same-name catalog candidates, never candidate IDs, staff numbers or contacts. reason_counts covers the entire snapshot; total respects reason and q. Cursor binds school, reason, q and snapshot revision; a changed snapshot returns 409. Sorted by site_id.
 	//
 	// Returns a wrapper object for the known response body format(s).
 	ListUnmatchedTeacherSitesWithResponse(ctx context.Context, schoolId string, params *ListUnmatchedTeacherSitesParams, reqEditors ...RequestEditorFn) (*ListUnmatchedTeacherSitesResponse, error)
@@ -7419,7 +7434,7 @@ func (c *ClientWithResponses) StartTeacherRefreshWithResponse(ctx context.Contex
 
 // ListUnmatchedTeacherSitesWithResponse performs a GET /api/v1/catalog/admin/schools/{school_id}/teacher-sites/unmatched (the `ListUnmatchedTeacherSites` operationId) request.
 //
-// Requires catalog.teacher-sites.read and current school management scope. Every view is audited. Current complete unmatched snapshot only; failed refresh preserves it. Returns public website name/unit, fixed reason and count of same-name catalog candidates, never candidate IDs, staff numbers or contacts. reason_counts covers the entire snapshot; total respects reason. Cursor binds school, reason and snapshot revision; a changed snapshot returns 409. Sorted by site_id.
+// Requires catalog.teacher-sites.read and current school management scope. Every view is audited. Current complete unmatched snapshot only; failed refresh preserves it. Returns public website name/unit, fixed reason and count of same-name catalog candidates, never candidate IDs, staff numbers or contacts. reason_counts covers the entire snapshot; total respects reason and q. Cursor binds school, reason, q and snapshot revision; a changed snapshot returns 409. Sorted by site_id.
 //
 // Returns a wrapper object for the known response body format(s).
 func (c *ClientWithResponses) ListUnmatchedTeacherSitesWithResponse(ctx context.Context, schoolId string, params *ListUnmatchedTeacherSitesParams, reqEditors ...RequestEditorFn) (*ListUnmatchedTeacherSitesResponse, error) {

@@ -75,6 +75,10 @@ func (t *transaction) ReplaceTeacherUnmatched(v c.TeacherUnmatchedSnapshot) erro
 	return safe(e)
 }
 func (t *transaction) TeacherUnmatched(school, reason, after string, limit int) (c.UnmatchedTeacherSitePage, error) {
+	return t.SearchTeacherUnmatched(school, reason, "", after, limit)
+}
+
+func (t *transaction) SearchTeacherUnmatched(school, reason, query, after string, limit int) (c.UnmatchedTeacherSitePage, error) {
 	out := c.UnmatchedTeacherSitePage{Items: []c.UnmatchedTeacherSite{}, ReasonCounts: map[string]int64{}}
 	e := t.tx.QueryRowContext(t.ctx, `SELECT revision,observed_at FROM catalog.teacher_unmatched_snapshots WHERE school_id=$1`, school).Scan(&out.Revision, &out.ObservedAt)
 	if errors.Is(safe(e), c.ErrNotFound) {
@@ -91,12 +95,20 @@ func (t *transaction) TeacherUnmatched(school, reason, after string, limit int) 
 	if json.Unmarshal(raw, &out.ReasonCounts) != nil {
 		return out, c.ErrUnavailable
 	}
-	for key, count := range out.ReasonCounts {
-		if reason == "" || reason == key {
-			out.Total += count
+	if query == "" {
+		for key, count := range out.ReasonCounts {
+			if reason == "" || reason == key {
+				out.Total += count
+			}
 		}
+		out.Items, e = list[c.UnmatchedTeacherSite](t, `SELECT data FROM catalog.teacher_unmatched_sites WHERE school_id=$1 AND ($2='' OR reason=$2) AND site_id>$3 ORDER BY site_id LIMIT $4`, school, reason, after, limit)
+		return out, e
 	}
-	out.Items, e = list[c.UnmatchedTeacherSite](t, `SELECT data FROM catalog.teacher_unmatched_sites WHERE school_id=$1 AND ($2='' OR reason=$2) AND site_id>$3 ORDER BY site_id LIMIT $4`, school, reason, after, limit)
+	const literalFilter = `AND (strpos(lower(COALESCE(data->>'name','')),lower($3))>0 OR strpos(lower(COALESCE(data->>'unit','')),lower($3))>0)`
+	if e = t.tx.QueryRowContext(t.ctx, `SELECT count(*) FROM catalog.teacher_unmatched_sites WHERE school_id=$1 AND ($2='' OR reason=$2) `+literalFilter, school, reason, query).Scan(&out.Total); e != nil {
+		return out, safe(e)
+	}
+	out.Items, e = list[c.UnmatchedTeacherSite](t, `SELECT data FROM catalog.teacher_unmatched_sites WHERE school_id=$1 AND ($2='' OR reason=$2) `+literalFilter+` AND site_id>$4 ORDER BY site_id LIMIT $5`, school, reason, query, after, limit)
 	return out, e
 }
 
