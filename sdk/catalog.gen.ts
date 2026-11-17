@@ -633,6 +633,10 @@ export interface components {
             } | null;
             categories: components["schemas"]["Object"][];
             natures: components["schemas"]["Object"][];
+            /** @description 当摘要对象为教师时，返回当前目录关联的前 20 门可展示课程精简引用（按 ID 升序）；对象为课程时为空数组。 */
+            courses: components["schemas"]["Reference"][];
+            /** @description 当摘要对象为课程时，返回当前目录关联的前 20 位可展示任课教师精简引用（按 ID 升序）；对象为教师时为空数组。 */
+            teachers: components["schemas"]["Reference"][];
             /** @description 当前目录投影中关联的可展示课程数量。 */
             course_count: number;
             /** @description 当前目录投影中关联的可展示教师数量。 */
@@ -911,6 +915,10 @@ export interface components {
             } | null;
             categories: components["schemas"]["Object"][];
             natures: components["schemas"]["Object"][];
+            /** @description 当摘要对象为教师时，返回当前目录关联的前 20 门可展示课程精简引用（按 ID 升序）；对象为课程时为空数组。 */
+            courses: components["schemas"]["Reference"][];
+            /** @description 当摘要对象为课程时，返回当前目录关联的前 20 位可展示任课教师精简引用（按 ID 升序）；对象为教师时为空数组。 */
+            teachers: components["schemas"]["Reference"][];
             /** @description 当前目录投影中关联的可展示课程数量。 */
             course_count: number;
             /** @description 当前目录投影中关联的可展示教师数量。 */
