@@ -55,7 +55,7 @@ func (t *transaction) projectedList(f c.Filter) ([]c.Object, error) {
 	}
 	if f.Query != "" {
 		p := bind(f.Query)
-		where = append(where, `(strpos(lower(o.name),lower(`+p+`))>0 OR strpos(lower(o.data->>'code'),lower(`+p+`))>0 OR EXISTS(SELECT 1 FROM jsonb_array_elements_text(COALESCE(NULLIF(o.data->'aliases','null'::jsonb),'[]'::jsonb)) a WHERE strpos(lower(a),lower(`+p+`))>0))`)
+		where = append(where, `catalog.matches_query(o.data,`+p+`)`)
 	}
 	order := "o.id"
 	if f.Kind == "term" {

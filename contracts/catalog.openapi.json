@@ -2,7 +2,7 @@
   "openapi": "3.0.3",
   "info": {
     "title": "StuHelper Catalog",
-    "version": "0.9.0"
+    "version": "0.10.0"
   },
   "servers": [
     {
@@ -3529,6 +3529,111 @@
           }
         }
       }
+    },
+    "/api/v1/catalog/course-identities": {
+      "post": {
+        "operationId": "applyCourseIdentities",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CourseIdentitiesResult"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not permitted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Revision or idempotency conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Required dependency unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CourseIdentities"
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            }
+          }
+        ],
+        "description": "原子应用来源已确认的一对一课程换号关系。要求学校导入权限，两端均已按相同来源修订导入，拒绝缺失、跨学校、链、循环和冲突映射。保留源记录及所有新写入，旧 ID 解析到新课。幂等回执持续保留；同键不同请求返回 409。"
+      }
     }
   },
   "components": {
@@ -3624,7 +3729,8 @@
             "type": "array",
             "items": {
               "type": "string"
-            }
+            },
+            "description": "保留的通用别名字段。学院曾用名继续使用；课程英文名、曾用课程号和曾用名分别使用独立字段。"
           },
           "revision": {
             "type": "integer"
@@ -3664,6 +3770,40 @@
             "type": "string",
             "maxLength": 64,
             "description": "仅教学班导入使用的来源体育项目代码。由学校适配器读取明确字段，目录规则通过配置将代码映射到项目；不从场地或教师推断。"
+          },
+          "english_name": {
+            "type": "string",
+            "maxLength": 256,
+            "description": "课程英文名。独立于 aliases；缺失时省略。"
+          },
+          "former_codes": {
+            "type": "array",
+            "maxItems": 50,
+            "uniqueItems": true,
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            },
+            "description": "已确认属于同一课程的曾用课程号，可搜索。"
+          },
+          "former_names": {
+            "type": "array",
+            "maxItems": 50,
+            "uniqueItems": true,
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
+            },
+            "description": "课程曾用名，可搜索并在详情显示；不包含英文名或曾用课程号。"
+          },
+          "hours": {
+            "type": "number",
+            "nullable": true,
+            "minimum": 0,
+            "maximum": 10000,
+            "description": "当前课程主档的学时；未知时省略或为 null，0 表示已确认的零学时。"
           }
         },
         "required": [
@@ -3785,6 +3925,10 @@
           },
           "preview_token": {
             "type": "string"
+          },
+          "separate_course_names": {
+            "type": "boolean",
+            "description": "来源迁移选项：确认此来源此前导入的课程 aliases 仅存英文名。将历史人工课程名保留为 former_names，移除旧英文别名；当前课程输入的 aliases 必须为空。学院等对象不受影响。"
           }
         },
         "required": [
@@ -5176,6 +5320,83 @@
           "teacher_count"
         ],
         "description": "普通目录课程或教师摘要。仅保留课程与教师数量，不包含 offering_count 或其他教学班粒度计数。"
+      },
+      "CourseIdentityMapping": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "source_id",
+          "target_id"
+        ],
+        "properties": {
+          "source_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128,
+            "description": "原课程稳定 ID。"
+          },
+          "target_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128,
+            "description": "新课程号生成的稳定 ID。"
+          }
+        }
+      },
+      "CourseIdentities": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "school_id",
+          "source_id",
+          "revision",
+          "mappings"
+        ],
+        "properties": {
+          "school_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          },
+          "source_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128,
+            "description": "已导入课程的来源标识。"
+          },
+          "revision": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "mappings": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 5000,
+            "items": {
+              "$ref": "#/components/schemas/CourseIdentityMapping"
+            }
+          }
+        }
+      },
+      "CourseIdentitiesResult": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "mappings",
+          "redirects"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "mappings": {
+            "type": "integer"
+          },
+          "redirects": {
+            "type": "integer"
+          }
+        }
       }
     }
   }

@@ -399,7 +399,7 @@ func (t *transaction) publishProjectionDocuments(school string, version int64, a
 		for _, d := range docs {
 			id := fmt.Sprintf("projection:%d:%s", version, d.Target.ID)
 			if err := t.saveEnvelope(c.Envelope{SpecVersion: "1.0", ID: id, Source: "catalog", Type: "catalog.discovery.v1", Subject: d.Target.ID, Time: at,
-				Data: c.ResultData{Revision: d.Revision, Target: &d.Target, Title: &d.Title, SchoolID: &d.SchoolID, Visible: &d.Visible, Code: d.Code, Aliases: d.Aliases, Ratings: &d.Ratings, At: &d.At}}); err != nil {
+				Data: c.ResultData{EnglishName: d.EnglishName, FormerCodes: d.FormerCodes, FormerNames: d.FormerNames, Revision: d.Revision, Target: &d.Target, Title: &d.Title, SchoolID: &d.SchoolID, Visible: &d.Visible, Code: d.Code, Aliases: d.Aliases, Ratings: &d.Ratings, At: &d.At}}); err != nil {
 				return err
 			}
 		}

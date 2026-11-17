@@ -1,5 +1,5 @@
 id: catalog
-version: 0.9.0
+version: 0.10.0
 kind: module
 api: 1
 critical: false
@@ -54,12 +54,17 @@ capability_requires:
     - id: favorites
       api: 1
 specifications:
+  - docs/spec/course-identity.md
   - docs/spec/directory-projection.md
   - docs/spec/teacher-directory.md
   - docs/spec/enrollment-source.md
   - docs/spec/activity.md
   - docs/spec/ui-data.md
 scenario_tests:
+  CAT-IDENTITY-01:
+    - course_identity_test.go#TestCourseIdentityMergedCutoffSearchRelationsAndRecentVisits
+    - course_identity_test.go#TestCourseIdentityConcurrentReplayAndInvalidMappingsAreAtomic
+    - course_identity_test.go#TestCourseNamesMigrateWithoutLosingDepartmentAliasesOrNewWrites
   CAT-PUBLIC-01:
     - teaching_visibility_test.go#TestTeachingDetailsHiddenAcrossPublicReads
   CAT-DISPLAY-01:

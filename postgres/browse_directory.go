@@ -20,8 +20,8 @@ func directorySelectionQuery(q c.DirectoryQuery) (string, []any, error) {
 	}
 	if q.Query != "" {
 		search := bind(q.Query)
-		conditions = append(conditions, "catalog.search_tokens(o.data->'object') @> catalog.search_tokens(jsonb_build_object('name',"+search+"::text))",
-			"(strpos(lower(o.name),lower("+search+"))>0 OR strpos(lower(o.data->'object'->>'code'),lower("+search+"))>0 OR EXISTS(SELECT 1 FROM jsonb_array_elements_text(COALESCE(NULLIF(o.data->'object'->'aliases','null'::jsonb),'[]'::jsonb)) a WHERE strpos(lower(a),lower("+search+"))>0))")
+		conditions = append(conditions, "catalog.search_tokens_v2(o.data->'object') @> catalog.search_tokens_v2(jsonb_build_object('name',"+search+"::text))",
+			"catalog.matches_query(o.data->'object',"+search+")")
 	}
 	common := []string{"TRUE"}
 	for _, field := range []struct{ name, value string }{{"department_id", q.DepartmentID}, {"nature_id", q.NatureID}} {

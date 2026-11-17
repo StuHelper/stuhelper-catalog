@@ -18,7 +18,12 @@ import (
 )
 
 //go:embed schema.sql
-var Schema string
+var baseSchema string
+
+//go:embed course_search.sql
+var courseSearchSchema string
+
+var Schema = baseSchema + "\n" + courseSearchSchema
 
 type Repository struct {
 	DB *sql.DB

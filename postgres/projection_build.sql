@@ -123,14 +123,17 @@ WHERE o.version=$2 AND o.kind IN('course','teacher') AND o.visible;
 INSERT INTO catalog.projection_documents(version,id,data)
 SELECT $2,o.id,jsonb_build_object('target',jsonb_build_object('source','catalog','id',o.id,'kind',o.kind),
  'revision',$2,'title',CASE WHEN o.visible THEN o.name ELSE '' END,'school_id',o.school_id,'visible',o.visible,
- 'code',CASE WHEN o.kind='school' AND o.visible THEN COALESCE(o.data->>'code','') ELSE '' END,
- 'aliases',CASE WHEN o.kind='school' AND o.visible THEN o.data->'aliases' ELSE '[]'::jsonb END,
+ 'code',CASE WHEN o.kind IN('school','course') AND o.visible THEN COALESCE(o.data->>'code','') ELSE '' END,
+ 'aliases',CASE WHEN o.kind IN('school','course') AND o.visible THEN o.data->'aliases' ELSE '[]'::jsonb END,
+ 'english_name',CASE WHEN o.kind='course' AND o.visible THEN COALESCE(o.data->>'english_name','') ELSE '' END,
+ 'former_codes',CASE WHEN o.kind='course' AND o.visible THEN COALESCE(o.data->'former_codes','[]'::jsonb) ELSE '[]'::jsonb END,
+ 'former_names',CASE WHEN o.kind='course' AND o.visible THEN COALESCE(o.data->'former_names','[]'::jsonb) ELSE '[]'::jsonb END,
  'ratings','[0,0,0,0,0]'::jsonb,'at',g.built_at)
 FROM catalog.projection_objects o JOIN catalog.projection_generations g ON g.version=$2
 WHERE o.version=$2 AND o.kind IN('school','course','teacher');
 -- step
 INSERT INTO catalog.projection_documents(version,id,data)
-SELECT $2,old.id,old.data || jsonb_build_object('revision',$2,'title','','visible',false,'code','','aliases','[]'::jsonb,'at',g.built_at)
+SELECT $2,old.id,old.data || jsonb_build_object('revision',$2,'title','','visible',false,'code','','aliases','[]'::jsonb,'english_name','','former_codes','[]'::jsonb,'former_names','[]'::jsonb,'at',g.built_at)
 FROM catalog.projection_heads h JOIN catalog.projection_documents old ON old.version=h.version
 JOIN catalog.projection_generations g ON g.version=$2
 WHERE h.school_id=$1 AND NOT EXISTS(SELECT 1 FROM catalog.projection_documents n WHERE n.version=$2 AND n.id=old.id);

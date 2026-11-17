@@ -6,6 +6,19 @@ import (
 )
 
 func (h Handler) operationRoutes(m *http.ServeMux) {
+	m.HandleFunc("POST /api/v1/catalog/course-identities", func(w http.ResponseWriter, r *http.Request) {
+		p, ok := h.principal(w, r)
+		if !ok {
+			return
+		}
+		var in c.CourseIdentities
+		if err := decode(w, r, &in); err != nil {
+			respond(w, nil, err)
+			return
+		}
+		out, err := h.Service.ApplyCourseIdentities(r.Context(), p, r.Header.Get("Idempotency-Key"), in)
+		respond(w, out, err)
+	})
 	m.HandleFunc("GET /api/v1/catalog/objects/{id}/resolution", func(w http.ResponseWriter, r *http.Request) {
 		p, ok := h.principal(w, r)
 		if !ok {
