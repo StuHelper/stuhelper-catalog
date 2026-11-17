@@ -109,6 +109,9 @@ func (s *Service) PreviewMerge(ctx context.Context, p Principal, id string, in M
 }
 func (s *Service) Merge(ctx context.Context, p Principal, id, key string, in MergeInput) (Object, error) {
 	ctx = teacherMaintenanceContext(ctx)
+	if s.AsyncMaintenanceRebuild {
+		ctx = deferMaintenanceRebuildContext(ctx)
+	}
 	var out Object
 	if !ValidKey(key) || in.PreviewToken == "" {
 		return out, ErrInput
@@ -182,6 +185,9 @@ func (s *Service) Merge(ctx context.Context, p Principal, id, key string, in Mer
 }
 func (s *Service) SetState(ctx context.Context, p Principal, id, key string, in ObjectState) (Object, error) {
 	ctx = teacherMaintenanceContext(ctx)
+	if s.AsyncMaintenanceRebuild {
+		ctx = deferMaintenanceRebuildContext(ctx)
+	}
 	var out Object
 	if !ValidID(id) || !ValidKey(key) || strings.TrimSpace(in.Reason) == "" || !validText(in.Reason, 2000) {
 		return out, ErrInput

@@ -199,6 +199,18 @@ CREATE TABLE IF NOT EXISTS catalog.projection_heads (
 CREATE TABLE IF NOT EXISTS catalog.projection_failures (
  school_id text PRIMARY KEY, failed_at timestamptz NOT NULL, reason text NOT NULL
 );
+CREATE TABLE IF NOT EXISTS catalog.projection_pending (
+ school_id text PRIMARY KEY, requested_at timestamptz NOT NULL, updated_at timestamptz NOT NULL
+);
+CREATE TABLE IF NOT EXISTS catalog.projection_rebuild_runs (
+ id text PRIMARY KEY, school_id text NOT NULL,
+ status text NOT NULL CHECK(status IN ('queued','running','succeeded','failed','timed_out')),
+ requested_at timestamptz NOT NULL, policy_digest text NOT NULL, data jsonb NOT NULL
+);
+ALTER TABLE catalog.projection_rebuild_runs ADD COLUMN IF NOT EXISTS position bigint GENERATED ALWAYS AS IDENTITY;
+CREATE UNIQUE INDEX IF NOT EXISTS catalog_projection_rebuild_active ON catalog.projection_rebuild_runs(school_id) WHERE status IN ('queued','running');
+CREATE INDEX IF NOT EXISTS catalog_projection_rebuild_position ON catalog.projection_rebuild_runs(school_id,position DESC);
+REVOKE ALL ON TABLE catalog.projection_pending,catalog.projection_rebuild_runs FROM PUBLIC;
 CREATE TABLE IF NOT EXISTS catalog.projection_imports (
  school_id text PRIMARY KEY, batch text NOT NULL, state text NOT NULL CHECK(state IN('running','failed','complete')),
  started_at timestamptz NOT NULL, updated_at timestamptz NOT NULL, deadline timestamptz NOT NULL

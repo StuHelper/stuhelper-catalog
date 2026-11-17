@@ -146,6 +146,7 @@ type Correction struct {
 	Code         *string  `json:"code,omitempty"`
 	Credits      *float64 `json:"credits,omitempty"`
 	ClearCredits bool     `json:"clear_credits,omitempty"`
+	ResetFields  []string `json:"reset_fields,omitempty"`
 }
 type Event struct {
 	Reason, Result                     string
