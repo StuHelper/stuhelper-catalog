@@ -114,6 +114,18 @@ type Summary struct {
 	TeacherCount  int      `json:"teacher_count"`
 	OfferingCount int      `json:"offering_count"`
 }
+
+// PublicSummary exposes course/teacher relationships without teaching counts.
+// Summary keeps the complete facts for maintenance and trusted module callers.
+type PublicSummary struct {
+	Object       Object   `json:"object"`
+	School       Object   `json:"school"`
+	Department   *Object  `json:"department"`
+	Categories   []Object `json:"categories"`
+	Natures      []Object `json:"natures"`
+	CourseCount  int      `json:"course_count"`
+	TeacherCount int      `json:"teacher_count"`
+}
 type Page struct {
 	Items []Object `json:"items"`
 	Next  string   `json:"next"`
