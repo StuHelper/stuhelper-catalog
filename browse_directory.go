@@ -136,12 +136,21 @@ func (s *Service) ReadDirectory(ctx context.Context, p Principal, q DirectoryQue
 		return out, ErrInput
 	}
 	if q.TeacherID != "" {
-		teacher, err := s.readObject(ctx, p, q.TeacherID)
+		teacher, err := s.Get(ctx, q.TeacherID)
 		if err != nil {
 			return out, err
 		}
-		if teacher.Kind != "teacher" || teacher.Inactive {
+		if teachingDetail(teacher.Kind) || teacher.Inactive {
 			return out, ErrNotFound
+		}
+		if teacher.SchoolID != school {
+			return out, ErrForbidden
+		}
+		if teacher.Kind != "teacher" {
+			return out, ErrNotFound
+		}
+		if teacher.CanonicalID != "" {
+			q.TeacherID = teacher.CanonicalID
 		}
 	}
 	config := s.DirectoryConfig

@@ -3,7 +3,9 @@ package catalog_test
 import (
 	"context"
 	"errors"
+	"fmt"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -207,4 +209,120 @@ func TestUIViewTokensAreDailyAndOldKeysExpire(t *testing.T) {
 	if err := repo.DB.QueryRow(`SELECT count(*) FROM catalog.view_dedup`).Scan(&count); err != nil || count != 1 {
 		t.Fatal("old token retention", count, err)
 	}
+}
+
+type countingReadAccess struct {
+	calls atomic.Int64
+}
+
+func (a *countingReadAccess) Scope(_ context.Context, p c.Principal, requested string) (string, error) {
+	a.calls.Add(1)
+	if p.Subject == "" || requested != "" && requested != "school" {
+		return "", c.ErrForbidden
+	}
+	return "school", nil
+}
+
+func TestUIDirectoryTeacherAliasAndPinnedDefaultCache(t *testing.T) {
+	t.Run("teacher_alias_filter_and_single_scope_lookup", func(t *testing.T) {
+		s, admin, in := fixture(t)
+		ctx := context.Background()
+		credits := 2.0
+		in.Objects = append(in.Objects,
+			c.Object{ID: "teacher-alias-old", Kind: "teacher", SchoolID: "school", DepartmentID: "dept", Name: "Merged Teacher Alias"},
+			c.Object{ID: "course-second", Kind: "course", SchoolID: "school", DepartmentID: "dept", CategoryID: "seminar", Name: "Second Taught Course", Credits: &credits},
+			c.Object{ID: "offering-second", Kind: "term_course", SchoolID: "school", CourseID: "course-second", TermID: "term1", Name: "Second Taught Course"},
+			c.Object{ID: "class-second", Kind: "class", SchoolID: "school", TermCourseID: "offering-second", Name: "Second Class"},
+			c.Object{ID: "assign-second", Kind: "assignment", SchoolID: "school", ClassID: "class-second", TeacherID: "teacher", Name: "Second Assignment"},
+		)
+		if _, err := s.Import(ctx, admin, "alias-directory-seed", in); err != nil {
+			t.Fatal(err)
+		}
+		mergeIn := c.MergeInput{TargetID: "teacher", SourceRevision: 1, TargetRevision: 1, Reason: "merge duplicate teacher"}
+		preview, err := s.PreviewMerge(ctx, admin, "teacher-alias-old", mergeIn)
+		if err != nil {
+			t.Fatal(err)
+		}
+		mergeIn.PreviewToken = preview.PreviewToken
+		if _, err := s.Merge(ctx, admin, "teacher-alias-old", "merge-teacher-alias", mergeIn); err != nil {
+			t.Fatal(err)
+		}
+		repo := s.Repo.(*postgres.Repository)
+		repo.RequireTeacherDirectory = true
+		if _, err := s.RefreshTeachingDirectory(ctx, admin, "school"); err != nil {
+			t.Fatal(err)
+		}
+		access := &countingReadAccess{}
+		s.ReadAccess = access
+		s.DirectoryMetrics = uiMetrics{}
+		student := c.Principal{Subject: "issuer:student"}
+
+		access.calls.Store(0)
+		firstPage, err := s.ReadDirectory(ctx, student, c.DirectoryQuery{
+			Filter: c.Filter{Kind: "course", TeacherID: "teacher-alias-old", Limit: 1},
+			Sort:   "name",
+		})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if access.calls.Load() != 1 {
+			t.Fatalf("ReadDirectory with teacher_id called ReadAccess.Scope %d times, want 1", access.calls.Load())
+		}
+		if firstPage.Total != 2 || len(firstPage.Items) != 1 || firstPage.Next == "" {
+			t.Fatalf("ReadDirectory missed courses taught by canonical teacher via alias: %+v", firstPage)
+		}
+		secondPage, err := s.ReadDirectory(ctx, student, c.DirectoryQuery{
+			Filter: c.Filter{Kind: "course", TeacherID: "teacher", After: firstPage.Next, Limit: 1},
+			Sort:   "name",
+		})
+		if err != nil || secondPage.Total != 2 || len(secondPage.Items) != 1 || secondPage.Next != "" {
+			t.Fatalf("alias cursor did not match canonical teacher pagination: %+v err=%v", secondPage, err)
+		}
+	})
+
+	t.Run("pinned_unfiltered_default_selections_survive_filtered_churn", func(t *testing.T) {
+		s, p, adminDB, _ := projectionFixture(t)
+		ctx := context.Background()
+		student := c.Principal{Subject: "issuer:student"}
+
+		courses, err := s.ReadDirectory(ctx, student, c.DirectoryQuery{Filter: c.Filter{Kind: "course", Limit: 20}, Sort: "hot"})
+		if err != nil || courses.Total != 1 {
+			t.Fatalf("warm default courses: %+v err=%v", courses, err)
+		}
+		teachers, err := s.ReadDirectory(ctx, student, c.DirectoryQuery{Filter: c.Filter{Kind: "teacher", Limit: 20}, Sort: "hot"})
+		if err != nil || teachers.Total != 2 {
+			t.Fatalf("warm default teachers: %+v err=%v", teachers, err)
+		}
+
+		for i := range 40 {
+			q := c.DirectoryQuery{Filter: c.Filter{Kind: "course", Query: fmt.Sprintf("filtered-churn-%02d", i), Limit: 20}, Sort: "hot"}
+			if _, err := s.ReadDirectory(ctx, student, q); err != nil {
+				t.Fatal(err)
+			}
+		}
+
+		// Delete prebuilt selection rows without changing projection_heads.version.
+		// If default unfiltered selections stayed pinned in memory, both reads still succeed.
+		if _, err := adminDB.ExecContext(ctx, `DELETE FROM catalog.projection_selections`); err != nil {
+			t.Fatal(err)
+		}
+		coursesAfter, err := s.ReadDirectory(ctx, student, c.DirectoryQuery{Filter: c.Filter{Kind: "course", Limit: 20}, Sort: "name"})
+		if err != nil || coursesAfter.Total != 1 || len(coursesAfter.Items) != 1 {
+			t.Fatalf("default course selection was evicted by filtered query churn: %+v err=%v", coursesAfter, err)
+		}
+		teachersAfter, err := s.ReadDirectory(ctx, student, c.DirectoryQuery{Filter: c.Filter{Kind: "teacher", Limit: 20}, Sort: "name"})
+		if err != nil || teachersAfter.Total != 2 || len(teachersAfter.Items) != 2 {
+			t.Fatalf("default teacher selection was evicted by filtered query churn: %+v err=%v", teachersAfter, err)
+		}
+
+		// Rebuilding advances the projection version and refreshes pinned entries from the new generation.
+		policy := c.DirectoryPolicy{CutoffYear: 2023, CutoffSeason: "autumn", ExcludedCourseNames: []string{"Current"}}
+		if _, err := s.RebuildDirectory(ctx, p, "school", &policy); err != nil {
+			t.Fatal(err)
+		}
+		rebuiltCourses, err := s.ReadDirectory(ctx, student, c.DirectoryQuery{Filter: c.Filter{Kind: "course", Limit: 20}, Sort: "hot"})
+		if err != nil || rebuiltCourses.Total != 0 {
+			t.Fatalf("pinned cache did not invalidate on new projection version: %+v err=%v", rebuiltCourses, err)
+		}
+	})
 }
