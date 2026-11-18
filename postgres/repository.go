@@ -288,7 +288,23 @@ func (t *transaction) Replay(key string) (catalog.Replay, error) {
 	return read[catalog.Replay](t, `SELECT data FROM catalog.replays WHERE key=$1`, key)
 }
 func (t *transaction) SaveReplay(key string, v catalog.Replay) error {
-	return t.save(`INSERT INTO catalog.replays(key,data) VALUES($1,$2) ON CONFLICT(key) DO UPDATE SET data=excluded.data`, v, key)
+	var expiresAt *time.Time
+	if v.Expires && !v.Until.IsZero() {
+		utc := v.Until.UTC()
+		expiresAt = &utc
+	}
+	return t.save(`INSERT INTO catalog.replays(key,expires_at,data) VALUES($1,$2,$3) ON CONFLICT(key) DO UPDATE SET expires_at=excluded.expires_at,data=excluded.data`, v, key, expiresAt)
+}
+func (r *Repository) PruneReplays(ctx context.Context, before time.Time, limit int) (int64, error) {
+	if before.IsZero() || limit < 1 || limit > 1000 {
+		return 0, catalog.ErrInput
+	}
+	result, err := r.DB.ExecContext(ctx, `DELETE FROM catalog.replays WHERE key IN (SELECT key FROM catalog.replays WHERE expires_at IS NOT NULL AND expires_at<$1 ORDER BY expires_at,key LIMIT $2 FOR UPDATE SKIP LOCKED)`, before.UTC(), limit)
+	if err != nil {
+		return 0, safe(err)
+	}
+	n, err := result.RowsAffected()
+	return n, safe(err)
 }
 func (t *transaction) recordAudit(v catalog.Event) error {
 	result := v.Result

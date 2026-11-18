@@ -21,6 +21,7 @@ type Service struct {
 	RecentResources  RecentResourceCounts
 	OwnSummaryAccess OwnSummaryAccess
 	EnrollmentSource EnrollmentSource
+	TeacherSiteHosts map[string][]string
 	ActivityLogger   *slog.Logger
 	OwnLogger        *slog.Logger
 	DirectoryLogger  *slog.Logger
@@ -267,7 +268,7 @@ func applyImportTx(t Transaction, p Principal, rk, h string, in Import, now time
 	if e != nil {
 		return out, e
 	}
-	return out, t.SaveReplay(rk, Replay{Digest: h, Result: b, Until: now.Add(24 * time.Hour)})
+	return out, t.SaveReplay(rk, Replay{Digest: h, Result: b})
 }
 
 // Import commits a bounded page atomically. Omitted rows are never interpreted as deletions.
@@ -366,6 +367,11 @@ func (s *Service) MyEnrollments(ctx context.Context, p Principal, school, course
 	if limit < 1 || limit > 100 {
 		return nil, ErrInput
 	}
+	for _, id := range []string{school, course, term, after} {
+		if id != "" && !ValidID(id) {
+			return nil, ErrInput
+		}
+	}
 	if err := s.refreshOwn(ctx, p); err != nil {
 		return nil, err
 	}
@@ -462,7 +468,7 @@ func (s *Service) Correct(ctx context.Context, p Principal, id, key string, in C
 		if e != nil {
 			return e
 		}
-		return t.SaveReplay(rk, Replay{Digest: h, Result: b, Until: s.now().Add(24 * time.Hour)})
+		return t.SaveReplay(rk, Replay{Digest: h, Result: b, Until: s.now().Add(24 * time.Hour), Expires: true})
 	})
 	return out, err
 }
