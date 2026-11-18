@@ -1,7 +1,7 @@
 ---
 type: spec
 status: Accepted
-updated: 2026-11-10
+updated: 2026-11-18
 ---
 
 # 审计查询与搜索来源
@@ -24,25 +24,23 @@ Reason 使用 catalog.merge 或 catalog.state_change 操作分类码，其余返
 
 ## 搜索来源事件
 
-contracts/discovery-event.schema.json 保存 search 来源协议。每次学校、课程或教师持久化均在业务事务中追加 discovery_history，并写 catalog.discovery.v1 outbox 和 pg_notify('catalog_outbox', '')。其他目录类型不发出该事件。
+目录发布时，从新版本的 `projection_documents` 读取学校、课程和教师的搜索文档。增量事件与全量重建使用同一份文档，因此学期截止、名称与分类排除、体育项目归并、曾用课号隐藏和教师展示条件同时生效。
 
-学校文档另含可选 code 与 aliases，来源为目录当前登记值。
+发布事务将新增和变化的文档写入 outbox，切换目录版本并通知 `catalog_outbox`。曾经可见的对象退出目录时，事件保留对象 ID，清空标题和检索字段，并标记为不可见。文档内容相同则沿用原修订，重新发布不会重复发送。
 
-事件使用 CloudEvents 1.0，source 为 catalog，subject 等于 data.target.id，ID 由对象 ID 与修订确定。data 包含 target、revision、title、school_id、visible、ratings 和 at。catalog 不拥有评分事实，因此 ratings 五项均为零。
+`catalog.discovery.v1` 遵循 contracts/discovery-event.schema.json。CloudEvents 的 source 为 catalog，subject 等于 data.target.id，事件 ID 由发布版本和对象 ID 确定。修订来自目录版本。
 
-可见文档只使用规范 ID。合并时为源 ID 提高修订并发出不可见墓碑，同时为目标提高修订并发出新快照。墓碑保留原 ID，以便删除 search 中旧条目。墓碑标题为空，不再提供旧公开标题。
+学校和课程可携带 code 和 aliases，课程还可携带英文名、曾用号和曾用名。评分由其他模块维护，ratings 五项均为零。
 
-Delete 按现有目录保留历史规则执行逻辑删除，等价于 SetState 的 Inactive=true。删除发出更高修订墓碑；管理员恢复时再提高修订。没有物理删除目录和历史记录的公开接口。旧导入修订、重复幂等请求和预览不重复发布事件。
+学校、课程和教师的源对象写入仍在业务事务内追加 discovery_history，供未启用目录投影的读取路径使用。首次发布前和批次导入期间，保存源对象只更新来源事实。预览、失败批次和重复导入均不会把未发布文档送入搜索。
 
 ## 当前可见性与重建
 
-Service.DiscoveryCurrent 接收已认证 Principal 和 1 至 100 个 ID，返回当前可见 DiscoveryDocument，包含 ID 与修订。每次检查当前内容准入和学校，过滤停用对象、旧别名、其他学校及未知 ID。撤销准入返回空列表，依赖故障返回错误。
+Service.DiscoveryCurrent 接收已认证 Principal 和 1 至 100 个 ID，按当前准入和学校返回已发布的可见文档及修订。撤销准入返回空列表，依赖故障返回错误。
 
-postgres.Repository.DiscoverySnapshot 是受信重建接口，接收 cursor 和 1 至 100 的 limit，返回 Items 与 Next。空 cursor 开始快照，空 Next 表示结束。所有课程和教师均包含在快照中，包括不可见墓碑。
+产品启用 RequireDirectoryProjection。DiscoverySnapshot 绑定首轮读取时各校的已发布版本，按 ID 字节序分页，单页最多 100 项。游标有效期五分钟，所需版本被清理后返回不可用。快照可包含曾经发布的对象墓碑。
 
-分页以 ID 字节序递增，从不可变投影历史中读取首轮 PostgreSQL 可见性对应的最新修订。分页期间的导入、修改、合并、删除及迟提交事务不改变该快照。游标有效期五分钟，历史修改或清理会使游标失效，调用方必须中止此次重建。
-
-投影历史与墓碑不自动清理，避免迟到事件使删除内容复活。清理前须由负责人确定来源重放期限和存储上限；清理后旧快照返回错误。分页不保存服务端会话或完整数据副本，单页最多读取 101 条结果。
+未启用目录投影的来源快照按 discovery_history 和首轮 PostgreSQL 事务可见性分页。后续写入和迟提交事务不改变快照，历史被修改或清理后旧游标失效。
 
 ## 装配与验证
 
@@ -65,13 +63,13 @@ relay 收到 LISTEN 通知立即调用 PendingOutbox，传入处于退避或人�
 | 场景 | 验收结果 |
 | --- | --- |
 | CAT-AUDIT-01 | 筛选、范围并集、跨来源游标、稳定分页、空原因、unknown 和脱敏 |
-| CAT-DISCOVERY-01 | 逐对象事件、事务回滚、重复请求、合并与删除墓碑、当前权限过滤 |
+| CAT-DISCOVERY-01 | 发布前无搜索事件，发布后的逐项事件与快照一致，覆盖事务回滚、重复请求、合并与删除墓碑、当前权限过滤 |
 | CAT-DISCOVERY-02 | 更新与迟提交不改变快照，分页无重复遗漏，历史清理使快照失效 |
 | CAT-OUTBOX-01 | 事务通知、积压补读、批量上限、数值顺序、重复读取与幂等确认 |
 | CAT-OUTBOX-02 | discovery 和作息载荷完整保留，墓碑字段不丢失，消费后确认 |
 | CAT-OUTBOX-03 | 排除阻塞主题后返回其他主题，顺序不变，空列表及容量边界正确，实际查询使用部分索引 |
 
-本地隔离 PostgreSQL 18.6 的完整 make check 通过，包含 go vet、竞态测试、SDK 一致性、边界检查、构建及文档检查。backend 适配器、search 组合重建和真实账号尚未验收。本轮没有新增 HTTP 路径，OpenAPI 与 HTTP SDK 保持现有定义。
+本地隔离 PostgreSQL 18.6 的完整 make check 通过，包含 go vet、竞态测试、SDK 一致性、边界检查、构建及文档检查。backend 的隔离组合测试直接比较增量消费与全量重建后的搜索可见文档，并与目录课程 ID 逐项核对。
 
 查询计划测试使用生产 SQL，在 20000 条已确认和 200 条待发送事件上运行 EXPLAIN ANALYZE。nil、空列表、部分排除、全部排除及 1000 项排除均使用 catalog_outbox_pending，未出现 Seq Scan。测试使用默认优化器，不关闭顺序扫描。
 
