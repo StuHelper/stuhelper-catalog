@@ -4199,6 +4199,22 @@
               "$ref": "#/components/schemas/Object"
             }
           },
+          "courses": {
+            "type": "array",
+            "maxItems": 20,
+            "description": "当摘要对象为教师时，返回当前目录关联的前 20 门可展示课程精简引用（按 ID 升序）；对象为课程时为空数组。",
+            "items": {
+              "$ref": "#/components/schemas/Reference"
+            }
+          },
+          "teachers": {
+            "type": "array",
+            "maxItems": 20,
+            "description": "当摘要对象为课程时，返回当前目录关联的前 20 位可展示任课教师精简引用（按 ID 升序）；对象为教师时为空数组。",
+            "items": {
+              "$ref": "#/components/schemas/Reference"
+            }
+          },
           "course_count": {
             "type": "integer",
             "minimum": 0,
@@ -4221,6 +4237,8 @@
           "department",
           "categories",
           "natures",
+          "courses",
+          "teachers",
           "course_count",
           "teacher_count",
           "offering_count"
@@ -5359,6 +5377,22 @@
               "$ref": "#/components/schemas/Object"
             }
           },
+          "courses": {
+            "type": "array",
+            "maxItems": 20,
+            "description": "当摘要对象为教师时，返回当前目录关联的前 20 门可展示课程精简引用（按 ID 升序）；对象为课程时为空数组。",
+            "items": {
+              "$ref": "#/components/schemas/Reference"
+            }
+          },
+          "teachers": {
+            "type": "array",
+            "maxItems": 20,
+            "description": "当摘要对象为课程时，返回当前目录关联的前 20 位可展示任课教师精简引用（按 ID 升序）；对象为教师时为空数组。",
+            "items": {
+              "$ref": "#/components/schemas/Reference"
+            }
+          },
           "course_count": {
             "type": "integer",
             "minimum": 0,
@@ -5376,6 +5410,8 @@
           "department",
           "categories",
           "natures",
+          "courses",
+          "teachers",
           "course_count",
           "teacher_count"
         ],

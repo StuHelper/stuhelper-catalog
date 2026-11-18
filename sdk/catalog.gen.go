@@ -805,7 +805,10 @@ type PublicSummary struct {
 
 	// CourseCount 当前目录投影中关联的可展示课程数量。
 	CourseCount int `json:"course_count"`
-	Department  *struct {
+
+	// Courses 当摘要对象为教师时，返回当前目录关联的前 20 门可展示课程精简引用（按 ID 升序）；对象为课程时为空数组。
+	Courses    []Reference `json:"courses"`
+	Department *struct {
 		Aliases      []string                    `json:"aliases"`
 		Biography    *string                     `json:"biography,omitempty"`
 		CategoryId   *string                     `json:"category_id,omitempty"`
@@ -833,6 +836,9 @@ type PublicSummary struct {
 
 	// TeacherCount 当前目录投影中关联的可展示教师数量。
 	TeacherCount int `json:"teacher_count"`
+
+	// Teachers 当摘要对象为课程时，返回当前目录关联的前 20 位可展示任课教师精简引用（按 ID 升序）；对象为教师时为空数组。
+	Teachers []Reference `json:"teachers"`
 }
 
 // PublicSummaryDepartmentKind defines model for PublicSummary.Department.Kind.
@@ -911,7 +917,10 @@ type Summary struct {
 
 	// CourseCount 当前目录投影中关联的可展示课程数量。
 	CourseCount int `json:"course_count"`
-	Department  *struct {
+
+	// Courses 当摘要对象为教师时，返回当前目录关联的前 20 门可展示课程精简引用（按 ID 升序）；对象为课程时为空数组。
+	Courses    []Reference `json:"courses"`
+	Department *struct {
 		Aliases      []string              `json:"aliases"`
 		Biography    *string               `json:"biography,omitempty"`
 		CategoryId   *string               `json:"category_id,omitempty"`
@@ -942,6 +951,9 @@ type Summary struct {
 
 	// TeacherCount 当前目录投影中关联的可展示教师数量。
 	TeacherCount int `json:"teacher_count"`
+
+	// Teachers 当摘要对象为课程时，返回当前目录关联的前 20 位可展示任课教师精简引用（按 ID 升序）；对象为教师时为空数组。
+	Teachers []Reference `json:"teachers"`
 }
 
 // SummaryDepartmentKind defines model for Summary.Department.Kind.

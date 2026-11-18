@@ -122,9 +122,18 @@ func (s *Service) ReadSummary(ctx context.Context, p Principal, id string) (Publ
 	}
 	s.recordView(ctx, p, object)
 	s.recordRecentCourse(ctx, p, object)
+	courses := summary.Courses
+	if courses == nil {
+		courses = []Reference{}
+	}
+	teachers := summary.Teachers
+	if teachers == nil {
+		teachers = []Reference{}
+	}
 	return PublicSummary{
 		Object: summary.Object, School: summary.School, Department: dept,
 		Categories: summary.Categories, Natures: summary.Natures,
+		Courses: courses, Teachers: teachers,
 		CourseCount: summary.CourseCount, TeacherCount: summary.TeacherCount,
 	}, nil
 }
