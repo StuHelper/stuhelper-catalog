@@ -353,3 +353,45 @@ func TestSportsProjectViewsAndAdminReads(t *testing.T) {
 		}
 	}
 }
+
+func TestProjectedViewAllowsWriterToPublishWhileWaitingForSource(t *testing.T) {
+	s, _, admin, _ := projectionFixture(t)
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	writer, err := admin.BeginTx(ctx, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer writer.Rollback()
+	var pid int
+	if err := writer.QueryRowContext(ctx, "SELECT pg_backend_pid() FROM catalog.objects WHERE id='course' FOR UPDATE").Scan(&pid); err != nil {
+		t.Fatal(err)
+	}
+	done := make(chan error, 1)
+	go func() {
+		done <- s.Repo.Transaction(ctx, func(tx c.Transaction) error {
+			_, err := tx.RecordView("viewer", c.Object{Kind: "course", ID: "course", SchoolID: "school"}, time.Now())
+			return err
+		})
+	}()
+	for {
+		var waiting bool
+		err := admin.QueryRowContext(ctx, "SELECT EXISTS(SELECT 1 FROM pg_stat_activity WHERE datname=current_database() AND $1=ANY(pg_blocking_pids(pid)))", pid).Scan(&waiting)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if waiting {
+			break
+		}
+		time.Sleep(5 * time.Millisecond)
+	}
+	if _, err := writer.ExecContext(ctx, "SELECT school_id FROM catalog.projection_heads WHERE school_id='school' FOR UPDATE NOWAIT"); err != nil {
+		t.Fatal("view holds the projection head while waiting on the source", err)
+	}
+	if err := writer.Commit(); err != nil {
+		t.Fatal(err)
+	}
+	if err := <-done; err != nil {
+		t.Fatal(err)
+	}
+}
