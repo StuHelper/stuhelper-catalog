@@ -61,6 +61,14 @@ type TeacherUnmatchedSnapshot struct {
 	Items      []UnmatchedTeacherSite `json:"items"`
 }
 
+type UnmatchedTeacherSiteQuery struct {
+	SchoolID string
+	Reason   string
+	Query    string
+	After    string
+	Limit    int
+}
+
 // This repository port never executes network requests or accepts candidate
 // identifiers in the review projection. The owning module persists all state.
 type TeacherRefreshTransaction interface {
@@ -73,6 +81,7 @@ type TeacherRefreshTransaction interface {
 	TeacherMarkCounts(string) (TeacherDirectoryResult, error)
 	ReplaceTeacherUnmatched(TeacherUnmatchedSnapshot) error
 	TeacherUnmatched(school, reason, after string, limit int) (UnmatchedTeacherSitePage, error)
+	SearchTeacherUnmatched(school, reason, query, after string, limit int) (UnmatchedTeacherSitePage, error)
 }
 
 func refreshPort(t Transaction) (TeacherRefreshTransaction, error) {
@@ -436,22 +445,32 @@ func (s *Service) CompleteTeacherRefresh(ctx context.Context, p Principal, id st
 }
 
 type unmatchedCursor struct {
-	School, Reason, ID string
-	Revision           int64
+	School, Reason, Query, ID string
+	Revision                  int64
 }
 
 func (s *Service) ReadUnmatchedTeacherSites(ctx context.Context, p Principal, school, reason, after string, limit int) (UnmatchedTeacherSitePage, error) {
+	return s.SearchUnmatchedTeacherSites(ctx, p, UnmatchedTeacherSiteQuery{
+		SchoolID: school,
+		Reason:   reason,
+		After:    after,
+		Limit:    limit,
+	})
+}
+
+func (s *Service) SearchUnmatchedTeacherSites(ctx context.Context, p Principal, in UnmatchedTeacherSiteQuery) (UnmatchedTeacherSitePage, error) {
 	out := UnmatchedTeacherSitePage{Items: []UnmatchedTeacherSite{}, ReasonCounts: map[string]int64{}}
-	if err := s.teacherRefreshAccess(ctx, p, school, "unmatched-viewed", p.CanReadTeacherSites); err != nil {
+	if err := s.teacherRefreshAccess(ctx, p, in.SchoolID, "unmatched-viewed", p.CanReadTeacherSites); err != nil {
 		return out, err
 	}
-	if reason != "" && !slices.Contains(TeacherUnmatchedReasons, reason) || limit < 1 || limit > 100 || len(after) > 4096 {
+	in.Query = strings.TrimSpace(in.Query)
+	if in.Reason != "" && !slices.Contains(TeacherUnmatchedReasons, in.Reason) || !validText(in.Query, 200) || in.Limit < 1 || in.Limit > 100 || len(in.After) > 4096 {
 		return out, ErrInput
 	}
 	cursor := unmatchedCursor{}
-	if after != "" {
-		raw, e := base64.RawURLEncoding.Strict().DecodeString(after)
-		if e != nil || json.Unmarshal(raw, &cursor) != nil || cursor.School != school || cursor.Reason != reason || !ValidID(cursor.ID) || cursor.Revision < 1 {
+	if in.After != "" {
+		raw, e := base64.RawURLEncoding.Strict().DecodeString(in.After)
+		if e != nil || json.Unmarshal(raw, &cursor) != nil || cursor.School != in.SchoolID || cursor.Reason != in.Reason || cursor.Query != in.Query || !ValidID(cursor.ID) || cursor.Revision < 1 {
 			return out, ErrInput
 		}
 	}
@@ -463,22 +482,22 @@ func (s *Service) ReadUnmatchedTeacherSites(ctx context.Context, p Principal, sc
 		if e = port.BeginTeacherRefreshSnapshot(); e != nil {
 			return e
 		}
-		out, e = port.TeacherUnmatched(school, reason, cursor.ID, limit+1)
+		out, e = port.SearchTeacherUnmatched(in.SchoolID, in.Reason, in.Query, cursor.ID, in.Limit+1)
 		if e != nil {
 			return e
 		}
-		if after != "" && cursor.Revision != out.Revision {
+		if in.After != "" && cursor.Revision != out.Revision {
 			return ErrConflict
 		}
-		if len(out.Items) > limit {
-			out.Items = out.Items[:limit]
-			raw, e := json.Marshal(unmatchedCursor{school, reason, out.Items[limit-1].SiteID, out.Revision})
+		if len(out.Items) > in.Limit {
+			out.Items = out.Items[:in.Limit]
+			raw, e := json.Marshal(unmatchedCursor{in.SchoolID, in.Reason, in.Query, out.Items[in.Limit-1].SiteID, out.Revision})
 			if e != nil {
 				return ErrUnavailable
 			}
 			out.Next = base64.RawURLEncoding.EncodeToString(raw)
 		}
-		return s.teacherRefreshAudit(t, p, school, "unmatched-viewed", "school/"+school, "success")
+		return s.teacherRefreshAudit(t, p, in.SchoolID, "unmatched-viewed", "school/"+in.SchoolID, "success")
 	})
 	return out, err
 }

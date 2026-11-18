@@ -92,12 +92,34 @@ func (t *transaction) Lookup(ids []string) ([]catalog.Object, error) {
 	if t.projectionRead {
 		return t.projectedLookup(ids)
 	}
+	if catalog.TeacherMaintenanceRead(t.ctx) {
+		return list[catalog.Object](t, `SELECT item FROM (
+ SELECT requested.id AS sort_id, catalog.public_object(o.data->'object') || CASE WHEN o.kind='term' THEN jsonb_build_object('term_order_key',COALESCE(tr.sort_key,0)) ELSE '{}'::jsonb END || CASE WHEN o.id<>requested.id THEN jsonb_build_object('id',requested.id,'canonical_id',o.id) ELSE '{}'::jsonb END AS item
+ FROM unnest($1::text[]) requested(id) JOIN catalog.objects o ON o.id=catalog.canonical(requested.id) LEFT JOIN catalog.term_orders tr ON tr.id=o.id AND tr.school_id=o.school_id WHERE true`+t.teacherVisibility("o")+`
+ UNION ALL
+ SELECT requested.id AS sort_id, o.data || CASE WHEN o.id<>requested.id THEN jsonb_build_object('id',requested.id,'canonical_id',o.id) ELSE '{}'::jsonb END AS item
+ FROM catalog.projection_heads h CROSS JOIN unnest($1::text[]) requested(id)
+ LEFT JOIN catalog.projection_aliases a ON a.version=h.version AND a.alias_id=requested.id
+ JOIN catalog.projection_objects o ON o.version=h.version AND o.id=COALESCE(a.canonical_id,requested.id)
+ WHERE NOT EXISTS(SELECT 1 FROM catalog.objects src WHERE src.id=catalog.canonical(requested.id))
+   AND NOT EXISTS(SELECT 1 FROM catalog.objects src WHERE src.id=o.id)
+) combined ORDER BY sort_id`, ids)
+	}
 	return list[catalog.Object](t, `SELECT catalog.public_object(o.data->'object') || CASE WHEN o.kind='term' THEN jsonb_build_object('term_order_key',COALESCE(tr.sort_key,0)) ELSE '{}'::jsonb END || CASE WHEN o.id<>requested.id THEN jsonb_build_object('id',requested.id,'canonical_id',o.id) ELSE '{}'::jsonb END FROM unnest($1::text[]) requested(id) JOIN catalog.objects o ON o.id=catalog.canonical(requested.id) LEFT JOIN catalog.term_orders tr ON tr.id=o.id AND tr.school_id=o.school_id WHERE true`+t.teacherVisibility("o")+` ORDER BY requested.id`, ids)
 }
 
 func (t *transaction) Summary(object catalog.Object) (catalog.Summary, error) {
 	if t.projectionRead {
 		return t.projectedSummary(object)
+	}
+	if catalog.TeacherMaintenanceRead(t.ctx) {
+		var inSource bool
+		if err := t.tx.QueryRowContext(t.ctx, `SELECT EXISTS(SELECT 1 FROM catalog.objects WHERE id=catalog.canonical($1))`, object.ID).Scan(&inSource); err != nil {
+			return catalog.Summary{}, safe(err)
+		}
+		if !inSource {
+			return t.projectedSummary(object)
+		}
 	}
 	out := catalog.Summary{
 		Object:     object,

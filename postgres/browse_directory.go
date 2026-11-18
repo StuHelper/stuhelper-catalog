@@ -23,20 +23,43 @@ func directorySelectionQuery(q c.DirectoryQuery) (string, []any, error) {
 		conditions = append(conditions, "catalog.search_tokens_v2(o.data->'object') @> catalog.search_tokens_v2(jsonb_build_object('name',"+search+"::text))",
 			"catalog.matches_query(o.data->'object',"+search+")")
 	}
+	if q.CreditsMin != nil {
+		conditions = append(conditions, "(o.data->'object'->>'credits') IS NOT NULL AND (o.data->'object'->>'credits')::double precision>="+bind(*q.CreditsMin))
+	}
+	if q.CreditsMax != nil {
+		conditions = append(conditions, "(o.data->'object'->>'credits') IS NOT NULL AND (o.data->'object'->>'credits')::double precision<="+bind(*q.CreditsMax))
+	}
 	common := []string{"TRUE"}
-	for _, field := range []struct{ name, value string }{{"department_id", q.DepartmentID}, {"nature_id", q.NatureID}} {
-		if field.value != "" {
-			value := bind(field.value)
-			common = append(common, "v."+field.name+"="+value)
-			if q.Kind == "course" && q.TeacherID == "" {
-				conditions = append(conditions, directoryClassificationCandidates(field.name, value))
-			} else if q.Kind == "teacher" {
-				conditions = append(conditions, "o."+field.name+"="+value)
-			}
+	if len(q.DepartmentIDs) > 0 {
+		values := bind(q.DepartmentIDs)
+		common = append(common, "v.department_id=ANY("+values+"::text[])")
+		if q.Kind == "course" && q.TeacherID == "" {
+			conditions = append(conditions, directoryClassificationCandidateList("department_id", values))
+		} else if q.Kind == "teacher" {
+			conditions = append(conditions, "o.department_id=ANY("+values+"::text[])")
+		}
+	} else if q.DepartmentID != "" {
+		value := bind(q.DepartmentID)
+		common = append(common, "v.department_id="+value)
+		if q.Kind == "course" && q.TeacherID == "" {
+			conditions = append(conditions, directoryClassificationCandidates("department_id", value))
+		} else if q.Kind == "teacher" {
+			conditions = append(conditions, "o.department_id="+value)
+		}
+	}
+	if q.NatureID != "" {
+		value := bind(q.NatureID)
+		common = append(common, "v.nature_id="+value)
+		if q.Kind == "course" && q.TeacherID == "" {
+			conditions = append(conditions, directoryClassificationCandidates("nature_id", value))
+		} else if q.Kind == "teacher" {
+			conditions = append(conditions, "o.nature_id="+value)
 		}
 	}
 	category := "TRUE"
-	if q.CategoryID != "" {
+	if len(q.CategoryIDs) > 0 {
+		category = "category_id=ANY(" + bind(q.CategoryIDs) + "::text[])"
+	} else if q.CategoryID != "" {
 		category = "category_id=" + bind(q.CategoryID)
 	}
 	base := "base AS MATERIALIZED (SELECT o.id,o.name,o.department_id,o.category_id,o.nature_id FROM catalog.objects o WHERE " + strings.Join(conditions, " AND ") + ")"
@@ -66,14 +89,14 @@ func directorySelectionQuery(q c.DirectoryQuery) (string, []any, error) {
 	}
 	categoryCounts := `category_counts AS (SELECT category_id,count(DISTINCT id) AS n FROM eligible GROUP BY category_id)`
 	categoryMembers := `'{}'::jsonb`
-	if q.CategoryID != "" {
+	if q.CategoryID != "" || len(q.CategoryIDs) > 0 {
 		categoryCounts = `category_counts AS MATERIALIZED (SELECT category_id,count(DISTINCT id) AS n,array_agg(DISTINCT id) AS ids FROM eligible GROUP BY category_id)`
 		categoryMembers = `COALESCE((SELECT jsonb_object_agg(category_id,ids) FROM category_counts),'{}'::jsonb)`
 	}
 	ctes := []string{base, variants,
 		"eligible AS MATERIALIZED (SELECT v.id,v.department_id,v.category_id,v.nature_id FROM variants v WHERE " + strings.Join(common, " AND ") + " LIMIT 500001)",
 		"matching AS MATERIALIZED (SELECT * FROM eligible WHERE " + category + ")",
-		`candidates AS (SELECT m.id,b.name,array_agg(DISTINCT m.department_id) AS departments,array_agg(DISTINCT m.category_id) AS categories
+		`candidates AS (SELECT m.id,b.name,array_agg(DISTINCT m.department_id) AS departments,array_agg(DISTINCT m.category_id) AS categories,array_agg(DISTINCT m.nature_id) AS natures
  FROM matching m JOIN base b ON b.id=m.id GROUP BY m.id,b.name ORDER BY m.id LIMIT 100001)`,
 		categoryCounts,
 		`department_counts AS (SELECT department_id,count(DISTINCT id) AS n FROM matching GROUP BY department_id)`,

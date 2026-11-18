@@ -563,12 +563,13 @@ type DirectoryPage struct {
 	CategoryFacets   []DirectoryFacet `json:"category_facets"`
 	DepartmentFacets []DirectoryFacet `json:"department_facets"`
 
-	// FacetTotal Distinct objects after all filters except category_id, for the All category badge.
-	FacetTotal  int             `json:"facet_total"`
-	GeneratedAt time.Time       `json:"generated_at"`
-	Items       []DirectoryItem `json:"items"`
-	Next        string          `json:"next"`
-	Total       int             `json:"total"`
+	// FacetTotal Distinct objects after all filters except category_id / category_ids, for the All category badge.
+	FacetTotal   int              `json:"facet_total"`
+	GeneratedAt  time.Time        `json:"generated_at"`
+	Items        []DirectoryItem  `json:"items"`
+	NatureFacets []DirectoryFacet `json:"nature_facets"`
+	Next         string           `json:"next"`
+	Total        int              `json:"total"`
 }
 
 // Enrollment defines model for Enrollment.
@@ -633,7 +634,7 @@ type ImportChange struct {
 	Id     string   `json:"id"`
 	Kind   string   `json:"kind"`
 
-	// ScheduleTime ISO weekday Monday=1. Explicit week set; odd/even weeks are expanded by importer. End period >= start. Missing structure means not provided. Recognized time_text grammar: 周一 第1-2节 第1-16周(单), with optional 单/双 suffix.
+	// ScheduleTime ISO weekday Monday=1. Explicit week set; odd/even weeks are expanded by importer. End period >= start. Missing structure means not provided. Recognized time_text grammar supports single or range periods (第5节, 第1-2节), single, range or ascending comma-separated week segments (第8周, 第1-8,10-16周, 第1,3,5,7周), and optional halfwidth or fullwidth 单/双 suffix.
 	ScheduleTime *ScheduleTime `json:"schedule_time,omitempty"`
 	State        string        `json:"state"`
 	TimeText     *string       `json:"time_text,omitempty"`
@@ -740,7 +741,7 @@ type Object struct {
 	NatureId     *string `json:"nature_id,omitempty"`
 	Revision     int     `json:"revision"`
 
-	// ScheduleTime ISO weekday Monday=1. Explicit week set; odd/even weeks are expanded by importer. End period >= start. Missing structure means not provided. Recognized time_text grammar: 周一 第1-2节 第1-16周(单), with optional 单/双 suffix.
+	// ScheduleTime ISO weekday Monday=1. Explicit week set; odd/even weeks are expanded by importer. End period >= start. Missing structure means not provided. Recognized time_text grammar supports single or range periods (第5节, 第1-2节), single, range or ascending comma-separated week segments (第8周, 第1-8,10-16周, 第1,3,5,7周), and optional halfwidth or fullwidth 单/双 suffix.
 	ScheduleTime *ScheduleTime `json:"schedule_time,omitempty"`
 	SchoolId     string        `json:"school_id"`
 
@@ -897,12 +898,12 @@ type ScheduleMeeting struct {
 	Id       string `json:"id"`
 	Location string `json:"location"`
 
-	// ScheduleTime ISO weekday Monday=1. Explicit week set; odd/even weeks are expanded by importer. End period >= start. Missing structure means not provided. Recognized time_text grammar: 周一 第1-2节 第1-16周(单), with optional 单/双 suffix.
+	// ScheduleTime ISO weekday Monday=1. Explicit week set; odd/even weeks are expanded by importer. End period >= start. Missing structure means not provided. Recognized time_text grammar supports single or range periods (第5节, 第1-2节), single, range or ascending comma-separated week segments (第8周, 第1-8,10-16周, 第1,3,5,7周), and optional halfwidth or fullwidth 单/双 suffix.
 	ScheduleTime *ScheduleTime `json:"schedule_time,omitempty"`
 	TimeText     string        `json:"time_text"`
 }
 
-// ScheduleTime ISO weekday Monday=1. Explicit week set; odd/even weeks are expanded by importer. End period >= start. Missing structure means not provided. Recognized time_text grammar: 周一 第1-2节 第1-16周(单), with optional 单/双 suffix.
+// ScheduleTime ISO weekday Monday=1. Explicit week set; odd/even weeks are expanded by importer. End period >= start. Missing structure means not provided. Recognized time_text grammar supports single or range periods (第5节, 第1-2节), single, range or ascending comma-separated week segments (第8周, 第1-8,10-16周, 第1,3,5,7周), and optional halfwidth or fullwidth 单/双 suffix.
 type ScheduleTime struct {
 	EndPeriod   int   `json:"end_period"`
 	StartPeriod int   `json:"start_period"`
@@ -1086,8 +1087,11 @@ type StartTeacherRefreshParams struct {
 // ListUnmatchedTeacherSitesParams defines parameters for ListUnmatchedTeacherSites.
 type ListUnmatchedTeacherSitesParams struct {
 	Reason *ListUnmatchedTeacherSitesParamsReason `form:"reason,omitempty" json:"reason,omitempty"`
-	Limit  *int                                   `form:"limit,omitempty" json:"limit,omitempty"`
-	After  *string                                `form:"after,omitempty" json:"after,omitempty"`
+
+	// Q 对未匹配记录的公开姓名与单位做不区分大小写的字面子串筛选，百分号与下划线不作为通配符。
+	Q     *string `form:"q,omitempty" json:"q,omitempty"`
+	Limit *int    `form:"limit,omitempty" json:"limit,omitempty"`
+	After *string `form:"after,omitempty" json:"after,omitempty"`
 }
 
 // ListUnmatchedTeacherSitesParamsReason defines parameters for ListUnmatchedTeacherSites.
@@ -1100,16 +1104,28 @@ type ApplyCourseIdentitiesParams struct {
 
 // ListDirectoryParams defines parameters for ListDirectory.
 type ListDirectoryParams struct {
-	Kind         ListDirectoryParamsKind  `form:"kind" json:"kind"`
-	SchoolId     *string                  `form:"school_id,omitempty" json:"school_id,omitempty"`
-	Q            *string                  `form:"q,omitempty" json:"q,omitempty"`
-	DepartmentId *string                  `form:"department_id,omitempty" json:"department_id,omitempty"`
-	CategoryId   *string                  `form:"category_id,omitempty" json:"category_id,omitempty"`
-	NatureId     *string                  `form:"nature_id,omitempty" json:"nature_id,omitempty"`
-	TeacherId    *string                  `form:"teacher_id,omitempty" json:"teacher_id,omitempty"`
-	Sort         *ListDirectoryParamsSort `form:"sort,omitempty" json:"sort,omitempty"`
-	After        *string                  `form:"after,omitempty" json:"after,omitempty"`
-	Limit        *int                     `form:"limit,omitempty" json:"limit,omitempty"`
+	Kind         ListDirectoryParamsKind `form:"kind" json:"kind"`
+	SchoolId     *string                 `form:"school_id,omitempty" json:"school_id,omitempty"`
+	Q            *string                 `form:"q,omitempty" json:"q,omitempty"`
+	DepartmentId *string                 `form:"department_id,omitempty" json:"department_id,omitempty"`
+
+	// DepartmentIds 逗号分隔的多个学院 ID（最多 20 项），不能与 department_id 同时传入。
+	DepartmentIds *string `form:"department_ids,omitempty" json:"department_ids,omitempty"`
+	CategoryId    *string `form:"category_id,omitempty" json:"category_id,omitempty"`
+
+	// CategoryIds 逗号分隔的多个课程类别 ID（最多 20 项，仅 kind=course），不能与 category_id 同时传入。
+	CategoryIds *string `form:"category_ids,omitempty" json:"category_ids,omitempty"`
+	NatureId    *string `form:"nature_id,omitempty" json:"nature_id,omitempty"`
+	TeacherId   *string `form:"teacher_id,omitempty" json:"teacher_id,omitempty"`
+
+	// CreditsMin 课程最低学分（含，0 至 100，仅 kind=course）；未知学分课程不匹配学分区间筛选。
+	CreditsMin *float32 `form:"credits_min,omitempty" json:"credits_min,omitempty"`
+
+	// CreditsMax 课程最高学分（含，0 至 100，仅 kind=course）；未知学分课程不匹配学分区间筛选。
+	CreditsMax *float32                 `form:"credits_max,omitempty" json:"credits_max,omitempty"`
+	Sort       *ListDirectoryParamsSort `form:"sort,omitempty" json:"sort,omitempty"`
+	After      *string                  `form:"after,omitempty" json:"after,omitempty"`
+	Limit      *int                     `form:"limit,omitempty" json:"limit,omitempty"`
 }
 
 // ListDirectoryParamsKind defines parameters for ListDirectory.
@@ -1196,8 +1212,10 @@ type ListObjectsParams struct {
 	TermCourseId *string `form:"term_course_id,omitempty" json:"term_course_id,omitempty"`
 
 	// ClassId 普通目录禁止使用此教学班粒度筛选，返回 403 forbidden；管理端使用 /catalog/admin/objects。
-	ClassId         *string `form:"class_id,omitempty" json:"class_id,omitempty"`
-	IncludeInactive *bool   `form:"include_inactive,omitempty" json:"include_inactive,omitempty"`
+	ClassId *string `form:"class_id,omitempty" json:"class_id,omitempty"`
+
+	// IncludeInactive 普通目录不返回停用对象，传 true 返回 400 invalid_input；管理端使用 /catalog/admin/objects。
+	IncludeInactive *bool `form:"include_inactive,omitempty" json:"include_inactive,omitempty"`
 }
 
 // LookupObjectsParams defines parameters for LookupObjects.
@@ -1374,7 +1392,7 @@ type ClientInterface interface {
 
 	// ListUnmatchedTeacherSites performs a GET /api/v1/catalog/admin/schools/{school_id}/teacher-sites/unmatched (the `ListUnmatchedTeacherSites` operationId) request.
 	//
-	// Requires catalog.teacher-sites.read and current school management scope. Every view is audited. Current complete unmatched snapshot only; failed refresh preserves it. Returns public website name/unit, fixed reason and count of same-name catalog candidates, never candidate IDs, staff numbers or contacts. reason_counts covers the entire snapshot; total respects reason. Cursor binds school, reason and snapshot revision; a changed snapshot returns 409. Sorted by site_id.
+	// Requires catalog.teacher-sites.read and current school management scope. Every view is audited. Current complete unmatched snapshot only; failed refresh preserves it. Returns public website name/unit, fixed reason and count of same-name catalog candidates, never candidate IDs, staff numbers or contacts. reason_counts covers the entire snapshot; total respects reason and q. Cursor binds school, reason, q and snapshot revision; a changed snapshot returns 409. Sorted by site_id.
 	ListUnmatchedTeacherSites(ctx context.Context, schoolId string, params *ListUnmatchedTeacherSitesParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// GetTimetable performs a GET /api/v1/catalog/admin/schools/{school_id}/terms/{term_id}/timetable (the `GetTimetable` operationId) request.
@@ -1666,7 +1684,7 @@ func (c *Client) StartTeacherRefresh(ctx context.Context, schoolId string, param
 
 // ListUnmatchedTeacherSites performs a GET /api/v1/catalog/admin/schools/{school_id}/teacher-sites/unmatched (the `ListUnmatchedTeacherSites` operationId) request.
 //
-// Requires catalog.teacher-sites.read and current school management scope. Every view is audited. Current complete unmatched snapshot only; failed refresh preserves it. Returns public website name/unit, fixed reason and count of same-name catalog candidates, never candidate IDs, staff numbers or contacts. reason_counts covers the entire snapshot; total respects reason. Cursor binds school, reason and snapshot revision; a changed snapshot returns 409. Sorted by site_id.
+// Requires catalog.teacher-sites.read and current school management scope. Every view is audited. Current complete unmatched snapshot only; failed refresh preserves it. Returns public website name/unit, fixed reason and count of same-name catalog candidates, never candidate IDs, staff numbers or contacts. reason_counts covers the entire snapshot; total respects reason and q. Cursor binds school, reason, q and snapshot revision; a changed snapshot returns 409. Sorted by site_id.
 func (c *Client) ListUnmatchedTeacherSites(ctx context.Context, schoolId string, params *ListUnmatchedTeacherSitesParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewListUnmatchedTeacherSitesRequest(c.Server, schoolId, params)
 	if err != nil {
@@ -2682,6 +2700,18 @@ func NewListUnmatchedTeacherSitesRequest(server string, schoolId string, params 
 
 		}
 
+		if params.Q != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "q", *params.Q, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
 		if params.Limit != nil {
 
 			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "limit", *params.Limit, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "integer", Format: ""}); err != nil {
@@ -2940,9 +2970,33 @@ func NewListDirectoryRequest(server string, params *ListDirectoryParams) (*http.
 
 		}
 
+		if params.DepartmentIds != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "department_ids", *params.DepartmentIds, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
 		if params.CategoryId != nil {
 
 			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "category_id", *params.CategoryId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.CategoryIds != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "category_ids", *params.CategoryIds, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
 				return nil, err
 			} else {
 				for _, qp := range strings.Split(queryFrag, "&") {
@@ -2967,6 +3021,30 @@ func NewListDirectoryRequest(server string, params *ListDirectoryParams) (*http.
 		if params.TeacherId != nil {
 
 			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "teacher_id", *params.TeacherId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.CreditsMin != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "credits_min", *params.CreditsMin, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "number", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.CreditsMax != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "credits_max", *params.CreditsMax, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "number", Format: ""}); err != nil {
 				return nil, err
 			} else {
 				for _, qp := range strings.Split(queryFrag, "&") {
@@ -4366,7 +4444,7 @@ type ClientWithResponsesInterface interface {
 
 	// ListUnmatchedTeacherSitesWithResponse performs a GET /api/v1/catalog/admin/schools/{school_id}/teacher-sites/unmatched (the `ListUnmatchedTeacherSites` operationId) request.
 	//
-	// Requires catalog.teacher-sites.read and current school management scope. Every view is audited. Current complete unmatched snapshot only; failed refresh preserves it. Returns public website name/unit, fixed reason and count of same-name catalog candidates, never candidate IDs, staff numbers or contacts. reason_counts covers the entire snapshot; total respects reason. Cursor binds school, reason and snapshot revision; a changed snapshot returns 409. Sorted by site_id.
+	// Requires catalog.teacher-sites.read and current school management scope. Every view is audited. Current complete unmatched snapshot only; failed refresh preserves it. Returns public website name/unit, fixed reason and count of same-name catalog candidates, never candidate IDs, staff numbers or contacts. reason_counts covers the entire snapshot; total respects reason and q. Cursor binds school, reason, q and snapshot revision; a changed snapshot returns 409. Sorted by site_id.
 	//
 	// Returns a wrapper object for the known response body format(s).
 	ListUnmatchedTeacherSitesWithResponse(ctx context.Context, schoolId string, params *ListUnmatchedTeacherSitesParams, reqEditors ...RequestEditorFn) (*ListUnmatchedTeacherSitesResponse, error)
@@ -7431,7 +7509,7 @@ func (c *ClientWithResponses) StartTeacherRefreshWithResponse(ctx context.Contex
 
 // ListUnmatchedTeacherSitesWithResponse performs a GET /api/v1/catalog/admin/schools/{school_id}/teacher-sites/unmatched (the `ListUnmatchedTeacherSites` operationId) request.
 //
-// Requires catalog.teacher-sites.read and current school management scope. Every view is audited. Current complete unmatched snapshot only; failed refresh preserves it. Returns public website name/unit, fixed reason and count of same-name catalog candidates, never candidate IDs, staff numbers or contacts. reason_counts covers the entire snapshot; total respects reason. Cursor binds school, reason and snapshot revision; a changed snapshot returns 409. Sorted by site_id.
+// Requires catalog.teacher-sites.read and current school management scope. Every view is audited. Current complete unmatched snapshot only; failed refresh preserves it. Returns public website name/unit, fixed reason and count of same-name catalog candidates, never candidate IDs, staff numbers or contacts. reason_counts covers the entire snapshot; total respects reason and q. Cursor binds school, reason, q and snapshot revision; a changed snapshot returns 409. Sorted by site_id.
 //
 // Returns a wrapper object for the known response body format(s).
 func (c *ClientWithResponses) ListUnmatchedTeacherSitesWithResponse(ctx context.Context, schoolId string, params *ListUnmatchedTeacherSitesParams, reqEditors ...RequestEditorFn) (*ListUnmatchedTeacherSitesResponse, error) {

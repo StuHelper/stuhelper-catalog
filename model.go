@@ -158,9 +158,10 @@ type Event struct {
 	Time                               time.Time
 }
 type Replay struct {
-	Digest string
-	Result []byte
-	Until  time.Time
+	Digest  string
+	Result  []byte
+	Until   time.Time
+	Expires bool `json:"expires,omitempty"`
 }
 type Repository interface {
 	Transaction(context.Context, func(Transaction) error) error
