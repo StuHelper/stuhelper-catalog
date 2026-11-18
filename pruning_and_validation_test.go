@@ -95,10 +95,19 @@ func TestBoundedPruningAndInputValidation(t *testing.T) {
 		if _, err := s.Import(ctx, admin, "seed-prune", in); err != nil {
 			t.Fatal(err)
 		}
+		// The import and the two maintenance writes each produce an outbox event.
+		title := "Corrected Title"
+		if _, err := s.Correct(ctx, admin, "course", "temp-correct-1", c.Correction{Revision: 1, Name: &title}); err != nil {
+			t.Fatal(err)
+		}
+		title2 := "Corrected Title 2"
+		if _, err := s.Correct(ctx, admin, "course", "temp-correct-2", c.Correction{Revision: 2, Name: &title2}); err != nil {
+			t.Fatal(err)
+		}
 		repo := s.Repo.(*postgres.Repository)
 
 		// 1. Outbox: confirm 2 events, leave rest unsent; PruneSentOutbox with limit=1 deletes 1 confirmed row and preserves unsent rows.
-		pending, err := repo.PendingOutbox(ctx, 10, nil)
+		pending, err := repo.PendingOutbox(ctx, 100, nil)
 		if err != nil || len(pending) < 3 {
 			t.Fatalf("expected >=3 pending outbox events, got %d err=%v", len(pending), err)
 		}
@@ -122,15 +131,13 @@ func TestBoundedPruningAndInputValidation(t *testing.T) {
 			t.Fatalf("PruneSentOutbox touched unsent rows: got %d want %d err=%v", len(stillPending), len(pending)-2, err)
 		}
 
+		for i, want := range pending[2:] {
+			if stillPending[i].ID != want.ID {
+				t.Fatalf("unsent event changed: got %s, want %s", stillPending[i].ID, want.ID)
+			}
+		}
+
 		// 2. Replays: Correct creates an expiring 24h maintenance replay, while Import replay is permanent.
-		title := "Corrected Title"
-		if _, err := s.Correct(ctx, admin, "course", "temp-correct-1", c.Correction{Revision: 1, Name: &title}); err != nil {
-			t.Fatal(err)
-		}
-		title2 := "Corrected Title 2"
-		if _, err := s.Correct(ctx, admin, "course", "temp-correct-2", c.Correction{Revision: 2, Name: &title2}); err != nil {
-			t.Fatal(err)
-		}
 		cutoff := now.Add(48 * time.Hour)
 		deletedReplays, err := repo.PruneReplays(ctx, cutoff, 1)
 		if err != nil || deletedReplays != 1 {
