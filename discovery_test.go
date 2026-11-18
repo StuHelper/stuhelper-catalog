@@ -27,6 +27,35 @@ func publishFixtureDirectory(t *testing.T, s *c.Service, p c.Principal) c.Projec
 	return report
 }
 
+func TestSourceDiscoveryReadsCorrectionsAfterDirectoryPublication(t *testing.T) {
+	s, p, in := fixture(t)
+	ctx := context.Background()
+	repo := s.Repo.(*postgres.Repository)
+	if _, err := s.Import(ctx, p, "seed", in); err != nil {
+		t.Fatal(err)
+	}
+	publishFixtureDirectory(t, s, p)
+	name := "Corrected after publication"
+	obj, err := s.Correct(ctx, p, "course", "correct", c.Correction{Revision: 1, Name: &name})
+	if err != nil {
+		t.Fatal(err)
+	}
+	docs, err := s.DiscoveryCurrent(ctx, c.Principal{Subject: "issuer:student"}, []string{"course"})
+	if err != nil || len(docs) != 1 || docs[0].Title != name || docs[0].Revision != obj.Revision {
+		t.Fatal(docs, err)
+	}
+	page, err := repo.DiscoverySnapshot(ctx, "", 100)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, doc := range page.Items {
+		if doc.Target.ID == "course" && doc.Title == name && doc.Revision == obj.Revision {
+			return
+		}
+	}
+	t.Fatal("source snapshot missed the correction")
+}
+
 func TestDiscoveryEventsRollbackMergeDeletionAndCurrent(t *testing.T) {
 	s, p, in := fixture(t)
 	ctx := context.Background()
