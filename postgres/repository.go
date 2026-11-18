@@ -36,12 +36,17 @@ type Repository struct {
 }
 type transaction struct {
 	projectionRead          bool
+	repoDirectoryProjection bool
 	projectionSchools       map[string]bool
+	projectionManagedCache  map[string]bool
 	projectionAttempt       string
 	directoryData           *directoryCache
 	requireTeacherDirectory bool
+	repoTeacherDirectory    bool
 	pendingTeachers         map[string]bool
+	pendingTeacherSchools   map[string]bool
 	teachingTime            time.Time
+	mutationTime            time.Time
 	tx                      *sql.Tx
 	ctx                     context.Context
 	objects                 map[string]catalog.Record
@@ -93,7 +98,16 @@ func (r *Repository) Transaction(ctx context.Context, run func(catalog.Transacti
 		return safe(e)
 	}
 	defer tx.Rollback()
-	t := &transaction{tx: tx, ctx: ctx, objects: map[string]catalog.Record{}, requireTeacherDirectory: r.RequireTeacherDirectory && !catalog.TeacherMaintenanceRead(ctx), directoryData: r.directoryCache(), projectionRead: r.RequireDirectoryProjection && !catalog.TeacherMaintenanceRead(ctx)}
+	t := &transaction{
+		tx:                      tx,
+		ctx:                     ctx,
+		objects:                 map[string]catalog.Record{},
+		requireTeacherDirectory: r.RequireTeacherDirectory && !catalog.TeacherMaintenanceRead(ctx),
+		repoTeacherDirectory:    r.RequireTeacherDirectory,
+		directoryData:           r.directoryCache(),
+		projectionRead:          r.RequireDirectoryProjection && !catalog.TeacherMaintenanceRead(ctx),
+		repoDirectoryProjection: r.RequireDirectoryProjection,
+	}
 	if e = run(t); e != nil {
 		if t.projectionAttempt != "" {
 			_ = tx.Rollback()
@@ -174,6 +188,9 @@ func (t *transaction) Object(id string) (catalog.Record, error) {
 }
 func (t *transaction) SaveObject(r catalog.Record) error {
 	o := r.Object
+	if !o.UpdatedAt.IsZero() && o.UpdatedAt.After(t.mutationTime) {
+		t.mutationTime = o.UpdatedAt
+	}
 	if e := t.touchProjection(o.SchoolID); e != nil {
 		return e
 	}
@@ -181,6 +198,10 @@ func (t *transaction) SaveObject(r catalog.Record) error {
 		if t.pendingTeachers == nil {
 			t.pendingTeachers = map[string]bool{}
 		}
+		if t.pendingTeacherSchools == nil {
+			t.pendingTeacherSchools = map[string]bool{}
+		}
+		t.pendingTeacherSchools[o.SchoolID] = true
 		if o.Kind == "teacher" {
 			t.pendingTeachers[o.ID] = true
 		} else {
@@ -199,11 +220,20 @@ func (t *transaction) SaveObject(r catalog.Record) error {
 	if e := t.save(`INSERT INTO catalog.objects(id,school_id,kind,name,department_id,category_id,nature_id,course_id,term_id,term_course_id,class_id,teacher_id,data) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13) ON CONFLICT(id) DO UPDATE SET name=excluded.name,department_id=excluded.department_id,category_id=excluded.category_id,nature_id=excluded.nature_id,course_id=excluded.course_id,term_id=excluded.term_id,term_course_id=excluded.term_course_id,class_id=excluded.class_id,teacher_id=excluded.teacher_id,data=excluded.data`, r, o.ID, o.SchoolID, o.Kind, o.Name, o.DepartmentID, o.CategoryID, o.NatureID, o.CourseID, o.TermID, o.TermCourseID, o.ClassID, o.TeacherID); e != nil {
 		return e
 	}
-	if e := t.saveDiscovery(o); e != nil {
+	teacherHistory := t.repoTeacherDirectory && o.Kind == "teacher"
+	if !teacherHistory {
+		if err := t.saveDiscoveryHistory(o); err != nil {
+			return err
+		}
+	}
+	projManaged, e := t.projectionManaged(o.SchoolID)
+	if e != nil {
 		return e
 	}
-	if err := t.syncActivityVisibility(o); err != nil {
-		return err
+	if !projManaged && !teacherHistory {
+		if err := t.syncActivityVisibility(o); err != nil {
+			return err
+		}
 	}
 	if len(t.objects) < 10000 {
 		if t.objects == nil {

@@ -2,9 +2,13 @@ package catalog_test
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	c "github.com/StuHelper/stuhelper-catalog"
+	"github.com/StuHelper/stuhelper-catalog/httpapi"
 	"github.com/StuHelper/stuhelper-catalog/postgres"
+	"net/http"
+	"net/http/httptest"
 	"slices"
 	"testing"
 	"time"
@@ -235,5 +239,159 @@ func TestDisplayProjectionMigrationPreservesPublishedDirectoryAndRuntimeBoundary
 	}
 	if _, err := repo.DB.Exec(`CREATE TABLE catalog.forbidden_c2_migration(id text)`); err == nil {
 		t.Fatal("runtime obtained migration rights")
+	}
+}
+
+func TestSportsProjectViewsAndAdminReads(t *testing.T) {
+	s, p, _, _ := projectionFixture(t)
+	ctx := context.Background()
+	repo := s.Repo.(*postgres.Repository)
+	now := time.Now().UTC().Add(time.Minute)
+	s.Clock = func() time.Time { return now }
+
+	objects := []c.Object{
+		{ID: "sports", Kind: "category", SchoolID: "school", Name: "体育类", Aliases: []string{}},
+		{ID: "foreign", Kind: "category", SchoolID: "school", Name: "外语类", Aliases: []string{}},
+		{ID: "sports-teacher", Kind: "teacher", SchoolID: "school", Name: "Sports Teacher", Aliases: []string{}},
+		{ID: "semester1", Kind: "course", SchoolID: "school", Name: "体育（1）", Aliases: []string{}},
+		{ID: "semester1-off", Kind: "term_course", SchoolID: "school", Name: "体育（1）", CourseID: "semester1", TermID: "z-boundary", Aliases: []string{}},
+		{ID: "semester1-cls", Kind: "class", SchoolID: "school", Name: "Class 1", TermCourseID: "semester1-off", CategoryID: "sports", SportsProjectCode: "tt1", Aliases: []string{}},
+		{ID: "semester1-asg", Kind: "assignment", SchoolID: "school", Name: "Assign", ClassID: "semester1-cls", TeacherID: "sports-teacher", Aliases: []string{}},
+		{ID: "lang-course", Kind: "course", SchoolID: "school", Name: "English Reading", Aliases: []string{}},
+		{ID: "lang-off", Kind: "term_course", SchoolID: "school", Name: "English Reading", CourseID: "lang-course", TermID: "z-boundary", Aliases: []string{}},
+		{ID: "lang-cls", Kind: "class", SchoolID: "school", Name: "Lang Class", TermCourseID: "lang-off", CategoryID: "foreign", Aliases: []string{}},
+	}
+	if _, err := s.Import(c.DeferDirectoryRebuild(ctx), p, "sports-views-seed", c.Import{SchoolID: "school", SourceID: "source", Revision: 2, FetchedAt: now, Objects: objects}); err != nil {
+		t.Fatal(err)
+	}
+	policy := c.DefaultDirectoryPolicy()
+	policy.CategoryAliases = []c.CategoryAlias{{From: "外语类", To: "国际语言类"}}
+	policy.Sports = &c.SportsDirectoryPolicy{
+		CategoryName: "体育类",
+		CourseNames:  []string{"体育（1）"},
+		Projects:     []c.SportsProject{{Key: "table-tennis", Name: "乒乓球", SourceCodes: []string{"tt1"}}},
+	}
+	if _, err := s.RebuildDirectory(ctx, p, "school", &policy); err != nil {
+		t.Fatal(err)
+	}
+
+	tt := c.SportsProjectID("school", "table-tennis")
+	student := c.Principal{Subject: "issuer:student"}
+	if _, err := s.Read(ctx, student, tt); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := s.ReadSummary(ctx, student, tt); err != nil {
+		t.Fatal(err)
+	}
+	metrics := s.ViewMetrics()
+	if metrics.Failures != 0 || metrics.Recorded != 1 || metrics.Duplicates != 1 {
+		t.Fatalf("sports project view metrics failed: %+v", metrics)
+	}
+	act, err := repo.ReadActivity(ctx, c.ActivityID("course", tt, now))
+	if err != nil || !act.Visible || act.Metrics["views"] != 1 {
+		t.Fatalf("sports project activity bucket missing: %+v %v", act, err)
+	}
+	dirPage, err := s.ReadDirectory(ctx, student, c.DirectoryQuery{Filter: c.Filter{Kind: "course", Limit: 20}, Sort: "hot"})
+	if err != nil || len(dirPage.Items) == 0 || dirPage.Items[0].Object.ID != tt || dirPage.Items[0].Heat <= 0 {
+		t.Fatalf("sports project heat not reflected in hot directory: %+v %v", dirPage, err)
+	}
+
+	options, err := s.ReadFilterOptions(ctx, student, "course", "school")
+	if err != nil {
+		t.Fatal(err)
+	}
+	synthCatID := ""
+	for _, cat := range options.Categories {
+		if cat.Name == "国际语言类" {
+			synthCatID = cat.ID
+		}
+	}
+	if synthCatID == "" {
+		t.Fatal("synthetic display category missing", options)
+	}
+
+	adminObj, err := s.AdminRead(ctx, p, tt)
+	if err != nil || adminObj.ID != tt || adminObj.CourseType != "sports_project" {
+		t.Fatalf("AdminRead sports project: %+v %v", adminObj, err)
+	}
+	adminCat, err := s.AdminRead(ctx, p, synthCatID)
+	if err != nil || adminCat.ID != synthCatID {
+		t.Fatalf("AdminRead synthetic category: %+v %v", adminCat, err)
+	}
+	adminSum, err := s.AdminSummary(ctx, p, tt)
+	if err != nil || adminSum.Object.ID != tt || adminSum.OfferingCount != 1 || adminSum.TeacherCount != 1 {
+		t.Fatalf("AdminSummary sports project: %+v %v", adminSum, err)
+	}
+	adminRes, err := s.AdminResolution(ctx, p, tt)
+	if err != nil || adminRes.Object.ID != tt || !slices.Equal(adminRes.IDs, []string{tt}) {
+		t.Fatalf("AdminResolution sports project: %+v %v", adminRes, err)
+	}
+	adminLookup, err := s.AdminLookup(ctx, p, []string{tt, synthCatID, "foreign", "unknown-id"})
+	if err != nil || len(adminLookup.Items) != 3 || !slices.Equal(adminLookup.MissingIDs, []string{"unknown-id"}) {
+		t.Fatalf("AdminLookup sports project & synthetic category: %+v %v", adminLookup, err)
+	}
+	outsider := c.Principal{Subject: "other-admin", CanMaintain: true, Schools: []string{"other-school"}}
+	if _, err := s.AdminRead(ctx, outsider, tt); !errors.Is(err, c.ErrForbidden) {
+		t.Fatalf("cross-school AdminRead allowed: %v", err)
+	}
+
+	h := httpapi.Handler{Service: s, Authenticate: func(*http.Request) (c.Principal, error) { return p, nil }}.Routes()
+	for _, path := range []string{
+		"/api/v1/catalog/admin/objects/" + tt,
+		"/api/v1/catalog/admin/objects/" + tt + "/summary",
+		"/api/v1/catalog/admin/objects/" + tt + "/resolution",
+		"/api/v1/catalog/admin/objects/lookup?ids=" + tt + "," + synthCatID,
+	} {
+		w := httptest.NewRecorder()
+		h.ServeHTTP(w, httptest.NewRequest(http.MethodGet, path, nil))
+		if w.Code != http.StatusOK {
+			t.Fatalf("GET %s returned %d: %s", path, w.Code, w.Body.String())
+		}
+		var raw map[string]any
+		if json.Unmarshal(w.Body.Bytes(), &raw) != nil {
+			t.Fatalf("invalid json from %s", path)
+		}
+	}
+}
+
+func TestProjectedViewAllowsWriterToPublishWhileWaitingForSource(t *testing.T) {
+	s, _, admin, _ := projectionFixture(t)
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	writer, err := admin.BeginTx(ctx, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer writer.Rollback()
+	var pid int
+	if err := writer.QueryRowContext(ctx, "SELECT pg_backend_pid() FROM catalog.objects WHERE id='course' FOR UPDATE").Scan(&pid); err != nil {
+		t.Fatal(err)
+	}
+	done := make(chan error, 1)
+	go func() {
+		done <- s.Repo.Transaction(ctx, func(tx c.Transaction) error {
+			_, err := tx.RecordView("viewer", c.Object{Kind: "course", ID: "course", SchoolID: "school"}, time.Now())
+			return err
+		})
+	}()
+	for {
+		var waiting bool
+		err := admin.QueryRowContext(ctx, "SELECT EXISTS(SELECT 1 FROM pg_stat_activity WHERE datname=current_database() AND $1=ANY(pg_blocking_pids(pid)))", pid).Scan(&waiting)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if waiting {
+			break
+		}
+		time.Sleep(5 * time.Millisecond)
+	}
+	if _, err := writer.ExecContext(ctx, "SELECT school_id FROM catalog.projection_heads WHERE school_id='school' FOR UPDATE NOWAIT"); err != nil {
+		t.Fatal("view holds the projection head while waiting on the source", err)
+	}
+	if err := writer.Commit(); err != nil {
+		t.Fatal(err)
+	}
+	if err := <-done; err != nil {
+		t.Fatal(err)
 	}
 }

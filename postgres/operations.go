@@ -1,6 +1,7 @@
 package postgres
 
 import (
+	"errors"
 	c "github.com/StuHelper/stuhelper-catalog"
 	"time"
 )
@@ -9,36 +10,51 @@ func (t *transaction) PublicObject(id string) (c.Object, error) {
 	if t.projectionRead {
 		return t.projectedObject(id)
 	}
-	return read[c.Object](t, `SELECT catalog.public_object(o.data->'object') || CASE WHEN o.kind='term' THEN jsonb_build_object('term_order_key',COALESCE(tr.sort_key,0)) ELSE '{}'::jsonb END || CASE WHEN o.id<>$1 THEN jsonb_build_object('id',$1,'canonical_id',o.id) ELSE '{}'::jsonb END FROM catalog.objects o LEFT JOIN catalog.term_orders tr ON tr.id=o.id AND tr.school_id=o.school_id WHERE o.id=catalog.canonical($1)`+t.teacherVisibility("o"), id)
+	obj, err := read[c.Object](t, `SELECT catalog.public_object(o.data->'object') || CASE WHEN o.kind='term' THEN jsonb_build_object('term_order_key',COALESCE(tr.sort_key,0)) ELSE '{}'::jsonb END || CASE WHEN o.id<>$1 THEN jsonb_build_object('id',$1,'canonical_id',o.id) ELSE '{}'::jsonb END FROM catalog.objects o LEFT JOIN catalog.term_orders tr ON tr.id=o.id AND tr.school_id=o.school_id WHERE o.id=catalog.canonical($1)`+t.teacherVisibility("o"), id)
+	if errors.Is(err, c.ErrNotFound) && c.TeacherMaintenanceRead(t.ctx) {
+		return t.maintenanceProjectedObject(id)
+	}
+	return obj, err
 }
+
+func (t *transaction) maintenanceProjectedObject(id string) (c.Object, error) {
+	return read[c.Object](t, `SELECT o.data || CASE WHEN o.id<>$1 THEN jsonb_build_object('id',$1,'canonical_id',o.id) ELSE '{}'::jsonb END`+projectedObjectFrom+`
+ WHERE o.id=COALESCE((SELECT canonical_id FROM catalog.projection_aliases a WHERE a.version=h.version AND a.alias_id=$1),$1)
+   AND NOT EXISTS(SELECT 1 FROM catalog.objects src WHERE src.id=o.id)`, id)
+}
+
+func (t *transaction) projectedResolveIDs(object c.Object) ([]string, error) {
+	canonical := object.ID
+	if object.CanonicalID != "" {
+		canonical = object.CanonicalID
+	}
+	rows, err := t.tx.QueryContext(t.ctx, `SELECT $2::text AS id UNION SELECT a.alias_id FROM catalog.projection_heads h JOIN catalog.projection_aliases a ON a.version=h.version
+ WHERE h.school_id=$1 AND a.canonical_id=$2 ORDER BY id LIMIT 1001`, object.SchoolID, canonical)
+	if err != nil {
+		return nil, safe(err)
+	}
+	defer rows.Close()
+	out := []string{}
+	for rows.Next() {
+		var item string
+		if err := rows.Scan(&item); err != nil {
+			return nil, safe(err)
+		}
+		out = append(out, item)
+	}
+	if len(out) > 1000 {
+		return nil, c.ErrUnavailable
+	}
+	return out, safe(rows.Err())
+}
+
 func (t *transaction) ResolveIDs(id string) ([]string, error) {
 	if t.projectionRead {
 		object, err := t.projectedObject(id)
 		if err != nil {
 			return nil, err
 		}
-		canonical := object.ID
-		if object.CanonicalID != "" {
-			canonical = object.CanonicalID
-		}
-		rows, err := t.tx.QueryContext(t.ctx, `SELECT $2::text AS id UNION SELECT a.alias_id FROM catalog.projection_heads h JOIN catalog.projection_aliases a ON a.version=h.version
- WHERE h.school_id=$1 AND a.canonical_id=$2 ORDER BY id LIMIT 1001`, object.SchoolID, canonical)
-		if err != nil {
-			return nil, safe(err)
-		}
-		defer rows.Close()
-		out := []string{}
-		for rows.Next() {
-			var id string
-			if err := rows.Scan(&id); err != nil {
-				return nil, safe(err)
-			}
-			out = append(out, id)
-		}
-		if len(out) > 1000 {
-			return nil, c.ErrUnavailable
-		}
-		return out, safe(rows.Err())
+		return t.projectedResolveIDs(object)
 	}
 	rows, e := t.tx.QueryContext(t.ctx, `SELECT id FROM catalog.objects WHERE id=catalog.canonical($1) UNION SELECT alias_id FROM catalog.redirects WHERE canonical_id=catalog.canonical($1) ORDER BY id LIMIT 1001`, id)
 	if e != nil {
@@ -47,16 +63,30 @@ func (t *transaction) ResolveIDs(id string) ([]string, error) {
 	defer rows.Close()
 	out := []string{}
 	for rows.Next() {
-		var id string
-		if e = rows.Scan(&id); e != nil {
+		var item string
+		if e = rows.Scan(&item); e != nil {
 			return nil, safe(e)
 		}
-		out = append(out, id)
+		out = append(out, item)
 	}
+	if err := rows.Err(); err != nil {
+		return nil, safe(err)
+	}
+	rows.Close()
 	if len(out) > 1000 {
 		return nil, c.ErrUnavailable
 	}
-	return out, safe(rows.Err())
+	if len(out) == 0 && c.TeacherMaintenanceRead(t.ctx) {
+		object, err := t.maintenanceProjectedObject(id)
+		if err != nil {
+			if errors.Is(err, c.ErrNotFound) {
+				return out, nil
+			}
+			return nil, err
+		}
+		return t.projectedResolveIDs(object)
+	}
+	return out, nil
 }
 func (t *transaction) redirect(source, target string, at time.Time, reason string) error {
 	_, e := t.tx.ExecContext(t.ctx, `UPDATE catalog.redirects SET canonical_id=$2 WHERE canonical_id=$1`, source, target)
