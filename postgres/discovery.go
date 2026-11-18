@@ -5,7 +5,6 @@ import (
 	"database/sql"
 	"encoding/base64"
 	"encoding/json"
-	"fmt"
 	c "github.com/StuHelper/stuhelper-catalog"
 	"strings"
 	"time"
@@ -13,7 +12,9 @@ import (
 
 var _ c.DiscoverySource = (*Repository)(nil)
 
-func (t *transaction) saveDiscovery(o c.Object) error {
+// Source history supports unprojected maintenance reads. Only a directory
+// publication may enqueue discovery documents for search.
+func (t *transaction) saveDiscoveryHistory(o c.Object) error {
 	if o.Kind != "school" && o.Kind != "course" && o.Kind != "teacher" {
 		return nil
 	}
@@ -34,11 +35,7 @@ func (t *transaction) saveDiscovery(o c.Object) error {
 	if !d.Visible {
 		d.Title = ""
 	}
-	if e := t.save(`INSERT INTO catalog.discovery_history(id,revision,data) VALUES($1,$2,$3)`, d, o.ID, o.Revision); e != nil {
-		return e
-	}
-	eventID := fmt.Sprintf("discovery:%s:%d", o.ID, o.Revision)
-	return t.saveEnvelope(c.Envelope{SpecVersion: "1.0", ID: eventID, Source: "catalog", Type: "catalog.discovery.v1", Subject: o.ID, Time: o.UpdatedAt, Data: c.ResultData{EnglishName: d.EnglishName, FormerCodes: d.FormerCodes, FormerNames: d.FormerNames, Code: d.Code, Aliases: d.Aliases, Revision: d.Revision, Target: &d.Target, Title: &d.Title, SchoolID: &d.SchoolID, Visible: &d.Visible, Ratings: &d.Ratings, At: &d.At}})
+	return t.save(`INSERT INTO catalog.discovery_history(id,revision,data) VALUES($1,$2,$3)`, d, o.ID, o.Revision)
 }
 func (t *transaction) DiscoveryCurrent(school string, ids []string) ([]c.DiscoveryDocument, error) {
 	if t.projectionRead {

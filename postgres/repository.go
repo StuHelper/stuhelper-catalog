@@ -199,7 +199,7 @@ func (t *transaction) SaveObject(r catalog.Record) error {
 	if e := t.save(`INSERT INTO catalog.objects(id,school_id,kind,name,department_id,category_id,nature_id,course_id,term_id,term_course_id,class_id,teacher_id,data) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13) ON CONFLICT(id) DO UPDATE SET name=excluded.name,department_id=excluded.department_id,category_id=excluded.category_id,nature_id=excluded.nature_id,course_id=excluded.course_id,term_id=excluded.term_id,term_course_id=excluded.term_course_id,class_id=excluded.class_id,teacher_id=excluded.teacher_id,data=excluded.data`, r, o.ID, o.SchoolID, o.Kind, o.Name, o.DepartmentID, o.CategoryID, o.NatureID, o.CourseID, o.TermID, o.TermCourseID, o.ClassID, o.TeacherID); e != nil {
 		return e
 	}
-	if e := t.saveDiscovery(o); e != nil {
+	if e := t.saveDiscoveryHistory(o); e != nil {
 		return e
 	}
 	if err := t.syncActivityVisibility(o); err != nil {
