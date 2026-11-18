@@ -166,6 +166,7 @@ scenario_tests:
   MC-05:
     - timetable_test.go#TestCalendarEscapingFoldingAndDSTOffsets
     - timetable_test.go#TestScheduleExpansionWeeksTimezoneAndMissing
+    - timetable_test.go#TestParseScheduleExtendedBeihangGrammar
   MC-06:
     - timetable_test.go#TestTimetableRevisionAuditConcurrencyAndMigration
     - timetable_test.go#TestTimetableTransactionNotificationAndMigration
