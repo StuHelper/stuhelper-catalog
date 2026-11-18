@@ -75,10 +75,34 @@ func (h Handler) Routes() http.Handler {
 				return
 			}
 		}
-		ctx, cancel := context.WithTimeout(r.Context(), 15*time.Second)
+		timeout := 15 * time.Second
+		if maintenanceWriteRoute(r) {
+			timeout = 2 * time.Minute
+		}
+		ctx, cancel := context.WithTimeout(r.Context(), timeout)
 		defer cancel()
 		m.ServeHTTP(w, r.WithContext(ctx))
 	})
+}
+func maintenanceWriteRoute(r *http.Request) bool {
+	path := r.URL.Path
+	switch r.Method {
+	case http.MethodPatch:
+		return strings.HasPrefix(path, "/api/v1/catalog/objects/")
+	case http.MethodPost:
+		if strings.HasSuffix(path, "-preview") || strings.HasSuffix(path, "/preview") {
+			return false
+		}
+		return path == "/api/v1/catalog/imports" ||
+			path == "/api/v1/catalog/imports/confirm" ||
+			path == "/api/v1/catalog/course-identities" ||
+			strings.HasPrefix(path, "/api/v1/catalog/objects/") ||
+			strings.HasPrefix(path, "/api/v1/catalog/admin/schools/")
+	case http.MethodPut:
+		return strings.HasPrefix(path, "/api/v1/catalog/admin/schools/")
+	default:
+		return false
+	}
 }
 func respond(w http.ResponseWriter, v any, e error) {
 	w.Header().Set("Content-Type", "application/json")
@@ -142,13 +166,27 @@ func limit(r *http.Request) (int, error) {
 	}
 	return n, nil
 }
+func includeInactiveRequested(r *http.Request) (bool, error) {
+	values, ok := r.URL.Query()["include_inactive"]
+	if !ok {
+		return false, nil
+	}
+	if len(values) != 1 || values[0] != "true" && values[0] != "false" {
+		return false, catalog.ErrInput
+	}
+	return values[0] == "true", nil
+}
 func readFilter(r *http.Request) (catalog.Filter, error) {
 	n, e := limit(r)
 	if e != nil {
 		return catalog.Filter{}, e
 	}
+	includeInactive, e := includeInactiveRequested(r)
+	if e != nil {
+		return catalog.Filter{}, e
+	}
 	q := r.URL.Query()
-	return catalog.Filter{Kind: q.Get("kind"), IncludeInactive: q.Get("include_inactive") == "true", SchoolID: q.Get("school_id"), DepartmentID: q.Get("department_id"), CategoryID: q.Get("category_id"), NatureID: q.Get("nature_id"), CourseID: q.Get("course_id"), TermID: q.Get("term_id"), TeacherID: q.Get("teacher_id"), TermCourseID: q.Get("term_course_id"), ClassID: q.Get("class_id"), Query: q.Get("q"), After: q.Get("after"), Limit: n}, nil
+	return catalog.Filter{Kind: q.Get("kind"), IncludeInactive: includeInactive, SchoolID: q.Get("school_id"), DepartmentID: q.Get("department_id"), CategoryID: q.Get("category_id"), NatureID: q.Get("nature_id"), CourseID: q.Get("course_id"), TermID: q.Get("term_id"), TeacherID: q.Get("teacher_id"), TermCourseID: q.Get("term_course_id"), ClassID: q.Get("class_id"), Query: q.Get("q"), After: q.Get("after"), Limit: n}, nil
 }
 func (h Handler) list(w http.ResponseWriter, r *http.Request) {
 	p, ok := h.principal(w, r)
@@ -158,6 +196,10 @@ func (h Handler) list(w http.ResponseWriter, r *http.Request) {
 	filter, e := readFilter(r)
 	if e != nil {
 		respond(w, nil, e)
+		return
+	}
+	if filter.IncludeInactive {
+		respond(w, nil, catalog.ErrInput)
 		return
 	}
 	v, e := h.Service.ReadList(r.Context(), p, filter)

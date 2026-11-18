@@ -119,6 +119,27 @@ func (t *transaction) projectionVersion(school string) (int64, error) {
 	return version, nil
 }
 
+func (t *transaction) projectionManaged(school string) (bool, error) {
+	if t.repoDirectoryProjection || c.DirectoryRebuildDeferred(t.ctx) {
+		return true, nil
+	}
+	if school == "" {
+		return false, nil
+	}
+	if yes, ok := t.projectionManagedCache[school]; ok {
+		return yes, nil
+	}
+	var exists bool
+	if err := t.tx.QueryRowContext(t.ctx, `SELECT EXISTS(SELECT 1 FROM catalog.projection_heads WHERE school_id=$1)`, school).Scan(&exists); err != nil {
+		return false, safe(err)
+	}
+	if t.projectionManagedCache == nil {
+		t.projectionManagedCache = map[string]bool{}
+	}
+	t.projectionManagedCache[school] = exists
+	return exists, nil
+}
+
 func (t *transaction) rebuildActive(school string) error {
 	if c.DirectoryRebuildDeferred(t.ctx) {
 		return nil
@@ -130,7 +151,11 @@ func (t *transaction) rebuildActive(school string) error {
 	if !exists {
 		return nil
 	}
-	_, err := t.RebuildDirectory(school, nil, time.Now().UTC())
+	at := time.Now().UTC()
+	if !t.mutationTime.IsZero() {
+		at = t.mutationTime.UTC()
+	}
+	_, err := t.RebuildDirectory(school, nil, at)
 	return err
 }
 
@@ -162,10 +187,13 @@ func (r *Repository) recordProjectionFailure(school string, err error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	reason := "build_failed"
+	var df c.DirectoryFailure
 	if errors.Is(err, context.DeadlineExceeded) {
 		reason = "build_timeout"
 	} else if errors.Is(err, context.Canceled) {
 		reason = "build_canceled"
+	} else if errors.As(err, &df) && df.Reason == "lock_unavailable" {
+		reason = "lock_timeout"
 	}
 	if _, e := r.DB.ExecContext(ctx, `INSERT INTO catalog.projection_failures(school_id,failed_at,reason) VALUES($1,now(),$2)
  ON CONFLICT(school_id) DO UPDATE SET failed_at=excluded.failed_at,reason=excluded.reason`, school, reason); e != nil {
@@ -175,15 +203,15 @@ func (r *Repository) recordProjectionFailure(school string, err error) {
 
 func (t *transaction) RebuildDirectory(school string, policy *c.DirectoryPolicy, at time.Time) (out c.ProjectionReport, err error) {
 	started := time.Now()
+	t.projectionAttempt = school
+	if _, err = t.tx.ExecContext(t.ctx, `SET LOCAL statement_timeout='100s'; SET LOCAL lock_timeout='10s'; SET LOCAL jit=off`); err != nil {
+		return out, safe(err)
+	}
 	if err = t.touchProjection(school); err != nil {
 		return
 	}
-	t.projectionAttempt = school
 	if err = t.Lock("projection-build"); err != nil {
 		return
-	}
-	if _, err = t.tx.ExecContext(t.ctx, `SET LOCAL statement_timeout='100s'; SET LOCAL lock_timeout='10s'; SET LOCAL jit=off`); err != nil {
-		return out, safe(err)
 	}
 	var exists bool
 	if err = t.tx.QueryRowContext(t.ctx, `SELECT EXISTS(SELECT 1 FROM catalog.objects WHERE id=$1 AND school_id=$1 AND kind='school' AND NOT COALESCE((data->'object'->>'inactive')::boolean,false))`, school).Scan(&exists); err != nil {
@@ -273,6 +301,16 @@ func (t *transaction) RebuildDirectory(school string, policy *c.DirectoryPolicy,
 	if !selectionsValid {
 		return out, c.ErrUnavailable
 	}
+	if _, err = t.tx.ExecContext(t.ctx, `INSERT INTO catalog.projection_documents(version,id,data)
+ SELECT $2,latest.id,latest.data || jsonb_build_object('revision',$2,'title','','visible',false,'code','','aliases','[]'::jsonb,'english_name','','former_codes','[]'::jsonb,'former_names','[]'::jsonb,'at',g.built_at)
+ FROM (SELECT DISTINCT ON (h.id) h.id,h.data FROM catalog.discovery_history h JOIN catalog.objects o ON o.id=h.id WHERE o.school_id=$1 ORDER BY h.id,h.revision DESC) latest
+ JOIN catalog.projection_generations g ON g.version=$2
+ WHERE NOT EXISTS(SELECT 1 FROM catalog.projection_heads ph WHERE ph.school_id=$1)
+   AND EXISTS (SELECT 1 FROM catalog.outbox e WHERE e.data->>'type'='catalog.discovery.v1' AND e.data->>'subject'=latest.id AND (e.data->'data'->>'visible')::boolean)
+   AND (latest.data->>'visible')::boolean
+   AND NOT EXISTS(SELECT 1 FROM catalog.projection_documents n WHERE n.version=$2 AND n.id=latest.id)`, school, out.Version); err != nil {
+		return out, safe(err)
+	}
 	if err = t.tx.QueryRowContext(t.ctx, `SELECT
  (SELECT count(*) FROM catalog.projection_relations WHERE version=$1),
  (SELECT count(*) FROM catalog.projection_teaching_history WHERE version=$1),
@@ -286,10 +324,17 @@ func (t *transaction) RebuildDirectory(school string, policy *c.DirectoryPolicy,
 	if err = t.publishProjectionDocuments(school, out.Version, at); err != nil {
 		return out, err
 	}
+	if err = t.syncProjectedActivityVisibility(school, out.Version, at); err != nil {
+		return out, err
+	}
 	if _, err = t.tx.ExecContext(t.ctx, `INSERT INTO catalog.projection_heads(school_id,version,policy) VALUES($1,$2,$3::jsonb)
  ON CONFLICT(school_id) DO UPDATE SET version=excluded.version,policy=excluded.policy`, school, out.Version, string(raw)); err != nil {
 		return out, safe(err)
 	}
+	if t.projectionManagedCache == nil {
+		t.projectionManagedCache = map[string]bool{}
+	}
+	t.projectionManagedCache[school] = true
 	if _, err = t.tx.ExecContext(t.ctx, `DELETE FROM catalog.projection_failures WHERE school_id=$1`, school); err != nil {
 		return out, safe(err)
 	}
