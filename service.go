@@ -16,19 +16,20 @@ import (
 )
 
 type Service struct {
-	DirectoryMetrics DirectoryMetricProvider
-	DirectoryConfig  DirectoryConfig
-	RecentResources  RecentResourceCounts
-	OwnSummaryAccess OwnSummaryAccess
-	EnrollmentSource EnrollmentSource
-	TeacherSiteHosts map[string][]string
-	ActivityLogger   *slog.Logger
-	OwnLogger        *slog.Logger
-	DirectoryLogger  *slog.Logger
-	viewStats        viewCounters
-	ReadAccess       ContentAccess
-	Repo             Repository
-	Clock            func() time.Time
+	DirectoryMetrics        DirectoryMetricProvider
+	DirectoryConfig         DirectoryConfig
+	RecentResources         RecentResourceCounts
+	OwnSummaryAccess        OwnSummaryAccess
+	EnrollmentSource        EnrollmentSource
+	TeacherSiteHosts        map[string][]string
+	ActivityLogger          *slog.Logger
+	OwnLogger               *slog.Logger
+	DirectoryLogger         *slog.Logger
+	AsyncMaintenanceRebuild bool
+	viewStats               viewCounters
+	ReadAccess              ContentAccess
+	Repo                    Repository
+	Clock                   func() time.Time
 }
 
 func (s *Service) now() time.Time {
@@ -387,11 +388,16 @@ func (s *Service) MyEnrollments(ctx context.Context, p Principal, school, course
 }
 func (s *Service) Correct(ctx context.Context, p Principal, id, key string, in Correction) (Object, error) {
 	ctx = teacherMaintenanceContext(ctx)
+	if s.AsyncMaintenanceRebuild {
+		ctx = deferMaintenanceRebuildContext(ctx)
+	}
 	var out Object
 	if err := maintainRead(p); err != nil {
 		return out, err
 	}
-	if !ValidID(id) || !ValidKey(key) || in.Revision < 1 || (in.Name == nil && in.Biography == nil && in.DepartmentID == nil && in.CategoryID == nil && in.NatureID == nil && in.Code == nil && in.Credits == nil && !in.ClearCredits) || (in.Credits != nil && in.ClearCredits) {
+	if !ValidID(id) || !ValidKey(key) || in.Revision < 1 || !validCorrectionReset(in) ||
+		(in.Name == nil && in.Biography == nil && in.DepartmentID == nil && in.CategoryID == nil && in.NatureID == nil && in.Code == nil && in.Credits == nil && !in.ClearCredits && len(in.ResetFields) == 0) ||
+		(in.Credits != nil && in.ClearCredits) {
 		return out, ErrInput
 	}
 	if in.Name != nil && (strings.TrimSpace(*in.Name) == "" || !validText(*in.Name, 256)) {
@@ -434,16 +440,17 @@ func (s *Service) Correct(ctx context.Context, p Principal, id, key string, in C
 		if public.CanonicalID != "" || r.Object.Revision != in.Revision {
 			return ErrConflict
 		}
-		if (in.Credits != nil || in.ClearCredits || in.CategoryID != nil || in.NatureID != nil) && r.Object.Kind != "course" {
+		courseReset := slices.Contains(in.ResetFields, "credits") || slices.Contains(in.ResetFields, "category_id") || slices.Contains(in.ResetFields, "nature_id")
+		if (in.Credits != nil || in.ClearCredits || in.CategoryID != nil || in.NatureID != nil || courseReset) && r.Object.Kind != "course" {
 			return ErrInput
 		}
-		if in.Biography != nil && !slices.Contains([]string{"course", "teacher"}, r.Object.Kind) {
+		if (in.Biography != nil || slices.Contains(in.ResetFields, "biography")) && !slices.Contains([]string{"course", "teacher"}, r.Object.Kind) {
 			return ErrInput
 		}
-		if in.DepartmentID != nil && !slices.Contains([]string{"course", "teacher", "term_course", "class"}, r.Object.Kind) {
+		if (in.DepartmentID != nil || slices.Contains(in.ResetFields, "department_id")) && !slices.Contains([]string{"course", "teacher", "term_course", "class"}, r.Object.Kind) {
 			return ErrInput
 		}
-		if in.Code != nil && !slices.Contains([]string{"school", "department", "category", "nature", "term", "course", "term_course", "class"}, r.Object.Kind) {
+		if (in.Code != nil || slices.Contains(in.ResetFields, "code")) && !slices.Contains([]string{"school", "department", "category", "nature", "term", "course", "term_course", "class"}, r.Object.Kind) {
 			return ErrInput
 		}
 		if e = recordCorrection(&r, in); e != nil {

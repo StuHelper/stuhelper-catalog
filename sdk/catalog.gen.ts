@@ -495,6 +495,24 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/catalog/admin/schools/{school_id}/directory-projection": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description 读取指定学校当前已发布的目录投影报告、最近失败原因、最近异步重建任务及源目录修订差。要求 catalog.maintain 与学校维护范围，每次查看记录审计。 */
+        get: operations["getDirectoryProjectionStatus"];
+        put?: never;
+        /** @description 提交目录投影异步重建持久任务，可选更新学校 DirectoryPolicy。要求 catalog.maintain 与学校维护范围。同键同请求重放原任务，已有排队或运行任务或存在未完成来源导入时返回 409。 */
+        post: operations["startDirectoryProjectionRebuild"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -598,6 +616,8 @@ export interface components {
             credits?: number;
             /** @description Explicitly restore unknown credits; cannot be combined with credits. */
             clear_credits?: boolean;
+            /** @description 移除对应字段的人工覆盖并恢复教务导入原值，不能与同一字段的新覆盖同时传入。 */
+            reset_fields?: ("name" | "biography" | "department_id" | "category_id" | "nature_id" | "code" | "credits")[];
         };
         Lookup: {
             items: components["schemas"]["Object"][];
@@ -942,6 +962,122 @@ export interface components {
             id: string;
             mappings: number;
             redirects: number;
+        };
+        CategoryAlias: {
+            from: string;
+            to: string;
+        };
+        SportsProject: {
+            key: string;
+            name: string;
+            source_codes: string[];
+        };
+        SportsDirectoryPolicy: {
+            category_name: string;
+            course_names?: string[];
+            projects: components["schemas"]["SportsProject"][];
+        };
+        DirectoryPolicy: {
+            cutoff_year: number;
+            /** @enum {string} */
+            cutoff_season: "spring" | "summer" | "autumn";
+            excluded_course_names?: string[];
+            excluded_category_names?: string[];
+            category_aliases?: components["schemas"]["CategoryAlias"][];
+            sports?: components["schemas"]["SportsDirectoryPolicy"] | null;
+        };
+        ProjectionReport: {
+            /** Format: int64 */
+            excluded_courses?: number;
+            /** Format: int64 */
+            sports_projects?: number;
+            /** Format: int64 */
+            sports_source_courses?: number;
+            /** Format: int64 */
+            sports_classes?: number;
+            /** Format: int64 */
+            unresolved_sports_classes?: number;
+            sports_unresolved_reasons?: {
+                [key: string]: number;
+            };
+            /** Format: int64 */
+            version: number;
+            policy: components["schemas"]["DirectoryPolicy"];
+            /** Format: int64 */
+            objects: number;
+            /** Format: int64 */
+            courses: number;
+            /** Format: int64 */
+            teachers: number;
+            /** Format: int64 */
+            variants: number;
+            /** Format: int64 */
+            relations: number;
+            /** Format: int64 */
+            teaching_history: number;
+            /** Format: int64 */
+            summaries: number;
+            /** Format: int64 */
+            documents: number;
+            /** Format: int64 */
+            aliases: number;
+            /** Format: int64 */
+            selections: number;
+            /** Format: int64 */
+            rows: number;
+            /** Format: int64 */
+            options: number;
+            /** Format: int64 */
+            invalid_terms: number;
+            /** Format: int64 */
+            bytes: number;
+            /** Format: int64 */
+            storage_bytes: number;
+            /** Format: int64 */
+            duration_ms: number;
+            marks: components["schemas"]["TeacherMarkCounts"];
+            /** Format: date-time */
+            built_at: string;
+        };
+        ProjectionFailure: {
+            reason: string;
+            /** Format: date-time */
+            failed_at: string;
+        };
+        ProjectionRebuildRun: {
+            id: string;
+            school_id: string;
+            /** @enum {string} */
+            status: "queued" | "running" | "succeeded" | "failed" | "timed_out";
+            policy?: components["schemas"]["DirectoryPolicy"] | null;
+            /** Format: date-time */
+            requested_at: string;
+            /** Format: date-time */
+            started_at: string | null;
+            /** Format: date-time */
+            finished_at: string | null;
+            /** Format: date-time */
+            deadline_at: string;
+            /** Format: int64 */
+            duration_ms: number;
+            /** Format: int64 */
+            version: number | null;
+            failure_reason: string;
+        };
+        DirectoryProjectionRebuildInput: {
+            policy?: components["schemas"]["DirectoryPolicy"] | null;
+        };
+        DirectoryProjectionStatus: {
+            published: components["schemas"]["ProjectionReport"] | null;
+            latest_failure: components["schemas"]["ProjectionFailure"] | null;
+            latest_run: components["schemas"]["ProjectionRebuildRun"] | null;
+            /** Format: int64 */
+            source_revision: number;
+            /** Format: int64 */
+            published_revision: number;
+            /** Format: int64 */
+            source_revision_lag: number;
+            pending_rebuild: boolean;
         };
     };
     responses: never;
@@ -3567,6 +3703,155 @@ export interface operations {
                 };
             };
             /** @description Revision or idempotency conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Required dependency unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    getDirectoryProjectionStatus: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                school_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DirectoryProjectionStatus"];
+                };
+            };
+            /** @description Invalid input */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Authentication required */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not permitted */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Required dependency unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    startDirectoryProjectionRebuild: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path: {
+                school_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DirectoryProjectionRebuildInput"];
+            };
+        };
+        responses: {
+            /** @description Accepted; asynchronous durable rebuild job. */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProjectionRebuildRun"];
+                };
+            };
+            /** @description Invalid input */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Authentication required */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not permitted */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Conflict with existing rebuild or incomplete source import */
             409: {
                 headers: {
                     [name: string]: unknown;

@@ -231,6 +231,8 @@ scenario_tests:
   CAT-PROJECTION-03:
     - projection_test.go#TestDirectoryProjectionAutoRebuildAndCompleteImportBoundary
     - projection_test.go#TestDirectoryProjectionFailedSourceImportFencesPublicationUntilRetry
+    - projection_test.go#TestAdminDirectoryProjectionHTTPResetFieldsAndDebouncedWorker
+    - projection_test.go#TestExpiredProjectionWorkerCannotPublishOverReplacement
     - projection_test.go#TestProjectionAndTeacherMarkersIsolateDiscoveryAndActivityVisibility
     - projection_import_test.go#TestDirectoryProjectionRetiredImportCannotWriteOrPublish
     - projection_import_test.go#TestDirectoryProjectionCompletedAndExpiredImportsRejectFurtherPages

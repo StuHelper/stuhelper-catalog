@@ -118,6 +118,9 @@ func (s *Service) Merge(ctx context.Context, p Principal, id, key string, in Mer
 		return Object{}, err
 	}
 	ctx = teacherMaintenanceContext(ctx)
+	if s.AsyncMaintenanceRebuild {
+		ctx = deferMaintenanceRebuildContext(ctx)
+	}
 	var out Object
 	if !ValidID(id) || !ValidKey(key) || in.PreviewToken == "" {
 		return out, ErrInput
@@ -194,6 +197,9 @@ func (s *Service) SetState(ctx context.Context, p Principal, id, key string, in 
 		return Object{}, err
 	}
 	ctx = teacherMaintenanceContext(ctx)
+	if s.AsyncMaintenanceRebuild {
+		ctx = deferMaintenanceRebuildContext(ctx)
+	}
 	var out Object
 	if !ValidID(id) || !ValidKey(key) || strings.TrimSpace(in.Reason) == "" || !validText(in.Reason, 2000) {
 		return out, ErrInput

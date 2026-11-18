@@ -176,6 +176,12 @@ func (t *transaction) RebuildPublishedDirectory(school string, at time.Time) (*c
 
 func (t *transaction) flushProjection() error {
 	for school := range t.projectionSchools {
+		if c.MaintenanceRebuildDeferred(t.ctx) {
+			if err := t.markProjectionPending(school); err != nil {
+				return err
+			}
+			continue
+		}
 		if err := t.rebuildActive(school); err != nil {
 			return err
 		}
