@@ -40,12 +40,9 @@ func (h Handler) overviewRoutes(m *http.ServeMux) {
 			respond(w, nil, c.ErrInput)
 			return
 		}
-		if req.ContentLength != 0 {
-			var body struct{}
-			if err := decode(w, req, &body); err != nil {
-				respond(w, nil, err)
-				return
-			}
+		if err := decodeOptionalEmpty(w, req); err != nil {
+			respond(w, nil, err)
+			return
 		}
 		err := h.Service.RecordRecentCourse(req.Context(), p, req.PathValue("id"))
 		respond(w, map[string]bool{"recorded": err == nil}, err)

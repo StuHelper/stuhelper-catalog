@@ -39,6 +39,10 @@ func (h Handler) operationRoutes(m *http.ServeMux) {
 				return
 			}
 			if operation == "merge-preview" {
+				if key := r.Header.Get("Idempotency-Key"); key != "" && !c.ValidKey(key) {
+					respond(w, nil, c.ErrInput)
+					return
+				}
 				v, e := h.Service.PreviewMerge(r.Context(), p, r.PathValue("id"), in)
 				respond(w, v, e)
 			} else {
@@ -63,6 +67,10 @@ func (h Handler) operationRoutes(m *http.ServeMux) {
 	m.HandleFunc("POST /api/v1/catalog/imports/preview", func(w http.ResponseWriter, r *http.Request) {
 		p, ok := h.principal(w, r)
 		if !ok {
+			return
+		}
+		if key := r.Header.Get("Idempotency-Key"); key != "" && !c.ValidKey(key) {
+			respond(w, nil, c.ErrInput)
 			return
 		}
 		var in c.Import

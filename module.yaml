@@ -121,6 +121,7 @@ scenario_tests:
     - integration_test.go#TestImportRelationsClassificationAndMissingCredits
   ACAD-01:
     - http_compatibility_test.go#TestLegacyEnrollmentHTTPShapeAndExplicitTermOrder
+    - http_compatibility_test.go#TestOpenAPINullableSDKAndOptionalBodyPreviewHeaders
     - term_order_test.go#TestTermOrderReadFieldPreservesLegacyImportReplay
     - term_order_test.go#TestEnrollmentAndTermOptionsUseStructuredOrder
     - directory_performance_test.go#TestDirectoryTeacherSkewedAssignmentScale

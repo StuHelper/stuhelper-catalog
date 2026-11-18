@@ -113,6 +113,27 @@ func decode(w http.ResponseWriter, r *http.Request, v any) error {
 	}
 	return nil
 }
+
+func decodeOptionalEmpty(w http.ResponseWriter, r *http.Request) error {
+	if r.Body == nil {
+		return nil
+	}
+	r.Body = http.MaxBytesReader(w, r.Body, 4<<20)
+	d := json.NewDecoder(r.Body)
+	d.DisallowUnknownFields()
+	var body struct{}
+	if err := d.Decode(&body); err != nil {
+		if errors.Is(err, io.EOF) {
+			return nil
+		}
+		return catalog.ErrInput
+	}
+	var extra any
+	if d.Decode(&extra) != io.EOF {
+		return catalog.ErrInput
+	}
+	return nil
+}
 func (h Handler) principal(w http.ResponseWriter, r *http.Request) (catalog.Principal, bool) {
 	if h.Authenticate == nil {
 		respond(w, nil, catalog.ErrUnavailable)
