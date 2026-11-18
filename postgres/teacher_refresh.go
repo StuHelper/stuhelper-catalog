@@ -1,9 +1,11 @@
 package postgres
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	c "github.com/StuHelper/stuhelper-catalog"
+	"time"
 )
 
 func (t *transaction) BeginTeacherRefreshSnapshot() error {
@@ -12,7 +14,8 @@ func (t *transaction) BeginTeacherRefreshSnapshot() error {
 }
 
 func (t *transaction) TeacherRefresh(id string) (c.TeacherRefreshRun, error) {
-	return read[c.TeacherRefreshRun](t, `SELECT data FROM catalog.teacher_refresh_runs WHERE id=$1`, id)
+	return read[c.TeacherRefreshRun](t, `SELECT data FROM catalog.teacher_refresh_runs WHERE id=$1
+ UNION ALL SELECT data FROM catalog.replays WHERE key='teacher-refresh-result:' || $1`, id)
 }
 func (t *transaction) TeacherRefreshLatest(school string) (*c.TeacherRefreshRun, error) {
 	v, e := read[c.TeacherRefreshRun](t, `SELECT data FROM catalog.teacher_refresh_runs WHERE school_id=$1 ORDER BY position DESC LIMIT 1`, school)
@@ -113,3 +116,21 @@ func (t *transaction) SearchTeacherUnmatched(school, reason, query, after string
 }
 
 func (t *transaction) RecordTeacherRefreshAudit(v c.Event) error { return t.recordAudit(v) }
+
+func (r *Repository) PruneTeacherRefreshRuns(ctx context.Context, before time.Time, limit int) (int64, error) {
+	if before.IsZero() || limit < 1 || limit > 1000 {
+		return 0, c.ErrInput
+	}
+	result, err := r.DB.ExecContext(ctx, `WITH removed AS (DELETE FROM catalog.teacher_refresh_runs WHERE id IN (
+ SELECT r.id FROM catalog.teacher_refresh_runs r
+ WHERE r.status IN ('succeeded','failed','timed_out') AND r.requested_at<$1
+   AND r.id NOT IN (SELECT DISTINCT ON (school_id) id FROM catalog.teacher_refresh_runs ORDER BY school_id,position DESC)
+ ORDER BY r.requested_at,r.id LIMIT $2 FOR UPDATE OF r SKIP LOCKED
+) RETURNING id,data)
+ INSERT INTO catalog.replays(key,data) SELECT 'teacher-refresh-result:' || id,data FROM removed`, before.UTC(), limit)
+	if err != nil {
+		return 0, safe(err)
+	}
+	n, err := result.RowsAffected()
+	return n, safe(err)
+}

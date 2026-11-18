@@ -686,7 +686,7 @@ export interface components {
             items: components["schemas"]["Reference"][];
             missing_ids: string[];
         };
-        /** @description ISO weekday Monday=1. Explicit week set; odd/even weeks are expanded by importer. End period >= start. Missing structure means not provided. Recognized time_text grammar: 周一 第1-2节 第1-16周(单), with optional 单/双 suffix. */
+        /** @description ISO weekday Monday=1. Explicit week set; odd/even weeks are expanded by importer. End period >= start. Missing structure means not provided. Recognized time_text grammar supports single or range periods (第5节, 第1-2节), single, range or ascending comma-separated week segments (第8周, 第1-8,10-16周, 第1,3,5,7周), and optional halfwidth or fullwidth 单/双 suffix. */
         ScheduleTime: {
             weekday: number;
             start_period: number;
@@ -755,9 +755,10 @@ export interface components {
             total: number;
             category_facets: components["schemas"]["DirectoryFacet"][];
             department_facets: components["schemas"]["DirectoryFacet"][];
+            nature_facets: components["schemas"]["DirectoryFacet"][];
             /** Format: date-time */
             generated_at: string;
-            /** @description Distinct objects after all filters except category_id, for the All category badge. */
+            /** @description Distinct objects after all filters except category_id / category_ids, for the All category badge. */
             facet_total: number;
         };
         RecentCourse: {
@@ -963,6 +964,7 @@ export interface operations {
                 term_course_id?: string;
                 /** @description 普通目录禁止使用此教学班粒度筛选，返回 403 forbidden；管理端使用 /catalog/admin/objects。 */
                 class_id?: string;
+                /** @description 普通目录不返回停用对象，传 true 返回 400 invalid_input；管理端使用 /catalog/admin/objects。 */
                 include_inactive?: boolean;
             };
             header?: never;
@@ -2795,9 +2797,17 @@ export interface operations {
                 school_id?: string;
                 q?: string;
                 department_id?: string;
+                /** @description 逗号分隔的多个学院 ID（最多 20 项），不能与 department_id 同时传入。 */
+                department_ids?: string;
                 category_id?: string;
+                /** @description 逗号分隔的多个课程类别 ID（最多 20 项，仅 kind=course），不能与 category_id 同时传入。 */
+                category_ids?: string;
                 nature_id?: string;
                 teacher_id?: string;
+                /** @description 课程最低学分（含，0 至 100，仅 kind=course）；未知学分课程不匹配学分区间筛选。 */
+                credits_min?: number;
+                /** @description 课程最高学分（含，0 至 100，仅 kind=course）；未知学分课程不匹配学分区间筛选。 */
+                credits_max?: number;
                 sort?: "hot" | "recommend" | "reviews" | "name";
                 after?: string;
                 limit?: number;

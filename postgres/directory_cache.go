@@ -14,13 +14,15 @@ import (
 // Only catalog-owned membership is cached. Every request checks its transactional
 // generation. Ratings, heat, authority decisions and personal data are not cached.
 const directoryCacheBytes = 64 << 20
-const directoryCacheEntries = 4
+const directoryCacheEntries = 32
+const directoryPinnedEntries = 16
 
 type directoryCandidate struct {
 	ID          string   `json:"id"`
 	Name        string   `json:"name"`
 	Departments []string `json:"departments"`
 	Categories  []string `json:"categories"`
+	Natures     []string `json:"natures"`
 }
 type directorySelection struct {
 	NatureFacets     []c.DirectoryFacet   `json:"nature_facets"`
@@ -40,6 +42,7 @@ type directoryCacheEntry struct {
 }
 type directoryCache struct {
 	mu       sync.Mutex
+	pinned   map[string]directoryCacheEntry
 	entries  map[string]directoryCacheEntry
 	building map[string]chan struct{}
 	used     uint64
@@ -48,11 +51,32 @@ type directoryCache struct {
 
 func (r *Repository) directoryCache() *directoryCache {
 	r.directoryOnce.Do(func() {
-		r.directoryData = &directoryCache{entries: map[string]directoryCacheEntry{}, building: map[string]chan struct{}{}}
+		r.directoryData = &directoryCache{
+			pinned:   map[string]directoryCacheEntry{},
+			entries:  map[string]directoryCacheEntry{},
+			building: map[string]chan struct{}{},
+		}
 	})
 	return r.directoryData
 }
-func (cache *directoryCache) get(ctx context.Context, key string, revision int64, build func() (*directorySelection, int, error)) (*directorySelection, error) {
+
+func (cache *directoryCache) evictOldest(pool map[string]directoryCacheEntry) bool {
+	oldestKey := ""
+	var oldest uint64
+	for k, entry := range pool {
+		if oldestKey == "" || entry.used < oldest {
+			oldestKey, oldest = k, entry.used
+		}
+	}
+	if oldestKey == "" {
+		return false
+	}
+	cache.bytes -= pool[oldestKey].bytes
+	delete(pool, oldestKey)
+	return true
+}
+
+func (cache *directoryCache) get(ctx context.Context, key string, revision int64, pin bool, build func() (*directorySelection, int, error)) (*directorySelection, error) {
 	if cache == nil {
 		value, _, err := build()
 		return value, err
@@ -60,9 +84,13 @@ func (cache *directoryCache) get(ctx context.Context, key string, revision int64
 	for {
 		cache.mu.Lock()
 		cache.used++
-		if entry, ok := cache.entries[key]; ok && entry.revision == revision && time.Now().Before(entry.expires) {
+		pool := cache.entries
+		if pin {
+			pool = cache.pinned
+		}
+		if entry, ok := pool[key]; ok && entry.revision == revision && time.Now().Before(entry.expires) {
 			entry.used = cache.used
-			cache.entries[key] = entry
+			pool[key] = entry
 			cache.mu.Unlock()
 			return entry.selection, nil
 		}
@@ -81,30 +109,40 @@ func (cache *directoryCache) get(ctx context.Context, key string, revision int64
 		value, size, err := build()
 		cache.mu.Lock()
 		if err == nil && size <= directoryCacheBytes {
-			old, exists := cache.entries[key]
+			pool := cache.entries
+			if pin {
+				pool = cache.pinned
+			}
+			old, exists := pool[key]
 			// A slow transaction cannot replace a newer committed generation.
 			if !exists || old.revision <= revision {
 				if exists {
 					cache.bytes -= old.bytes
-					delete(cache.entries, key)
+					delete(pool, key)
 				}
-				for len(cache.entries) >= directoryCacheEntries || cache.bytes+size > directoryCacheBytes {
-					oldestKey := ""
-					var oldest uint64
-					for k, entry := range cache.entries {
-						if oldestKey == "" || entry.used < oldest {
-							oldestKey, oldest = k, entry.used
+				if pin {
+					for cache.bytes+size > directoryCacheBytes && cache.evictOldest(cache.entries) {
+					}
+					for len(cache.pinned) >= directoryPinnedEntries || cache.bytes+size > directoryCacheBytes {
+						if !cache.evictOldest(cache.pinned) {
+							break
 						}
 					}
-					if oldestKey == "" {
-						break
+					cache.used++
+					cache.pinned[key] = directoryCacheEntry{value, revision, size, cache.used, time.Now().Add(5 * time.Minute)}
+					cache.bytes += size
+				} else {
+					for len(cache.entries) >= directoryCacheEntries || cache.bytes+size > directoryCacheBytes {
+						if !cache.evictOldest(cache.entries) {
+							break
+						}
 					}
-					cache.bytes -= cache.entries[oldestKey].bytes
-					delete(cache.entries, oldestKey)
+					if len(cache.entries) < directoryCacheEntries && cache.bytes+size <= directoryCacheBytes {
+						cache.used++
+						cache.entries[key] = directoryCacheEntry{value, revision, size, cache.used, time.Now().Add(5 * time.Minute)}
+						cache.bytes += size
+					}
 				}
-				cache.used++
-				cache.entries[key] = directoryCacheEntry{value, revision, size, cache.used, time.Now().Add(5 * time.Minute)}
-				cache.bytes += size
 			}
 		}
 		delete(cache.building, key)
@@ -124,27 +162,35 @@ func (t *transaction) directorySelection(q c.DirectoryQuery) (*directorySelectio
 	} else if err := t.tx.QueryRowContext(t.ctx, `SELECT revision FROM catalog.directory_revision WHERE singleton`).Scan(&revision); err != nil {
 		return nil, safe(err)
 	}
-	input, err := json.Marshal([]any{q.Kind, q.SchoolID, q.Query, q.DepartmentID, q.CategoryID, q.NatureID, q.TeacherID, t.requireTeacherDirectory, t.projectionRead})
+	input, err := json.Marshal([]any{q.Kind, q.SchoolID, q.Query, q.DepartmentID, q.DepartmentIDs, q.CategoryID, q.CategoryIDs, q.NatureID, q.TeacherID, q.CreditsMin, q.CreditsMax, t.requireTeacherDirectory, t.projectionRead})
 	if err != nil {
 		return nil, c.ErrInput
 	}
 	hash := sha256.Sum256(input)
 	key := hex.EncodeToString(hash[:])
-	return t.directoryData.get(t.ctx, key, revision, func() (*directorySelection, int, error) {
+	unfiltered := q.Query == "" && q.DepartmentID == "" && len(q.DepartmentIDs) == 0 && q.CategoryID == "" && len(q.CategoryIDs) == 0 && q.NatureID == "" && q.TeacherID == "" && q.CreditsMin == nil && q.CreditsMax == nil
+	return t.directoryData.get(t.ctx, key, revision, unfiltered, func() (*directorySelection, int, error) {
+		var raw []byte
 		query, args, err := directorySelectionQuery(q)
 		if t.projectionRead {
 			query, args, err = projectedSelectionQuery(q, revision)
-			if q.Query == "" && q.DepartmentID == "" && q.CategoryID == "" && q.NatureID == "" && q.TeacherID == "" {
-				query = `SELECT data FROM catalog.projection_selections WHERE version=$1 AND kind=$2`
-				args = []any{revision, q.Kind}
+			if unfiltered {
+				// Older publications stored candidates without their nature memberships.
+				// Recompute them from the same immutable version on the first cache miss.
+				err = t.tx.QueryRowContext(t.ctx, `SELECT CASE WHEN jsonb_array_length(data->'candidates')=0
+ OR (data->'candidates'->0) ? 'natures' THEN data END FROM catalog.projection_selections WHERE version=$1 AND kind=$2`, revision, q.Kind).Scan(&raw)
+				if err != nil {
+					return nil, 0, safe(err)
+				}
 			}
 		}
 		if err != nil {
 			return nil, 0, err
 		}
-		var raw []byte
-		if err = t.tx.QueryRowContext(t.ctx, query, append([]any{pgx.QueryExecModeExec}, args...)...).Scan(&raw); err != nil {
-			return nil, 0, safe(err)
+		if raw == nil {
+			if err = t.tx.QueryRowContext(t.ctx, query, append([]any{pgx.QueryExecModeExec}, args...)...).Scan(&raw); err != nil {
+				return nil, 0, safe(err)
+			}
 		}
 		if len(raw) > 32<<20 {
 			return nil, 0, c.ErrUnavailable
