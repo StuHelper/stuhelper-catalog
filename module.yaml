@@ -141,6 +141,7 @@ scenario_tests:
   CO-08:
     - operations_test.go#TestMergeKeepsOldLinksOfferingsAndEnrollmentsAndSupportsDeactivation
     - operations_test.go#TestMergeRejectsFullAliasListWithoutDroppingSourceName
+    - operations_test.go#TestMaintenancePreAuthAndRejectMergedSourceCorrection
   CO-09:
     - operations_test.go#TestMergeKeepsOldLinksOfferingsAndEnrollmentsAndSupportsDeactivation
   CO-10:
