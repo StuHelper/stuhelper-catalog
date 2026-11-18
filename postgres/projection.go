@@ -141,21 +141,11 @@ func (t *transaction) projectionManaged(school string) (bool, error) {
 }
 
 func (t *transaction) rebuildActive(school string) error {
-	if c.DirectoryRebuildDeferred(t.ctx) {
-		return nil
-	}
-	var exists bool
-	if err := t.tx.QueryRowContext(t.ctx, `SELECT EXISTS(SELECT 1 FROM catalog.projection_heads WHERE school_id=$1)`, school).Scan(&exists); err != nil {
-		return safe(err)
-	}
-	if !exists {
-		return nil
-	}
 	at := time.Now().UTC()
 	if !t.mutationTime.IsZero() {
 		at = t.mutationTime.UTC()
 	}
-	_, err := t.RebuildDirectory(school, nil, at)
+	_, err := t.RebuildPublishedDirectory(school, at)
 	return err
 }
 

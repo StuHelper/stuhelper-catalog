@@ -2,10 +2,12 @@ package catalog_test
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	c "github.com/StuHelper/stuhelper-catalog"
 	"github.com/StuHelper/stuhelper-catalog/postgres"
+	"os"
 	"slices"
 	"sync/atomic"
 	"testing"
@@ -137,6 +139,127 @@ func TestMergeRejectsFullAliasListWithoutDroppingSourceName(t *testing.T) {
 	original, err := s.Get(ctx, "course")
 	if err != nil || original.CanonicalID != "" {
 		t.Fatal("rejected merge changed source", original, err)
+	}
+}
+
+func TestMaintenanceWriteUnifiedAuthAliasGuardAndOpenAPISchema(t *testing.T) {
+	s, p, in := fixture(t)
+	ctx := context.Background()
+	in.Objects = append(in.Objects,
+		c.Object{ID: "course-dup", Kind: "course", SchoolID: "school", Name: "Duplicate Course", DepartmentID: "dept", Aliases: []string{}},
+	)
+	if _, err := s.Import(ctx, p, "seed", in); err != nil {
+		t.Fatal(err)
+	}
+
+	name := "Edited"
+	anon := c.Principal{}
+	student := c.Principal{Subject: "issuer:student", Schools: []string{"school"}}
+	wrongSchool := c.Principal{Subject: "issuer:other-admin", CanMaintain: true, Schools: []string{"other-school"}}
+	mergeReq := c.MergeInput{TargetID: "course", SourceRevision: 1, TargetRevision: 1, Reason: "Duplicate", PreviewToken: "tok"}
+	stateReq := c.ObjectState{Revision: 1, Inactive: true, Reason: "Hide"}
+
+	// Upfront authorization without object ID enumeration.
+	for _, tc := range []struct {
+		who  c.Principal
+		want error
+	}{
+		{anon, c.ErrUnauthenticated},
+		{student, c.ErrForbidden},
+	} {
+		if _, err := s.Correct(ctx, tc.who, "nonexistent-id", "k1", c.Correction{Revision: 1, Name: &name}); !errors.Is(err, tc.want) {
+			t.Fatalf("Correct auth (%+v): got %v want %v", tc.who, err, tc.want)
+		}
+		if _, err := s.PreviewMerge(ctx, tc.who, "nonexistent-id", mergeReq); !errors.Is(err, tc.want) {
+			t.Fatalf("PreviewMerge auth (%+v): got %v want %v", tc.who, err, tc.want)
+		}
+		if _, err := s.Merge(ctx, tc.who, "nonexistent-id", "k1", mergeReq); !errors.Is(err, tc.want) {
+			t.Fatalf("Merge auth (%+v): got %v want %v", tc.who, err, tc.want)
+		}
+		if _, err := s.SetState(ctx, tc.who, "nonexistent-id", "k1", stateReq); !errors.Is(err, tc.want) {
+			t.Fatalf("SetState auth (%+v): got %v want %v", tc.who, err, tc.want)
+		}
+		if _, err := s.Delete(ctx, tc.who, "nonexistent-id", "k1", stateReq); !errors.Is(err, tc.want) {
+			t.Fatalf("Delete auth (%+v): got %v want %v", tc.who, err, tc.want)
+		}
+	}
+
+	// School-scope check.
+	if _, err := s.Correct(ctx, wrongSchool, "course", "k2", c.Correction{Revision: 1, Name: &name}); !errors.Is(err, c.ErrForbidden) {
+		t.Fatalf("Correct cross-school: %v", err)
+	}
+	if _, err := s.PreviewMerge(ctx, wrongSchool, "course-dup", mergeReq); !errors.Is(err, c.ErrForbidden) {
+		t.Fatalf("PreviewMerge cross-school: %v", err)
+	}
+
+	// Merge course-dup -> course, verify idempotent replay, then verify ALL maintenance writes reject the merged alias with 409 Conflict.
+	plan, err := s.PreviewMerge(ctx, p, "course-dup", c.MergeInput{TargetID: "course", SourceRevision: 1, TargetRevision: 1, Reason: "Confirmed duplicate"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	execMerge := c.MergeInput{TargetID: "course", SourceRevision: 1, TargetRevision: 1, Reason: "Confirmed duplicate", PreviewToken: plan.PreviewToken}
+	merged, err := s.Merge(ctx, p, "course-dup", "merge-dup", execMerge)
+	if err != nil {
+		t.Fatal(err)
+	}
+	replayed, err := s.Merge(ctx, p, "course-dup", "merge-dup", execMerge)
+	if err != nil || replayed.ID != merged.ID || replayed.Revision != merged.Revision {
+		t.Fatalf("Merge replay after canonical redirect failed: %+v %v", replayed, err)
+	}
+	if _, err := s.Correct(ctx, p, "course-dup", "edit-alias", c.Correction{Revision: 2, Name: &name}); !errors.Is(err, c.ErrConflict) {
+		t.Fatalf("Correct on merged alias must fail with ErrConflict, got: %v", err)
+	}
+	if _, err := s.PreviewMerge(ctx, p, "course-dup", c.MergeInput{TargetID: "course", SourceRevision: 2, TargetRevision: merged.Revision, Reason: "Again"}); !errors.Is(err, c.ErrConflict) {
+		t.Fatalf("PreviewMerge on merged alias must fail with ErrConflict, got: %v", err)
+	}
+	if _, err := s.Merge(ctx, p, "course-dup", "merge-dup-new-key", execMerge); !errors.Is(err, c.ErrConflict) {
+		t.Fatalf("Merge with new key on merged alias must fail with ErrConflict, got: %v", err)
+	}
+	if _, err := s.SetState(ctx, p, "course-dup", "state-alias", c.ObjectState{Revision: 2, Inactive: true, Reason: "Hide alias"}); !errors.Is(err, c.ErrConflict) {
+		t.Fatalf("SetState on merged alias must fail with ErrConflict, got: %v", err)
+	}
+
+	// Verify OpenAPI NullableObject stays in lockstep with Object and both Summary/PublicSummary reference it.
+	raw, err := os.ReadFile("contracts/catalog.openapi.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	var spec struct {
+		Components struct {
+			Schemas map[string]struct {
+				Nullable   bool                       `json:"nullable"`
+				Required   []string                   `json:"required"`
+				Properties map[string]json.RawMessage `json:"properties"`
+			} `json:"schemas"`
+		} `json:"components"`
+	}
+	if err := json.Unmarshal(raw, &spec); err != nil {
+		t.Fatal(err)
+	}
+	objSchema, okObj := spec.Components.Schemas["Object"]
+	nullObjSchema, okNull := spec.Components.Schemas["NullableObject"]
+	if !okObj || !okNull || !nullObjSchema.Nullable {
+		t.Fatalf("missing Object or NullableObject schema")
+	}
+	objKeys, nullKeys := make([]string, 0, len(objSchema.Properties)), make([]string, 0, len(nullObjSchema.Properties))
+	for k := range objSchema.Properties {
+		objKeys = append(objKeys, k)
+	}
+	for k := range nullObjSchema.Properties {
+		nullKeys = append(nullKeys, k)
+	}
+	slices.Sort(objKeys)
+	slices.Sort(nullKeys)
+	if !slices.Equal(objKeys, nullKeys) || !slices.Equal(objSchema.Required, nullObjSchema.Required) {
+		t.Fatalf("NullableObject drifted from Object: obj=%v null=%v", objKeys, nullKeys)
+	}
+	for _, summaryName := range []string{"Summary", "PublicSummary"} {
+		var deptRef struct {
+			Ref string `json:"$ref"`
+		}
+		if err := json.Unmarshal(spec.Components.Schemas[summaryName].Properties["department"], &deptRef); err != nil || deptRef.Ref != "#/components/schemas/NullableObject" {
+			t.Fatalf("%s.department must $ref NullableObject, got: %s (%v)", summaryName, string(spec.Components.Schemas[summaryName].Properties["department"]), err)
+		}
 	}
 }
 

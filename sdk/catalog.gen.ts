@@ -520,6 +520,42 @@ export interface components {
         Error: {
             code: string;
         };
+        NullableObject: {
+            id: string;
+            /** @enum {string} */
+            kind: "school" | "department" | "category" | "nature" | "term" | "course" | "teacher" | "term_course" | "class" | "assignment" | "schedule";
+            school_id: string;
+            name: string;
+            code?: string;
+            department_id?: string;
+            category_id?: string;
+            nature_id?: string;
+            course_id?: string;
+            term_id?: string;
+            term_course_id?: string;
+            class_id?: string;
+            teacher_id?: string;
+            credits: number | null;
+            biography?: string;
+            location?: string;
+            time_text?: string;
+            aliases: string[];
+            revision: number;
+            /** Format: date-time */
+            updated_at: string;
+            inactive?: boolean;
+            canonical_id?: string;
+            schedule_time?: components["schemas"]["ScheduleTime"];
+            readonly term_order_key?: number;
+            readonly latest_term_id?: string;
+            /** @enum {string} */
+            readonly course_type?: "sports_project";
+            sports_project_code?: string;
+            english_name?: string;
+            former_codes?: string[];
+            former_names?: string[];
+            hours?: number | null;
+        } | null;
         Object: {
             id: string;
             /** @enum {string} */
@@ -627,30 +663,7 @@ export interface components {
         Summary: {
             object: components["schemas"]["Object"];
             school: components["schemas"]["Object"];
-            department: {
-                id: string;
-                /** @enum {string} */
-                kind: "school" | "department" | "category" | "nature" | "term" | "course" | "teacher" | "term_course" | "class" | "assignment" | "schedule";
-                school_id: string;
-                name: string;
-                code?: string;
-                department_id?: string;
-                category_id?: string;
-                nature_id?: string;
-                course_id?: string;
-                term_id?: string;
-                term_course_id?: string;
-                class_id?: string;
-                teacher_id?: string;
-                credits: number | null;
-                biography?: string;
-                location?: string;
-                time_text?: string;
-                aliases: string[];
-                revision: number;
-                /** Format: date-time */
-                updated_at: string;
-            } | null;
+            department: components["schemas"]["NullableObject"];
             categories: components["schemas"]["Object"][];
             natures: components["schemas"]["Object"][];
             /** @description 当摘要对象为教师时，返回当前目录关联的前 20 门可展示课程精简引用（按 ID 升序）；对象为课程时为空数组。 */
@@ -910,30 +923,7 @@ export interface components {
         PublicSummary: {
             object: components["schemas"]["Object"];
             school: components["schemas"]["Object"];
-            department: {
-                id: string;
-                /** @enum {string} */
-                kind: "school" | "department" | "category" | "nature" | "term" | "course" | "teacher" | "term_course" | "class" | "assignment" | "schedule";
-                school_id: string;
-                name: string;
-                code?: string;
-                department_id?: string;
-                category_id?: string;
-                nature_id?: string;
-                course_id?: string;
-                term_id?: string;
-                term_course_id?: string;
-                class_id?: string;
-                teacher_id?: string;
-                credits: number | null;
-                biography?: string;
-                location?: string;
-                time_text?: string;
-                aliases: string[];
-                revision: number;
-                /** Format: date-time */
-                updated_at: string;
-            } | null;
+            department: components["schemas"]["NullableObject"];
             categories: components["schemas"]["Object"][];
             natures: components["schemas"]["Object"][];
             /** @description 当摘要对象为教师时，返回当前目录关联的前 20 门可展示课程精简引用（按 ID 升序）；对象为课程时为空数组。 */
