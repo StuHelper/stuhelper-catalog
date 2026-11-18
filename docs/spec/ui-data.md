@@ -54,7 +54,7 @@ GET /api/v1/catalog/me/recent-courses 读取本人最近课程。PUT /api/v1/cat
 
 ## 下一上课日与待评价候选
 
-GET /api/v1/catalog/me/next-class-day 使用现有本人选课来源和课表，返回下一次仍未结束的课程所在日期、时区、节次、教师与地点。没有后续课程为 empty，缺少展示授权、来源授权或完整排课为 unavailable，不使用演示课表。
+GET /api/v1/catalog/me/next-class-day 使用现有本人选课来源和课表，单次请求只刷新一次来源并限定当前学校，返回下一次仍未结束的课程所在日期、时区、节次、教师与地点。已结束历史学期不因缺少作息配置阻断计算，当前学期存在有效排课时兼容无固定排课课程，任课教师保留未公开标记姓名并省略简介。没有后续课程为 empty，全部缺少排课或缺少授权为 unavailable。
 
 OwnSummaryAccess 单独授权显示本人选课摘要。未装配时，下一上课日与待评价候选均不可用。当前 backend 保持该端口关闭，评课资格来源本身不授予展示权限。
 

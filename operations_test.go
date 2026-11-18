@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	c "github.com/StuHelper/stuhelper-catalog"
+	"github.com/StuHelper/stuhelper-catalog/postgres"
 	"testing"
 )
 
@@ -134,5 +135,100 @@ func TestMergeRejectsFullAliasListWithoutDroppingSourceName(t *testing.T) {
 	original, err := s.Get(ctx, "course")
 	if err != nil || original.CanonicalID != "" {
 		t.Fatal("rejected merge changed source", original, err)
+	}
+}
+
+func TestMaintenancePreAuthAndRejectMergedSourceCorrection(t *testing.T) {
+	s, admin, in := fixture(t)
+	ctx := context.Background()
+	in.Objects = append(in.Objects,
+		c.Object{ID: "course-old", Kind: "course", SchoolID: "school", Name: "Old Course", Aliases: []string{}},
+		c.Object{ID: "sched-1", Kind: "schedule", SchoolID: "school", ClassID: "class1", Name: "Sched", Aliases: []string{}},
+	)
+	if _, err := s.Import(ctx, admin, "seed", in); err != nil {
+		t.Fatal(err)
+	}
+
+	// A-05: Unauthenticated and non-maintainer callers must be rejected with 401/403
+	// BEFORE probing object existence or returning 400 on PreviewMerge.
+	student := c.Principal{Subject: "issuer:student"}
+	anon := c.Principal{}
+	name := "Probe"
+	corr := c.Correction{Revision: 1, Name: &name}
+	mergeIn := c.MergeInput{TargetID: "course", SourceRevision: 1, TargetRevision: 1, Reason: "probe", PreviewToken: "tok"}
+	stateIn := c.ObjectState{Revision: 1, Inactive: true, Reason: "probe"}
+	tt := timetable()
+
+	for _, targetID := range []string{"class1", "nonexistent-secret-id"} {
+		if _, err := s.Correct(ctx, student, targetID, "k1", corr); !errors.Is(err, c.ErrForbidden) {
+			t.Fatalf("student Correct(%s) got %v, want ErrForbidden", targetID, err)
+		}
+		if _, err := s.Merge(ctx, student, targetID, "k2", mergeIn); !errors.Is(err, c.ErrForbidden) {
+			t.Fatalf("student Merge(%s) got %v, want ErrForbidden", targetID, err)
+		}
+		if _, err := s.SetState(ctx, student, targetID, "k3", stateIn); !errors.Is(err, c.ErrForbidden) {
+			t.Fatalf("student SetState(%s) got %v, want ErrForbidden", targetID, err)
+		}
+		if _, err := s.PreviewMerge(ctx, student, targetID, mergeIn); !errors.Is(err, c.ErrForbidden) {
+			t.Fatalf("student PreviewMerge(%s) got %v, want ErrForbidden", targetID, err)
+		}
+		if _, err := s.Correct(ctx, anon, targetID, "k1", corr); !errors.Is(err, c.ErrUnauthenticated) {
+			t.Fatalf("anon Correct(%s) got %v, want ErrUnauthenticated", targetID, err)
+		}
+		if _, err := s.PreviewMerge(ctx, anon, targetID, mergeIn); !errors.Is(err, c.ErrUnauthenticated) {
+			t.Fatalf("anon PreviewMerge(%s) got %v, want ErrUnauthenticated", targetID, err)
+		}
+	}
+	if _, err := s.GetTimetable(ctx, student, "school", "nonexistent-term"); !errors.Is(err, c.ErrForbidden) {
+		t.Fatalf("student GetTimetable got %v, want ErrForbidden", err)
+	}
+	if _, err := s.GetTimetable(ctx, anon, "school", "term1"); !errors.Is(err, c.ErrUnauthenticated) {
+		t.Fatalf("anon GetTimetable got %v, want ErrUnauthenticated", err)
+	}
+	if _, err := s.PutTimetable(ctx, anon, tt); !errors.Is(err, c.ErrUnauthenticated) {
+		t.Fatalf("anon PutTimetable got %v, want ErrUnauthenticated", err)
+	}
+
+	// A-08(1): Correct on a merged source alias must be rejected with 409 ErrConflict and not mutate DB.
+	mReq := c.MergeInput{TargetID: "course", SourceRevision: 1, TargetRevision: 1, Reason: "duplicate"}
+	plan, err := s.PreviewMerge(ctx, admin, "course-old", mReq)
+	if err != nil {
+		t.Fatal(err)
+	}
+	mReq.PreviewToken = plan.PreviewToken
+	if _, err := s.Merge(ctx, admin, "course-old", "merge-old", mReq); err != nil {
+		t.Fatal(err)
+	}
+	oldAdmin, err := s.AdminRead(ctx, admin, "course-old")
+	if err != nil {
+		t.Fatal(err)
+	}
+	repo := s.Repo.(*postgres.Repository)
+	var histBefore int
+	if err := repo.DB.QueryRow(`SELECT count(*) FROM catalog.history WHERE id='course-old'`).Scan(&histBefore); err != nil {
+		t.Fatal(err)
+	}
+	forgedName := "Forged Name On Alias"
+	// Note: Merge incremented course-old's raw revision to 2.
+	if _, err := s.Correct(ctx, admin, "course-old", "correct-alias", c.Correction{Revision: 2, Name: &forgedName}); !errors.Is(err, c.ErrConflict) {
+		t.Fatalf("Correct on merged source alias returned %v (oldAdmin=%+v), want ErrConflict", err, oldAdmin)
+	}
+	var histAfter int
+	if err := repo.DB.QueryRow(`SELECT count(*) FROM catalog.history WHERE id='course-old'`).Scan(&histAfter); err != nil || histAfter != histBefore {
+		t.Fatalf("merged alias history mutated: before=%d after=%d err=%v", histBefore, histAfter, err)
+	}
+
+	// A-08(2): Correct must reject fields inapplicable to the object's Kind.
+	bio := "Invalid bio"
+	dept := "dept"
+	code := "CODE1"
+	if _, err := s.Correct(ctx, admin, "sched-1", "bad-bio", c.Correction{Revision: 1, Biography: &bio}); !errors.Is(err, c.ErrInput) {
+		t.Fatalf("Biography on schedule got %v, want ErrInput", err)
+	}
+	if _, err := s.Correct(ctx, admin, "sched-1", "bad-dept", c.Correction{Revision: 1, DepartmentID: &dept}); !errors.Is(err, c.ErrInput) {
+		t.Fatalf("DepartmentID on schedule got %v, want ErrInput", err)
+	}
+	if _, err := s.Correct(ctx, admin, "teacher", "bad-code", c.Correction{Revision: 1, Code: &code}); !errors.Is(err, c.ErrInput) {
+		t.Fatalf("Code on teacher got %v, want ErrInput", err)
 	}
 }
