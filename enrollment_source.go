@@ -37,9 +37,14 @@ func (s *Service) refreshOwn(ctx context.Context, p Principal) error {
 		return nil
 	}
 	started := time.Now()
-	snapshot, err := s.EnrollmentSource.OwnSnapshot(ctx, p.Subject)
+	callCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
+	snapshot, err := s.EnrollmentSource.OwnSnapshot(callCtx, p.Subject)
 	s.observeOwn(ctx, "snapshot.source", started, err)
 	if err != nil {
+		if ctx.Err() != nil {
+			return ctx.Err()
+		}
 		return ErrUnavailable
 	}
 	if snapshot.Subject != p.Subject {

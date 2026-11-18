@@ -18,6 +18,60 @@ import (
 	openapi_types "github.com/oapi-codegen/runtime/types"
 )
 
+// Defines values for CorrectionResetFields.
+const (
+	CorrectionResetFieldsBiography    CorrectionResetFields = "biography"
+	CorrectionResetFieldsCategoryId   CorrectionResetFields = "category_id"
+	CorrectionResetFieldsCode         CorrectionResetFields = "code"
+	CorrectionResetFieldsCredits      CorrectionResetFields = "credits"
+	CorrectionResetFieldsDepartmentId CorrectionResetFields = "department_id"
+	CorrectionResetFieldsName         CorrectionResetFields = "name"
+	CorrectionResetFieldsNatureId     CorrectionResetFields = "nature_id"
+)
+
+// Valid indicates whether the value is a known member of the CorrectionResetFields enum.
+func (e CorrectionResetFields) Valid() bool {
+	switch e {
+	case CorrectionResetFieldsBiography:
+		return true
+	case CorrectionResetFieldsCategoryId:
+		return true
+	case CorrectionResetFieldsCode:
+		return true
+	case CorrectionResetFieldsCredits:
+		return true
+	case CorrectionResetFieldsDepartmentId:
+		return true
+	case CorrectionResetFieldsName:
+		return true
+	case CorrectionResetFieldsNatureId:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for DirectoryPolicyCutoffSeason.
+const (
+	Autumn DirectoryPolicyCutoffSeason = "autumn"
+	Spring DirectoryPolicyCutoffSeason = "spring"
+	Summer DirectoryPolicyCutoffSeason = "summer"
+)
+
+// Valid indicates whether the value is a known member of the DirectoryPolicyCutoffSeason enum.
+func (e DirectoryPolicyCutoffSeason) Valid() bool {
+	switch e {
+	case Autumn:
+		return true
+	case Spring:
+		return true
+	case Summer:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for FilterOptionsKind.
 const (
 	FilterOptionsKindCourse  FilterOptionsKind = "course"
@@ -276,6 +330,33 @@ func (e ObjectKind) Valid() bool {
 	}
 }
 
+// Defines values for ProjectionRebuildRunStatus.
+const (
+	ProjectionRebuildRunStatusFailed    ProjectionRebuildRunStatus = "failed"
+	ProjectionRebuildRunStatusQueued    ProjectionRebuildRunStatus = "queued"
+	ProjectionRebuildRunStatusRunning   ProjectionRebuildRunStatus = "running"
+	ProjectionRebuildRunStatusSucceeded ProjectionRebuildRunStatus = "succeeded"
+	ProjectionRebuildRunStatusTimedOut  ProjectionRebuildRunStatus = "timed_out"
+)
+
+// Valid indicates whether the value is a known member of the ProjectionRebuildRunStatus enum.
+func (e ProjectionRebuildRunStatus) Valid() bool {
+	switch e {
+	case ProjectionRebuildRunStatusFailed:
+		return true
+	case ProjectionRebuildRunStatusQueued:
+		return true
+	case ProjectionRebuildRunStatusRunning:
+		return true
+	case ProjectionRebuildRunStatusSucceeded:
+		return true
+	case ProjectionRebuildRunStatusTimedOut:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for RecentCoursesResourcesState.
 const (
 	RecentCoursesResourcesStateAvailable   RecentCoursesResourcesState = "available"
@@ -518,22 +599,22 @@ func (e ListDirectoryParamsKind) Valid() bool {
 
 // Defines values for ListDirectoryParamsSort.
 const (
-	Hot       ListDirectoryParamsSort = "hot"
-	Name      ListDirectoryParamsSort = "name"
-	Recommend ListDirectoryParamsSort = "recommend"
-	Reviews   ListDirectoryParamsSort = "reviews"
+	ListDirectoryParamsSortHot       ListDirectoryParamsSort = "hot"
+	ListDirectoryParamsSortName      ListDirectoryParamsSort = "name"
+	ListDirectoryParamsSortRecommend ListDirectoryParamsSort = "recommend"
+	ListDirectoryParamsSortReviews   ListDirectoryParamsSort = "reviews"
 )
 
 // Valid indicates whether the value is a known member of the ListDirectoryParamsSort enum.
 func (e ListDirectoryParamsSort) Valid() bool {
 	switch e {
-	case Hot:
+	case ListDirectoryParamsSortHot:
 		return true
-	case Name:
+	case ListDirectoryParamsSortName:
 		return true
-	case Recommend:
+	case ListDirectoryParamsSortRecommend:
 		return true
-	case Reviews:
+	case ListDirectoryParamsSortReviews:
 		return true
 	default:
 		return false
@@ -558,6 +639,12 @@ func (e GetFilterOptionsParamsKind) Valid() bool {
 	}
 }
 
+// CategoryAlias defines model for CategoryAlias.
+type CategoryAlias struct {
+	From string `json:"from"`
+	To   string `json:"to"`
+}
+
 // Correction defines model for Correction.
 type Correction struct {
 	Biography  *string `json:"biography,omitempty"`
@@ -570,8 +657,14 @@ type Correction struct {
 	DepartmentId *string  `json:"department_id,omitempty"`
 	Name         *string  `json:"name,omitempty"`
 	NatureId     *string  `json:"nature_id,omitempty"`
-	Revision     int      `json:"revision"`
+
+	// ResetFields 移除对应字段的人工覆盖并恢复教务导入原值，不能与同一字段的新覆盖同时传入。
+	ResetFields *[]CorrectionResetFields `json:"reset_fields,omitempty"`
+	Revision    int                      `json:"revision"`
 }
+
+// CorrectionResetFields defines model for Correction.ResetFields.
+type CorrectionResetFields string
 
 // CourseIdentities defines model for CourseIdentities.
 type CourseIdentities struct {
@@ -632,12 +725,42 @@ type DirectoryPage struct {
 	CategoryFacets   []DirectoryFacet `json:"category_facets"`
 	DepartmentFacets []DirectoryFacet `json:"department_facets"`
 
-	// FacetTotal Distinct objects after all filters except category_id, for the All category badge.
-	FacetTotal  int             `json:"facet_total"`
-	GeneratedAt time.Time       `json:"generated_at"`
-	Items       []DirectoryItem `json:"items"`
-	Next        string          `json:"next"`
-	Total       int             `json:"total"`
+	// FacetTotal Distinct objects after all filters except category_id / category_ids, for the All category badge.
+	FacetTotal   int              `json:"facet_total"`
+	GeneratedAt  time.Time        `json:"generated_at"`
+	Items        []DirectoryItem  `json:"items"`
+	NatureFacets []DirectoryFacet `json:"nature_facets"`
+	Next         string           `json:"next"`
+	Total        int              `json:"total"`
+}
+
+// DirectoryPolicy defines model for DirectoryPolicy.
+type DirectoryPolicy struct {
+	CategoryAliases       *[]CategoryAlias            `json:"category_aliases,omitempty"`
+	CutoffSeason          DirectoryPolicyCutoffSeason `json:"cutoff_season"`
+	CutoffYear            int                         `json:"cutoff_year"`
+	ExcludedCategoryNames *[]string                   `json:"excluded_category_names,omitempty"`
+	ExcludedCourseNames   *[]string                   `json:"excluded_course_names,omitempty"`
+	Sports                *SportsDirectoryPolicy      `json:"sports,omitempty"`
+}
+
+// DirectoryPolicyCutoffSeason defines model for DirectoryPolicy.CutoffSeason.
+type DirectoryPolicyCutoffSeason string
+
+// DirectoryProjectionRebuildInput defines model for DirectoryProjectionRebuildInput.
+type DirectoryProjectionRebuildInput struct {
+	Policy *DirectoryPolicy `json:"policy,omitempty"`
+}
+
+// DirectoryProjectionStatus defines model for DirectoryProjectionStatus.
+type DirectoryProjectionStatus struct {
+	LatestFailure     *ProjectionFailure    `json:"latest_failure"`
+	LatestRun         *ProjectionRebuildRun `json:"latest_run"`
+	PendingRebuild    bool                  `json:"pending_rebuild"`
+	Published         *ProjectionReport     `json:"published"`
+	PublishedRevision int64                 `json:"published_revision"`
+	SourceRevision    int64                 `json:"source_revision"`
+	SourceRevisionLag int64                 `json:"source_revision_lag"`
 }
 
 // Enrollment defines model for Enrollment.
@@ -702,7 +825,7 @@ type ImportChange struct {
 	Id     string   `json:"id"`
 	Kind   string   `json:"kind"`
 
-	// ScheduleTime ISO weekday Monday=1. Explicit week set; odd/even weeks are expanded by importer. End period >= start. Missing structure means not provided. Recognized time_text grammar: 周一 第1-2节 第1-16周(单), with optional 单/双 suffix.
+	// ScheduleTime ISO weekday Monday=1. Explicit week set; odd/even weeks are expanded by importer. End period >= start. Missing structure means not provided. Recognized time_text grammar supports single or range periods (第5节, 第1-2节), single, range or ascending comma-separated week segments (第8周, 第1-8,10-16周, 第1,3,5,7周), and optional halfwidth or fullwidth 单/双 suffix.
 	ScheduleTime *ScheduleTime `json:"schedule_time,omitempty"`
 	State        string        `json:"state"`
 	TimeText     *string       `json:"time_text,omitempty"`
@@ -809,7 +932,7 @@ type NullableObject struct {
 	NatureId     *string `json:"nature_id,omitempty"`
 	Revision     int     `json:"revision"`
 
-	// ScheduleTime ISO weekday Monday=1. Explicit week set; odd/even weeks are expanded by importer. End period >= start. Missing structure means not provided. Recognized time_text grammar: 周一 第1-2节 第1-16周(单), with optional 单/双 suffix.
+	// ScheduleTime ISO weekday Monday=1. Explicit week set; odd/even weeks are expanded by importer. End period >= start. Missing structure means not provided. Recognized time_text grammar supports single or range periods (第5节, 第1-2节), single, range or ascending comma-separated week segments (第8周, 第1-8,10-16周, 第1,3,5,7周), and optional halfwidth or fullwidth 单/双 suffix.
 	ScheduleTime *ScheduleTime `json:"schedule_time,omitempty"`
 	SchoolId     string        `json:"school_id"`
 
@@ -907,7 +1030,7 @@ type Object struct {
 	NatureId     *string `json:"nature_id,omitempty"`
 	Revision     int     `json:"revision"`
 
-	// ScheduleTime ISO weekday Monday=1. Explicit week set; odd/even weeks are expanded by importer. End period >= start. Missing structure means not provided. Recognized time_text grammar: 周一 第1-2节 第1-16周(单), with optional 单/双 suffix.
+	// ScheduleTime ISO weekday Monday=1. Explicit week set; odd/even weeks are expanded by importer. End period >= start. Missing structure means not provided. Recognized time_text grammar supports single or range periods (第5节, 第1-2节), single, range or ascending comma-separated week segments (第8周, 第1-8,10-16周, 第1,3,5,7周), and optional halfwidth or fullwidth 单/双 suffix.
 	ScheduleTime *ScheduleTime `json:"schedule_time,omitempty"`
 	SchoolId     string        `json:"school_id"`
 
@@ -965,19 +1088,79 @@ type Period struct {
 	Start  string `json:"start"`
 }
 
+// ProjectionFailure defines model for ProjectionFailure.
+type ProjectionFailure struct {
+	FailedAt time.Time `json:"failed_at"`
+	Reason   string    `json:"reason"`
+}
+
+// ProjectionRebuildRun defines model for ProjectionRebuildRun.
+type ProjectionRebuildRun struct {
+	DeadlineAt    time.Time                  `json:"deadline_at"`
+	DurationMs    int64                      `json:"duration_ms"`
+	FailureReason string                     `json:"failure_reason"`
+	FinishedAt    *time.Time                 `json:"finished_at"`
+	Id            string                     `json:"id"`
+	Policy        *DirectoryPolicy           `json:"policy,omitempty"`
+	RequestedAt   time.Time                  `json:"requested_at"`
+	SchoolId      string                     `json:"school_id"`
+	StartedAt     *time.Time                 `json:"started_at"`
+	Status        ProjectionRebuildRunStatus `json:"status"`
+	Version       *int64                     `json:"version"`
+}
+
+// ProjectionRebuildRunStatus defines model for ProjectionRebuildRun.Status.
+type ProjectionRebuildRunStatus string
+
+// ProjectionReport defines model for ProjectionReport.
+type ProjectionReport struct {
+	Aliases                 int64             `json:"aliases"`
+	BuiltAt                 time.Time         `json:"built_at"`
+	Bytes                   int64             `json:"bytes"`
+	Courses                 int64             `json:"courses"`
+	Documents               int64             `json:"documents"`
+	DurationMs              int64             `json:"duration_ms"`
+	ExcludedCourses         *int64            `json:"excluded_courses,omitempty"`
+	InvalidTerms            int64             `json:"invalid_terms"`
+	Marks                   TeacherMarkCounts `json:"marks"`
+	Objects                 int64             `json:"objects"`
+	Options                 int64             `json:"options"`
+	Policy                  DirectoryPolicy   `json:"policy"`
+	Relations               int64             `json:"relations"`
+	Rows                    int64             `json:"rows"`
+	Selections              int64             `json:"selections"`
+	SportsClasses           *int64            `json:"sports_classes,omitempty"`
+	SportsProjects          *int64            `json:"sports_projects,omitempty"`
+	SportsSourceCourses     *int64            `json:"sports_source_courses,omitempty"`
+	SportsUnresolvedReasons *map[string]int64 `json:"sports_unresolved_reasons,omitempty"`
+	StorageBytes            int64             `json:"storage_bytes"`
+	Summaries               int64             `json:"summaries"`
+	Teachers                int64             `json:"teachers"`
+	TeachingHistory         int64             `json:"teaching_history"`
+	UnresolvedSportsClasses *int64            `json:"unresolved_sports_classes,omitempty"`
+	Variants                int64             `json:"variants"`
+	Version                 int64             `json:"version"`
+}
+
 // PublicSummary 普通目录课程或教师摘要。仅保留课程与教师数量，不包含 offering_count 或其他教学班粒度计数。
 type PublicSummary struct {
 	Categories []Object `json:"categories"`
 
 	// CourseCount 当前目录投影中关联的可展示课程数量。
-	CourseCount int             `json:"course_count"`
-	Department  *NullableObject `json:"department"`
-	Natures     []Object        `json:"natures"`
-	Object      Object          `json:"object"`
-	School      Object          `json:"school"`
+	CourseCount int `json:"course_count"`
+
+	// Courses 当摘要对象为教师时，返回当前目录关联的前 20 门可展示课程精简引用（按 ID 升序）；对象为课程时为空数组。
+	Courses    []Reference     `json:"courses"`
+	Department *NullableObject `json:"department"`
+	Natures    []Object        `json:"natures"`
+	Object     Object          `json:"object"`
+	School     Object          `json:"school"`
 
 	// TeacherCount 当前目录投影中关联的可展示教师数量。
 	TeacherCount int `json:"teacher_count"`
+
+	// Teachers 当摘要对象为课程时，返回当前目录关联的前 20 位可展示任课教师精简引用（按 ID 升序）；对象为教师时为空数组。
+	Teachers []Reference `json:"teachers"`
 }
 
 // RecentCleared defines model for RecentCleared.
@@ -1034,12 +1217,12 @@ type ScheduleMeeting struct {
 	Id       string `json:"id"`
 	Location string `json:"location"`
 
-	// ScheduleTime ISO weekday Monday=1. Explicit week set; odd/even weeks are expanded by importer. End period >= start. Missing structure means not provided. Recognized time_text grammar: 周一 第1-2节 第1-16周(单), with optional 单/双 suffix.
+	// ScheduleTime ISO weekday Monday=1. Explicit week set; odd/even weeks are expanded by importer. End period >= start. Missing structure means not provided. Recognized time_text grammar supports single or range periods (第5节, 第1-2节), single, range or ascending comma-separated week segments (第8周, 第1-8,10-16周, 第1,3,5,7周), and optional halfwidth or fullwidth 单/双 suffix.
 	ScheduleTime *ScheduleTime `json:"schedule_time,omitempty"`
 	TimeText     string        `json:"time_text"`
 }
 
-// ScheduleTime ISO weekday Monday=1. Explicit week set; odd/even weeks are expanded by importer. End period >= start. Missing structure means not provided. Recognized time_text grammar: 周一 第1-2节 第1-16周(单), with optional 单/双 suffix.
+// ScheduleTime ISO weekday Monday=1. Explicit week set; odd/even weeks are expanded by importer. End period >= start. Missing structure means not provided. Recognized time_text grammar supports single or range periods (第5节, 第1-2节), single, range or ascending comma-separated week segments (第8周, 第1-8,10-16周, 第1,3,5,7周), and optional halfwidth or fullwidth 单/双 suffix.
 type ScheduleTime struct {
 	EndPeriod   int   `json:"end_period"`
 	StartPeriod int   `json:"start_period"`
@@ -1047,15 +1230,32 @@ type ScheduleTime struct {
 	Weeks       []int `json:"weeks"`
 }
 
+// SportsDirectoryPolicy defines model for SportsDirectoryPolicy.
+type SportsDirectoryPolicy struct {
+	CategoryName string          `json:"category_name"`
+	CourseNames  *[]string       `json:"course_names,omitempty"`
+	Projects     []SportsProject `json:"projects"`
+}
+
+// SportsProject defines model for SportsProject.
+type SportsProject struct {
+	Key         string   `json:"key"`
+	Name        string   `json:"name"`
+	SourceCodes []string `json:"source_codes"`
+}
+
 // Summary 管理端与受信进程内服务使用的完整摘要；offering_count 仅供这些调用方读取。
 type Summary struct {
 	Categories []Object `json:"categories"`
 
 	// CourseCount 当前目录投影中关联的可展示课程数量。
-	CourseCount int             `json:"course_count"`
-	Department  *NullableObject `json:"department"`
-	Natures     []Object        `json:"natures"`
-	Object      Object          `json:"object"`
+	CourseCount int `json:"course_count"`
+
+	// Courses 当摘要对象为教师时，返回当前目录关联的前 20 门可展示课程精简引用（按 ID 升序）；对象为课程时为空数组。
+	Courses    []Reference     `json:"courses"`
+	Department *NullableObject `json:"department"`
+	Natures    []Object        `json:"natures"`
+	Object     Object          `json:"object"`
 
 	// OfferingCount 截止学期及以后纳入当前投影的开课记录数量。
 	OfferingCount int    `json:"offering_count"`
@@ -1063,6 +1263,9 @@ type Summary struct {
 
 	// TeacherCount 当前目录投影中关联的可展示教师数量。
 	TeacherCount int `json:"teacher_count"`
+
+	// Teachers 当摘要对象为课程时，返回当前目录关联的前 20 位可展示任课教师精简引用（按 ID 升序）；对象为教师时为空数组。
+	Teachers []Reference `json:"teachers"`
 }
 
 // TeacherMarkCounts defines model for TeacherMarkCounts.
@@ -1185,6 +1388,11 @@ type AdminLookupObjectsParams struct {
 	Ids string `form:"ids" json:"ids"`
 }
 
+// StartDirectoryProjectionRebuildParams defines parameters for StartDirectoryProjectionRebuild.
+type StartDirectoryProjectionRebuildParams struct {
+	IdempotencyKey string `json:"Idempotency-Key"`
+}
+
 // StartTeacherRefreshParams defines parameters for StartTeacherRefresh.
 type StartTeacherRefreshParams struct {
 	IdempotencyKey string `json:"Idempotency-Key"`
@@ -1193,8 +1401,11 @@ type StartTeacherRefreshParams struct {
 // ListUnmatchedTeacherSitesParams defines parameters for ListUnmatchedTeacherSites.
 type ListUnmatchedTeacherSitesParams struct {
 	Reason *ListUnmatchedTeacherSitesParamsReason `form:"reason,omitempty" json:"reason,omitempty"`
-	Limit  *int                                   `form:"limit,omitempty" json:"limit,omitempty"`
-	After  *string                                `form:"after,omitempty" json:"after,omitempty"`
+
+	// Q 对未匹配记录的公开姓名与单位做不区分大小写的字面子串筛选，百分号与下划线不作为通配符。
+	Q     *string `form:"q,omitempty" json:"q,omitempty"`
+	Limit *int    `form:"limit,omitempty" json:"limit,omitempty"`
+	After *string `form:"after,omitempty" json:"after,omitempty"`
 }
 
 // ListUnmatchedTeacherSitesParamsReason defines parameters for ListUnmatchedTeacherSites.
@@ -1207,16 +1418,28 @@ type ApplyCourseIdentitiesParams struct {
 
 // ListDirectoryParams defines parameters for ListDirectory.
 type ListDirectoryParams struct {
-	Kind         ListDirectoryParamsKind  `form:"kind" json:"kind"`
-	SchoolId     *string                  `form:"school_id,omitempty" json:"school_id,omitempty"`
-	Q            *string                  `form:"q,omitempty" json:"q,omitempty"`
-	DepartmentId *string                  `form:"department_id,omitempty" json:"department_id,omitempty"`
-	CategoryId   *string                  `form:"category_id,omitempty" json:"category_id,omitempty"`
-	NatureId     *string                  `form:"nature_id,omitempty" json:"nature_id,omitempty"`
-	TeacherId    *string                  `form:"teacher_id,omitempty" json:"teacher_id,omitempty"`
-	Sort         *ListDirectoryParamsSort `form:"sort,omitempty" json:"sort,omitempty"`
-	After        *string                  `form:"after,omitempty" json:"after,omitempty"`
-	Limit        *int                     `form:"limit,omitempty" json:"limit,omitempty"`
+	Kind         ListDirectoryParamsKind `form:"kind" json:"kind"`
+	SchoolId     *string                 `form:"school_id,omitempty" json:"school_id,omitempty"`
+	Q            *string                 `form:"q,omitempty" json:"q,omitempty"`
+	DepartmentId *string                 `form:"department_id,omitempty" json:"department_id,omitempty"`
+
+	// DepartmentIds 逗号分隔的多个学院 ID（最多 20 项），不能与 department_id 同时传入。
+	DepartmentIds *string `form:"department_ids,omitempty" json:"department_ids,omitempty"`
+	CategoryId    *string `form:"category_id,omitempty" json:"category_id,omitempty"`
+
+	// CategoryIds 逗号分隔的多个课程类别 ID（最多 20 项，仅 kind=course），不能与 category_id 同时传入。
+	CategoryIds *string `form:"category_ids,omitempty" json:"category_ids,omitempty"`
+	NatureId    *string `form:"nature_id,omitempty" json:"nature_id,omitempty"`
+	TeacherId   *string `form:"teacher_id,omitempty" json:"teacher_id,omitempty"`
+
+	// CreditsMin 课程最低学分（含，0 至 100，仅 kind=course）；未知学分课程不匹配学分区间筛选。
+	CreditsMin *float32 `form:"credits_min,omitempty" json:"credits_min,omitempty"`
+
+	// CreditsMax 课程最高学分（含，0 至 100，仅 kind=course）；未知学分课程不匹配学分区间筛选。
+	CreditsMax *float32                 `form:"credits_max,omitempty" json:"credits_max,omitempty"`
+	Sort       *ListDirectoryParamsSort `form:"sort,omitempty" json:"sort,omitempty"`
+	After      *string                  `form:"after,omitempty" json:"after,omitempty"`
+	Limit      *int                     `form:"limit,omitempty" json:"limit,omitempty"`
 }
 
 // ListDirectoryParamsKind defines parameters for ListDirectory.
@@ -1303,8 +1526,10 @@ type ListObjectsParams struct {
 	TermCourseId *string `form:"term_course_id,omitempty" json:"term_course_id,omitempty"`
 
 	// ClassId 普通目录禁止使用此教学班粒度筛选，返回 403 forbidden；管理端使用 /catalog/admin/objects。
-	ClassId         *string `form:"class_id,omitempty" json:"class_id,omitempty"`
-	IncludeInactive *bool   `form:"include_inactive,omitempty" json:"include_inactive,omitempty"`
+	ClassId *string `form:"class_id,omitempty" json:"class_id,omitempty"`
+
+	// IncludeInactive 普通目录不返回停用对象，传 true 返回 400 invalid_input；管理端使用 /catalog/admin/objects。
+	IncludeInactive *bool `form:"include_inactive,omitempty" json:"include_inactive,omitempty"`
 }
 
 // LookupObjectsParams defines parameters for LookupObjects.
@@ -1332,6 +1557,9 @@ type PreviewMergeParams struct {
 type SetObjectStateParams struct {
 	IdempotencyKey string `json:"Idempotency-Key"`
 }
+
+// StartDirectoryProjectionRebuildJSONRequestBody defines body for StartDirectoryProjectionRebuild for application/json ContentType.
+type StartDirectoryProjectionRebuildJSONRequestBody = DirectoryProjectionRebuildInput
 
 // StartTeacherRefreshJSONRequestBody defines body for StartTeacherRefresh for application/json ContentType.
 type StartTeacherRefreshJSONRequestBody = TeacherRefreshInput
@@ -1462,6 +1690,23 @@ type ClientInterface interface {
 	// Requires current catalog maintenance permission for the object school. Independent of content admission; no student enrollment identities are returned.
 	AdminGetObjectSummary(ctx context.Context, id string, reqEditors ...RequestEditorFn) (*http.Response, error)
 
+	// GetDirectoryProjectionStatus performs a GET /api/v1/catalog/admin/schools/{school_id}/directory-projection (the `GetDirectoryProjectionStatus` operationId) request.
+	//
+	// 读取指定学校当前已发布的目录投影报告、最近失败原因、最近异步重建任务及源目录修订差。要求 catalog.maintain 与学校维护范围，每次查看记录审计。
+	GetDirectoryProjectionStatus(ctx context.Context, schoolId string, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// StartDirectoryProjectionRebuildWithBody performs a POST /api/v1/catalog/admin/schools/{school_id}/directory-projection (the `StartDirectoryProjectionRebuild` operationId) request,
+	// with any type of body and a specified content type.
+	//
+	// 提交目录投影异步重建持久任务，可选更新学校 DirectoryPolicy。要求 catalog.maintain 与学校维护范围。同键同请求重放原任务，已有排队或运行任务或存在未完成来源导入时返回 409。
+	StartDirectoryProjectionRebuildWithBody(ctx context.Context, schoolId string, params *StartDirectoryProjectionRebuildParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// StartDirectoryProjectionRebuild performs a POST /api/v1/catalog/admin/schools/{school_id}/directory-projection (the `StartDirectoryProjectionRebuild` operationId) request.
+	// Takes a body of the `application/json` content type.
+	//
+	// 提交目录投影异步重建持久任务，可选更新学校 DirectoryPolicy。要求 catalog.maintain 与学校维护范围。同键同请求重放原任务，已有排队或运行任务或存在未完成来源导入时返回 409。
+	StartDirectoryProjectionRebuild(ctx context.Context, schoolId string, params *StartDirectoryProjectionRebuildParams, body StartDirectoryProjectionRebuildJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
 	// GetTeacherRefreshStatus performs a GET /api/v1/catalog/admin/schools/{school_id}/teacher-sites/refresh (the `GetTeacherRefreshStatus` operationId) request.
 	//
 	// Requires catalog.teacher-sites.read and current school management scope. Every view is audited. Latest run includes safe failure code and observed request/site counts; unknown measurements are null. Counts reflect current visible teacher marks.
@@ -1481,7 +1726,7 @@ type ClientInterface interface {
 
 	// ListUnmatchedTeacherSites performs a GET /api/v1/catalog/admin/schools/{school_id}/teacher-sites/unmatched (the `ListUnmatchedTeacherSites` operationId) request.
 	//
-	// Requires catalog.teacher-sites.read and current school management scope. Every view is audited. Current complete unmatched snapshot only; failed refresh preserves it. Returns public website name/unit, fixed reason and count of same-name catalog candidates, never candidate IDs, staff numbers or contacts. reason_counts covers the entire snapshot; total respects reason. Cursor binds school, reason and snapshot revision; a changed snapshot returns 409. Sorted by site_id.
+	// Requires catalog.teacher-sites.read and current school management scope. Every view is audited. Current complete unmatched snapshot only; failed refresh preserves it. Returns public website name/unit, fixed reason and count of same-name catalog candidates, never candidate IDs, staff numbers or contacts. reason_counts covers the entire snapshot; total respects reason and q. Cursor binds school, reason, q and snapshot revision; a changed snapshot returns 409. Sorted by site_id.
 	ListUnmatchedTeacherSites(ctx context.Context, schoolId string, params *ListUnmatchedTeacherSitesParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// GetTimetable performs a GET /api/v1/catalog/admin/schools/{school_id}/terms/{term_id}/timetable (the `GetTimetable` operationId) request.
@@ -1724,6 +1969,53 @@ func (c *Client) AdminGetObjectSummary(ctx context.Context, id string, reqEditor
 	return c.Client.Do(req)
 }
 
+// GetDirectoryProjectionStatus performs a GET /api/v1/catalog/admin/schools/{school_id}/directory-projection (the `GetDirectoryProjectionStatus` operationId) request.
+//
+// 读取指定学校当前已发布的目录投影报告、最近失败原因、最近异步重建任务及源目录修订差。要求 catalog.maintain 与学校维护范围，每次查看记录审计。
+func (c *Client) GetDirectoryProjectionStatus(ctx context.Context, schoolId string, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetDirectoryProjectionStatusRequest(c.Server, schoolId)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// StartDirectoryProjectionRebuildWithBody performs a POST /api/v1/catalog/admin/schools/{school_id}/directory-projection (the `StartDirectoryProjectionRebuild` operationId) request,
+// with any type of body and a specified content type.
+//
+// 提交目录投影异步重建持久任务，可选更新学校 DirectoryPolicy。要求 catalog.maintain 与学校维护范围。同键同请求重放原任务，已有排队或运行任务或存在未完成来源导入时返回 409。
+func (c *Client) StartDirectoryProjectionRebuildWithBody(ctx context.Context, schoolId string, params *StartDirectoryProjectionRebuildParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewStartDirectoryProjectionRebuildRequestWithBody(c.Server, schoolId, params, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// StartDirectoryProjectionRebuild performs a POST /api/v1/catalog/admin/schools/{school_id}/directory-projection (the `StartDirectoryProjectionRebuild` operationId) request.
+// Takes a body of the `application/json` content type.
+//
+// 提交目录投影异步重建持久任务，可选更新学校 DirectoryPolicy。要求 catalog.maintain 与学校维护范围。同键同请求重放原任务，已有排队或运行任务或存在未完成来源导入时返回 409。
+func (c *Client) StartDirectoryProjectionRebuild(ctx context.Context, schoolId string, params *StartDirectoryProjectionRebuildParams, body StartDirectoryProjectionRebuildJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewStartDirectoryProjectionRebuildRequest(c.Server, schoolId, params, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
 // GetTeacherRefreshStatus performs a GET /api/v1/catalog/admin/schools/{school_id}/teacher-sites/refresh (the `GetTeacherRefreshStatus` operationId) request.
 //
 // Requires catalog.teacher-sites.read and current school management scope. Every view is audited. Latest run includes safe failure code and observed request/site counts; unknown measurements are null. Counts reflect current visible teacher marks.
@@ -1773,7 +2065,7 @@ func (c *Client) StartTeacherRefresh(ctx context.Context, schoolId string, param
 
 // ListUnmatchedTeacherSites performs a GET /api/v1/catalog/admin/schools/{school_id}/teacher-sites/unmatched (the `ListUnmatchedTeacherSites` operationId) request.
 //
-// Requires catalog.teacher-sites.read and current school management scope. Every view is audited. Current complete unmatched snapshot only; failed refresh preserves it. Returns public website name/unit, fixed reason and count of same-name catalog candidates, never candidate IDs, staff numbers or contacts. reason_counts covers the entire snapshot; total respects reason. Cursor binds school, reason and snapshot revision; a changed snapshot returns 409. Sorted by site_id.
+// Requires catalog.teacher-sites.read and current school management scope. Every view is audited. Current complete unmatched snapshot only; failed refresh preserves it. Returns public website name/unit, fixed reason and count of same-name catalog candidates, never candidate IDs, staff numbers or contacts. reason_counts covers the entire snapshot; total respects reason and q. Cursor binds school, reason, q and snapshot revision; a changed snapshot returns 409. Sorted by site_id.
 func (c *Client) ListUnmatchedTeacherSites(ctx context.Context, schoolId string, params *ListUnmatchedTeacherSitesParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewListUnmatchedTeacherSitesRequest(c.Server, schoolId, params)
 	if err != nil {
@@ -2648,6 +2940,100 @@ func NewAdminGetObjectSummaryRequest(server string, id string) (*http.Request, e
 	return req, nil
 }
 
+// NewGetDirectoryProjectionStatusRequest constructs an http.Request for the GetDirectoryProjectionStatus method
+func NewGetDirectoryProjectionStatusRequest(server string, schoolId string) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "school_id", schoolId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/catalog/admin/schools/%s/directory-projection", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewStartDirectoryProjectionRebuildRequest calls the generic StartDirectoryProjectionRebuild builder with application/json body
+func NewStartDirectoryProjectionRebuildRequest(server string, schoolId string, params *StartDirectoryProjectionRebuildParams, body StartDirectoryProjectionRebuildJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewStartDirectoryProjectionRebuildRequestWithBody(server, schoolId, params, "application/json", bodyReader)
+}
+
+// NewStartDirectoryProjectionRebuildRequestWithBody constructs an http.Request for the StartDirectoryProjectionRebuild method, with any body, and a specified content type
+func NewStartDirectoryProjectionRebuildRequestWithBody(server string, schoolId string, params *StartDirectoryProjectionRebuildParams, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "school_id", schoolId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/catalog/admin/schools/%s/directory-projection", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPost, queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	if params != nil {
+
+		var headerParam0 string
+
+		headerParam0, err = runtime.StyleParamWithOptions("simple", false, "Idempotency-Key", params.IdempotencyKey, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationHeader, Type: "string", Format: ""})
+		if err != nil {
+			return nil, err
+		}
+
+		req.Header.Set("Idempotency-Key", headerParam0)
+
+	}
+
+	return req, nil
+}
+
 // NewGetTeacherRefreshStatusRequest constructs an http.Request for the GetTeacherRefreshStatus method
 func NewGetTeacherRefreshStatusRequest(server string, schoolId string) (*http.Request, error) {
 	var err error
@@ -2780,6 +3166,18 @@ func NewListUnmatchedTeacherSitesRequest(server string, schoolId string, params 
 		if params.Reason != nil {
 
 			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "reason", *params.Reason, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.Q != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "q", *params.Q, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
 				return nil, err
 			} else {
 				for _, qp := range strings.Split(queryFrag, "&") {
@@ -3047,9 +3445,33 @@ func NewListDirectoryRequest(server string, params *ListDirectoryParams) (*http.
 
 		}
 
+		if params.DepartmentIds != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "department_ids", *params.DepartmentIds, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
 		if params.CategoryId != nil {
 
 			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "category_id", *params.CategoryId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.CategoryIds != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "category_ids", *params.CategoryIds, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
 				return nil, err
 			} else {
 				for _, qp := range strings.Split(queryFrag, "&") {
@@ -3074,6 +3496,30 @@ func NewListDirectoryRequest(server string, params *ListDirectoryParams) (*http.
 		if params.TeacherId != nil {
 
 			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "teacher_id", *params.TeacherId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.CreditsMin != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "credits_min", *params.CreditsMin, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "number", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.CreditsMax != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "credits_max", *params.CreditsMax, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "number", Format: ""}); err != nil {
 				return nil, err
 			} else {
 				for _, qp := range strings.Split(queryFrag, "&") {
@@ -4454,6 +4900,27 @@ type ClientWithResponsesInterface interface {
 	// Returns a wrapper object for the known response body format(s).
 	AdminGetObjectSummaryWithResponse(ctx context.Context, id string, reqEditors ...RequestEditorFn) (*AdminGetObjectSummaryResponse, error)
 
+	// GetDirectoryProjectionStatusWithResponse performs a GET /api/v1/catalog/admin/schools/{school_id}/directory-projection (the `GetDirectoryProjectionStatus` operationId) request.
+	//
+	// 读取指定学校当前已发布的目录投影报告、最近失败原因、最近异步重建任务及源目录修订差。要求 catalog.maintain 与学校维护范围，每次查看记录审计。
+	//
+	// Returns a wrapper object for the known response body format(s).
+	GetDirectoryProjectionStatusWithResponse(ctx context.Context, schoolId string, reqEditors ...RequestEditorFn) (*GetDirectoryProjectionStatusResponse, error)
+
+	// StartDirectoryProjectionRebuildWithBodyWithResponse performs a POST /api/v1/catalog/admin/schools/{school_id}/directory-projection (the `StartDirectoryProjectionRebuild` operationId) request,
+	// with any type of body and a specified content type.
+	//
+	// 提交目录投影异步重建持久任务，可选更新学校 DirectoryPolicy。要求 catalog.maintain 与学校维护范围。同键同请求重放原任务，已有排队或运行任务或存在未完成来源导入时返回 409。
+	//
+	// Returns a wrapper object for the known response body format(s).
+	StartDirectoryProjectionRebuildWithBodyWithResponse(ctx context.Context, schoolId string, params *StartDirectoryProjectionRebuildParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*StartDirectoryProjectionRebuildResponse, error)
+
+	// StartDirectoryProjectionRebuildWithResponse performs a POST /api/v1/catalog/admin/schools/{school_id}/directory-projection (the `StartDirectoryProjectionRebuild` operationId) request.
+	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+	//
+	// 提交目录投影异步重建持久任务，可选更新学校 DirectoryPolicy。要求 catalog.maintain 与学校维护范围。同键同请求重放原任务，已有排队或运行任务或存在未完成来源导入时返回 409。
+	StartDirectoryProjectionRebuildWithResponse(ctx context.Context, schoolId string, params *StartDirectoryProjectionRebuildParams, body StartDirectoryProjectionRebuildJSONRequestBody, reqEditors ...RequestEditorFn) (*StartDirectoryProjectionRebuildResponse, error)
+
 	// GetTeacherRefreshStatusWithResponse performs a GET /api/v1/catalog/admin/schools/{school_id}/teacher-sites/refresh (the `GetTeacherRefreshStatus` operationId) request.
 	//
 	// Requires catalog.teacher-sites.read and current school management scope. Every view is audited. Latest run includes safe failure code and observed request/site counts; unknown measurements are null. Counts reflect current visible teacher marks.
@@ -4477,7 +4944,7 @@ type ClientWithResponsesInterface interface {
 
 	// ListUnmatchedTeacherSitesWithResponse performs a GET /api/v1/catalog/admin/schools/{school_id}/teacher-sites/unmatched (the `ListUnmatchedTeacherSites` operationId) request.
 	//
-	// Requires catalog.teacher-sites.read and current school management scope. Every view is audited. Current complete unmatched snapshot only; failed refresh preserves it. Returns public website name/unit, fixed reason and count of same-name catalog candidates, never candidate IDs, staff numbers or contacts. reason_counts covers the entire snapshot; total respects reason. Cursor binds school, reason and snapshot revision; a changed snapshot returns 409. Sorted by site_id.
+	// Requires catalog.teacher-sites.read and current school management scope. Every view is audited. Current complete unmatched snapshot only; failed refresh preserves it. Returns public website name/unit, fixed reason and count of same-name catalog candidates, never candidate IDs, staff numbers or contacts. reason_counts covers the entire snapshot; total respects reason and q. Cursor binds school, reason, q and snapshot revision; a changed snapshot returns 409. Sorted by site_id.
 	//
 	// Returns a wrapper object for the known response body format(s).
 	ListUnmatchedTeacherSitesWithResponse(ctx context.Context, schoolId string, params *ListUnmatchedTeacherSitesParams, reqEditors ...RequestEditorFn) (*ListUnmatchedTeacherSitesResponse, error)
@@ -5106,6 +5573,165 @@ func (r AdminGetObjectSummaryResponse) StatusCode() int {
 
 // ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
 func (r AdminGetObjectSummaryResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type GetDirectoryProjectionStatusResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *DirectoryProjectionStatus
+	// JSON400 the response for an HTTP 400 `application/json` response
+	JSON400 *Error
+	// JSON401 the response for an HTTP 401 `application/json` response
+	JSON401 *Error
+	// JSON403 the response for an HTTP 403 `application/json` response
+	JSON403 *Error
+	// JSON404 the response for an HTTP 404 `application/json` response
+	JSON404 *Error
+	// JSON503 the response for an HTTP 503 `application/json` response
+	JSON503 *Error
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r GetDirectoryProjectionStatusResponse) GetJSON200() *DirectoryProjectionStatus {
+	return r.JSON200
+}
+
+// GetJSON400 returns the response for an HTTP 400 `application/json` response
+func (r GetDirectoryProjectionStatusResponse) GetJSON400() *Error {
+	return r.JSON400
+}
+
+// GetJSON401 returns the response for an HTTP 401 `application/json` response
+func (r GetDirectoryProjectionStatusResponse) GetJSON401() *Error {
+	return r.JSON401
+}
+
+// GetJSON403 returns the response for an HTTP 403 `application/json` response
+func (r GetDirectoryProjectionStatusResponse) GetJSON403() *Error {
+	return r.JSON403
+}
+
+// GetJSON404 returns the response for an HTTP 404 `application/json` response
+func (r GetDirectoryProjectionStatusResponse) GetJSON404() *Error {
+	return r.JSON404
+}
+
+// GetJSON503 returns the response for an HTTP 503 `application/json` response
+func (r GetDirectoryProjectionStatusResponse) GetJSON503() *Error {
+	return r.JSON503
+}
+
+// GetBody returns the raw response body bytes
+func (r GetDirectoryProjectionStatusResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r GetDirectoryProjectionStatusResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetDirectoryProjectionStatusResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r GetDirectoryProjectionStatusResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type StartDirectoryProjectionRebuildResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON202 the response for an HTTP 202 `application/json` response
+	JSON202 *ProjectionRebuildRun
+	// JSON400 the response for an HTTP 400 `application/json` response
+	JSON400 *Error
+	// JSON401 the response for an HTTP 401 `application/json` response
+	JSON401 *Error
+	// JSON403 the response for an HTTP 403 `application/json` response
+	JSON403 *Error
+	// JSON404 the response for an HTTP 404 `application/json` response
+	JSON404 *Error
+	// JSON409 the response for an HTTP 409 `application/json` response
+	JSON409 *Error
+	// JSON503 the response for an HTTP 503 `application/json` response
+	JSON503 *Error
+}
+
+// GetJSON202 returns the response for an HTTP 202 `application/json` response
+func (r StartDirectoryProjectionRebuildResponse) GetJSON202() *ProjectionRebuildRun {
+	return r.JSON202
+}
+
+// GetJSON400 returns the response for an HTTP 400 `application/json` response
+func (r StartDirectoryProjectionRebuildResponse) GetJSON400() *Error {
+	return r.JSON400
+}
+
+// GetJSON401 returns the response for an HTTP 401 `application/json` response
+func (r StartDirectoryProjectionRebuildResponse) GetJSON401() *Error {
+	return r.JSON401
+}
+
+// GetJSON403 returns the response for an HTTP 403 `application/json` response
+func (r StartDirectoryProjectionRebuildResponse) GetJSON403() *Error {
+	return r.JSON403
+}
+
+// GetJSON404 returns the response for an HTTP 404 `application/json` response
+func (r StartDirectoryProjectionRebuildResponse) GetJSON404() *Error {
+	return r.JSON404
+}
+
+// GetJSON409 returns the response for an HTTP 409 `application/json` response
+func (r StartDirectoryProjectionRebuildResponse) GetJSON409() *Error {
+	return r.JSON409
+}
+
+// GetJSON503 returns the response for an HTTP 503 `application/json` response
+func (r StartDirectoryProjectionRebuildResponse) GetJSON503() *Error {
+	return r.JSON503
+}
+
+// GetBody returns the raw response body bytes
+func (r StartDirectoryProjectionRebuildResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r StartDirectoryProjectionRebuildResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r StartDirectoryProjectionRebuildResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r StartDirectoryProjectionRebuildResponse) ContentType() string {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.Header.Get("Content-Type")
 	}
@@ -7501,6 +8127,45 @@ func (c *ClientWithResponses) AdminGetObjectSummaryWithResponse(ctx context.Cont
 	return ParseAdminGetObjectSummaryResponse(rsp)
 }
 
+// GetDirectoryProjectionStatusWithResponse performs a GET /api/v1/catalog/admin/schools/{school_id}/directory-projection (the `GetDirectoryProjectionStatus` operationId) request.
+//
+// 读取指定学校当前已发布的目录投影报告、最近失败原因、最近异步重建任务及源目录修订差。要求 catalog.maintain 与学校维护范围，每次查看记录审计。
+//
+// Returns a wrapper object for the known response body format(s).
+func (c *ClientWithResponses) GetDirectoryProjectionStatusWithResponse(ctx context.Context, schoolId string, reqEditors ...RequestEditorFn) (*GetDirectoryProjectionStatusResponse, error) {
+	rsp, err := c.GetDirectoryProjectionStatus(ctx, schoolId, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetDirectoryProjectionStatusResponse(rsp)
+}
+
+// StartDirectoryProjectionRebuildWithBodyWithResponse performs a POST /api/v1/catalog/admin/schools/{school_id}/directory-projection (the `StartDirectoryProjectionRebuild` operationId) request,
+// with any type of body and a specified content type.
+//
+// 提交目录投影异步重建持久任务，可选更新学校 DirectoryPolicy。要求 catalog.maintain 与学校维护范围。同键同请求重放原任务，已有排队或运行任务或存在未完成来源导入时返回 409。
+//
+// Returns a wrapper object for the known response body format(s).
+func (c *ClientWithResponses) StartDirectoryProjectionRebuildWithBodyWithResponse(ctx context.Context, schoolId string, params *StartDirectoryProjectionRebuildParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*StartDirectoryProjectionRebuildResponse, error) {
+	rsp, err := c.StartDirectoryProjectionRebuildWithBody(ctx, schoolId, params, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseStartDirectoryProjectionRebuildResponse(rsp)
+}
+
+// StartDirectoryProjectionRebuildWithResponse performs a POST /api/v1/catalog/admin/schools/{school_id}/directory-projection (the `StartDirectoryProjectionRebuild` operationId) request.
+// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+//
+// 提交目录投影异步重建持久任务，可选更新学校 DirectoryPolicy。要求 catalog.maintain 与学校维护范围。同键同请求重放原任务，已有排队或运行任务或存在未完成来源导入时返回 409。
+func (c *ClientWithResponses) StartDirectoryProjectionRebuildWithResponse(ctx context.Context, schoolId string, params *StartDirectoryProjectionRebuildParams, body StartDirectoryProjectionRebuildJSONRequestBody, reqEditors ...RequestEditorFn) (*StartDirectoryProjectionRebuildResponse, error) {
+	rsp, err := c.StartDirectoryProjectionRebuild(ctx, schoolId, params, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseStartDirectoryProjectionRebuildResponse(rsp)
+}
+
 // GetTeacherRefreshStatusWithResponse performs a GET /api/v1/catalog/admin/schools/{school_id}/teacher-sites/refresh (the `GetTeacherRefreshStatus` operationId) request.
 //
 // Requires catalog.teacher-sites.read and current school management scope. Every view is audited. Latest run includes safe failure code and observed request/site counts; unknown measurements are null. Counts reflect current visible teacher marks.
@@ -7542,7 +8207,7 @@ func (c *ClientWithResponses) StartTeacherRefreshWithResponse(ctx context.Contex
 
 // ListUnmatchedTeacherSitesWithResponse performs a GET /api/v1/catalog/admin/schools/{school_id}/teacher-sites/unmatched (the `ListUnmatchedTeacherSites` operationId) request.
 //
-// Requires catalog.teacher-sites.read and current school management scope. Every view is audited. Current complete unmatched snapshot only; failed refresh preserves it. Returns public website name/unit, fixed reason and count of same-name catalog candidates, never candidate IDs, staff numbers or contacts. reason_counts covers the entire snapshot; total respects reason. Cursor binds school, reason and snapshot revision; a changed snapshot returns 409. Sorted by site_id.
+// Requires catalog.teacher-sites.read and current school management scope. Every view is audited. Current complete unmatched snapshot only; failed refresh preserves it. Returns public website name/unit, fixed reason and count of same-name catalog candidates, never candidate IDs, staff numbers or contacts. reason_counts covers the entire snapshot; total respects reason and q. Cursor binds school, reason, q and snapshot revision; a changed snapshot returns 409. Sorted by site_id.
 //
 // Returns a wrapper object for the known response body format(s).
 func (c *ClientWithResponses) ListUnmatchedTeacherSitesWithResponse(ctx context.Context, schoolId string, params *ListUnmatchedTeacherSitesParams, reqEditors ...RequestEditorFn) (*ListUnmatchedTeacherSitesResponse, error) {
@@ -8263,6 +8928,135 @@ func ParseAdminGetObjectSummaryResponse(rsp *http.Response) (*AdminGetObjectSumm
 			return nil, err
 		}
 		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 409:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON409 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON503 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseGetDirectoryProjectionStatusResponse parses an HTTP response from a GetDirectoryProjectionStatusWithResponse call
+func ParseGetDirectoryProjectionStatusResponse(rsp *http.Response) (*GetDirectoryProjectionStatusResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetDirectoryProjectionStatusResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest DirectoryProjectionStatus
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON503 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseStartDirectoryProjectionRebuildResponse parses an HTTP response from a StartDirectoryProjectionRebuildWithResponse call
+func ParseStartDirectoryProjectionRebuildResponse(rsp *http.Response) (*StartDirectoryProjectionRebuildResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &StartDirectoryProjectionRebuildResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 202:
+		var dest ProjectionRebuildRun
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON202 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
 		var dest Error

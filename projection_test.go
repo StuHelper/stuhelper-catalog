@@ -5,14 +5,36 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"net/http"
+	"net/http/httptest"
 	"slices"
+	"strings"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
 	c "github.com/StuHelper/stuhelper-catalog"
+	"github.com/StuHelper/stuhelper-catalog/httpapi"
 	"github.com/StuHelper/stuhelper-catalog/postgres"
 )
+
+func httpHandlerForTest(s *c.Service, principal func() c.Principal) http.Handler {
+	return httpapi.Handler{
+		Service:      s,
+		Authenticate: func(*http.Request) (c.Principal, error) { return principal(), nil },
+	}.Routes()
+}
+
+func serveJSONRequest(h http.Handler, method, path, idempotencyKey, body string) (int, string) {
+	req := httptest.NewRequest(method, path, strings.NewReader(body))
+	if idempotencyKey != "" {
+		req.Header.Set("Idempotency-Key", idempotencyKey)
+	}
+	w := httptest.NewRecorder()
+	h.ServeHTTP(w, req)
+	return w.Code, w.Body.String()
+}
 
 func projectionFixture(t *testing.T) (*c.Service, c.Principal, *sql.DB, c.ProjectionReport) {
 	t.Helper()
@@ -359,6 +381,240 @@ func TestDirectoryProjectionFailedSourceImportFencesPublicationUntilRetry(t *tes
 	object, err = s.Read(ctx, p, "pending")
 	if err != nil || object.ID != "pending" {
 		t.Fatal(object, err)
+	}
+}
+
+func TestProjectionMaintenanceRebuildUsesInjectedClock(t *testing.T) {
+	s, p, _, initial := projectionFixture(t)
+	ctx := context.Background()
+	repo := s.Repo.(*postgres.Repository)
+	repo.RequireDirectoryProjection = true
+	repo.RequireTeacherDirectory = true
+
+	fixedClock := initial.BuiltAt.Add(2 * time.Hour).Truncate(time.Second)
+	s.Clock = func() time.Time { return fixedClock }
+
+	updatedName := "Clock Controlled Course"
+	course, err := s.AdminRead(ctx, p, "course")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := s.Correct(ctx, p, "course", "clock-correct", c.Correction{Revision: course.Revision, Name: &updatedName}); err != nil {
+		t.Fatal(err)
+	}
+
+	report, err := s.DirectoryProjection(ctx, p, "school")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !report.BuiltAt.Equal(fixedClock) {
+		t.Fatalf("rebuildActive ignored Service.Clock: got BuiltAt=%v want=%v", report.BuiltAt, fixedClock)
+	}
+	readCourse, err := s.Read(ctx, p, "course")
+	if err != nil || readCourse.Name != updatedName {
+		t.Fatalf("projected Read did not reflect corrected name: %+v %v", readCourse, err)
+	}
+
+	// Verify ImportTeacherSites also forwards s.Clock into RebuildPublishedDirectory.
+	nextClock := fixedClock.Add(30 * time.Minute)
+	s.Clock = func() time.Time { return nextClock }
+	candidates, err := s.TeacherCandidates(ctx, p, "school", "", 500)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := s.ImportTeacherSites(ctx, p, c.TeacherSiteSnapshot{
+		CandidateFingerprint: c.TeacherCandidateFingerprint(candidates),
+		SchoolID:             "school", SourceID: "official", Revision: 2, ObservedAt: nextClock,
+		Matches: []c.TeacherSiteMatch{{TeacherID: "official", Name: "Official", DepartmentID: "dept", URL: "https://shi.buaa.edu.cn/official/index.htm"}},
+	}); err != nil {
+		t.Fatal(err)
+	}
+	report2, err := s.DirectoryProjection(ctx, p, "school")
+	if err != nil || !report2.BuiltAt.Equal(nextClock) {
+		t.Fatalf("ImportTeacherSites rebuild ignored Service.Clock: got=%+v want=%v err=%v", report2, nextClock, err)
+	}
+}
+
+func TestAdminDirectoryProjectionHTTPResetFieldsAndDebouncedWorker(t *testing.T) {
+	s, p, _, first := projectionFixture(t)
+	ctx := context.Background()
+
+	// 1. reset_fields restores imported values and clears Manual entries.
+	manualName := "人工临时名称"
+	manualCredits := 4.5
+	updated, err := s.Correct(ctx, p, "course", "set-manual", c.Correction{
+		Revision: 1,
+		Name:     &manualName,
+		Credits:  &manualCredits,
+	})
+	if err != nil || updated.Name != manualName || updated.Credits == nil || *updated.Credits != 4.5 {
+		t.Fatalf("set manual: %+v %v", updated, err)
+	}
+	// Reject setting and resetting the same field simultaneously.
+	if _, err := s.Correct(ctx, p, "course", "bad-reset", c.Correction{
+		Revision:    updated.Revision,
+		Name:        &manualName,
+		ResetFields: []string{"name"},
+	}); !errors.Is(err, c.ErrInput) {
+		t.Fatalf("expected ErrInput on simultaneous set+reset, got %v", err)
+	}
+	restored, err := s.Correct(ctx, p, "course", "reset-manual", c.Correction{
+		Revision:    updated.Revision,
+		ResetFields: []string{"name", "credits"},
+	})
+	if err != nil || restored.Name != "Current" || restored.Credits != nil {
+		t.Fatalf("reset manual failed: %+v %v", restored, err)
+	}
+
+	// 2. AsyncMaintenanceRebuild coalesces rapid mutations via RunProjectionWorker.
+	s.AsyncMaintenanceRebuild = true
+	beforeReport, err := s.DirectoryProjection(ctx, p, "school")
+	if err != nil {
+		t.Fatal(err)
+	}
+	n1, n2 := "Burst 1", "Burst 2"
+	u1, err := s.Correct(ctx, p, "course", "burst-1", c.Correction{Revision: restored.Revision, Name: &n1})
+	if err != nil {
+		t.Fatal(err)
+	}
+	u2, err := s.Correct(ctx, p, "course", "burst-2", c.Correction{Revision: u1.Revision, Name: &n2})
+	if err != nil {
+		t.Fatal(err)
+	}
+	// Synchronous transaction did not rebuild yet; pending_rebuild is true.
+	status, err := s.AdminDirectoryProjection(ctx, p, "school")
+	if err != nil || status.Published == nil || status.Published.Version != beforeReport.Version || !status.PendingRebuild || status.SourceRevisionLag < 1 {
+		t.Fatalf("expected pending coalesced rebuild: %+v %v", status, err)
+	}
+	workerCtx, stopWorker := context.WithCancel(ctx)
+	done := make(chan error, 1)
+	go func() {
+		done <- s.RunProjectionWorker(workerCtx, p, "school", 40*time.Millisecond)
+	}()
+	deadline := time.Now().Add(5 * time.Second)
+	for {
+		cur, err := s.AdminDirectoryProjection(ctx, p, "school")
+		if err != nil {
+			stopWorker()
+			t.Fatal(err)
+		}
+		if !cur.PendingRebuild && cur.Published != nil && cur.Published.Version > beforeReport.Version {
+			break
+		}
+		if time.Now().After(deadline) {
+			stopWorker()
+			t.Fatalf("debounced worker did not publish: %+v", cur)
+		}
+		time.Sleep(30 * time.Millisecond)
+	}
+	stopWorker()
+	if err := <-done; err != nil {
+		t.Fatal(err)
+	}
+	readCourse, err := s.Read(ctx, p, "course")
+	if err != nil || readCourse.Name != u2.Name {
+		t.Fatalf("projected course did not reflect coalesced edit: %+v %v", readCourse, err)
+	}
+
+	// 3. HTTP GET & POST /api/v1/catalog/admin/schools/{school_id}/directory-projection.
+	currentPrincipal := p
+	h := httpHandlerForTest(s, func() c.Principal { return currentPrincipal })
+	// Unauthorized / forbidden checks.
+	currentPrincipal = c.Principal{}
+	if code, _ := serveJSONRequest(h, "GET", "/api/v1/catalog/admin/schools/school/directory-projection", "", ""); code != 401 {
+		t.Fatalf("expected 401, got %d", code)
+	}
+	currentPrincipal = c.Principal{Subject: "student"}
+	if code, _ := serveJSONRequest(h, "GET", "/api/v1/catalog/admin/schools/school/directory-projection", "", ""); code != 403 {
+		t.Fatalf("expected 403, got %d", code)
+	}
+	if code, _ := serveJSONRequest(h, "POST", "/api/v1/catalog/admin/schools/school/directory-projection", "k1", `{}`); code != 403 {
+		t.Fatalf("expected 403 on POST, got %d", code)
+	}
+
+	currentPrincipal = p
+	code, body := serveJSONRequest(h, "POST", "/api/v1/catalog/admin/schools/school/directory-projection", "policy-job-1", `{"policy":{"cutoff_year":2024,"cutoff_season":"spring"}}`)
+	if code != 202 {
+		t.Fatalf("expected 202, got %d %s", code, body)
+	}
+	// Idempotent replay returns 202 with the same run; different payload returns 409.
+	replayCode, _ := serveJSONRequest(h, "POST", "/api/v1/catalog/admin/schools/school/directory-projection", "policy-job-1", `{"policy":{"cutoff_year":2024,"cutoff_season":"spring"}}`)
+	if replayCode != 202 {
+		t.Fatalf("expected 202 on replay, got %d", replayCode)
+	}
+	conflictCode, _ := serveJSONRequest(h, "POST", "/api/v1/catalog/admin/schools/school/directory-projection", "policy-job-1", `{"policy":{"cutoff_year":2023,"cutoff_season":"autumn"}}`)
+	if conflictCode != 409 {
+		t.Fatalf("expected 409 on mismatched payload, got %d", conflictCode)
+	}
+	competingCode, _ := serveJSONRequest(h, "POST", "/api/v1/catalog/admin/schools/school/directory-projection", "policy-job-2", `{}`)
+	if competingCode != 409 {
+		t.Fatalf("expected 409 while job active, got %d", competingCode)
+	}
+
+	finished, err := s.ExecuteDirectoryRebuild(ctx, p, "school")
+	if err != nil || finished == nil || finished.Status != "succeeded" || finished.Version == nil || *finished.Version <= first.Version {
+		t.Fatalf("execute queued rebuild failed: %+v %v", finished, err)
+	}
+	getCode, getBody := serveJSONRequest(h, "GET", "/api/v1/catalog/admin/schools/school/directory-projection", "", "")
+	if getCode != 200 {
+		t.Fatalf("expected 200 on status GET, got %d %s", getCode, getBody)
+	}
+	finalStatus, err := s.AdminDirectoryProjection(ctx, p, "school")
+	if err != nil || finalStatus.Published == nil || finalStatus.Published.Policy.CutoffYear != 2024 || finalStatus.LatestRun == nil || finalStatus.LatestRun.Status != "succeeded" {
+		t.Fatalf("unexpected final status: %+v %v", finalStatus, err)
+	}
+}
+
+func TestExpiredProjectionWorkerCannotPublishOverReplacement(t *testing.T) {
+	s, p, db, before := projectionFixture(t)
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	var now atomic.Int64
+	now.Store(time.Now().Unix())
+	s.Clock = func() time.Time { return time.Unix(now.Load(), 0).UTC() }
+	run, err := s.QueueDirectoryRebuild(ctx, p, "school", "old-worker", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	writer, err := db.BeginTx(ctx, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer writer.Rollback()
+	var pid int
+	if err := writer.QueryRowContext(ctx, "SELECT pg_backend_pid() FROM pg_advisory_xact_lock(hashtextextended('catalog:projection-source:school',0))").Scan(&pid); err != nil {
+		t.Fatal(err)
+	}
+	done := make(chan error, 1)
+	go func() {
+		_, err := s.ExecuteDirectoryRebuild(ctx, p, "school")
+		done <- err
+	}()
+	for {
+		var blocked bool
+		err := db.QueryRowContext(ctx, "SELECT EXISTS(SELECT 1 FROM pg_stat_activity WHERE datname=current_database() AND $1=ANY(pg_blocking_pids(pid)))", pid).Scan(&blocked)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if blocked {
+			break
+		}
+		time.Sleep(5 * time.Millisecond)
+	}
+	now.Store(run.DeadlineAt.Unix() + 1)
+	replacement, err := s.QueueDirectoryRebuild(ctx, p, "school", "replacement", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := writer.Commit(); err != nil {
+		t.Fatal(err)
+	}
+	if err := <-done; err == nil {
+		t.Fatal("expired worker succeeded")
+	}
+	status, err := s.AdminDirectoryProjection(ctx, p, "school")
+	if err != nil || status.Published == nil || status.Published.Version != before.Version || status.LatestRun == nil || status.LatestRun.ID != replacement.ID || status.LatestRun.Status != "queued" {
+		t.Fatal("expired worker changed the published version or replacement", status, err)
 	}
 }
 

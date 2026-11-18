@@ -232,7 +232,7 @@ func (t *transaction) ReplaceTeacherSites(in c.TeacherSiteSnapshot, actor string
 	if err := t.syncTeacherDiscoveryAndActivity(in.SchoolID, nil, at); err != nil {
 		return c.TeacherDirectoryResult{}, err
 	}
-	if err := t.rebuildActive(in.SchoolID); err != nil {
+	if _, err := t.RebuildPublishedDirectory(in.SchoolID, at); err != nil {
 		return c.TeacherDirectoryResult{}, err
 	}
 	return t.directoryCounts(in.SchoolID)
