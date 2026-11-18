@@ -151,14 +151,18 @@ func (s *Service) MyNextClassDay(ctx context.Context, p Principal) (NextClassDay
 		if row.Enrollment.Subject != p.Subject || row.Enrollment.SchoolID != school {
 			return NextClassDay{}, ErrUnavailable
 		}
-		if isHistoricalEndedTerm(row, now, latestStartedTermKey) {
-			continue
-		}
+		historical := isHistoricalEndedTerm(row, now, latestStartedTermKey)
 		if len(row.Meetings) == 0 {
+			if historical {
+				continue
+			}
 			hasUnscheduled = true
 			continue
 		}
 		if row.Timetable == nil {
+			if historical {
+				continue
+			}
 			out.Reason = "schedule_incomplete"
 			return out, nil
 		}
@@ -167,6 +171,9 @@ func (s *Service) MyNextClassDay(ctx context.Context, p Principal) (NextClassDay
 			single.Meetings = []ScheduleMeeting{meeting}
 			occurrences, err := ExpandSchedule(p.Subject, single)
 			if err != nil {
+				if historical {
+					continue
+				}
 				out.Reason = "schedule_incomplete"
 				return out, nil
 			}

@@ -345,3 +345,27 @@ func TestUIViewTokensAreDailyAndOldKeysExpire(t *testing.T) {
 		t.Fatal("old token retention", count, err)
 	}
 }
+
+func TestNextClassDayKeepsScheduledLessonBeyondSeasonEstimate(t *testing.T) {
+	s, admin, input := fixture(t)
+	ctx := context.Background()
+	now := time.Date(2027, 4, 2, 0, 0, 0, 0, time.UTC)
+	s.Clock = func() time.Time { return now }
+	input.FetchedAt = now
+	input.Objects = append(input.Objects, c.Object{ID: "late-meeting", Kind: "schedule", SchoolID: "school", ClassID: "class1", Name: "Class", TimeText: "周一 第1-2节 第31-31周"})
+	if _, err := s.Import(ctx, admin, "late-course", input); err != nil {
+		t.Fatal(err)
+	}
+	if err := s.SaveTermOrders(ctx, admin, "school", []c.TermOrder{{ID: "term1", Year: 2026, Season: "autumn"}}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := s.PutTimetable(ctx, admin, timetable()); err != nil {
+		t.Fatal(err)
+	}
+	s.EnrollmentSource = sourceStub{snapshot: c.EnrollmentSnapshot{SchoolID: "school", SourceID: "approved-source", Version: "late-batch", Revision: 2, FetchedAt: now, Enrollments: input.Enrollments}}
+	s.OwnSummaryAccess = ownSummaryPermission{}
+	got, err := s.MyNextClassDay(ctx, c.Principal{Subject: "issuer:student"})
+	if err != nil || got.Date == nil || *got.Date != "2027-04-05" || len(got.Items) != 1 {
+		t.Fatal(got, err)
+	}
+}
