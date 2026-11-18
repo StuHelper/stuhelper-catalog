@@ -67,6 +67,7 @@ scenario_tests:
     - course_identity_test.go#TestCourseNamesMigrateWithoutLosingDepartmentAliasesOrNewWrites
   CAT-PUBLIC-01:
     - teaching_visibility_test.go#TestTeachingDetailsHiddenAcrossPublicReads
+    - content_test.go#TestPublicReadsRejectIncludeInactiveAndHideDeactivatedObjects
   CAT-DISPLAY-01:
     - display_policy_test.go#TestDisplayProjectionMigrationPreservesPublishedDirectoryAndRuntimeBoundary
     - display_policy_test.go#TestDirectoryDisplayRulesProjectsCountsAndEnrollmentOwnership

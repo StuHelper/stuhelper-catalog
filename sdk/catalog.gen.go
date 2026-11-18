@@ -1184,8 +1184,10 @@ type ListObjectsParams struct {
 	TermCourseId *string `form:"term_course_id,omitempty" json:"term_course_id,omitempty"`
 
 	// ClassId 普通目录禁止使用此教学班粒度筛选，返回 403 forbidden；管理端使用 /catalog/admin/objects。
-	ClassId         *string `form:"class_id,omitempty" json:"class_id,omitempty"`
-	IncludeInactive *bool   `form:"include_inactive,omitempty" json:"include_inactive,omitempty"`
+	ClassId *string `form:"class_id,omitempty" json:"class_id,omitempty"`
+
+	// IncludeInactive 普通目录不返回停用对象，传 true 返回 400 invalid_input；管理端使用 /catalog/admin/objects。
+	IncludeInactive *bool `form:"include_inactive,omitempty" json:"include_inactive,omitempty"`
 }
 
 // LookupObjectsParams defines parameters for LookupObjects.
