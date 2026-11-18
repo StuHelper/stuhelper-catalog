@@ -308,6 +308,24 @@ func TestUIDirectoryNatureFacetsMultiSelectAndCreditsRange(t *testing.T) {
 			}}
 			p := c.Principal{Subject: "issuer:student"}
 
+			if projected {
+				// A selection published before nature membership was added remains readable.
+				_, err := repo.DB.Exec(`UPDATE catalog.projection_selections SET data=jsonb_set(data,'{candidates}',
+ (SELECT jsonb_agg(candidate-'natures' ORDER BY ordinal) FROM jsonb_array_elements(data->'candidates') WITH ORDINALITY AS c(candidate,ordinal)))
+ WHERE kind='course'`)
+				if err != nil {
+					t.Fatal(err)
+				}
+				defaultPage, err := s.ReadDirectory(ctx, p, c.DirectoryQuery{Filter: c.Filter{Kind: "course", Limit: 20}})
+				if err != nil {
+					t.Fatal(err)
+				}
+				index := slices.IndexFunc(defaultPage.NatureFacets, func(f c.DirectoryFacet) bool { return f.ID == "nature2" })
+				if index < 0 || defaultPage.NatureFacets[index].ReviewCount != 5 {
+					t.Fatalf("old persisted selection lost nature review counts: %+v", defaultPage.NatureFacets)
+				}
+			}
+
 			// Credits range excludes unknown-credit "course" (nil credits) and 4.0cr "course-c4".
 			minCr, maxCr := 1.0, 2.0
 			byCredits, err := s.ReadDirectory(ctx, p, c.DirectoryQuery{

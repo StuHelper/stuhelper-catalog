@@ -132,20 +132,27 @@ func (t *transaction) directorySelection(q c.DirectoryQuery) (*directorySelectio
 	hash := sha256.Sum256(input)
 	key := hex.EncodeToString(hash[:])
 	return t.directoryData.get(t.ctx, key, revision, func() (*directorySelection, int, error) {
+		var raw []byte
 		query, args, err := directorySelectionQuery(q)
 		if t.projectionRead {
 			query, args, err = projectedSelectionQuery(q, revision)
 			if q.Query == "" && q.DepartmentID == "" && len(q.DepartmentIDs) == 0 && q.CategoryID == "" && len(q.CategoryIDs) == 0 && q.NatureID == "" && q.TeacherID == "" && q.CreditsMin == nil && q.CreditsMax == nil {
-				query = `SELECT data FROM catalog.projection_selections WHERE version=$1 AND kind=$2`
-				args = []any{revision, q.Kind}
+				// Older publications stored candidates without their nature memberships.
+				// Recompute them from the same immutable version on the first cache miss.
+				err = t.tx.QueryRowContext(t.ctx, `SELECT CASE WHEN jsonb_array_length(data->'candidates')=0
+ OR (data->'candidates'->0) ? 'natures' THEN data END FROM catalog.projection_selections WHERE version=$1 AND kind=$2`, revision, q.Kind).Scan(&raw)
+				if err != nil {
+					return nil, 0, safe(err)
+				}
 			}
 		}
 		if err != nil {
 			return nil, 0, err
 		}
-		var raw []byte
-		if err = t.tx.QueryRowContext(t.ctx, query, append([]any{pgx.QueryExecModeExec}, args...)...).Scan(&raw); err != nil {
-			return nil, 0, safe(err)
+		if raw == nil {
+			if err = t.tx.QueryRowContext(t.ctx, query, append([]any{pgx.QueryExecModeExec}, args...)...).Scan(&raw); err != nil {
+				return nil, 0, safe(err)
+			}
 		}
 		if len(raw) > 32<<20 {
 			return nil, 0, c.ErrUnavailable
