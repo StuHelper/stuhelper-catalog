@@ -77,6 +77,7 @@ scenario_tests:
     - display_policy_test.go#TestProjectedViewAllowsWriterToPublishWhileWaitingForSource
   CAT-REFRESH-01:
     - teacher_refresh_test.go#TestTeacherRefreshDurableConcurrencyIdempotencyAndTimeout
+    - outbox_delivery_test.go#TestBoundedPruningHostAllowlistAndOperationalMetrics
   CAT-REFRESH-02:
     - teacher_refresh_test.go#TestTeacherRefreshReadersDoNotWaitForWorkerPublication
     - teacher_refresh_test.go#TestTeacherUnmatchedEmptySnapshotIsIdempotent
@@ -113,6 +114,7 @@ scenario_tests:
     - activity_test.go#TestActivityViewsDeduplicateConcurrentReadersAndDoNotBreakDetails
     - activity_test.go#TestActivityViewFailureTelemetryAndBoundedDedupRetention
     - activity_test.go#TestActivityViewAliasesShareCanonicalDeduplication
+    - outbox_delivery_test.go#TestBoundedPruningHostAllowlistAndOperationalMetrics
   CO-02:
     - integration_test.go#TestImportRelationsClassificationAndMissingCredits
   CO-04:

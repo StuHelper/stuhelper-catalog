@@ -3,6 +3,7 @@ package postgres
 import (
 	"context"
 	"crypto/sha256"
+	"database/sql"
 	"encoding/hex"
 	"encoding/json"
 	c "github.com/StuHelper/stuhelper-catalog"
@@ -41,12 +42,13 @@ type directoryCacheEntry struct {
 	expires   time.Time
 }
 type directoryCache struct {
-	mu       sync.Mutex
-	pinned   map[string]directoryCacheEntry
-	entries  map[string]directoryCacheEntry
-	building map[string]chan struct{}
-	used     uint64
-	bytes    int
+	mu                      sync.Mutex
+	pinned                  map[string]directoryCacheEntry
+	entries                 map[string]directoryCacheEntry
+	building                map[string]chan struct{}
+	used                    uint64
+	bytes                   int
+	hits, misses, evictions uint64
 }
 
 func (r *Repository) directoryCache() *directoryCache {
@@ -58,6 +60,69 @@ func (r *Repository) directoryCache() *directoryCache {
 		}
 	})
 	return r.directoryData
+}
+
+func (r *Repository) DirectoryCacheMetrics() c.DirectoryCacheMetrics {
+	cache := r.directoryCache()
+	cache.mu.Lock()
+	entries := len(cache.pinned) + len(cache.entries)
+	bytes := cache.bytes
+	defer cache.mu.Unlock()
+	return c.DirectoryCacheMetrics{
+		Hits:      cache.hits,
+		Misses:    cache.misses,
+		Evictions: cache.evictions,
+		Entries:   entries,
+		Bytes:     bytes,
+	}
+}
+
+func (r *Repository) OperationalMetrics(ctx context.Context, now time.Time) (c.OperationalMetrics, error) {
+	if now.IsZero() {
+		now = time.Now().UTC()
+	} else {
+		now = now.UTC()
+	}
+	out := c.OperationalMetrics{
+		Cache:       r.DirectoryCacheMetrics(),
+		Projections: []c.SchoolProjectionMetrics{},
+	}
+	if err := r.DB.QueryRowContext(ctx, `SELECT count(*) FROM catalog.outbox WHERE sent_at IS NULL`).Scan(&out.PendingOutbox); err != nil {
+		return c.OperationalMetrics{}, safe(err)
+	}
+	rows, err := r.DB.QueryContext(ctx, `SELECT COALESCE(h.school_id,f.school_id) AS school_id,
+ COALESCE(h.version,0), g.built_at, COALESCE(f.reason,''), f.failed_at
+ FROM catalog.projection_heads h
+ LEFT JOIN catalog.projection_generations g ON g.version=h.version
+ FULL OUTER JOIN catalog.projection_failures f ON f.school_id=h.school_id
+ ORDER BY school_id LIMIT 1000`)
+	if err != nil {
+		return c.OperationalMetrics{}, safe(err)
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var item c.SchoolProjectionMetrics
+		var builtAt, failedAt sql.NullTime
+		if err := rows.Scan(&item.SchoolID, &item.Version, &builtAt, &item.LastFailureReason, &failedAt); err != nil {
+			return c.OperationalMetrics{}, safe(err)
+		}
+		if builtAt.Valid {
+			t := builtAt.Time.UTC()
+			item.BuiltAt = &t
+			if age := int64(now.Sub(t).Seconds()); age > 0 {
+				item.AgeSeconds = age
+			}
+		}
+		if failedAt.Valid {
+			t := failedAt.Time.UTC()
+			item.LastFailedAt = &t
+		}
+		out.Projections = append(out.Projections, item)
+	}
+	if err := rows.Err(); err != nil {
+		return c.OperationalMetrics{}, safe(err)
+	}
+	return out, nil
 }
 
 func (cache *directoryCache) evictOldest(pool map[string]directoryCacheEntry) bool {
@@ -73,6 +138,7 @@ func (cache *directoryCache) evictOldest(pool map[string]directoryCacheEntry) bo
 	}
 	cache.bytes -= pool[oldestKey].bytes
 	delete(pool, oldestKey)
+	cache.evictions++
 	return true
 }
 
@@ -91,6 +157,7 @@ func (cache *directoryCache) get(ctx context.Context, key string, revision int64
 		if entry, ok := pool[key]; ok && entry.revision == revision && time.Now().Before(entry.expires) {
 			entry.used = cache.used
 			pool[key] = entry
+			cache.hits++
 			cache.mu.Unlock()
 			return entry.selection, nil
 		}
@@ -105,6 +172,7 @@ func (cache *directoryCache) get(ctx context.Context, key string, revision int64
 		}
 		ready := make(chan struct{})
 		cache.building[key] = ready
+		cache.misses++
 		cache.mu.Unlock()
 		value, size, err := build()
 		cache.mu.Lock()
