@@ -51,7 +51,10 @@ func (s *Service) Resolve(ctx context.Context, id string) (Resolution, error) {
 }
 func mergePlan(t Transaction, p Principal, id string, in MergeInput) (MergePreview, error) {
 	out := MergePreview{}
-	if !p.CanMaintain || !ValidID(id) || !ValidID(in.TargetID) || id == in.TargetID || strings.TrimSpace(in.Reason) == "" || !validText(in.Reason, 2000) {
+	if err := maintainRead(p); err != nil {
+		return out, err
+	}
+	if !ValidID(id) || !ValidID(in.TargetID) || id == in.TargetID || strings.TrimSpace(in.Reason) == "" || !validText(in.Reason, 2000) {
 		return out, ErrInput
 	}
 	source, e := t.Object(id)
@@ -102,18 +105,24 @@ func mergePlan(t Transaction, p Principal, id string, in MergeInput) (MergePrevi
 	return out, nil
 }
 func (s *Service) PreviewMerge(ctx context.Context, p Principal, id string, in MergeInput) (MergePreview, error) {
+	if err := maintainRead(p); err != nil {
+		return MergePreview{}, err
+	}
 	ctx = teacherMaintenanceContext(ctx)
 	var out MergePreview
 	err := s.Repo.Transaction(ctx, func(t Transaction) error { var e error; out, e = mergePlan(t, p, id, in); return e })
 	return out, err
 }
 func (s *Service) Merge(ctx context.Context, p Principal, id, key string, in MergeInput) (Object, error) {
+	if err := maintainRead(p); err != nil {
+		return Object{}, err
+	}
 	ctx = teacherMaintenanceContext(ctx)
 	if s.AsyncMaintenanceRebuild {
 		ctx = deferMaintenanceRebuildContext(ctx)
 	}
 	var out Object
-	if !ValidKey(key) || in.PreviewToken == "" {
+	if !ValidID(id) || !ValidKey(key) || in.PreviewToken == "" {
 		return out, ErrInput
 	}
 	rk := digest([]string{p.Subject, "merge", id, key})
@@ -123,7 +132,7 @@ func (s *Service) Merge(ctx context.Context, p Principal, id, key string, in Mer
 		if e != nil {
 			return e
 		}
-		if !p.CanMaintain || !allowed(p, original.Object.SchoolID) {
+		if !allowed(p, original.Object.SchoolID) {
 			return ErrForbidden
 		}
 		if e = t.Lock(original.Object.SchoolID); e != nil {
@@ -179,11 +188,14 @@ func (s *Service) Merge(ctx context.Context, p Principal, id, key string, in Mer
 			return e
 		}
 		data, _ := json.Marshal(out)
-		return t.SaveReplay(rk, Replay{h, data, s.now().Add(24 * time.Hour)})
+		return t.SaveReplay(rk, Replay{Digest: h, Result: data, Until: s.now().Add(24 * time.Hour), Expires: true})
 	})
 	return out, err
 }
 func (s *Service) SetState(ctx context.Context, p Principal, id, key string, in ObjectState) (Object, error) {
+	if err := maintainRead(p); err != nil {
+		return Object{}, err
+	}
 	ctx = teacherMaintenanceContext(ctx)
 	if s.AsyncMaintenanceRebuild {
 		ctx = deferMaintenanceRebuildContext(ctx)
@@ -199,7 +211,7 @@ func (s *Service) SetState(ctx context.Context, p Principal, id, key string, in 
 		if e != nil {
 			return e
 		}
-		if !p.CanMaintain || !allowed(p, old.Object.SchoolID) {
+		if !allowed(p, old.Object.SchoolID) {
 			return ErrForbidden
 		}
 		if e = t.Lock(old.Object.SchoolID); e != nil {
@@ -245,7 +257,7 @@ func (s *Service) SetState(ctx context.Context, p Principal, id, key string, in 
 			return e
 		}
 		data, _ := json.Marshal(out)
-		return t.SaveReplay(rk, Replay{h, data, s.now().Add(24 * time.Hour)})
+		return t.SaveReplay(rk, Replay{Digest: h, Result: data, Until: s.now().Add(24 * time.Hour), Expires: true})
 	})
 	return out, err
 }

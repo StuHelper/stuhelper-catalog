@@ -21,6 +21,7 @@ type Service struct {
 	RecentResources         RecentResourceCounts
 	OwnSummaryAccess        OwnSummaryAccess
 	EnrollmentSource        EnrollmentSource
+	TeacherSiteHosts        map[string][]string
 	ActivityLogger          *slog.Logger
 	OwnLogger               *slog.Logger
 	DirectoryLogger         *slog.Logger
@@ -148,6 +149,129 @@ func relations(t Transaction, o Object) error {
 	return nil
 }
 
+func validateImportBatch(in *Import, now time.Time) error {
+	if !ValidID(in.SchoolID) || !ValidID(in.SourceID) || in.Revision < 1 || in.FetchedAt.IsZero() || in.FetchedAt.After(now.Add(time.Minute)) || len(in.Objects)+len(in.Enrollments) < 1 || len(in.Objects)+len(in.Enrollments) > 500 {
+		return ErrInput
+	}
+	in.Objects = normalizeSchedules(in.Objects)
+	seen := map[string]bool{}
+	for _, o := range in.Objects {
+		if validateObject(o, in.SchoolID) != nil || seen[o.ID] || (in.SeparateCourseNames && o.Kind == "course" && len(o.Aliases) != 0) {
+			return ErrInput
+		}
+		seen[o.ID] = true
+	}
+	return nil
+}
+
+func applyImportTx(t Transaction, p Principal, rk, h string, in Import, now time.Time) (ImportResult, error) {
+	var out ImportResult
+	if in.PreviewToken != "" {
+		token, e := importToken(t, in)
+		if e != nil {
+			return out, e
+		}
+		if token != in.PreviewToken {
+			return out, ErrConflict
+		}
+	}
+	out = ImportResult{ID: rk, Objects: len(in.Objects), Enrollments: len(in.Enrollments)}
+	// Resolve within a page in dependency order, independent of input order.
+	for _, kind := range kinds {
+		for _, o := range in.Objects {
+			if o.Kind != kind {
+				continue
+			}
+			if e := relations(t, o); e != nil {
+				return out, e
+			}
+			old, e := t.Object(o.ID)
+			if e != nil && !errors.Is(e, ErrNotFound) {
+				return out, e
+			}
+			imported := o
+			imported.Revision = 0
+			imported.UpdatedAt = time.Time{}
+			if e == nil {
+				if old.SourceID != in.SourceID || old.Object.Kind != o.Kind || old.Object.SchoolID != o.SchoolID {
+					return out, ErrConflict
+				}
+				if old.SourceRevision > in.Revision {
+					return out, ErrConflict
+				}
+				if old.SourceRevision == in.Revision {
+					if digest(old.Imported) != digest(imported) {
+						return out, ErrConflict
+					}
+					continue
+				}
+				if digest(old.Imported) == digest(imported) {
+					// Refresh source provenance without creating another public
+					// object/history/search revision for identical weekly data.
+					if err := t.AdvanceSourceRevision(o.ID, in.Revision); err != nil {
+						return out, err
+					}
+					out.PreservedCorrections += len(old.Manual)
+					if _, ok := old.Manual["inactive_reason"]; ok {
+						out.PreservedCorrections--
+					}
+					continue
+				}
+			}
+			rec := Record{Object: o, Imported: imported, SourceID: in.SourceID, SourceRevision: in.Revision, Manual: old.Manual}
+			rec.Object.Revision = old.Object.Revision + 1
+			rec.Object.UpdatedAt = now
+			if o.Kind == "course" {
+				if err := preserveCourseNames(&rec, old, in.SeparateCourseNames); err != nil {
+					return out, err
+				}
+			}
+			if o.Kind != "course" || !in.SeparateCourseNames {
+				for _, alias := range old.Object.Aliases {
+					if !slices.Contains(rec.Object.Aliases, alias) && len(rec.Object.Aliases) < 50 {
+						rec.Object.Aliases = append(rec.Object.Aliases, alias)
+					}
+				}
+				if o.Kind != "course" && old.Object.Name != "" && old.Object.Name != o.Name && !slices.Contains(rec.Object.Aliases, old.Object.Name) && len(rec.Object.Aliases) < 50 {
+					rec.Object.Aliases = append(rec.Object.Aliases, old.Object.Name)
+				}
+			}
+			if rec.Object.Aliases == nil {
+				rec.Object.Aliases = []string{}
+			}
+			if e := applyManual(&rec); e != nil {
+				return out, e
+			}
+			out.PreservedCorrections += len(rec.Manual)
+			if _, ok := rec.Manual["inactive_reason"]; ok {
+				out.PreservedCorrections--
+			}
+			if e := relations(t, rec.Object); e != nil {
+				return out, e
+			}
+			if e := t.SaveObject(rec); e != nil {
+				return out, e
+			}
+		}
+	}
+	for _, en := range in.Enrollments {
+		if e := importEnrollment(t, en, in); e != nil {
+			return out, e
+		}
+	}
+	if _, e := t.MergeAliases("", "", in.SchoolID, now, "Canonical relation after import"); e != nil {
+		return out, e
+	}
+	if e := t.Event(Event{Result: "success", ID: rk, Subject: "import/" + rk, Type: "catalog.imported.v1", SchoolID: in.SchoolID, Actor: p.Subject, Revision: in.Revision, Time: now}); e != nil {
+		return out, e
+	}
+	b, e := json.Marshal(out)
+	if e != nil {
+		return out, e
+	}
+	return out, t.SaveReplay(rk, Replay{Digest: h, Result: b})
+}
+
 // Import commits a bounded page atomically. Omitted rows are never interpreted as deletions.
 func (s *Service) Import(ctx context.Context, p Principal, key string, in Import) (ImportResult, error) {
 	ctx = teacherMaintenanceContext(ctx)
@@ -155,22 +279,14 @@ func (s *Service) Import(ctx context.Context, p Principal, key string, in Import
 	if !p.CanImport || !allowed(p, in.SchoolID) {
 		return out, ErrForbidden
 	}
-	if !ValidKey(key) || !ValidID(in.SchoolID) || !ValidID(in.SourceID) || in.Revision < 1 || in.FetchedAt.IsZero() || in.FetchedAt.After(s.now().Add(time.Minute)) || len(in.Objects)+len(in.Enrollments) < 1 || len(in.Objects)+len(in.Enrollments) > 500 {
+	now := s.now()
+	if !ValidKey(key) || validateImportBatch(&in, now) != nil {
 		return out, ErrInput
-	}
-	in.Objects = normalizeSchedules(in.Objects)
-	seen := map[string]bool{}
-	for _, o := range in.Objects {
-		if validateObject(o, in.SchoolID) != nil || seen[o.ID] || (in.SeparateCourseNames && o.Kind == "course" && len(o.Aliases) != 0) {
-			return out, ErrInput
-		}
-		seen[o.ID] = true
 	}
 	withoutToken := in
 	withoutToken.PreviewToken = ""
 	h := digest(withoutToken)
 	rk := digest([]string{p.Subject, "import", in.SchoolID, key})
-	now := s.now()
 	err := s.Repo.Transaction(ctx, func(t Transaction) error {
 		if e := t.Lock(in.SchoolID); e != nil {
 			return e
@@ -185,110 +301,9 @@ func (s *Service) Import(ctx context.Context, p Principal, key string, in Import
 		if e != nil && !errors.Is(e, ErrNotFound) {
 			return e
 		}
-		if in.PreviewToken != "" {
-			token, e := importToken(t, in)
-			if e != nil {
-				return e
-			}
-			if token != in.PreviewToken {
-				return ErrConflict
-			}
-		}
-		out = ImportResult{ID: rk, Objects: len(in.Objects), Enrollments: len(in.Enrollments)}
-		// Resolve within a page in dependency order, independent of input order.
-		for _, kind := range kinds {
-			for _, o := range in.Objects {
-				if o.Kind != kind {
-					continue
-				}
-				if e := relations(t, o); e != nil {
-					return e
-				}
-				old, e := t.Object(o.ID)
-				if e != nil && !errors.Is(e, ErrNotFound) {
-					return e
-				}
-				imported := o
-				imported.Revision = 0
-				imported.UpdatedAt = time.Time{}
-				if e == nil {
-					if old.SourceID != in.SourceID || old.Object.Kind != o.Kind || old.Object.SchoolID != o.SchoolID {
-						return ErrConflict
-					}
-					if old.SourceRevision > in.Revision {
-						return ErrConflict
-					}
-					if old.SourceRevision == in.Revision {
-						if digest(old.Imported) != digest(imported) {
-							return ErrConflict
-						}
-						continue
-					}
-					if digest(old.Imported) == digest(imported) {
-						// Refresh source provenance without creating another public
-						// object/history/search revision for identical weekly data.
-						if err := t.AdvanceSourceRevision(o.ID, in.Revision); err != nil {
-							return err
-						}
-						out.PreservedCorrections += len(old.Manual)
-						if _, ok := old.Manual["inactive_reason"]; ok {
-							out.PreservedCorrections--
-						}
-						continue
-					}
-				}
-				rec := Record{Object: o, Imported: imported, SourceID: in.SourceID, SourceRevision: in.Revision, Manual: old.Manual}
-				rec.Object.Revision = old.Object.Revision + 1
-				rec.Object.UpdatedAt = now
-				if o.Kind == "course" {
-					if err := preserveCourseNames(&rec, old, in.SeparateCourseNames); err != nil {
-						return err
-					}
-				}
-				if o.Kind != "course" || !in.SeparateCourseNames {
-					for _, alias := range old.Object.Aliases {
-						if !slices.Contains(rec.Object.Aliases, alias) && len(rec.Object.Aliases) < 50 {
-							rec.Object.Aliases = append(rec.Object.Aliases, alias)
-						}
-					}
-					if o.Kind != "course" && old.Object.Name != "" && old.Object.Name != o.Name && !slices.Contains(rec.Object.Aliases, old.Object.Name) && len(rec.Object.Aliases) < 50 {
-						rec.Object.Aliases = append(rec.Object.Aliases, old.Object.Name)
-					}
-				}
-				if rec.Object.Aliases == nil {
-					rec.Object.Aliases = []string{}
-				}
-				if e := applyManual(&rec); e != nil {
-					return e
-				}
-				out.PreservedCorrections += len(rec.Manual)
-				if _, ok := rec.Manual["inactive_reason"]; ok {
-					out.PreservedCorrections--
-				}
-				if e := relations(t, rec.Object); e != nil {
-					return e
-				}
-				if e := t.SaveObject(rec); e != nil {
-					return e
-				}
-			}
-		}
-		for _, en := range in.Enrollments {
-			if e := importEnrollment(t, en, in); e != nil {
-				return e
-			}
-		}
-		if _, e := t.MergeAliases("", "", in.SchoolID, now, "Canonical relation after import"); e != nil {
-			return e
-		}
-		if e := t.Event(Event{Result: "success", ID: rk, Subject: "import/" + rk, Type: "catalog.imported.v1", SchoolID: in.SchoolID, Actor: p.Subject, Revision: in.Revision, Time: now}); e != nil {
-			return e
-		}
-		b, e := json.Marshal(out)
-		if e != nil {
-			return e
-		}
-		return t.SaveReplay(rk, Replay{Digest: h, Result: b, Until: now.Add(24 * time.Hour)})
+		var err error
+		out, err = applyImportTx(t, p, rk, h, in, now)
+		return err
 	})
 	return out, err
 }
@@ -353,6 +368,11 @@ func (s *Service) MyEnrollments(ctx context.Context, p Principal, school, course
 	if limit < 1 || limit > 100 {
 		return nil, ErrInput
 	}
+	for _, id := range []string{school, course, term, after} {
+		if id != "" && !ValidID(id) {
+			return nil, ErrInput
+		}
+	}
 	if err := s.refreshOwn(ctx, p); err != nil {
 		return nil, err
 	}
@@ -372,6 +392,9 @@ func (s *Service) Correct(ctx context.Context, p Principal, id, key string, in C
 		ctx = deferMaintenanceRebuildContext(ctx)
 	}
 	var out Object
+	if err := maintainRead(p); err != nil {
+		return out, err
+	}
 	if !ValidID(id) || !ValidKey(key) || in.Revision < 1 || !validCorrectionReset(in) ||
 		(in.Name == nil && in.Biography == nil && in.DepartmentID == nil && in.CategoryID == nil && in.NatureID == nil && in.Code == nil && in.Credits == nil && !in.ClearCredits && len(in.ResetFields) == 0) ||
 		(in.Credits != nil && in.ClearCredits) {
@@ -388,7 +411,7 @@ func (s *Service) Correct(ctx context.Context, p Principal, id, key string, in C
 		if e != nil {
 			return e
 		}
-		if !p.CanMaintain || !allowed(p, r.Object.SchoolID) {
+		if !allowed(p, r.Object.SchoolID) {
 			return ErrForbidden
 		}
 		if e = t.Lock(r.Object.SchoolID); e != nil {
@@ -410,11 +433,24 @@ func (s *Service) Correct(ctx context.Context, p Principal, id, key string, in C
 		if e != nil && !errors.Is(e, ErrNotFound) {
 			return e
 		}
-		if r.Object.Revision != in.Revision {
+		public, e := t.PublicObject(id)
+		if e != nil {
+			return e
+		}
+		if public.CanonicalID != "" || r.Object.Revision != in.Revision {
 			return ErrConflict
 		}
 		courseReset := slices.Contains(in.ResetFields, "credits") || slices.Contains(in.ResetFields, "category_id") || slices.Contains(in.ResetFields, "nature_id")
 		if (in.Credits != nil || in.ClearCredits || in.CategoryID != nil || in.NatureID != nil || courseReset) && r.Object.Kind != "course" {
+			return ErrInput
+		}
+		if (in.Biography != nil || slices.Contains(in.ResetFields, "biography")) && !slices.Contains([]string{"course", "teacher"}, r.Object.Kind) {
+			return ErrInput
+		}
+		if (in.DepartmentID != nil || slices.Contains(in.ResetFields, "department_id")) && !slices.Contains([]string{"course", "teacher", "term_course", "class"}, r.Object.Kind) {
+			return ErrInput
+		}
+		if (in.Code != nil || slices.Contains(in.ResetFields, "code")) && !slices.Contains([]string{"school", "department", "category", "nature", "term", "course", "term_course", "class"}, r.Object.Kind) {
 			return ErrInput
 		}
 		if e = recordCorrection(&r, in); e != nil {
@@ -439,7 +475,7 @@ func (s *Service) Correct(ctx context.Context, p Principal, id, key string, in C
 		if e != nil {
 			return e
 		}
-		return t.SaveReplay(rk, Replay{Digest: h, Result: b, Until: s.now().Add(24 * time.Hour)})
+		return t.SaveReplay(rk, Replay{Digest: h, Result: b, Until: s.now().Add(24 * time.Hour), Expires: true})
 	})
 	return out, err
 }

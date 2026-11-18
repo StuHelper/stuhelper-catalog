@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"math"
 	"slices"
 	"strings"
@@ -73,6 +74,7 @@ type DirectoryPage struct {
 	FacetTotal       int64            `json:"facet_total"`
 	CategoryFacets   []DirectoryFacet `json:"category_facets"`
 	DepartmentFacets []DirectoryFacet `json:"department_facets"`
+	NatureFacets     []DirectoryFacet `json:"nature_facets"`
 	GeneratedAt      time.Time        `json:"generated_at"`
 }
 type DirectoryPosition struct {
@@ -86,7 +88,11 @@ type DirectoryPosition struct {
 }
 type DirectoryQuery struct {
 	Filter
-	Sort string
+	DepartmentIDs []string
+	CategoryIDs   []string
+	CreditsMin    *float64
+	CreditsMax    *float64
+	Sort          string
 }
 type DirectoryRow struct {
 	Item DirectoryItem `json:"item"`
@@ -99,17 +105,46 @@ type DirectoryResult struct {
 	FacetTotal       int64            `json:"facet_total"`
 	CategoryFacets   []DirectoryFacet `json:"category_facets"`
 	DepartmentFacets []DirectoryFacet `json:"department_facets"`
+	NatureFacets     []DirectoryFacet `json:"nature_facets"`
 }
 type DirectoryTransaction interface {
 	Directory(DirectoryQuery, DirectoryPosition, []DirectoryMetric, DirectoryConfig, time.Time, time.Time) (DirectoryResult, error)
 }
 
 func directoryScope(p Principal, q DirectoryQuery, config DirectoryConfig) string {
-	return digest([]any{p.Subject, q.Kind, q.SchoolID, q.DepartmentID, q.CategoryID, q.NatureID, q.TeacherID, q.Query, q.Sort, config})
+	return digest([]any{p.Subject, q.Kind, q.SchoolID, q.DepartmentID, q.DepartmentIDs, q.CategoryID, q.CategoryIDs, q.NatureID, q.TeacherID, q.CreditsMin, q.CreditsMax, q.Query, q.Sort, config})
+}
+
+func normalizeDirectoryIDs(single *string, multi *[]string) error {
+	if *single != "" && len(*multi) > 0 {
+		return ErrInput
+	}
+	if len(*multi) > 20 {
+		return ErrInput
+	}
+	if len(*multi) == 0 {
+		*multi = nil
+		return nil
+	}
+	cleaned := slices.Clone(*multi)
+	for _, id := range cleaned {
+		if !ValidID(id) {
+			return ErrInput
+		}
+	}
+	slices.Sort(cleaned)
+	cleaned = slices.Compact(cleaned)
+	if len(cleaned) == 1 {
+		*single = cleaned[0]
+		*multi = nil
+		return nil
+	}
+	*multi = cleaned
+	return nil
 }
 
 func (s *Service) ReadDirectory(ctx context.Context, p Principal, q DirectoryQuery) (DirectoryPage, error) {
-	out := DirectoryPage{Items: []DirectoryItem{}, CategoryFacets: []DirectoryFacet{}, DepartmentFacets: []DirectoryFacet{}, GeneratedAt: s.now()}
+	out := DirectoryPage{Items: []DirectoryItem{}, CategoryFacets: []DirectoryFacet{}, DepartmentFacets: []DirectoryFacet{}, NatureFacets: []DirectoryFacet{}, GeneratedAt: s.now()}
 	school, err := s.readScope(ctx, p, q.SchoolID)
 	if err != nil {
 		return out, err
@@ -122,6 +157,20 @@ func (s *Service) ReadDirectory(ctx context.Context, p Principal, q DirectoryQue
 	if q.Sort == "" {
 		q.Sort = "hot"
 	}
+	if err := normalizeDirectoryIDs(&q.DepartmentID, &q.DepartmentIDs); err != nil {
+		return out, err
+	}
+	if err := normalizeDirectoryIDs(&q.CategoryID, &q.CategoryIDs); err != nil {
+		return out, err
+	}
+	for _, credit := range []*float64{q.CreditsMin, q.CreditsMax} {
+		if credit != nil && (math.IsNaN(*credit) || math.IsInf(*credit, 0) || *credit < 0 || *credit > 100) {
+			return out, ErrInput
+		}
+	}
+	if q.CreditsMin != nil && q.CreditsMax != nil && *q.CreditsMin > *q.CreditsMax {
+		return out, ErrInput
+	}
 	if q.Kind != "course" && q.Kind != "teacher" || !slices.Contains([]string{"hot", "recommend", "reviews", "name"}, q.Sort) ||
 		q.Limit < 1 || q.Limit > 100 || len(q.After) > 4096 || !validText(q.Query, 200) || q.IncludeInactive || q.IDs != nil ||
 		q.CourseID != "" || q.TermID != "" || q.TermCourseID != "" || q.ClassID != "" {
@@ -132,16 +181,25 @@ func (s *Service) ReadDirectory(ctx context.Context, p Principal, q DirectoryQue
 			return out, ErrInput
 		}
 	}
-	if q.Kind == "teacher" && (q.CategoryID != "" || q.NatureID != "" || q.TeacherID != "") {
+	if q.Kind == "teacher" && (q.CategoryID != "" || len(q.CategoryIDs) > 0 || q.NatureID != "" || q.TeacherID != "" || q.CreditsMin != nil || q.CreditsMax != nil) {
 		return out, ErrInput
 	}
 	if q.TeacherID != "" {
-		teacher, err := s.readObject(ctx, p, q.TeacherID)
+		teacher, err := s.Get(ctx, q.TeacherID)
 		if err != nil {
 			return out, err
 		}
-		if teacher.Kind != "teacher" || teacher.Inactive {
+		if teachingDetail(teacher.Kind) || teacher.Inactive {
 			return out, ErrNotFound
+		}
+		if teacher.SchoolID != school {
+			return out, ErrForbidden
+		}
+		if teacher.Kind != "teacher" {
+			return out, ErrNotFound
+		}
+		if teacher.CanonicalID != "" {
+			q.TeacherID = teacher.CanonicalID
 		}
 	}
 	config := s.DirectoryConfig
@@ -162,8 +220,13 @@ func (s *Service) ReadDirectory(ctx context.Context, p Principal, q DirectoryQue
 	}
 	until := out.GeneratedAt.UTC().Truncate(24 * time.Hour).Add(24 * time.Hour)
 	from := until.AddDate(0, 0, -config.WindowDays)
-	metrics, err := s.DirectoryMetrics.Metrics(ctx, p, school, q.Kind, from, until)
+	callCtx, cancel := context.WithTimeout(ctx, 3*time.Second)
+	defer cancel()
+	metrics, err := s.DirectoryMetrics.Metrics(callCtx, p, school, q.Kind, from, until)
 	if err != nil {
+		if ctx.Err() == nil && errors.Is(err, context.DeadlineExceeded) {
+			return out, ErrUnavailable
+		}
 		return out, err
 	}
 	if len(metrics) > 100000 {
@@ -208,6 +271,6 @@ func (s *Service) ReadDirectory(ctx context.Context, p Principal, q DirectoryQue
 	for _, row := range result.Rows {
 		out.Items = append(out.Items, row.Item)
 	}
-	out.Total, out.FacetTotal, out.CategoryFacets, out.DepartmentFacets = result.Total, result.FacetTotal, result.CategoryFacets, result.DepartmentFacets
+	out.Total, out.FacetTotal, out.CategoryFacets, out.DepartmentFacets, out.NatureFacets = result.Total, result.FacetTotal, result.CategoryFacets, result.DepartmentFacets, result.NatureFacets
 	return out, nil
 }

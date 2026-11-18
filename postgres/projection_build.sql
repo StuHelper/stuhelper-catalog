@@ -101,6 +101,20 @@ WITH counts AS (
 ), courses AS (
  SELECT teacher_id AS id,count(DISTINCT course_id) AS n,count(DISTINCT offering_id) AS offerings
  FROM catalog.projection_relations WHERE version=$2 GROUP BY teacher_id
+), pairs AS (
+ SELECT DISTINCT r.course_id,co.name AS course_name,r.teacher_id,te.name AS teacher_name
+ FROM catalog.projection_relations r
+ JOIN catalog.projection_objects co ON co.version=$2 AND co.id=r.course_id AND co.kind='course' AND co.visible
+ JOIN catalog.projection_objects te ON te.version=$2 AND te.id=r.teacher_id AND te.kind='teacher' AND te.visible
+ WHERE r.version=$2
+), teacher_refs AS (
+ SELECT course_id AS id,jsonb_agg(jsonb_build_object('id',teacher_id,'canonical_id',teacher_id,'kind','teacher','name',teacher_name) ORDER BY teacher_id) AS items
+ FROM (SELECT course_id,teacher_id,teacher_name,row_number() OVER(PARTITION BY course_id ORDER BY teacher_id) AS rn FROM pairs) ranked
+ WHERE rn<=20 GROUP BY course_id
+), course_refs AS (
+ SELECT teacher_id AS id,jsonb_agg(jsonb_build_object('id',course_id,'canonical_id',course_id,'kind','course','name',course_name) ORDER BY course_id) AS items
+ FROM (SELECT teacher_id,course_id,course_name,row_number() OVER(PARTITION BY teacher_id ORDER BY course_id) AS rn FROM pairs) ranked
+ WHERE rn<=20 GROUP BY teacher_id
 ), classifications AS (
  SELECT v.course_id,o.kind,jsonb_agg(DISTINCT o.data ORDER BY o.data) AS items
  FROM catalog.projection_variants v CROSS JOIN LATERAL(VALUES(v.category_id),(v.nature_id)) k(id)
@@ -109,6 +123,8 @@ WITH counts AS (
 INSERT INTO catalog.projection_summaries(version,id,data)
 SELECT $2,o.id,jsonb_build_object('object',o.data,'school',s.data,'department',d.data,
  'categories',COALESCE(ca.items,'[]'::jsonb),'natures',COALESCE(na.items,'[]'::jsonb),
+ 'courses',CASE WHEN o.kind='teacher' THEN COALESCE(cr.items,'[]'::jsonb) ELSE '[]'::jsonb END,
+ 'teachers',CASE WHEN o.kind='course' THEN COALESCE(tr.items,'[]'::jsonb) ELSE '[]'::jsonb END,
  'course_count',CASE WHEN o.kind='course' THEN CASE WHEN o.visible THEN 1 ELSE 0 END ELSE COALESCE(co.n,0) END,
  'teacher_count',CASE WHEN o.kind='teacher' THEN CASE WHEN o.teaching THEN 1 ELSE 0 END ELSE COALESCE(te.n,0) END,
  'offering_count',COALESCE(ct.offerings,co.offerings,0))
@@ -116,6 +132,7 @@ FROM catalog.projection_objects o
 JOIN catalog.projection_objects s ON s.version=$2 AND s.id=$1 AND s.kind='school'
 LEFT JOIN catalog.projection_objects d ON d.version=$2 AND d.id=o.department_id AND d.kind='department'
 LEFT JOIN counts ct ON ct.id=o.id LEFT JOIN teachers te ON te.id=o.id LEFT JOIN courses co ON co.id=o.id
+LEFT JOIN teacher_refs tr ON tr.id=o.id LEFT JOIN course_refs cr ON cr.id=o.id
 LEFT JOIN classifications ca ON ca.course_id=o.id AND ca.kind='category'
 LEFT JOIN classifications na ON na.course_id=o.id AND na.kind='nature'
 WHERE o.version=$2 AND o.kind IN('course','teacher') AND o.visible;

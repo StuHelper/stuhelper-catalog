@@ -111,26 +111,30 @@ type Lookup struct {
 	MissingIDs []string `json:"missing_ids"`
 }
 type Summary struct {
-	Object        Object   `json:"object"`
-	School        Object   `json:"school"`
-	Department    *Object  `json:"department"`
-	Categories    []Object `json:"categories"`
-	Natures       []Object `json:"natures"`
-	CourseCount   int      `json:"course_count"`
-	TeacherCount  int      `json:"teacher_count"`
-	OfferingCount int      `json:"offering_count"`
+	Object        Object      `json:"object"`
+	School        Object      `json:"school"`
+	Department    *Object     `json:"department"`
+	Categories    []Object    `json:"categories"`
+	Natures       []Object    `json:"natures"`
+	Courses       []Reference `json:"courses"`
+	Teachers      []Reference `json:"teachers"`
+	CourseCount   int         `json:"course_count"`
+	TeacherCount  int         `json:"teacher_count"`
+	OfferingCount int         `json:"offering_count"`
 }
 
 // PublicSummary exposes course/teacher relationships without teaching counts.
 // Summary keeps the complete facts for maintenance and trusted module callers.
 type PublicSummary struct {
-	Object       Object   `json:"object"`
-	School       Object   `json:"school"`
-	Department   *Object  `json:"department"`
-	Categories   []Object `json:"categories"`
-	Natures      []Object `json:"natures"`
-	CourseCount  int      `json:"course_count"`
-	TeacherCount int      `json:"teacher_count"`
+	Object       Object      `json:"object"`
+	School       Object      `json:"school"`
+	Department   *Object     `json:"department"`
+	Categories   []Object    `json:"categories"`
+	Natures      []Object    `json:"natures"`
+	Courses      []Reference `json:"courses"`
+	Teachers     []Reference `json:"teachers"`
+	CourseCount  int         `json:"course_count"`
+	TeacherCount int         `json:"teacher_count"`
 }
 type Page struct {
 	Items []Object `json:"items"`
@@ -155,9 +159,10 @@ type Event struct {
 	Time                               time.Time
 }
 type Replay struct {
-	Digest string
-	Result []byte
-	Until  time.Time
+	Digest  string
+	Result  []byte
+	Until   time.Time
+	Expires bool `json:"expires,omitempty"`
 }
 type Repository interface {
 	Transaction(context.Context, func(Transaction) error) error

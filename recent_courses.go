@@ -102,10 +102,12 @@ func (s *Service) MyRecentCourses(ctx context.Context, p Principal) (RecentCours
 	for _, item := range out.Items {
 		ids = append(ids, item.Course.ID)
 	}
-	counts, err := s.RecentResources.CountRecentResources(ctx, p, school, ids)
+	callCtx, cancel := context.WithTimeout(ctx, time.Second)
+	defer cancel()
+	counts, err := s.RecentResources.CountRecentResources(callCtx, p, school, ids)
 	if err != nil {
-		if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
-			return RecentCourses{}, err
+		if ctx.Err() != nil {
+			return RecentCourses{}, ctx.Err()
 		}
 		return out, nil
 	}
