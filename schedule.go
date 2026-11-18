@@ -41,15 +41,33 @@ func (s *Service) MySchedule(ctx context.Context, p Principal, term, after strin
 	if err := s.refreshOwn(ctx, p); err != nil {
 		return out, err
 	}
+	return s.ownSchedulePage(ctx, p, "", term, after, limit, false)
+}
+
+func (s *Service) ownSchedulePage(ctx context.Context, p Principal, school, term, after string, limit int, probeExtra bool) (OwnSchedulePage, error) {
+	out := OwnSchedulePage{Items: []OwnSchedule{}}
+	queryLimit := limit
+	if probeExtra {
+		queryLimit = limit + 1
+	}
 	e := s.Repo.Transaction(ctx, func(tx Transaction) error {
 		started := time.Now()
-		rows, e := tx.Enrollments(p.Subject, "", "", term, after, limit)
+		rows, e := tx.Enrollments(p.Subject, school, "", term, after, queryLimit)
 		s.observeOwn(ctx, "schedule.enrollments", started, e)
 		if e != nil {
 			return e
 		}
 		if len(rows) == 0 {
 			return nil
+		}
+		hasMore := false
+		if probeExtra {
+			if len(rows) > limit {
+				hasMore = true
+				rows = rows[:limit]
+			}
+		} else if len(rows) == limit {
+			hasMore = true
 		}
 		ids, courses := []string{}, []string{}
 		for _, v := range rows {
@@ -112,7 +130,7 @@ func (s *Service) MySchedule(ctx context.Context, p Principal, term, after strin
 			}
 			out.Items = append(out.Items, OwnSchedule{Enrollment: v, CourseName: byName[v.CourseID], Meetings: items, Timetable: configs[v.SchoolID+"/"+v.TermID]})
 		}
-		if len(rows) == limit {
+		if hasMore {
 			out.Next = rows[len(rows)-1].ID
 		}
 		return nil

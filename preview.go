@@ -101,17 +101,31 @@ func changedFields(a, b Object) []string {
 	slices.Sort(out)
 	return out
 }
+func hasManualFieldOverlap(fields []string, manual map[string]string) bool {
+	for _, field := range fields {
+		if field == "inactive_reason" {
+			continue
+		}
+		if _, ok := manual[field]; ok {
+			return true
+		}
+	}
+	return false
+}
+
 func (s *Service) PreviewImport(ctx context.Context, p Principal, in Import) (ImportPreview, error) {
+	ctx = teacherMaintenanceContext(ctx)
 	out := ImportPreview{Changes: []ImportChange{}}
 	if !p.CanImport || !allowed(p, in.SchoolID) {
 		return out, ErrForbidden
 	}
-	if len(in.Objects)+len(in.Enrollments) < 1 || len(in.Objects)+len(in.Enrollments) > 500 {
+	if !ValidID(in.SchoolID) || len(in.Objects)+len(in.Enrollments) < 1 || len(in.Objects)+len(in.Enrollments) > 500 {
 		return out, ErrInput
 	}
+	now := s.now()
 	in.PreviewToken = ""
 	in.Objects = normalizeSchedules(in.Objects)
-	err := s.Repo.Transaction(ctx, func(t Transaction) error {
+	err := (previewRepository{s.Repo}).Transaction(ctx, func(t Transaction) error {
 		if e := t.Lock(in.SchoolID); e != nil {
 			return e
 		}
@@ -135,11 +149,11 @@ func (s *Service) PreviewImport(ctx context.Context, p Principal, in Import) (Im
 				change.Fields = changedFields(old.Imported, o)
 				if len(change.Fields) > 0 {
 					change.State = "updated"
+					if hasManualFieldOverlap(change.Fields, old.Manual) {
+						change.State = "preserved"
+					}
 				}
-				if len(old.Manual) > 0 {
-					change.State = "preserved"
-				}
-				if old.SourceID != in.SourceID || old.SourceRevision > in.Revision || old.Object.Kind != o.Kind || old.Object.SchoolID != o.SchoolID {
+				if old.SourceID != in.SourceID || old.SourceRevision > in.Revision || (old.SourceRevision == in.Revision && len(change.Fields) > 0) || old.Object.Kind != o.Kind || old.Object.SchoolID != o.SchoolID {
 					change.State = "conflict"
 				}
 			}
@@ -166,33 +180,50 @@ func (s *Service) PreviewImport(ctx context.Context, p Principal, in Import) (Im
 				return err
 			}
 			if err == nil {
-				change.State = "updated"
-				if old.Subject != e.Subject || old.SchoolID != e.SchoolID || old.SourceID != in.SourceID || old.SourceRevision > in.Revision {
+				normalized := e
+				slices.Sort(normalized.TeacherIDs)
+				normalized.TeacherIDs = slices.Compact(normalized.TeacherIDs)
+				normalized.SourceID = in.SourceID
+				normalized.SourceRevision = in.Revision
+				normalized.FetchedAt = in.FetchedAt
+				comparableOld := old
+				comparableOld.SourceRevision = in.Revision
+				comparableOld.FetchedAt = in.FetchedAt
+				if digest(comparableOld) == digest(normalized) {
+					change.State = "unchanged"
+				} else {
+					change.State = "updated"
+				}
+				if old.Subject != e.Subject || old.SchoolID != e.SchoolID || old.SourceID != in.SourceID || old.SourceRevision > in.Revision || (old.SourceRevision == in.Revision && digest(old) != digest(normalized)) {
 					change.State = "conflict"
 				}
 			}
 			out.Changes = append(out.Changes, change)
 		}
+
+		dryIn := in
+		dryIn.Objects = slices.Clone(in.Objects)
+		dryIn.Enrollments = slices.Clone(in.Enrollments)
+		dryErr := validateImportBatch(&dryIn, now)
+		if dryErr == nil {
+			withoutToken := dryIn
+			withoutToken.PreviewToken = ""
+			h := digest(withoutToken)
+			rk := digest([]string{p.Subject, "import", dryIn.SchoolID, "preview-" + out.PreviewToken})
+			dryIn.PreviewToken = out.PreviewToken
+			_, dryErr = applyImportTx(t, p, rk, h, dryIn, now)
+		}
+		switch {
+		case dryErr == nil:
+			out.Valid = true
+		case errors.Is(dryErr, ErrConflict):
+			out.Code = "conflict"
+		case errors.Is(dryErr, ErrInput), errors.Is(dryErr, ErrNotFound):
+			out.Code = "invalid_input"
+		default:
+			return dryErr
+		}
 		return nil
 	})
-	if err != nil {
-		return out, err
-	}
-	// Execute the exact import validation in a transaction that always rolls back.
-	clone := Service{ReadAccess: s.ReadAccess, Repo: previewRepository{s.Repo}, Clock: s.Clock, ActivityLogger: s.ActivityLogger}
-	in.PreviewToken = out.PreviewToken
-	_, err = clone.Import(ctx, p, "preview-"+out.PreviewToken, in)
-	if err == nil {
-		out.Valid = true
-		return out, nil
-	}
-	switch {
-	case errors.Is(err, ErrConflict):
-		out.Code = "conflict"
-	case errors.Is(err, ErrInput), errors.Is(err, ErrNotFound):
-		out.Code = "invalid_input"
-	default:
-		return out, err
-	}
-	return out, nil
+	return out, err
 }

@@ -52,7 +52,7 @@ func (s *Service) readObject(ctx context.Context, p Principal, id string) (Objec
 	if e != nil {
 		return Object{}, e
 	}
-	if teachingDetail(object.Kind) {
+	if teachingDetail(object.Kind) || object.Inactive {
 		return Object{}, ErrNotFound
 	}
 	if object.SchoolID != school {
@@ -71,6 +71,7 @@ func (s *Service) ReadList(ctx context.Context, p Principal, f Filter) (Page, er
 		return Page{}, e
 	}
 	f.SchoolID = school
+	f.IncludeInactive = false
 	return s.List(ctx, f)
 }
 func (s *Service) ReadLookup(ctx context.Context, p Principal, ids []string) (Lookup, error) {
@@ -84,7 +85,7 @@ func (s *Service) ReadLookup(ctx context.Context, p Principal, ids []string) (Lo
 	}
 	visible := make([]Object, 0, len(out.Items))
 	for _, item := range out.Items {
-		if teachingDetail(item.Kind) {
+		if teachingDetail(item.Kind) || item.Inactive {
 			out.MissingIDs = append(out.MissingIDs, item.ID)
 			continue
 		}
@@ -115,10 +116,14 @@ func (s *Service) ReadSummary(ctx context.Context, p Principal, id string) (Publ
 	if e != nil {
 		return PublicSummary{}, e
 	}
+	dept := summary.Department
+	if dept != nil && dept.Inactive {
+		dept = nil
+	}
 	s.recordView(ctx, p, object)
 	s.recordRecentCourse(ctx, p, object)
 	return PublicSummary{
-		Object: summary.Object, School: summary.School, Department: summary.Department,
+		Object: summary.Object, School: summary.School, Department: dept,
 		Categories: summary.Categories, Natures: summary.Natures,
 		CourseCount: summary.CourseCount, TeacherCount: summary.TeacherCount,
 	}, nil
@@ -132,7 +137,7 @@ func (s *Service) ReadResolution(ctx context.Context, p Principal, id string) (R
 	if e != nil {
 		return Resolution{}, e
 	}
-	if teachingDetail(out.Object.Kind) {
+	if teachingDetail(out.Object.Kind) || out.Object.Inactive {
 		return Resolution{}, ErrNotFound
 	}
 	if out.Object.SchoolID != school {

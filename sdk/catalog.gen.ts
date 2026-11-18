@@ -963,6 +963,7 @@ export interface operations {
                 term_course_id?: string;
                 /** @description 普通目录禁止使用此教学班粒度筛选，返回 403 forbidden；管理端使用 /catalog/admin/objects。 */
                 class_id?: string;
+                /** @description 普通目录不返回停用对象，传 true 返回 400 invalid_input；管理端使用 /catalog/admin/objects。 */
                 include_inactive?: boolean;
             };
             header?: never;

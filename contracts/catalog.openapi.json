@@ -197,7 +197,8 @@
             "schema": {
               "type": "boolean",
               "default": false
-            }
+            },
+            "description": "普通目录不返回停用对象，传 true 返回 400 invalid_input；管理端使用 /catalog/admin/objects。"
           }
         ],
         "description": "读取当前学校的可展示目录投影，当前内容权限在每次请求时检查。课程须在服务端截止学期（默认 2023 秋）及以后有开课记录。kind=term 仅返回截止学期及以后且有可见课程的学期，按 term_order_key 降序、ID 升序分页；前端保持返回顺序。其他类型按 ID 升序。 体育项目作为 kind=course 条目返回 course_type=sports_project。按项目 course_id 查询教师，筛选计数按项目去重。 普通目录仅提供学校、院系、分类、性质、学期、课程和教师；term_course、class、assignment、schedule 仅供管理端或受信服务使用。 kind=teacher&course_id=…、kind=course&teacher_id=… 和 kind=term 保持可用；授课事实只用于计算关联，不返回教学班。"

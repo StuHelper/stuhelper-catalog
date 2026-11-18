@@ -131,7 +131,10 @@ func (v Timetable) valid() bool {
 }
 func (s *Service) GetTimetable(ctx context.Context, p Principal, school, term string) (Timetable, error) {
 	var out Timetable
-	if !p.CanMaintain || !allowed(p, school) {
+	if err := maintainRead(p); err != nil {
+		return out, err
+	}
+	if !allowed(p, school) {
 		return out, ErrForbidden
 	}
 	if !ValidID(school) || !ValidID(term) {
@@ -142,7 +145,10 @@ func (s *Service) GetTimetable(ctx context.Context, p Principal, school, term st
 }
 func (s *Service) PutTimetable(ctx context.Context, p Principal, in Timetable) (Timetable, error) {
 	var out Timetable
-	if !p.CanMaintain || !allowed(p, in.SchoolID) {
+	if err := maintainRead(p); err != nil {
+		return out, err
+	}
+	if !allowed(p, in.SchoolID) {
 		return out, ErrForbidden
 	}
 	if !in.valid() {
