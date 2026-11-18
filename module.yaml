@@ -201,6 +201,8 @@ scenario_tests:
     - ui_backend_test.go#TestUIOverviewHTTPRejectsUnownedAndUnavailableSources
   CAT-UI-03:
     - ui_consistency_test.go#TestUINextClassDayAuthorizedSourceAndTimeBoundary
+    - ui_consistency_test.go#TestUINextClassDayIsolatesHistoricalTermsUnscheduledCoursesAndTeachers
+    - ui_consistency_test.go#TestNextClassDayKeepsScheduledLessonBeyondSeasonEstimate
   CAT-UI-04:
     - ui_consistency_test.go#TestUIDirectoryCacheInvalidatesMetadataAndTeacherMarkers
     - ui_consistency_test.go#TestUIDirectoryConcurrentCacheAndCancellation
