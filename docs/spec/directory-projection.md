@@ -1,7 +1,7 @@
 ---
 type: spec
 status: Accepted
-updated: 2026-11-17
+updated: 2026-11-18
 ---
 
 # 可展示目录投影
@@ -92,7 +92,7 @@ objects 与 directory 同时拒绝 class_id、term_course_id 筛选。
 
 公开摘要使用 PublicSummary，只含课程数与教师数，省略 offering_count。管理端沿用完整 Summary。课程按教师筛选、教师按课程筛选、学期选项、目录分面和非零筛选计数保持原语义，内部授课事实继续参与计算。
 
-/catalog/admin 入口要求维护权限和学校范围，保留教学班读取。/catalog/me 的选课、课表、名称与日历继续只返回本人记录。普通目录隐藏规则不修改导入、教师标记、投影构建或持久化数据。
+/catalog/admin 入口要求维护权限和学校范围，保留教学班读取。源表未命中的体育项目与合成展示分类会回退读取当前已发布投影，体育项目浏览计数按当前投影加共享锁并累计热度。/catalog/me 的选课、课表、名称与日历继续只返回本人记录。普通目录隐藏规则不修改导入、教师标记、投影构建或持久化数据。
 
 Get、List、Lookup、Summary、Resolve、ReviewEnrollments 与 HasTaught 是供受信进程内调用的公开 Service 接口。reviews 通过这些接口核验选课、体育项目必选教师和教师回复资格。浏览器只能使用带身份与授权检查的 HTTP 入口。
 
