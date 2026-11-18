@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"math"
 	"slices"
 	"strings"
@@ -184,12 +185,21 @@ func (s *Service) ReadDirectory(ctx context.Context, p Principal, q DirectoryQue
 		return out, ErrInput
 	}
 	if q.TeacherID != "" {
-		teacher, err := s.readObject(ctx, p, q.TeacherID)
+		teacher, err := s.Get(ctx, q.TeacherID)
 		if err != nil {
 			return out, err
 		}
-		if teacher.Kind != "teacher" || teacher.Inactive {
+		if teachingDetail(teacher.Kind) || teacher.Inactive {
 			return out, ErrNotFound
+		}
+		if teacher.SchoolID != school {
+			return out, ErrForbidden
+		}
+		if teacher.Kind != "teacher" {
+			return out, ErrNotFound
+		}
+		if teacher.CanonicalID != "" {
+			q.TeacherID = teacher.CanonicalID
 		}
 	}
 	config := s.DirectoryConfig
@@ -210,8 +220,13 @@ func (s *Service) ReadDirectory(ctx context.Context, p Principal, q DirectoryQue
 	}
 	until := out.GeneratedAt.UTC().Truncate(24 * time.Hour).Add(24 * time.Hour)
 	from := until.AddDate(0, 0, -config.WindowDays)
-	metrics, err := s.DirectoryMetrics.Metrics(ctx, p, school, q.Kind, from, until)
+	callCtx, cancel := context.WithTimeout(ctx, 3*time.Second)
+	defer cancel()
+	metrics, err := s.DirectoryMetrics.Metrics(callCtx, p, school, q.Kind, from, until)
 	if err != nil {
+		if ctx.Err() == nil && errors.Is(err, context.DeadlineExceeded) {
+			return out, ErrUnavailable
+		}
 		return out, err
 	}
 	if len(metrics) > 100000 {

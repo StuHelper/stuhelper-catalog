@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"regexp"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -49,24 +50,54 @@ func validSchedule(v *ScheduleTime) bool {
 }
 
 // Only this unambiguous grammar is parsed. All original text remains available.
-var schedulePattern = regexp.MustCompile(`^周([一二三四五六日天]) 第([0-9]+)-([0-9]+)节 第([0-9]+)-([0-9]+)周(?:\(([单双])\))?$`)
+var schedulePattern = regexp.MustCompile(`^周([一二三四五六日天]) 第([0-9]+)(?:-([0-9]+))?节 第([0-9]+(?:-[0-9]+)?(?:,[0-9]+(?:-[0-9]+)?)*)周(?:\(([单双])\)|（([单双])）)?$`)
 
 func ParseSchedule(text string) *ScheduleTime {
 	m := schedulePattern.FindStringSubmatch(text)
 	if m == nil {
 		return nil
 	}
-	n := func(i int) int { v, _ := strconv.Atoi(m[i]); return v }
-	days := map[string]int{"一": 1, "二": 2, "三": 3, "四": 4, "五": 5, "六": 6, "日": 7, "天": 7}
-	v := &ScheduleTime{Weekday: days[m[1]], StartPeriod: n(2), EndPeriod: n(3)}
-	if n(4) < 1 || n(5) > 60 || n(4) > n(5) {
+	startPeriod, err := strconv.Atoi(m[2])
+	if err != nil {
 		return nil
 	}
-	for w := n(4); w <= n(5); w++ {
-		if m[6] == "单" && w%2 == 0 || m[6] == "双" && w%2 == 1 {
-			continue
+	endPeriod := startPeriod
+	if m[3] != "" {
+		endPeriod, err = strconv.Atoi(m[3])
+		if err != nil {
+			return nil
 		}
-		v.Weeks = append(v.Weeks, w)
+	}
+	days := map[string]int{"一": 1, "二": 2, "三": 3, "四": 4, "五": 5, "六": 6, "日": 7, "天": 7}
+	v := &ScheduleTime{Weekday: days[m[1]], StartPeriod: startPeriod, EndPeriod: endPeriod}
+	parity := m[5]
+	if parity == "" {
+		parity = m[6]
+	}
+	prevEnd := 0
+	for _, seg := range strings.Split(m[4], ",") {
+		parts := strings.Split(seg, "-")
+		startWeek, err := strconv.Atoi(parts[0])
+		if err != nil {
+			return nil
+		}
+		endWeek := startWeek
+		if len(parts) == 2 {
+			endWeek, err = strconv.Atoi(parts[1])
+			if err != nil {
+				return nil
+			}
+		}
+		if startWeek < 1 || endWeek > 60 || startWeek > endWeek || startWeek <= prevEnd {
+			return nil
+		}
+		prevEnd = endWeek
+		for w := startWeek; w <= endWeek; w++ {
+			if parity == "单" && w%2 == 0 || parity == "双" && w%2 == 1 {
+				continue
+			}
+			v.Weeks = append(v.Weeks, w)
+		}
 	}
 	if !validSchedule(v) {
 		return nil
@@ -100,7 +131,10 @@ func (v Timetable) valid() bool {
 }
 func (s *Service) GetTimetable(ctx context.Context, p Principal, school, term string) (Timetable, error) {
 	var out Timetable
-	if !p.CanMaintain || !allowed(p, school) {
+	if err := maintainRead(p); err != nil {
+		return out, err
+	}
+	if !allowed(p, school) {
 		return out, ErrForbidden
 	}
 	if !ValidID(school) || !ValidID(term) {
@@ -111,7 +145,10 @@ func (s *Service) GetTimetable(ctx context.Context, p Principal, school, term st
 }
 func (s *Service) PutTimetable(ctx context.Context, p Principal, in Timetable) (Timetable, error) {
 	var out Timetable
-	if !p.CanMaintain || !allowed(p, in.SchoolID) {
+	if err := maintainRead(p); err != nil {
+		return out, err
+	}
+	if !allowed(p, in.SchoolID) {
 		return out, ErrForbidden
 	}
 	if !in.valid() {

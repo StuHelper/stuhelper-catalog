@@ -686,7 +686,7 @@ export interface components {
             items: components["schemas"]["Reference"][];
             missing_ids: string[];
         };
-        /** @description ISO weekday Monday=1. Explicit week set; odd/even weeks are expanded by importer. End period >= start. Missing structure means not provided. Recognized time_text grammar: 周一 第1-2节 第1-16周(单), with optional 单/双 suffix. */
+        /** @description ISO weekday Monday=1. Explicit week set; odd/even weeks are expanded by importer. End period >= start. Missing structure means not provided. Recognized time_text grammar supports single or range periods (第5节, 第1-2节), single, range or ascending comma-separated week segments (第8周, 第1-8,10-16周, 第1,3,5,7周), and optional halfwidth or fullwidth 单/双 suffix. */
         ScheduleTime: {
             weekday: number;
             start_period: number;
@@ -964,6 +964,7 @@ export interface operations {
                 term_course_id?: string;
                 /** @description 普通目录禁止使用此教学班粒度筛选，返回 403 forbidden；管理端使用 /catalog/admin/objects。 */
                 class_id?: string;
+                /** @description 普通目录不返回停用对象，传 true 返回 400 invalid_input；管理端使用 /catalog/admin/objects。 */
                 include_inactive?: boolean;
             };
             header?: never;

@@ -634,7 +634,7 @@ type ImportChange struct {
 	Id     string   `json:"id"`
 	Kind   string   `json:"kind"`
 
-	// ScheduleTime ISO weekday Monday=1. Explicit week set; odd/even weeks are expanded by importer. End period >= start. Missing structure means not provided. Recognized time_text grammar: 周一 第1-2节 第1-16周(单), with optional 单/双 suffix.
+	// ScheduleTime ISO weekday Monday=1. Explicit week set; odd/even weeks are expanded by importer. End period >= start. Missing structure means not provided. Recognized time_text grammar supports single or range periods (第5节, 第1-2节), single, range or ascending comma-separated week segments (第8周, 第1-8,10-16周, 第1,3,5,7周), and optional halfwidth or fullwidth 单/双 suffix.
 	ScheduleTime *ScheduleTime `json:"schedule_time,omitempty"`
 	State        string        `json:"state"`
 	TimeText     *string       `json:"time_text,omitempty"`
@@ -741,7 +741,7 @@ type Object struct {
 	NatureId     *string `json:"nature_id,omitempty"`
 	Revision     int     `json:"revision"`
 
-	// ScheduleTime ISO weekday Monday=1. Explicit week set; odd/even weeks are expanded by importer. End period >= start. Missing structure means not provided. Recognized time_text grammar: 周一 第1-2节 第1-16周(单), with optional 单/双 suffix.
+	// ScheduleTime ISO weekday Monday=1. Explicit week set; odd/even weeks are expanded by importer. End period >= start. Missing structure means not provided. Recognized time_text grammar supports single or range periods (第5节, 第1-2节), single, range or ascending comma-separated week segments (第8周, 第1-8,10-16周, 第1,3,5,7周), and optional halfwidth or fullwidth 单/双 suffix.
 	ScheduleTime *ScheduleTime `json:"schedule_time,omitempty"`
 	SchoolId     string        `json:"school_id"`
 
@@ -892,12 +892,12 @@ type ScheduleMeeting struct {
 	Id       string `json:"id"`
 	Location string `json:"location"`
 
-	// ScheduleTime ISO weekday Monday=1. Explicit week set; odd/even weeks are expanded by importer. End period >= start. Missing structure means not provided. Recognized time_text grammar: 周一 第1-2节 第1-16周(单), with optional 单/双 suffix.
+	// ScheduleTime ISO weekday Monday=1. Explicit week set; odd/even weeks are expanded by importer. End period >= start. Missing structure means not provided. Recognized time_text grammar supports single or range periods (第5节, 第1-2节), single, range or ascending comma-separated week segments (第8周, 第1-8,10-16周, 第1,3,5,7周), and optional halfwidth or fullwidth 单/双 suffix.
 	ScheduleTime *ScheduleTime `json:"schedule_time,omitempty"`
 	TimeText     string        `json:"time_text"`
 }
 
-// ScheduleTime ISO weekday Monday=1. Explicit week set; odd/even weeks are expanded by importer. End period >= start. Missing structure means not provided. Recognized time_text grammar: 周一 第1-2节 第1-16周(单), with optional 单/双 suffix.
+// ScheduleTime ISO weekday Monday=1. Explicit week set; odd/even weeks are expanded by importer. End period >= start. Missing structure means not provided. Recognized time_text grammar supports single or range periods (第5节, 第1-2节), single, range or ascending comma-separated week segments (第8周, 第1-8,10-16周, 第1,3,5,7周), and optional halfwidth or fullwidth 单/双 suffix.
 type ScheduleTime struct {
 	EndPeriod   int   `json:"end_period"`
 	StartPeriod int   `json:"start_period"`
@@ -1197,8 +1197,10 @@ type ListObjectsParams struct {
 	TermCourseId *string `form:"term_course_id,omitempty" json:"term_course_id,omitempty"`
 
 	// ClassId 普通目录禁止使用此教学班粒度筛选，返回 403 forbidden；管理端使用 /catalog/admin/objects。
-	ClassId         *string `form:"class_id,omitempty" json:"class_id,omitempty"`
-	IncludeInactive *bool   `form:"include_inactive,omitempty" json:"include_inactive,omitempty"`
+	ClassId *string `form:"class_id,omitempty" json:"class_id,omitempty"`
+
+	// IncludeInactive 普通目录不返回停用对象，传 true 返回 400 invalid_input；管理端使用 /catalog/admin/objects。
+	IncludeInactive *bool `form:"include_inactive,omitempty" json:"include_inactive,omitempty"`
 }
 
 // LookupObjectsParams defines parameters for LookupObjects.
