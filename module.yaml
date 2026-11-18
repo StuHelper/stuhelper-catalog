@@ -145,6 +145,7 @@ scenario_tests:
     - operations_test.go#TestMergeKeepsOldLinksOfferingsAndEnrollmentsAndSupportsDeactivation
   CO-10:
     - operations_test.go#TestImportPreviewRollsBackAndRejectsChangedConfirmation
+    - operations_test.go#TestImportPreviewSingleTransactionManualFieldAndSameRevisionConflict
   AE-ACCESS-05:
     - references_test.go#TestOwnEnrollmentNamesSurviveAdmissionExpiryWithoutPublicDetails
     - content_test.go#TestContentReadAdmissionCoversEveryHTTPReadAndPreservesOwnEnrollment
