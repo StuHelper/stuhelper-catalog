@@ -138,7 +138,7 @@ func (s *Service) ApplyCourseIdentities(ctx context.Context, p Principal, key st
 		if err != nil {
 			return err
 		}
-		return t.SaveReplay(rk, Replay{Digest: hash, Result: data, Until: now.Add(24 * time.Hour)})
+		return t.SaveReplay(rk, Replay{Digest: hash, Result: data})
 	})
 	return out, err
 }

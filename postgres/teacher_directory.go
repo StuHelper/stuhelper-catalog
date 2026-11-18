@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	c "github.com/StuHelper/stuhelper-catalog"
+	"slices"
 	"time"
 )
 
@@ -57,7 +58,22 @@ func (t *transaction) flushTeachingDirectory() error {
  WHERE o.kind='teacher' AND o.id IN(SELECT catalog.canonical(id) FROM unnest($1::text[]) ids(id))
  ON CONFLICT(teacher_id) DO UPDATE SET teaching=excluded.teaching,teaching_updated_at=excluded.teaching_updated_at,updated_at=excluded.updated_at
  WHERE catalog.teacher_directory.teaching IS DISTINCT FROM excluded.teaching`, ids, t.teachingTime)
-	return safe(err)
+	if err != nil {
+		return safe(err)
+	}
+	if t.repoTeacherDirectory && len(t.pendingTeacherSchools) > 0 {
+		schools := make([]string, 0, len(t.pendingTeacherSchools))
+		for school := range t.pendingTeacherSchools {
+			schools = append(schools, school)
+		}
+		slices.Sort(schools)
+		for _, school := range schools {
+			if err := t.syncTeacherDiscoveryAndActivity(school, ids, t.teachingTime); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
 }
 
 func (t *transaction) TeacherCandidates(school, after string, limit int) ([]c.TeacherCandidate, error) {
@@ -90,6 +106,9 @@ func (t *transaction) directoryCounts(school string) (c.TeacherDirectoryResult, 
 }
 
 func (t *transaction) RefreshTeachingDirectory(school string, at time.Time) (c.TeacherDirectoryResult, bool, error) {
+	if !at.IsZero() && at.After(t.mutationTime) {
+		t.mutationTime = at
+	}
 	if err := t.touchProjection(school); err != nil {
 		return c.TeacherDirectoryResult{}, false, err
 	}
@@ -105,6 +124,9 @@ func (t *transaction) RefreshTeachingDirectory(school string, at time.Time) (c.T
 	changed, err := result.RowsAffected()
 	if err != nil {
 		return c.TeacherDirectoryResult{}, false, safe(err)
+	}
+	if err := t.syncTeacherDiscoveryAndActivity(school, nil, at); err != nil {
+		return c.TeacherDirectoryResult{}, false, err
 	}
 	counts, err := t.directoryCounts(school)
 	return counts, changed > 0, err
@@ -141,6 +163,9 @@ func (t *transaction) teacherCandidateFingerprint(school string) (string, error)
 }
 
 func (t *transaction) ReplaceTeacherSites(in c.TeacherSiteSnapshot, actor string, at time.Time) (c.TeacherDirectoryResult, error) {
+	if !at.IsZero() && at.After(t.mutationTime) {
+		t.mutationTime = at
+	}
 	if err := t.touchProjection(in.SchoolID); err != nil {
 		return c.TeacherDirectoryResult{}, err
 	}
@@ -202,6 +227,9 @@ func (t *transaction) ReplaceTeacherSites(in c.TeacherSiteSnapshot, actor string
 	}
 	if err := t.Event(c.Event{ID: fmt.Sprintf("teacher-sites:%s:%d", in.SchoolID, in.Revision), Subject: "school/" + in.SchoolID,
 		Type: "catalog.teacher-sites.refreshed.v1", SchoolID: in.SchoolID, Actor: actor, Revision: in.Revision, Result: "success", Time: at}); err != nil {
+		return c.TeacherDirectoryResult{}, err
+	}
+	if err := t.syncTeacherDiscoveryAndActivity(in.SchoolID, nil, at); err != nil {
 		return c.TeacherDirectoryResult{}, err
 	}
 	if _, err := t.RebuildPublishedDirectory(in.SchoolID, at); err != nil {

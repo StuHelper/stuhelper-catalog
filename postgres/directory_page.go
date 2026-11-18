@@ -136,17 +136,25 @@ func directoryTeacherCandidates(teacherKeys string, conditions []string) string 
 // Up to 512 offering keys use point lookups; larger sets scan the covering index
 // once. OFFSET 0 prevents that broad branch becoming repeated index probes.
 func directoryClassificationCandidates(column, value string) string {
+	return directoryClassificationPredicate(column, "="+value)
+}
+
+func directoryClassificationCandidateList(column, values string) string {
+	return directoryClassificationPredicate(column, "=ANY("+values+"::text[])")
+}
+
+func directoryClassificationPredicate(column, cmp string) string {
 	return `o.id=ANY((ARRAY(
  SELECT DISTINCT COALESCE(cr.canonical_id, candidate.id) COLLATE "C" FROM (
- SELECT id FROM catalog.objects WHERE kind='course' AND ` + column + `<>'' AND ` + column + `=` + value + `
+ SELECT id FROM catalog.objects WHERE kind='course' AND ` + column + `<>'' AND ` + column + cmp + `
  UNION ALL
- SELECT course_id FROM catalog.objects WHERE kind='term_course' AND ` + column + `<>'' AND ` + column + `=` + value + `
+ SELECT course_id FROM catalog.objects WHERE kind='term_course' AND ` + column + `<>'' AND ` + column + cmp + `
  UNION ALL
  SELECT course_id FROM (
  WITH class_keys AS MATERIALIZED (
  SELECT DISTINCT COALESCE(r.canonical_id,cl.term_course_id) COLLATE "C" AS term_course_id
  FROM catalog.objects cl LEFT JOIN catalog.redirects r ON r.alias_id=cl.term_course_id
- WHERE cl.kind='class' AND cl.` + column + `<>'' AND cl.` + column + `=` + value + `
+ WHERE cl.kind='class' AND cl.` + column + `<>'' AND cl.` + column + cmp + `
  ), broad AS MATERIALIZED (SELECT EXISTS(SELECT 1 FROM class_keys OFFSET 512) AS value)
  SELECT tc.course_id FROM class_keys
  JOIN catalog.objects tc ON tc.id=class_keys.term_course_id COLLATE "default" AND tc.kind='term_course'

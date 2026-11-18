@@ -122,6 +122,9 @@ func (s *Service) maintainWrite(ctx context.Context, p Principal, id, action, ke
 		return Object{}, ErrInput
 	}
 	ctx = teacherMaintenanceContext(ctx)
+	if s.AsyncMaintenanceRebuild {
+		ctx = deferMaintenanceRebuildContext(ctx)
+	}
 	var out Object
 	rk := digest([]string{p.Subject, action, id, key})
 	h := digest(input)
@@ -170,7 +173,7 @@ func (s *Service) maintainWrite(ctx context.Context, p Principal, id, action, ke
 		if e != nil {
 			return e
 		}
-		return t.SaveReplay(rk, Replay{Digest: h, Result: data, Until: now.Add(24 * time.Hour)})
+		return t.SaveReplay(rk, Replay{Digest: h, Result: data, Until: now.Add(24 * time.Hour), Expires: true})
 	})
 	return out, err
 }

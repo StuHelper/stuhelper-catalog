@@ -1,7 +1,7 @@
 ---
 type: spec
 status: Accepted
-updated: 2026-11-15
+updated: 2026-11-19
 ---
 
 # 热门活动来源
@@ -22,7 +22,7 @@ catalog 只发送 views。事件类型为 discovery.activity.v1，source 固定�
 
 view_dedup 只保存每日独立密钥生成的 HMAC-SHA256 令牌和 UTC 日期，不保存账号或对象明文映射。令牌只保留当日，PruneViewDedup 每次最多删除一千条过期令牌，不修改已累计 views。
 
-清理同时推进不可回填日期下界。即使服务时钟回退，已清理日期也不能再次累计。目录停用或合并会逐批修订相关日快照的 Visible，恢复时保留原计数，不转移其他对象的计数。
+清理同时推进不可回填日期下界。即使服务时钟回退，已清理日期也不能再次累计。目录停用、合并、投影规则变化或教师标记变化会逐批修订相关日快照的 Visible，恢复时保留原计数，不转移其他对象的计数。
 
 统计写入单独使用最多 250 毫秒的事务。失败会回滚摘要、计数、修订及 outbox，详情读取仍返回已获准的数据；之后同日再次读取可以重试。因此浏览数是尽力记录，故障期间可能少计，不阻断内容读取。
 
@@ -48,7 +48,9 @@ OutboxChannel 为 catalog_outbox。PendingOutbox(ctx, limit, excludeSubjects) �
 
 ## 清理、权限与验证
 
-PruneActivityHistory(ctx, beforeDay, limit) 每次最多删除 1000 条旧修订，保留每个对象日的最新修订和墓碑。清理在同一事务提高保留修订号，已有分页游标失效，调用方须中止重建。
+PruneActivityHistory(ctx, beforeDay, limit) 每次最多删除 1000 条旧修订，保留每个对象日的最新修订和墓碑。清理在同一事务提高保留修订号，已有分页游标失效，调用方须中止重建。PruneSentOutbox 与 PruneReplays 每次最多删除 1000 条已确认事件或已到期维护幂等记录，保留未发送事件与长期来源标记。
+
+PruneSentOutbox(ctx, before, limit) 每次最多删除 1000 条已确认且早于 before 的 outbox 记录，保留待投递记录。PruneReplays(ctx, before, limit) 每次最多删除 1000 条已到期的维护幂等回执，保留导入、选课刷新与课程身份合并的持久回执。
 
 运行身份需要 activity_buckets 的读写、activity_history 的读取和追加、activity_retention 的读取，以及 outbox 的读写确认权限。历史删除权限只授予负责清理的身份。当前日快照和最新墓碑不自动删除。
 
