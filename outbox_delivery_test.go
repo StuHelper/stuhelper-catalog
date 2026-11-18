@@ -184,6 +184,7 @@ func TestOutboxDiscoveryAndTimetablePayloads(t *testing.T) {
 			t.Fatal(e)
 		}
 	}
+	first := publishFixtureDirectory(t, s, admin)
 	if _, e := s.Delete(ctx, admin, "teacher", "delete", c.ObjectState{Revision: 1, Reason: "private reason"}); e != nil {
 		t.Fatal(e)
 	}
@@ -194,7 +195,7 @@ func TestOutboxDiscoveryAndTimetablePayloads(t *testing.T) {
 		t.Fatal(e)
 	}
 	events, e := repo.PendingOutbox(ctx, 100, nil)
-	if e != nil || len(events) != 9 {
+	if e != nil || len(events) != 10 {
 		t.Fatal(len(events), e)
 	}
 	discovery, timetables, tombstones := 0, 0, 0
@@ -226,7 +227,7 @@ func TestOutboxDiscoveryAndTimetablePayloads(t *testing.T) {
 			}
 			if !*event.Data.Visible {
 				tombstones++
-				if *event.Data.Title != "" || event.Data.Revision != 2 {
+				if *event.Data.Title != "" || event.Data.Revision <= first.Version {
 					t.Fatal(event)
 				}
 			}
