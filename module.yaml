@@ -71,6 +71,8 @@ scenario_tests:
     - display_policy_test.go#TestDisplayProjectionMigrationPreservesPublishedDirectoryAndRuntimeBoundary
     - display_policy_test.go#TestDirectoryDisplayRulesProjectsCountsAndEnrollmentOwnership
     - display_policy_test.go#TestDirectoryPolicyRejectsAmbiguousMappingsAndReadOnlyObjectFields
+    - display_policy_test.go#TestSportsProjectViewsAndAdminReads
+    - display_policy_test.go#TestProjectedViewAllowsWriterToPublishWhileWaitingForSource
   CAT-REFRESH-01:
     - teacher_refresh_test.go#TestTeacherRefreshDurableConcurrencyIdempotencyAndTimeout
   CAT-REFRESH-02:
@@ -169,6 +171,7 @@ scenario_tests:
     - audit_query_test.go#TestPublicAuditQuery
     - discovery_test.go#TestDiscoveryEventsRollbackMergeDeletionAndCurrent
   CAT-DISCOVERY-01:
+    - discovery_test.go#TestSourceDiscoveryReadsCorrectionsAfterDirectoryPublication
     - discovery_test.go#TestDiscoveryNotificationAndAuditAtomicity
     - discovery_test.go#TestDiscoveryEventsRollbackMergeDeletionAndCurrent
   CAT-DISCOVERY-02:
@@ -199,6 +202,8 @@ scenario_tests:
     - ui_backend_test.go#TestUIOverviewHTTPRejectsUnownedAndUnavailableSources
   CAT-UI-03:
     - ui_consistency_test.go#TestUINextClassDayAuthorizedSourceAndTimeBoundary
+    - ui_consistency_test.go#TestUINextClassDayIsolatesHistoricalTermsUnscheduledCoursesAndTeachers
+    - ui_consistency_test.go#TestNextClassDayKeepsScheduledLessonBeyondSeasonEstimate
   CAT-UI-04:
     - ui_consistency_test.go#TestUIDirectoryCacheInvalidatesMetadataAndTeacherMarkers
     - ui_consistency_test.go#TestUIDirectoryConcurrentCacheAndCancellation
@@ -214,6 +219,7 @@ scenario_tests:
   CAT-PROJECTION-03:
     - projection_test.go#TestDirectoryProjectionAutoRebuildAndCompleteImportBoundary
     - projection_test.go#TestDirectoryProjectionFailedSourceImportFencesPublicationUntilRetry
+    - projection_test.go#TestProjectionAndTeacherMarkersIsolateDiscoveryAndActivityVisibility
     - projection_import_test.go#TestDirectoryProjectionRetiredImportCannotWriteOrPublish
     - projection_import_test.go#TestDirectoryProjectionCompletedAndExpiredImportsRejectFurtherPages
   CAT-PROJECTION-04:
