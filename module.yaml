@@ -209,6 +209,7 @@ scenario_tests:
   CAT-UI-04:
     - ui_consistency_test.go#TestUIDirectoryCacheInvalidatesMetadataAndTeacherMarkers
     - ui_consistency_test.go#TestUIDirectoryConcurrentCacheAndCancellation
+    - ui_consistency_test.go#TestUIDirectoryTeacherAliasAndPinnedDefaultCache
   CAT-UI-05:
     - ui_performance_test.go#TestUIDirectoryProductionScale
   CAT-UI-06:
