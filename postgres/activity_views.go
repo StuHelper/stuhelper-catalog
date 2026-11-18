@@ -186,3 +186,108 @@ func (t *transaction) syncActivityVisibility(o m.Object) error {
 		}
 	}
 }
+
+func (t *transaction) syncProjectedActivityVisibility(school string, version int64, at time.Time) error {
+	after := ""
+	for {
+		rows, err := t.tx.QueryContext(t.ctx, `SELECT b.id, b.kind, b.target_id, b.day,
+ EXISTS(SELECT 1 FROM catalog.projection_objects o WHERE o.version=$2 AND o.id=b.target_id AND o.kind=b.kind AND o.visible) AS target_visible
+ FROM catalog.activity_buckets b
+ WHERE b.school_id=$1
+   AND b.visible <> (EXISTS(SELECT 1 FROM catalog.projection_objects o WHERE o.version=$2 AND o.id=b.target_id AND o.kind=b.kind AND o.visible) AND (b.first_count>0 OR b.second_count>0))
+   AND b.id COLLATE "C">$3 COLLATE "C"
+ ORDER BY b.id COLLATE "C" LIMIT 100`, school, version, after)
+		if err != nil {
+			return safe(err)
+		}
+		type item struct {
+			id      string
+			kind    string
+			target  string
+			day     time.Time
+			visible bool
+		}
+		items := []item{}
+		for rows.Next() {
+			var v item
+			if err = rows.Scan(&v.id, &v.kind, &v.target, &v.day, &v.visible); err != nil {
+				rows.Close()
+				return safe(err)
+			}
+			items = append(items, v)
+		}
+		err = rows.Err()
+		rows.Close()
+		if err != nil {
+			return safe(err)
+		}
+		if len(items) == 0 {
+			return nil
+		}
+		for _, v := range items {
+			vis := v.visible
+			if err = t.changeActivity(v.kind, v.target, school, v.day, 0, 0, &vis, at); err != nil {
+				return err
+			}
+			after = v.id
+		}
+	}
+}
+
+func (t *transaction) syncTeacherActivityVisibility(school string, ids []string, at time.Time) error {
+	after := ""
+	expectedExpr := `EXISTS(SELECT 1 FROM catalog.objects o WHERE o.id=b.target_id AND o.school_id=$1 AND o.kind='teacher' AND o.id=catalog.canonical(o.id) AND NOT COALESCE((o.data->'object'->>'inactive')::boolean,false) AND ` + markedTeacherSQL("o") + `)`
+	for {
+		var rows *sql.Rows
+		var err error
+		if ids == nil {
+			rows, err = t.tx.QueryContext(t.ctx, `SELECT b.id, b.target_id, b.day, (`+expectedExpr+`) AS target_visible
+ FROM catalog.activity_buckets b
+ WHERE b.school_id=$1 AND b.kind='teacher'
+   AND b.visible <> ((`+expectedExpr+`) AND (b.first_count>0 OR b.second_count>0))
+   AND b.id COLLATE "C">$2 COLLATE "C"
+ ORDER BY b.id COLLATE "C" LIMIT 100`, school, after)
+		} else {
+			rows, err = t.tx.QueryContext(t.ctx, `SELECT b.id, b.target_id, b.day, (`+expectedExpr+`) AS target_visible
+ FROM catalog.activity_buckets b
+ WHERE b.school_id=$1 AND b.kind='teacher'
+   AND b.target_id IN (SELECT catalog.canonical(id) FROM unnest($3::text[]) u(id) UNION SELECT id FROM unnest($3::text[]) u(id))
+   AND b.visible <> ((`+expectedExpr+`) AND (b.first_count>0 OR b.second_count>0))
+   AND b.id COLLATE "C">$2 COLLATE "C"
+ ORDER BY b.id COLLATE "C" LIMIT 100`, school, after, ids)
+		}
+		if err != nil {
+			return safe(err)
+		}
+		type item struct {
+			id      string
+			target  string
+			day     time.Time
+			visible bool
+		}
+		items := []item{}
+		for rows.Next() {
+			var v item
+			if err = rows.Scan(&v.id, &v.target, &v.day, &v.visible); err != nil {
+				rows.Close()
+				return safe(err)
+			}
+			items = append(items, v)
+		}
+		err = rows.Err()
+		rows.Close()
+		if err != nil {
+			return safe(err)
+		}
+		if len(items) == 0 {
+			return nil
+		}
+		for _, v := range items {
+			vis := v.visible
+			if err = t.changeActivity("teacher", v.target, school, v.day, 0, 0, &vis, at); err != nil {
+				return err
+			}
+			after = v.id
+		}
+	}
+}

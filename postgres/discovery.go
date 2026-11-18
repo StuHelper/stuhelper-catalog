@@ -48,7 +48,108 @@ func (t *transaction) DiscoveryCurrent(school string, ids []string) ([]c.Discove
 		return list[c.DiscoveryDocument](t, `SELECT d.data FROM catalog.projection_heads h JOIN catalog.projection_documents d ON d.version=h.version
  WHERE h.school_id=$1 AND d.id=ANY($2::text[]) AND (d.data->>'visible')::boolean ORDER BY d.id COLLATE "C"`, school, ids)
 	}
-	return list[c.DiscoveryDocument](t, `SELECT h.data FROM catalog.objects o JOIN catalog.discovery_history h ON h.id=o.id AND h.revision=(o.data->'object'->>'revision')::bigint WHERE o.id=ANY($1::text[]) AND o.school_id=$2 AND o.id=catalog.canonical(o.id) AND NOT COALESCE((o.data->'object'->>'inactive')::boolean,false) AND (h.data->>'visible')::boolean `+t.teacherVisibility("o")+` ORDER BY o.id COLLATE "C"`, ids, school)
+	return list[c.DiscoveryDocument](t, `SELECT h.data FROM catalog.objects o CROSS JOIN LATERAL (SELECT data FROM catalog.discovery_history h WHERE h.id=o.id ORDER BY h.revision DESC LIMIT 1) h WHERE o.id=ANY($1::text[]) AND o.school_id=$2 AND o.id=catalog.canonical(o.id) AND NOT COALESCE((o.data->'object'->>'inactive')::boolean,false) AND (h.data->>'visible')::boolean `+t.teacherVisibility("o")+` ORDER BY o.id COLLATE "C"`, ids, school)
+}
+
+func (t *transaction) syncTeacherDiscoveryAndActivity(school string, ids []string, at time.Time) error {
+	if !t.repoTeacherDirectory || school == "" {
+		return nil
+	}
+	projManaged, err := t.projectionManaged(school)
+	if err != nil || projManaged {
+		return err
+	}
+	if at.IsZero() {
+		at = time.Now().UTC()
+	}
+	filter := ""
+	args := []any{school}
+	if ids != nil {
+		filter = ` AND o.id IN (SELECT catalog.canonical(id) FROM unnest($2::text[]) u(id) UNION SELECT id FROM unnest($2::text[]) u(id))`
+		args = append(args, ids)
+	}
+	rows, err := t.tx.QueryContext(t.ctx, `SELECT o.data->'object', catalog.canonical(o.id), (`+markedTeacherSQL("o")+`), COALESCE(h.revision, 0), h.data
+ FROM catalog.objects o
+ LEFT JOIN LATERAL (SELECT revision, data FROM catalog.discovery_history h WHERE h.id=o.id ORDER BY h.revision DESC LIMIT 1) h ON true
+ WHERE o.school_id=$1 AND o.kind='teacher'`+filter+` ORDER BY o.id COLLATE "C"`, args...)
+	if err != nil {
+		return safe(err)
+	}
+	type candidate struct {
+		obj          c.Object
+		canonical    string
+		marked       bool
+		lastRevision int64
+		prev         *c.DiscoveryDocument
+	}
+	items := []candidate{}
+	for rows.Next() {
+		var rawObj []byte
+		var rawPrev []byte
+		var item candidate
+		if err := rows.Scan(&rawObj, &item.canonical, &item.marked, &item.lastRevision, &rawPrev); err != nil {
+			rows.Close()
+			return safe(err)
+		}
+		if json.Unmarshal(rawObj, &item.obj) != nil {
+			rows.Close()
+			return c.ErrUnavailable
+		}
+		if len(rawPrev) > 0 {
+			var prev c.DiscoveryDocument
+			if json.Unmarshal(rawPrev, &prev) != nil {
+				rows.Close()
+				return c.ErrUnavailable
+			}
+			item.prev = &prev
+		}
+		items = append(items, item)
+	}
+	if err := rows.Err(); err != nil {
+		rows.Close()
+		return safe(err)
+	}
+	rows.Close()
+
+	for _, item := range items {
+		o := item.obj
+		ts := at
+		if !o.UpdatedAt.IsZero() && o.UpdatedAt.After(ts) {
+			ts = o.UpdatedAt
+		}
+		visible := !o.Inactive && item.canonical == o.ID && item.marked
+		title := o.Name
+		if !visible {
+			title = ""
+		}
+		needEmit := item.prev == nil || o.Revision > item.lastRevision || item.prev.Visible != visible || item.prev.Title != title || item.prev.SchoolID != o.SchoolID
+		if !needEmit {
+			continue
+		}
+		rev := o.Revision
+		if item.lastRevision+1 > rev {
+			rev = item.lastRevision + 1
+		}
+		d := c.DiscoveryDocument{
+			Target:   c.DiscoveryTarget{Source: "catalog", ID: o.ID, Kind: "teacher"},
+			Revision: rev,
+			Title:    title,
+			SchoolID: o.SchoolID,
+			Visible:  visible,
+			At:       ts,
+		}
+		if err := t.save(`INSERT INTO catalog.discovery_history(id,revision,data) VALUES($1,$2,$3)`, d, o.ID, rev); err != nil {
+			return err
+		}
+		eventID := fmt.Sprintf("discovery:%s:%d", o.ID, rev)
+		if err := t.saveEnvelope(c.Envelope{
+			SpecVersion: "1.0", ID: eventID, Source: "catalog", Type: "catalog.discovery.v1", Subject: o.ID, Time: ts,
+			Data: c.ResultData{Revision: d.Revision, Target: &d.Target, Title: &d.Title, SchoolID: &d.SchoolID, Visible: &d.Visible, Ratings: &d.Ratings, At: &d.At},
+		}); err != nil {
+			return err
+		}
+	}
+	return t.syncTeacherActivityVisibility(school, ids, at)
 }
 
 type discoveryCursor struct {

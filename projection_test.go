@@ -361,3 +361,201 @@ func TestDirectoryProjectionFailedSourceImportFencesPublicationUntilRetry(t *tes
 		t.Fatal(object, err)
 	}
 }
+
+func TestProjectionAndTeacherMarkersIsolateDiscoveryAndActivityVisibility(t *testing.T) {
+	s, p, admin, first := projectionFixture(t)
+	ctx := context.Background()
+	repo := s.Repo.(*postgres.Repository)
+	now := time.Now().UTC().Add(time.Minute)
+	s.Clock = func() time.Time { return now }
+
+	// Drain initial outbox so we observe only post-projection events.
+	if _, err := admin.Exec(`UPDATE catalog.outbox SET sent_at=now() WHERE sent_at IS NULL`); err != nil {
+		t.Fatal(err)
+	}
+
+	// Record views on visible course and official-only teacher so activity_buckets.visible = true.
+	reader := c.Principal{Subject: "issuer:student"}
+	for _, id := range []string{"course", "official"} {
+		if _, err := s.Read(ctx, reader, id); err != nil {
+			t.Fatal(id, err)
+		}
+	}
+	if _, err := admin.Exec(`UPDATE catalog.outbox SET sent_at=now() WHERE sent_at IS NULL`); err != nil {
+		t.Fatal(err)
+	}
+
+	// Configure ExcludedCourseNames before running batch import so leak-excluded and pre-cutoff
+	// courses are never part of any published projection.
+	policy := c.DefaultDirectoryPolicy()
+	policy.ExcludedCourseNames = []string{"Excluded Secret"}
+	report, err := s.RebuildDirectory(ctx, p, "school", &policy)
+	if err != nil || report.Version <= first.Version {
+		t.Fatal(report, err)
+	}
+	if _, err := admin.Exec(`UPDATE catalog.outbox SET sent_at=now() WHERE sent_at IS NULL`); err != nil {
+		t.Fatal(err)
+	}
+
+	// A-01(1,2): An interrupted RunDirectoryImport page (including pre-cutoff / excluded courses)
+	// must NOT emit premature catalog.discovery.v1 events to outbox.
+	interrupted := errors.New("interrupted")
+	partial := c.Import{SchoolID: "school", SourceID: "source", Revision: 2, FetchedAt: now, Objects: []c.Object{
+		{ID: "leak-pending", Kind: "course", SchoolID: "school", Name: "Pending Leak", Aliases: []string{}},
+		{ID: "leak-excluded", Kind: "course", SchoolID: "school", Name: "Excluded Secret", Aliases: []string{}},
+		{ID: "leak-excluded-off", Kind: "term_course", SchoolID: "school", Name: "Excluded Off", CourseID: "leak-excluded", TermID: "z-boundary", Aliases: []string{}},
+		{ID: "leak-precutoff", Kind: "course", SchoolID: "school", Name: "Precutoff Course", Aliases: []string{}},
+		{ID: "leak-precutoff-off", Kind: "term_course", SchoolID: "school", Name: "Precutoff Off", CourseID: "leak-precutoff", TermID: "a-old", Aliases: []string{}},
+	}}
+	if _, err := s.RunDirectoryImport(ctx, p, "school", "batch-leak", func(call context.Context) error {
+		if _, err := s.Import(call, p, "page-1", partial); err != nil {
+			return err
+		}
+		return interrupted
+	}); !errors.Is(err, interrupted) {
+		t.Fatal(err)
+	}
+	pending, err := repo.PendingOutbox(ctx, 100, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, ev := range pending {
+		if ev.Type == "catalog.discovery.v1" {
+			t.Fatalf("interrupted directory import leaked discovery event: %+v", ev)
+		}
+	}
+
+	// Complete the import batch and verify excluded/pre-cutoff courses never emit Visible=true,
+	// while newly visible course emits only projection-revision discovery event.
+	if _, err := s.RunDirectoryImport(ctx, p, "school", "batch-leak", func(call context.Context) error {
+		if _, err := s.Import(call, p, "page-1", partial); err != nil {
+			return err
+		}
+		_, err := s.Import(call, p, "page-2", c.Import{SchoolID: "school", SourceID: "source", Revision: 2, FetchedAt: now, Objects: []c.Object{
+			{ID: "leak-pending-off", Kind: "term_course", SchoolID: "school", Name: "Pending Off", CourseID: "leak-pending", TermID: "z-boundary", Aliases: []string{}},
+		}})
+		return err
+	}); err != nil {
+		t.Fatal(err)
+	}
+	var excludedVisible int
+	if err := admin.QueryRow(`SELECT count(*) FROM catalog.outbox WHERE data->>'type'='catalog.discovery.v1' AND data->>'subject' IN ('leak-excluded','leak-precutoff') AND (data->'data'->>'visible')::boolean`).Scan(&excludedVisible); err != nil || excludedVisible != 0 {
+		t.Fatalf("excluded/pre-cutoff course leaked Visible=true to outbox: count=%d err=%v", excludedVisible, err)
+	}
+
+	// A-01(4): Correct on a projected school must NOT emit dual small-integer + projection-version revisions.
+	if _, err := admin.Exec(`UPDATE catalog.outbox SET sent_at=now() WHERE sent_at IS NULL`); err != nil {
+		t.Fatal(err)
+	}
+	cur, err := s.AdminRead(ctx, p, "course")
+	if err != nil {
+		t.Fatal(err)
+	}
+	newTitle := "Current Renamed"
+	if _, err := s.Correct(ctx, p, "course", "rename-proj", c.Correction{Revision: cur.Revision, Name: &newTitle}); err != nil {
+		t.Fatal(err)
+	}
+	pending, err = repo.PendingOutbox(ctx, 100, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	courseDiscoveryEvents := 0
+	for _, ev := range pending {
+		if ev.Type == "catalog.discovery.v1" && ev.Subject == "course" {
+			courseDiscoveryEvents++
+			if ev.Data.Revision < first.Version {
+				t.Fatalf("source small-integer revision leaked in projection mode: %+v", ev)
+			}
+		}
+	}
+	if courseDiscoveryEvents != 1 {
+		t.Fatalf("expected exactly 1 projection discovery event for course, got %d", courseDiscoveryEvents)
+	}
+
+	// A-10: Hiding course via ExcludedCourseNames and revoking official teacher marker
+	// must flip activity_buckets.visible to false and emit Visible=false activity events.
+	if _, err := admin.Exec(`UPDATE catalog.outbox SET sent_at=now() WHERE sent_at IS NULL`); err != nil {
+		t.Fatal(err)
+	}
+	candidates, err := s.TeacherCandidates(ctx, p, "school", "", 500)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := s.ImportTeacherSites(ctx, p, c.TeacherSiteSnapshot{
+		SchoolID: "school", SourceID: "official", Revision: 2, ObservedAt: now,
+		CandidateFingerprint: c.TeacherCandidateFingerprint(candidates), Matches: nil,
+	}); err != nil {
+		t.Fatal(err)
+	}
+	policy.ExcludedCourseNames = []string{"Excluded Secret", "Current Renamed"}
+	if _, err := s.RebuildDirectory(ctx, p, "school", &policy); err != nil {
+		t.Fatal(err)
+	}
+	for _, target := range [][2]string{{"course", "course"}, {"teacher", "official"}} {
+		actID := c.ActivityID(target[0], target[1], now)
+		act, err := repo.ReadActivity(ctx, actID)
+		if err != nil || act.Visible || act.Metrics["views"] != 1 {
+			t.Fatalf("hidden projected target %v retained visible activity bucket: %+v %v", target, act, err)
+		}
+		if _, ok, err := s.CurrentActivity(ctx, reader, actID); err != nil || ok {
+			t.Fatalf("hidden target exposed by CurrentActivity: %v %v", ok, err)
+		}
+	}
+
+	// A-01(3) & A-10 (non-projection RequireTeacherDirectory mode):
+	// Importing an unmarked teacher must not emit Visible=true, and revoking official mark updates discovery & activity.
+	s2, p2, siteSnap := teacherDirectoryFixture(t)
+	repo2 := s2.Repo.(*postgres.Repository)
+	s2.Clock = func() time.Time { return now }
+	if _, err := s2.RefreshTeachingDirectory(ctx, p2, "school"); err != nil {
+		t.Fatal(err)
+	}
+	siteSnap.ObservedAt = now
+	if _, err := s2.ImportTeacherSites(ctx, p2, siteSnap); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := s2.Read(ctx, reader, "teacher3"); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := s2.Import(ctx, p2, "unmarked-t5", c.Import{SchoolID: "school", SourceID: "approved-source", Revision: 2, FetchedAt: now, Objects: []c.Object{
+		{ID: "teacher5", Kind: "teacher", SchoolID: "school", Name: "Unmarked Five", DepartmentID: "dept", Aliases: []string{}},
+	}}); err != nil {
+		t.Fatal(err)
+	}
+	var unmarkedVisible int
+	if err := repo2.DB.QueryRow(`SELECT count(*) FROM catalog.outbox WHERE data->>'type'='catalog.discovery.v1' AND data->>'subject'='teacher5' AND (data->'data'->>'visible')::boolean`).Scan(&unmarkedVisible); err != nil || unmarkedVisible != 0 {
+		t.Fatalf("unmarked teacher5 emitted Visible=true to outbox: %d %v", unmarkedVisible, err)
+	}
+	snapPage, err := repo2.DiscoverySnapshot(ctx, "", 100)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, doc := range snapPage.Items {
+		if doc.Target.ID == "teacher5" && doc.Visible {
+			t.Fatalf("unmarked teacher5 visible in DiscoverySnapshot: %+v", doc)
+		}
+	}
+	cands2, err := s2.TeacherCandidates(ctx, p2, "school", "", 500)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := s2.ImportTeacherSites(ctx, p2, c.TeacherSiteSnapshot{
+		SchoolID: "school", SourceID: "official", Revision: 2, ObservedAt: now,
+		CandidateFingerprint: c.TeacherCandidateFingerprint(cands2), Matches: nil,
+	}); err != nil {
+		t.Fatal(err)
+	}
+	act3, err := repo2.ReadActivity(ctx, c.ActivityID("teacher", "teacher3", now))
+	if err != nil || act3.Visible || act3.Metrics["views"] != 1 {
+		t.Fatalf("revoked official teacher3 retained visible activity in non-projection mode: %+v %v", act3, err)
+	}
+	snapPage, err = repo2.DiscoverySnapshot(ctx, "", 100)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, doc := range snapPage.Items {
+		if doc.Target.ID == "teacher3" && doc.Visible {
+			t.Fatalf("revoked official teacher3 remained visible in DiscoverySnapshot: %+v", doc)
+		}
+	}
+}
