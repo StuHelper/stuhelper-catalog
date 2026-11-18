@@ -303,6 +303,7 @@ func (t *transaction) RebuildDirectory(school string, policy *c.DirectoryPolicy,
  FROM (SELECT DISTINCT ON (h.id) h.id,h.data FROM catalog.discovery_history h JOIN catalog.objects o ON o.id=h.id WHERE o.school_id=$1 ORDER BY h.id,h.revision DESC) latest
  JOIN catalog.projection_generations g ON g.version=$2
  WHERE NOT EXISTS(SELECT 1 FROM catalog.projection_heads ph WHERE ph.school_id=$1)
+   AND EXISTS (SELECT 1 FROM catalog.outbox e WHERE e.data->>'type'='catalog.discovery.v1' AND e.data->>'subject'=latest.id AND (e.data->'data'->>'visible')::boolean)
    AND (latest.data->>'visible')::boolean
    AND NOT EXISTS(SELECT 1 FROM catalog.projection_documents n WHERE n.version=$2 AND n.id=latest.id)`, school, out.Version); err != nil {
 		return out, safe(err)
