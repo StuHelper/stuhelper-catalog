@@ -36,7 +36,9 @@ CREATE TABLE IF NOT EXISTS catalog.enrollments (
  term_id text NOT NULL, active boolean NOT NULL, data jsonb NOT NULL
 );
 CREATE INDEX IF NOT EXISTS catalog_enrollment_owner ON catalog.enrollments(subject,school_id,course_id,id) WHERE active;
-CREATE TABLE IF NOT EXISTS catalog.replays(key text PRIMARY KEY, data jsonb NOT NULL);
+CREATE TABLE IF NOT EXISTS catalog.replays(key text PRIMARY KEY, data jsonb NOT NULL, expires_at timestamptz);
+ALTER TABLE catalog.replays ADD COLUMN IF NOT EXISTS expires_at timestamptz;
+CREATE INDEX IF NOT EXISTS catalog_replays_expiry ON catalog.replays(expires_at,key) WHERE expires_at IS NOT NULL;
 CREATE TABLE IF NOT EXISTS catalog.audit(
  id text PRIMARY KEY, data jsonb NOT NULL,
  reason text NOT NULL DEFAULT '', result text NOT NULL DEFAULT 'unknown' CHECK(result IN ('success','denied','failed','unknown')),
@@ -65,6 +67,7 @@ CREATE INDEX IF NOT EXISTS catalog_schedule_class ON catalog.objects(class_id,sc
 CREATE TABLE IF NOT EXISTS catalog.timetables(school_id text NOT NULL REFERENCES catalog.objects(id),term_id text NOT NULL REFERENCES catalog.objects(id),data jsonb NOT NULL,PRIMARY KEY(school_id,term_id));
 REVOKE ALL ON TABLE catalog.timetables FROM PUBLIC;
 CREATE INDEX IF NOT EXISTS catalog_outbox_pending ON catalog.outbox((data->>'source') COLLATE "C",(data->>'subject') COLLATE "C",((data->'data'->>'revision')::bigint),id COLLATE "C") WHERE sent_at IS NULL;
+CREATE INDEX IF NOT EXISTS catalog_outbox_sent ON catalog.outbox(sent_at,id) WHERE sent_at IS NOT NULL;
 
 CREATE TABLE IF NOT EXISTS catalog.audit_retention(singleton boolean PRIMARY KEY DEFAULT true CHECK(singleton),revision bigint NOT NULL DEFAULT 0);
 INSERT INTO catalog.audit_retention(singleton) VALUES(true) ON CONFLICT DO NOTHING;
@@ -175,6 +178,7 @@ ALTER TABLE catalog.teacher_refresh_runs ADD COLUMN IF NOT EXISTS position bigin
 CREATE UNIQUE INDEX IF NOT EXISTS catalog_teacher_refresh_active ON catalog.teacher_refresh_runs((true)) WHERE status IN ('queued','running');
 CREATE INDEX IF NOT EXISTS catalog_teacher_refresh_latest ON catalog.teacher_refresh_runs(school_id,requested_at DESC,id DESC);
 CREATE INDEX IF NOT EXISTS catalog_teacher_refresh_position ON catalog.teacher_refresh_runs(school_id,position DESC);
+CREATE INDEX IF NOT EXISTS catalog_teacher_refresh_prune ON catalog.teacher_refresh_runs(requested_at,id) WHERE status IN ('succeeded','failed','timed_out');
 CREATE TABLE IF NOT EXISTS catalog.teacher_unmatched_snapshots (
  school_id text PRIMARY KEY, revision bigint NOT NULL, observed_at timestamptz NOT NULL, digest text NOT NULL
 );

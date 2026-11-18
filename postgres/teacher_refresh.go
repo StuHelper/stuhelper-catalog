@@ -1,9 +1,11 @@
 package postgres
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	c "github.com/StuHelper/stuhelper-catalog"
+	"time"
 )
 
 func (t *transaction) BeginTeacherRefreshSnapshot() error {
@@ -101,3 +103,20 @@ func (t *transaction) TeacherUnmatched(school, reason, after string, limit int) 
 }
 
 func (t *transaction) RecordTeacherRefreshAudit(v c.Event) error { return t.recordAudit(v) }
+
+func (r *Repository) PruneTeacherRefreshRuns(ctx context.Context, before time.Time, limit int) (int64, error) {
+	if before.IsZero() || limit < 1 || limit > 1000 {
+		return 0, c.ErrInput
+	}
+	result, err := r.DB.ExecContext(ctx, `DELETE FROM catalog.teacher_refresh_runs WHERE id IN (
+ SELECT r.id FROM catalog.teacher_refresh_runs r
+ WHERE r.status IN ('succeeded','failed','timed_out') AND r.requested_at<$1
+   AND r.id NOT IN (SELECT DISTINCT ON (school_id) id FROM catalog.teacher_refresh_runs ORDER BY school_id,position DESC)
+ ORDER BY r.requested_at,r.id LIMIT $2
+)`, before.UTC(), limit)
+	if err != nil {
+		return 0, safe(err)
+	}
+	n, err := result.RowsAffected()
+	return n, safe(err)
+}
