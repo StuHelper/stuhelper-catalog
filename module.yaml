@@ -71,6 +71,8 @@ scenario_tests:
     - display_policy_test.go#TestDisplayProjectionMigrationPreservesPublishedDirectoryAndRuntimeBoundary
     - display_policy_test.go#TestDirectoryDisplayRulesProjectsCountsAndEnrollmentOwnership
     - display_policy_test.go#TestDirectoryPolicyRejectsAmbiguousMappingsAndReadOnlyObjectFields
+    - display_policy_test.go#TestSportsProjectViewsAndAdminReads
+    - display_policy_test.go#TestProjectedViewAllowsWriterToPublishWhileWaitingForSource
   CAT-REFRESH-01:
     - teacher_refresh_test.go#TestTeacherRefreshDurableConcurrencyIdempotencyAndTimeout
   CAT-REFRESH-02:

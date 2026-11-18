@@ -18,15 +18,36 @@ func (t *transaction) RecordView(actor string, o m.Object, at time.Time) (bool, 
 		return false, m.ErrInput
 	}
 	var canonical string
-	if e := t.tx.QueryRowContext(t.ctx, `SELECT catalog.canonical($1)`, o.ID).Scan(&canonical); e != nil {
-		return false, safe(e)
+	if t.projectionRead {
+		if e := t.tx.QueryRowContext(t.ctx, `SELECT COALESCE((SELECT a.canonical_id FROM catalog.projection_heads h JOIN catalog.projection_aliases a ON a.version=h.version WHERE h.school_id=$1 AND a.alias_id=$2), catalog.canonical($2))`, o.SchoolID, o.ID).Scan(&canonical); e != nil {
+			return false, safe(e)
+		}
+	} else {
+		if e := t.tx.QueryRowContext(t.ctx, `SELECT catalog.canonical($1)`, o.ID).Scan(&canonical); e != nil {
+			return false, safe(e)
+		}
 	}
 	o.ID = canonical
 	var locked string
-	if e := t.tx.QueryRowContext(t.ctx, `SELECT id FROM catalog.objects WHERE id=$1 FOR SHARE`, o.ID).Scan(&locked); e != nil {
-		return false, safe(e)
+	// Mutations lock source rows before publishing a new projection head.
+	// Synthetic directory objects have only the head to lock.
+	lockErr := t.tx.QueryRowContext(t.ctx, `SELECT id FROM catalog.objects WHERE id=$1 FOR SHARE`, o.ID).Scan(&locked)
+	if lockErr != nil && !errors.Is(lockErr, sql.ErrNoRows) {
+		return false, safe(lockErr)
+	}
+	if t.projectionRead {
+		if err := t.tx.QueryRowContext(t.ctx, `SELECT school_id FROM catalog.projection_heads WHERE school_id=$1 FOR SHARE`, o.SchoolID).Scan(&locked); err != nil {
+			return false, safe(err)
+		}
+	} else if errors.Is(lockErr, sql.ErrNoRows) {
+		if err := t.tx.QueryRowContext(t.ctx, `SELECT h.school_id FROM catalog.projection_heads h JOIN catalog.projection_objects p ON p.version=h.version WHERE h.school_id=$1 AND p.id=$2 AND p.visible FOR SHARE OF h`, o.SchoolID, o.ID).Scan(&locked); err != nil {
+			return false, safe(err)
+		}
 	}
 	current, e := t.PublicObject(o.ID)
+	if !t.projectionRead && errors.Is(e, m.ErrNotFound) {
+		current, e = t.projectedObject(o.ID)
+	}
 	if e != nil {
 		return false, e
 	}
