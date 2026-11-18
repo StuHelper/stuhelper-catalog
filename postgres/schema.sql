@@ -46,6 +46,12 @@ CREATE TABLE IF NOT EXISTS catalog.audit(
  audit_actor text NOT NULL DEFAULT 'unknown',audit_target text NOT NULL DEFAULT 'unknown',audit_action text NOT NULL DEFAULT 'unknown',
  audit_school text NOT NULL DEFAULT '*',audit_group text NOT NULL DEFAULT '*',audit_time timestamptz NOT NULL DEFAULT now()
 );
+-- Old course-identity and maintenance receipts both carried an Until value.
+-- Only the three expiring business operations may be backfilled.
+UPDATE catalog.replays r SET expires_at=(r.data->>'Until')::timestamptz
+ FROM catalog.audit a WHERE a.id=r.key AND a.audit_action IN ('catalog.corrected.v1','catalog.merged.v1','catalog.state_changed.v1')
+ AND r.expires_at IS NULL AND r.data->>'Until' IS NOT NULL;
+
 CREATE TABLE IF NOT EXISTS catalog.outbox(id text PRIMARY KEY, data jsonb NOT NULL, sent_at timestamptz);
 REVOKE ALL ON SCHEMA catalog FROM PUBLIC;
 REVOKE ALL ON ALL TABLES IN SCHEMA catalog FROM PUBLIC;

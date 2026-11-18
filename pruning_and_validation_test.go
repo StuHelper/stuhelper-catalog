@@ -12,11 +12,11 @@ import (
 	"github.com/StuHelper/stuhelper-catalog/postgres"
 )
 
-type countingEnrollmentSource struct {
+type pruningEnrollmentSource struct {
 	calls atomic.Int64
 }
 
-func (s *countingEnrollmentSource) OwnSnapshot(context.Context, string) (c.EnrollmentSnapshot, error) {
+func (s *pruningEnrollmentSource) OwnSnapshot(context.Context, string) (c.EnrollmentSnapshot, error) {
 	s.calls.Add(1)
 	return c.EnrollmentSnapshot{}, errors.New("should not be called on invalid input")
 }
@@ -28,7 +28,7 @@ func TestBoundedPruningAndInputValidation(t *testing.T) {
 		if _, err := s.Import(ctx, admin, "seed-enroll-val", in); err != nil {
 			t.Fatal(err)
 		}
-		source := &countingEnrollmentSource{}
+		source := &pruningEnrollmentSource{}
 		s.EnrollmentSource = source
 		student := c.Principal{Subject: "issuer:student"}
 
@@ -170,9 +170,41 @@ func TestBoundedPruningAndInputValidation(t *testing.T) {
 		if err != nil || deletedRunsRest != 1 {
 			t.Fatalf("PruneTeacherRefreshRuns remainder deleted %d err=%v, want 1 (latest preserved)", deletedRunsRest, err)
 		}
+		replay, err := s.QueueTeacherRefresh(ctx, refresher, "school", "incremental", "manual", "run-1")
+		if err != nil || replay.Status != "timed_out" || !replay.RequestedAt.Equal(baseTime) {
+			t.Fatal("pruned refresh should replay its original terminal result", replay, err)
+		}
+		if _, err := s.QueueTeacherRefresh(ctx, refresher, "school", "full", "manual", "run-1"); !errors.Is(err, c.ErrConflict) {
+			t.Fatal("pruned refresh allowed its request parameters to change", err)
+		}
 		status, err := s.TeacherRefreshStatus(ctx, refresher, "school")
 		if err != nil || status.Latest == nil {
 			t.Fatalf("PruneTeacherRefreshRuns removed latest run for school: %+v err=%v", status, err)
 		}
 	})
+}
+
+func TestMigrateLegacyMaintenanceReplayExpiration(t *testing.T) {
+	repo, db := database(t)
+	if _, err := db.Exec(`ALTER TABLE catalog.replays DROP COLUMN expires_at`); err != nil {
+		t.Fatal(err)
+	}
+	for _, action := range []string{"catalog.corrected.v1", "catalog.merged.v1", "catalog.state_changed.v1", "catalog.imported.v1", "catalog.course_identities.v1", "catalog.enrollments.v1"} {
+		if _, err := db.Exec(`INSERT INTO catalog.audit(id,data,audit_action) VALUES($1,'{}',$1)`, action); err != nil {
+			t.Fatal(err)
+		}
+		if _, err := db.Exec(`INSERT INTO catalog.replays(key,data) VALUES($1,'{"Until":"2026-01-01T00:00:00Z"}')`, action); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if _, err := db.Exec(postgres.Schema); err != nil {
+		t.Fatal(err)
+	}
+	if n, err := repo.PruneReplays(context.Background(), time.Date(2026, 1, 2, 0, 0, 0, 0, time.UTC), 10); err != nil || n != 3 {
+		t.Fatal("expected three expired maintenance receipts", n, err)
+	}
+	var retained int
+	if err := db.QueryRow(`SELECT count(*) FROM catalog.replays WHERE key IN ('catalog.imported.v1','catalog.course_identities.v1','catalog.enrollments.v1') AND expires_at IS NULL`).Scan(&retained); err != nil || retained != 3 {
+		t.Fatal(retained, err)
+	}
 }

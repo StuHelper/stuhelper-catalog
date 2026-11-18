@@ -180,6 +180,7 @@ scenario_tests:
   CAT-OUTBOX-03:
     - outbox_delivery_test.go#TestOutboxExcludedSubjectsDoNotBlockOtherSubjects
     - postgres/outbox_plan_test.go#TestPendingOutboxExclusionUsesPartialIndex
+    - pruning_and_validation_test.go#TestMigrateLegacyMaintenanceReplayExpiration
     - pruning_and_validation_test.go#TestBoundedPruningAndInputValidation
 
   CAT-SCHOOL-01:

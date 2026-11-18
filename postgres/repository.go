@@ -269,7 +269,7 @@ func (r *Repository) PruneReplays(ctx context.Context, before time.Time, limit i
 	if before.IsZero() || limit < 1 || limit > 1000 {
 		return 0, catalog.ErrInput
 	}
-	result, err := r.DB.ExecContext(ctx, `DELETE FROM catalog.replays WHERE key IN (SELECT key FROM catalog.replays WHERE expires_at IS NOT NULL AND expires_at<$1 ORDER BY expires_at,key LIMIT $2)`, before.UTC(), limit)
+	result, err := r.DB.ExecContext(ctx, `DELETE FROM catalog.replays WHERE key IN (SELECT key FROM catalog.replays WHERE expires_at IS NOT NULL AND expires_at<$1 ORDER BY expires_at,key LIMIT $2 FOR UPDATE SKIP LOCKED)`, before.UTC(), limit)
 	if err != nil {
 		return 0, safe(err)
 	}
