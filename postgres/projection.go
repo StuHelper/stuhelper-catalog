@@ -162,10 +162,13 @@ func (r *Repository) recordProjectionFailure(school string, err error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	reason := "build_failed"
+	var df c.DirectoryFailure
 	if errors.Is(err, context.DeadlineExceeded) {
 		reason = "build_timeout"
 	} else if errors.Is(err, context.Canceled) {
 		reason = "build_canceled"
+	} else if errors.As(err, &df) && df.Reason == "lock_unavailable" {
+		reason = "lock_timeout"
 	}
 	if _, e := r.DB.ExecContext(ctx, `INSERT INTO catalog.projection_failures(school_id,failed_at,reason) VALUES($1,now(),$2)
  ON CONFLICT(school_id) DO UPDATE SET failed_at=excluded.failed_at,reason=excluded.reason`, school, reason); e != nil {
@@ -175,15 +178,15 @@ func (r *Repository) recordProjectionFailure(school string, err error) {
 
 func (t *transaction) RebuildDirectory(school string, policy *c.DirectoryPolicy, at time.Time) (out c.ProjectionReport, err error) {
 	started := time.Now()
+	t.projectionAttempt = school
+	if _, err = t.tx.ExecContext(t.ctx, `SET LOCAL statement_timeout='100s'; SET LOCAL lock_timeout='10s'; SET LOCAL jit=off`); err != nil {
+		return out, safe(err)
+	}
 	if err = t.touchProjection(school); err != nil {
 		return
 	}
-	t.projectionAttempt = school
 	if err = t.Lock("projection-build"); err != nil {
 		return
-	}
-	if _, err = t.tx.ExecContext(t.ctx, `SET LOCAL statement_timeout='100s'; SET LOCAL lock_timeout='10s'; SET LOCAL jit=off`); err != nil {
-		return out, safe(err)
 	}
 	var exists bool
 	if err = t.tx.QueryRowContext(t.ctx, `SELECT EXISTS(SELECT 1 FROM catalog.objects WHERE id=$1 AND school_id=$1 AND kind='school' AND NOT COALESCE((data->'object'->>'inactive')::boolean,false))`, school).Scan(&exists); err != nil {

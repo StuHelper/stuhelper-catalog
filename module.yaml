@@ -196,6 +196,7 @@ scenario_tests:
   CAT-UI-02:
     - ui_backend_test.go#TestUIRecentCoursesOwnerRetentionConcurrencyAndClear
     - ui_backend_test.go#TestUIOverviewHTTPRejectsUnownedAndUnavailableSources
+    - timeout_test.go#TestExternalPortSubTimeoutsHTTPWriteBudgetAndRebuildLockTimeout
   CAT-UI-03:
     - ui_consistency_test.go#TestUINextClassDayAuthorizedSourceAndTimeBoundary
   CAT-UI-04:
