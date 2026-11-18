@@ -61,7 +61,14 @@ func (h Handler) teacherRefreshRoutes(m *http.ServeMux) {
 			respond(w, nil, e)
 			return
 		}
-		v, e := h.Service.ReadUnmatchedTeacherSites(r.Context(), p, r.PathValue("school_id"), r.URL.Query().Get("reason"), r.URL.Query().Get("after"), n)
+		q := r.URL.Query()
+		v, e := h.Service.SearchUnmatchedTeacherSites(r.Context(), p, c.UnmatchedTeacherSiteQuery{
+			SchoolID: r.PathValue("school_id"),
+			Reason:   q.Get("reason"),
+			Query:    q.Get("q"),
+			After:    q.Get("after"),
+			Limit:    n,
+		})
 		respond(w, v, e)
 	})
 }

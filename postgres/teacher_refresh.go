@@ -14,7 +14,8 @@ func (t *transaction) BeginTeacherRefreshSnapshot() error {
 }
 
 func (t *transaction) TeacherRefresh(id string) (c.TeacherRefreshRun, error) {
-	return read[c.TeacherRefreshRun](t, `SELECT data FROM catalog.teacher_refresh_runs WHERE id=$1`, id)
+	return read[c.TeacherRefreshRun](t, `SELECT data FROM catalog.teacher_refresh_runs WHERE id=$1
+ UNION ALL SELECT data FROM catalog.replays WHERE key='teacher-refresh-result:' || $1`, id)
 }
 func (t *transaction) TeacherRefreshLatest(school string) (*c.TeacherRefreshRun, error) {
 	v, e := read[c.TeacherRefreshRun](t, `SELECT data FROM catalog.teacher_refresh_runs WHERE school_id=$1 ORDER BY position DESC LIMIT 1`, school)
@@ -77,6 +78,10 @@ func (t *transaction) ReplaceTeacherUnmatched(v c.TeacherUnmatchedSnapshot) erro
 	return safe(e)
 }
 func (t *transaction) TeacherUnmatched(school, reason, after string, limit int) (c.UnmatchedTeacherSitePage, error) {
+	return t.SearchTeacherUnmatched(school, reason, "", after, limit)
+}
+
+func (t *transaction) SearchTeacherUnmatched(school, reason, query, after string, limit int) (c.UnmatchedTeacherSitePage, error) {
 	out := c.UnmatchedTeacherSitePage{Items: []c.UnmatchedTeacherSite{}, ReasonCounts: map[string]int64{}}
 	e := t.tx.QueryRowContext(t.ctx, `SELECT revision,observed_at FROM catalog.teacher_unmatched_snapshots WHERE school_id=$1`, school).Scan(&out.Revision, &out.ObservedAt)
 	if errors.Is(safe(e), c.ErrNotFound) {
@@ -93,29 +98,36 @@ func (t *transaction) TeacherUnmatched(school, reason, after string, limit int) 
 	if json.Unmarshal(raw, &out.ReasonCounts) != nil {
 		return out, c.ErrUnavailable
 	}
-	for key, count := range out.ReasonCounts {
-		if reason == "" || reason == key {
-			out.Total += count
+	if query == "" {
+		for key, count := range out.ReasonCounts {
+			if reason == "" || reason == key {
+				out.Total += count
+			}
 		}
+		out.Items, e = list[c.UnmatchedTeacherSite](t, `SELECT data FROM catalog.teacher_unmatched_sites WHERE school_id=$1 AND ($2='' OR reason=$2) AND site_id>$3 ORDER BY site_id LIMIT $4`, school, reason, after, limit)
+		return out, e
 	}
-	out.Items, e = list[c.UnmatchedTeacherSite](t, `SELECT data FROM catalog.teacher_unmatched_sites WHERE school_id=$1 AND ($2='' OR reason=$2) AND site_id>$3 ORDER BY site_id LIMIT $4`, school, reason, after, limit)
+	const literalFilter = `AND (strpos(lower(COALESCE(data->>'name','')),lower($3))>0 OR strpos(lower(COALESCE(data->>'unit','')),lower($3))>0)`
+	if e = t.tx.QueryRowContext(t.ctx, `SELECT count(*) FROM catalog.teacher_unmatched_sites WHERE school_id=$1 AND ($2='' OR reason=$2) `+literalFilter, school, reason, query).Scan(&out.Total); e != nil {
+		return out, safe(e)
+	}
+	out.Items, e = list[c.UnmatchedTeacherSite](t, `SELECT data FROM catalog.teacher_unmatched_sites WHERE school_id=$1 AND ($2='' OR reason=$2) `+literalFilter+` AND site_id>$4 ORDER BY site_id LIMIT $5`, school, reason, query, after, limit)
 	return out, e
 }
 
 func (t *transaction) RecordTeacherRefreshAudit(v c.Event) error { return t.recordAudit(v) }
 
-// PruneTeacherRefreshRuns deletes bounded batches of terminal runs older than
-// before while preserving active runs and the latest run per school.
 func (r *Repository) PruneTeacherRefreshRuns(ctx context.Context, before time.Time, limit int) (int64, error) {
 	if before.IsZero() || limit < 1 || limit > 1000 {
 		return 0, c.ErrInput
 	}
-	result, err := r.DB.ExecContext(ctx, `DELETE FROM catalog.teacher_refresh_runs WHERE id IN (
+	result, err := r.DB.ExecContext(ctx, `WITH removed AS (DELETE FROM catalog.teacher_refresh_runs WHERE id IN (
  SELECT r.id FROM catalog.teacher_refresh_runs r
  WHERE r.status IN ('succeeded','failed','timed_out') AND r.requested_at<$1
    AND r.id NOT IN (SELECT DISTINCT ON (school_id) id FROM catalog.teacher_refresh_runs ORDER BY school_id,position DESC)
- ORDER BY r.requested_at,r.id LIMIT $2
-)`, before.UTC(), limit)
+ ORDER BY r.requested_at,r.id LIMIT $2 FOR UPDATE OF r SKIP LOCKED
+) RETURNING id,data)
+ INSERT INTO catalog.replays(key,data) SELECT 'teacher-refresh-result:' || id,data FROM removed`, before.UTC(), limit)
 	if err != nil {
 		return 0, safe(err)
 	}

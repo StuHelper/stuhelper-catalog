@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"net/url"
+	"path"
 	"slices"
 	"strings"
 	"time"
@@ -197,13 +198,14 @@ func (s *Service) validateTeacherSites(in *TeacherSiteSnapshot) error {
 	in.Matches = append([]TeacherSiteMatch{}, in.Matches...)
 	slices.SortFunc(in.Matches, func(a, b TeacherSiteMatch) int { return strings.Compare(a.TeacherID, b.TeacherID) })
 	for i, match := range in.Matches {
-		if !validText(match.URL, 512) {
+		if !validText(match.URL, 512) || match.URL != strings.TrimSpace(match.URL) {
 			return ErrInput
 		}
 		u, e := url.Parse(match.URL)
 		if !ValidID(match.TeacherID) || !ValidID(match.DepartmentID) || !validText(match.Name, 256) || strings.TrimSpace(match.Name) == "" ||
-			e != nil || u.Scheme != "https" || !validTeacherSiteHost(u.Host, hosts) || u.User != nil || u.RawQuery != "" || u.Fragment != "" ||
-			!strings.HasSuffix(u.Path, "/index.htm") || i > 0 && in.Matches[i-1].TeacherID == match.TeacherID {
+			e != nil || u.Scheme != "https" || u.Opaque != "" || !validTeacherSiteHost(u.Host, hosts) || u.User != nil || u.RawQuery != "" || u.Fragment != "" ||
+			!validText(u.Path, 512) || u.RawPath != "" && u.RawPath != u.Path || !strings.HasPrefix(u.Path, "/") || path.Clean(u.Path) != u.Path ||
+			u.Path == "/index.htm" || !strings.HasSuffix(u.Path, "/index.htm") || i > 0 && in.Matches[i-1].TeacherID == match.TeacherID {
 			return ErrInput
 		}
 	}

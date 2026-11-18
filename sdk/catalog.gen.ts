@@ -468,7 +468,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** @description Requires catalog.teacher-sites.read and current school management scope. Every view is audited. Current complete unmatched snapshot only; failed refresh preserves it. Returns public website name/unit, fixed reason and count of same-name catalog candidates, never candidate IDs, staff numbers or contacts. reason_counts covers the entire snapshot; total respects reason. Cursor binds school, reason and snapshot revision; a changed snapshot returns 409. Sorted by site_id. */
+        /** @description Requires catalog.teacher-sites.read and current school management scope. Every view is audited. Current complete unmatched snapshot only; failed refresh preserves it. Returns public website name/unit, fixed reason and count of same-name catalog candidates, never candidate IDs, staff numbers or contacts. reason_counts covers the entire snapshot; total respects reason and q. Cursor binds school, reason, q and snapshot revision; a changed snapshot returns 409. Sorted by site_id. */
         get: operations["listUnmatchedTeacherSites"];
         put?: never;
         post?: never;
@@ -633,6 +633,10 @@ export interface components {
             } | null;
             categories: components["schemas"]["Object"][];
             natures: components["schemas"]["Object"][];
+            /** @description 当摘要对象为教师时，返回当前目录关联的前 20 门可展示课程精简引用（按 ID 升序）；对象为课程时为空数组。 */
+            courses: components["schemas"]["Reference"][];
+            /** @description 当摘要对象为课程时，返回当前目录关联的前 20 位可展示任课教师精简引用（按 ID 升序）；对象为教师时为空数组。 */
+            teachers: components["schemas"]["Reference"][];
             /** @description 当前目录投影中关联的可展示课程数量。 */
             course_count: number;
             /** @description 当前目录投影中关联的可展示教师数量。 */
@@ -686,7 +690,7 @@ export interface components {
             items: components["schemas"]["Reference"][];
             missing_ids: string[];
         };
-        /** @description ISO weekday Monday=1. Explicit week set; odd/even weeks are expanded by importer. End period >= start. Missing structure means not provided. Recognized time_text grammar: 周一 第1-2节 第1-16周(单), with optional 单/双 suffix. */
+        /** @description ISO weekday Monday=1. Explicit week set; odd/even weeks are expanded by importer. End period >= start. Missing structure means not provided. Recognized time_text grammar supports single or range periods (第5节, 第1-2节), single, range or ascending comma-separated week segments (第8周, 第1-8,10-16周, 第1,3,5,7周), and optional halfwidth or fullwidth 单/双 suffix. */
         ScheduleTime: {
             weekday: number;
             start_period: number;
@@ -755,9 +759,10 @@ export interface components {
             total: number;
             category_facets: components["schemas"]["DirectoryFacet"][];
             department_facets: components["schemas"]["DirectoryFacet"][];
+            nature_facets: components["schemas"]["DirectoryFacet"][];
             /** Format: date-time */
             generated_at: string;
-            /** @description Distinct objects after all filters except category_id, for the All category badge. */
+            /** @description Distinct objects after all filters except category_id / category_ids, for the All category badge. */
             facet_total: number;
         };
         RecentCourse: {
@@ -911,6 +916,10 @@ export interface components {
             } | null;
             categories: components["schemas"]["Object"][];
             natures: components["schemas"]["Object"][];
+            /** @description 当摘要对象为教师时，返回当前目录关联的前 20 门可展示课程精简引用（按 ID 升序）；对象为课程时为空数组。 */
+            courses: components["schemas"]["Reference"][];
+            /** @description 当摘要对象为课程时，返回当前目录关联的前 20 位可展示任课教师精简引用（按 ID 升序）；对象为教师时为空数组。 */
+            teachers: components["schemas"]["Reference"][];
             /** @description 当前目录投影中关联的可展示课程数量。 */
             course_count: number;
             /** @description 当前目录投影中关联的可展示教师数量。 */
@@ -963,6 +972,7 @@ export interface operations {
                 term_course_id?: string;
                 /** @description 普通目录禁止使用此教学班粒度筛选，返回 403 forbidden；管理端使用 /catalog/admin/objects。 */
                 class_id?: string;
+                /** @description 普通目录不返回停用对象，传 true 返回 400 invalid_input；管理端使用 /catalog/admin/objects。 */
                 include_inactive?: boolean;
             };
             header?: never;
@@ -2795,9 +2805,17 @@ export interface operations {
                 school_id?: string;
                 q?: string;
                 department_id?: string;
+                /** @description 逗号分隔的多个学院 ID（最多 20 项），不能与 department_id 同时传入。 */
+                department_ids?: string;
                 category_id?: string;
+                /** @description 逗号分隔的多个课程类别 ID（最多 20 项，仅 kind=course），不能与 category_id 同时传入。 */
+                category_ids?: string;
                 nature_id?: string;
                 teacher_id?: string;
+                /** @description 课程最低学分（含，0 至 100，仅 kind=course）；未知学分课程不匹配学分区间筛选。 */
+                credits_min?: number;
+                /** @description 课程最高学分（含，0 至 100，仅 kind=course）；未知学分课程不匹配学分区间筛选。 */
+                credits_max?: number;
                 sort?: "hot" | "recommend" | "reviews" | "name";
                 after?: string;
                 limit?: number;
@@ -3410,6 +3428,8 @@ export interface operations {
         parameters: {
             query?: {
                 reason?: "catalog_name_absent" | "catalog_unit_missing" | "site_unit_missing" | "unit_mismatch" | "ambiguous_catalog" | "ambiguous_site";
+                /** @description 对未匹配记录的公开姓名与单位做不区分大小写的字面子串筛选，百分号与下划线不作为通配符。 */
+                q?: string;
                 limit?: number;
                 after?: string;
             };

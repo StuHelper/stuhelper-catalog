@@ -184,6 +184,7 @@ func TestOutboxDiscoveryAndTimetablePayloads(t *testing.T) {
 			t.Fatal(e)
 		}
 	}
+	first := publishFixtureDirectory(t, s, admin)
 	if _, e := s.Delete(ctx, admin, "teacher", "delete", c.ObjectState{Revision: 1, Reason: "private reason"}); e != nil {
 		t.Fatal(e)
 	}
@@ -194,7 +195,7 @@ func TestOutboxDiscoveryAndTimetablePayloads(t *testing.T) {
 		t.Fatal(e)
 	}
 	events, e := repo.PendingOutbox(ctx, 100, nil)
-	if e != nil || len(events) != 9 {
+	if e != nil || len(events) != 10 {
 		t.Fatal(len(events), e)
 	}
 	discovery, timetables, tombstones := 0, 0, 0
@@ -226,7 +227,7 @@ func TestOutboxDiscoveryAndTimetablePayloads(t *testing.T) {
 			}
 			if !*event.Data.Visible {
 				tombstones++
-				if *event.Data.Title != "" || event.Data.Revision != 2 {
+				if *event.Data.Title != "" || event.Data.Revision <= first.Version {
 					t.Fatal(event)
 				}
 			}
@@ -522,7 +523,7 @@ func TestBoundedPruningHostAllowlistAndOperationalMetrics(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	// Trigger 1 miss + 1 hit on default course query, then 4 more distinct queries to trigger eviction (cache capacity = 4).
+	// Trigger 1 miss + 1 hit on default course query, then exceed the 32-entry filtered cache and preserve the pinned entry.
 	student := c.Principal{Subject: "issuer:student"}
 	if _, err := s.ReadDirectory(ctx, student, c.DirectoryQuery{Filter: c.Filter{Kind: "course", Limit: 10}, Sort: "name"}); err != nil {
 		t.Fatal(err)
@@ -530,7 +531,7 @@ func TestBoundedPruningHostAllowlistAndOperationalMetrics(t *testing.T) {
 	if _, err := s.ReadDirectory(ctx, student, c.DirectoryQuery{Filter: c.Filter{Kind: "course", Limit: 10}, Sort: "name"}); err != nil {
 		t.Fatal(err)
 	}
-	for i := 1; i <= 4; i++ {
+	for i := 1; i <= 33; i++ {
 		if _, err := s.ReadDirectory(ctx, student, c.DirectoryQuery{Filter: c.Filter{Kind: "course", Query: fmt.Sprintf("q%d", i), Limit: 10}, Sort: "name"}); err != nil {
 			t.Fatal(err)
 		}
@@ -543,7 +544,7 @@ func TestBoundedPruningHostAllowlistAndOperationalMetrics(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if metrics.Cache.Misses != 5 || metrics.Cache.Hits != 1 || metrics.Cache.Evictions < 1 || metrics.Cache.Entries != 4 {
+	if metrics.Cache.Misses != 34 || metrics.Cache.Hits != 1 || metrics.Cache.Evictions < 1 || metrics.Cache.Entries != 33 {
 		t.Fatalf("unexpected cache metrics: %+v", metrics.Cache)
 	}
 	if metrics.PendingOutbox < 1 || len(metrics.Projections) != 1 {
