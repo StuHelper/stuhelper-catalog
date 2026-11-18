@@ -80,6 +80,7 @@ scenario_tests:
     - teacher_refresh_test.go#TestTeacherRefreshReadersDoNotWaitForWorkerPublication
     - teacher_refresh_test.go#TestTeacherUnmatchedEmptySnapshotIsIdempotent
     - teacher_refresh_test.go#TestTeacherRefreshUnmatchedPaginationPrivacyAndFailureRetention
+    - teacher_refresh_test.go#TestTeacherRefreshUnmatchedKeywordSearchLiteralAndCursorScope
   CAT-REFRESH-03:
     - teacher_refresh_test.go#TestTeacherRefreshAuditAtomicityAndHTTPBoundary
   CAT-OPTIONS-01:

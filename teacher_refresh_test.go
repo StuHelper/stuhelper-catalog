@@ -289,3 +289,86 @@ func TestTeacherRefreshAuditAtomicityAndHTTPBoundary(t *testing.T) {
 	request("GET", path, "", 200)
 	request("GET", "/api/v1/catalog/admin/schools/school/teacher-sites/unmatched?reason=unknown", "", 400)
 }
+
+func TestTeacherRefreshUnmatchedKeywordSearchLiteralAndCursorScope(t *testing.T) {
+	s, p, snapshot := refreshFixture(t)
+	ctx := context.Background()
+	unmatched := []c.UnmatchedTeacherSite{
+		{SiteID: "a", Name: "张三", Unit: "国际交叉科学研究院", Reason: "unit_mismatch", CandidateCount: 1},
+		{SiteID: "b", Name: "李四", Unit: "国家重点实验室_100%", Reason: "unit_mismatch", CandidateCount: 2},
+		{SiteID: "c", Name: "张伟", Unit: "计算机学院", Reason: "ambiguous_catalog", CandidateCount: 3},
+	}
+	requests, count := int64(5), int64(len(snapshot.Matches)+len(unmatched))
+	run, err := s.QueueTeacherRefresh(ctx, p, "school", "incremental", "manual", "search-seed")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := s.ClaimTeacherRefresh(ctx, p, "school"); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := s.CompleteTeacherRefresh(ctx, p, run.ID, c.TeacherRefreshCompletion{
+		Snapshot:  &snapshot,
+		Unmatched: unmatched,
+		Requests:  &requests,
+		SiteCount: &count,
+	}); err != nil {
+		t.Fatal(err)
+	}
+
+	// Search by surname matches 2 items while reason_counts still covers all 3 items.
+	byName, err := s.SearchUnmatchedTeacherSites(ctx, p, c.UnmatchedTeacherSiteQuery{
+		SchoolID: "school",
+		Query:    "张",
+		Limit:    1,
+	})
+	if err != nil || byName.Total != 2 || len(byName.Items) != 1 || byName.Next == "" || byName.ReasonCounts["unit_mismatch"] != 2 || byName.ReasonCounts["ambiguous_catalog"] != 1 {
+		t.Fatalf("search by name page 1: %+v %v", byName, err)
+	}
+	if _, err := s.SearchUnmatchedTeacherSites(ctx, p, c.UnmatchedTeacherSiteQuery{
+		SchoolID: "school",
+		Query:    "李",
+		After:    byName.Next,
+		Limit:    1,
+	}); !errors.Is(err, c.ErrInput) {
+		t.Fatalf("cursor must bind q, got %v", err)
+	}
+	byNameTail, err := s.SearchUnmatchedTeacherSites(ctx, p, c.UnmatchedTeacherSiteQuery{
+		SchoolID: "school",
+		Query:    "张",
+		After:    byName.Next,
+		Limit:    1,
+	})
+	if err != nil || len(byNameTail.Items) != 1 || byNameTail.Next != "" {
+		t.Fatalf("search by name page 2: %+v %v", byNameTail, err)
+	}
+
+	// Wildcards % and _ are treated literally, not as SQL wildcards.
+	wildcard, err := s.SearchUnmatchedTeacherSites(ctx, p, c.UnmatchedTeacherSiteQuery{
+		SchoolID: "school",
+		Query:    "_100%",
+		Limit:    10,
+	})
+	if err != nil || wildcard.Total != 1 || len(wildcard.Items) != 1 || wildcard.Items[0].Name != "李四" {
+		t.Fatalf("literal wildcard search failed: %+v %v", wildcard, err)
+	}
+	onlyPercent, err := s.SearchUnmatchedTeacherSites(ctx, p, c.UnmatchedTeacherSiteQuery{
+		SchoolID: "school",
+		Query:    "99%",
+		Limit:    10,
+	})
+	if err != nil || onlyPercent.Total != 0 || len(onlyPercent.Items) != 0 {
+		t.Fatalf("percent matched as wildcard: %+v %v", onlyPercent, err)
+	}
+
+	// HTTP query parameter q combined with reason filter.
+	h := httpapi.Handler{Service: s, Authenticate: func(*http.Request) (c.Principal, error) { return p, nil }}.Routes()
+	w := httptest.NewRecorder()
+	h.ServeHTTP(w, httptest.NewRequest("GET", "/api/v1/catalog/admin/schools/school/teacher-sites/unmatched?reason=unit_mismatch&q=交叉科学", nil))
+	if w.Code != 200 {
+		t.Fatalf("http search failed: %d %s", w.Code, w.Body.String())
+	}
+	var httpPage c.UnmatchedTeacherSitePage
+	if err := json.Unmarshal(w.Body.Bytes(), &httpPage); err != nil || httpPage.Total != 1 || len(httpPage.Items) != 1 || httpPage.Items[0].Name != "张三" {
+		t.Fatalf("http search body: %+v %v", httpPage, err)
+	}
+}
