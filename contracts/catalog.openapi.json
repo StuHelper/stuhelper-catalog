@@ -2680,11 +2680,31 @@
           },
           {
             "in": "query",
+            "name": "department_ids",
+            "required": false,
+            "description": "逗号分隔的多个学院 ID（最多 20 项），不能与 department_id 同时传入。",
+            "schema": {
+              "type": "string",
+              "maxLength": 2580
+            }
+          },
+          {
+            "in": "query",
             "name": "category_id",
             "required": false,
             "schema": {
               "type": "string",
               "maxLength": 128
+            }
+          },
+          {
+            "in": "query",
+            "name": "category_ids",
+            "required": false,
+            "description": "逗号分隔的多个课程类别 ID（最多 20 项，仅 kind=course），不能与 category_id 同时传入。",
+            "schema": {
+              "type": "string",
+              "maxLength": 2580
             }
           },
           {
@@ -2703,6 +2723,28 @@
             "schema": {
               "type": "string",
               "maxLength": 128
+            }
+          },
+          {
+            "in": "query",
+            "name": "credits_min",
+            "required": false,
+            "description": "课程最低学分（含，0 至 100，仅 kind=course）；未知学分课程不匹配学分区间筛选。",
+            "schema": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 100
+            }
+          },
+          {
+            "in": "query",
+            "name": "credits_max",
+            "required": false,
+            "description": "课程最高学分（含，0 至 100，仅 kind=course）；未知学分课程不匹配学分区间筛选。",
+            "schema": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 100
             }
           },
           {
@@ -4687,6 +4729,12 @@
               "$ref": "#/components/schemas/DirectoryFacet"
             }
           },
+          "nature_facets": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DirectoryFacet"
+            }
+          },
           "generated_at": {
             "type": "string",
             "format": "date-time"
@@ -4694,7 +4742,7 @@
           "facet_total": {
             "type": "integer",
             "minimum": 0,
-            "description": "Distinct objects after all filters except category_id, for the All category badge."
+            "description": "Distinct objects after all filters except category_id / category_ids, for the All category badge."
           }
         },
         "required": [
@@ -4703,6 +4751,7 @@
           "total",
           "category_facets",
           "department_facets",
+          "nature_facets",
           "generated_at",
           "facet_total"
         ]

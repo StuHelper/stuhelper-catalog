@@ -22,6 +22,7 @@ type directoryCandidate struct {
 	Name        string   `json:"name"`
 	Departments []string `json:"departments"`
 	Categories  []string `json:"categories"`
+	Natures     []string `json:"natures"`
 }
 type directorySelection struct {
 	NatureFacets     []c.DirectoryFacet   `json:"nature_facets"`
@@ -161,28 +162,35 @@ func (t *transaction) directorySelection(q c.DirectoryQuery) (*directorySelectio
 	} else if err := t.tx.QueryRowContext(t.ctx, `SELECT revision FROM catalog.directory_revision WHERE singleton`).Scan(&revision); err != nil {
 		return nil, safe(err)
 	}
-	input, err := json.Marshal([]any{q.Kind, q.SchoolID, q.Query, q.DepartmentID, q.CategoryID, q.NatureID, q.TeacherID, t.requireTeacherDirectory, t.projectionRead})
+	input, err := json.Marshal([]any{q.Kind, q.SchoolID, q.Query, q.DepartmentID, q.DepartmentIDs, q.CategoryID, q.CategoryIDs, q.NatureID, q.TeacherID, q.CreditsMin, q.CreditsMax, t.requireTeacherDirectory, t.projectionRead})
 	if err != nil {
 		return nil, c.ErrInput
 	}
 	hash := sha256.Sum256(input)
 	key := hex.EncodeToString(hash[:])
-	unfiltered := q.Query == "" && q.DepartmentID == "" && q.CategoryID == "" && q.NatureID == "" && q.TeacherID == ""
+	unfiltered := q.Query == "" && q.DepartmentID == "" && len(q.DepartmentIDs) == 0 && q.CategoryID == "" && len(q.CategoryIDs) == 0 && q.NatureID == "" && q.TeacherID == "" && q.CreditsMin == nil && q.CreditsMax == nil
 	return t.directoryData.get(t.ctx, key, revision, unfiltered, func() (*directorySelection, int, error) {
+		var raw []byte
 		query, args, err := directorySelectionQuery(q)
 		if t.projectionRead {
 			query, args, err = projectedSelectionQuery(q, revision)
 			if unfiltered {
-				query = `SELECT data FROM catalog.projection_selections WHERE version=$1 AND kind=$2`
-				args = []any{revision, q.Kind}
+				// Older publications stored candidates without their nature memberships.
+				// Recompute them from the same immutable version on the first cache miss.
+				err = t.tx.QueryRowContext(t.ctx, `SELECT CASE WHEN jsonb_array_length(data->'candidates')=0
+ OR (data->'candidates'->0) ? 'natures' THEN data END FROM catalog.projection_selections WHERE version=$1 AND kind=$2`, revision, q.Kind).Scan(&raw)
+				if err != nil {
+					return nil, 0, safe(err)
+				}
 			}
 		}
 		if err != nil {
 			return nil, 0, err
 		}
-		var raw []byte
-		if err = t.tx.QueryRowContext(t.ctx, query, append([]any{pgx.QueryExecModeExec}, args...)...).Scan(&raw); err != nil {
-			return nil, 0, safe(err)
+		if raw == nil {
+			if err = t.tx.QueryRowContext(t.ctx, query, append([]any{pgx.QueryExecModeExec}, args...)...).Scan(&raw); err != nil {
+				return nil, 0, safe(err)
+			}
 		}
 		if len(raw) > 32<<20 {
 			return nil, 0, c.ErrUnavailable

@@ -202,6 +202,7 @@ scenario_tests:
   CAT-UI-01:
     - ui_backend_test.go#TestUIDirectoryFacetsSortingVisibilityAndPagination
     - ui_backend_test.go#TestUIDirectorySameClassFacetCounts
+    - ui_backend_test.go#TestUIDirectoryNatureFacetsMultiSelectAndCreditsRange
   CAT-UI-02:
     - ui_backend_test.go#TestUIRecentCoursesOwnerRetentionConcurrencyAndClear
     - ui_backend_test.go#TestUIOverviewHTTPRejectsUnownedAndUnavailableSources

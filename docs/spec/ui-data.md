@@ -8,11 +8,11 @@ updated: 2026-11-18
 
 ## 范围与接口
 
-GET /api/v1/catalog/directory 提供课程和教师目录、分页、类别数量与学院分组。kind 必填，sort 为 hot、recommend、reviews 或 name，limit 为 1 至 100。查询和筛选沿用目录术语。
+GET /api/v1/catalog/directory 提供课程和教师目录、分页、类别数量、学院分组与课程性质分面。kind 必填，sort 为 hot、recommend、reviews 或 name，limit 为 1 至 100。支持 department_ids、category_ids 多选与 credits_min、credits_max 学分区间筛选。
 
-课程行批量带出对象、当前筛选命中的学院和类别、可见评价数、五维档位、推荐等级及热度。课程可能属于多个开课学院或类别，每个分面内部按课程去重。
+课程行批量带出对象、当前筛选命中的学院和类别、可见评价数、五维档位、推荐等级及热度。课程可能属于多个开课学院、类别或性质，每个分面内部按课程去重。未知学分课程不匹配学分区间筛选。
 
-total 是当前筛选的目录对象数。facet_total 与 category_facets 排除 category_id 自身条件，其他条件保持生效。department_facets 保留全部当前筛选。每个分面返回对象数及可见评价合计。
+total 是当前筛选的目录对象数。facet_total 与 category_facets 排除 category_id 和 category_ids 自身条件，其他条件保持生效。department_facets 与 nature_facets 保留全部当前筛选。每个分面返回对象数及可见评价合计。
 
 课程目录按规范课程去重。教师目录按教师汇总，合授评价可能计入多位教师。同一对象可属于多个分面，分面数量不能直接相加。类别成员与目录分类一起缓存，review_count 每次使用当前评价聚合。
 
