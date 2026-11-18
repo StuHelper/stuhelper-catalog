@@ -1,6 +1,7 @@
 package catalog_test
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
@@ -8,24 +9,41 @@ import (
 	a "github.com/StuHelper/stuhelper-catalog/auditquery"
 	"github.com/StuHelper/stuhelper-catalog/postgres"
 	"github.com/jackc/pgx/v5/stdlib"
-	"reflect"
 	"strings"
 	"testing"
 	"time"
 )
 
+func publishFixtureDirectory(t *testing.T, s *c.Service, p c.Principal) c.ProjectionReport {
+	t.Helper()
+	ctx := context.Background()
+	if err := s.SaveTermOrders(ctx, p, "school", []c.TermOrder{{ID: "term1", Year: 2023, Season: "autumn"}}); err != nil {
+		t.Fatal(err)
+	}
+	report, err := s.RebuildDirectory(ctx, p, "school", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return report
+}
+
 func TestDiscoveryEventsRollbackMergeDeletionAndCurrent(t *testing.T) {
 	s, p, in := fixture(t)
 	ctx := context.Background()
 	repo := s.Repo.(*postgres.Repository)
-	in.Objects = append(in.Objects, c.Object{ID: "course-other", Kind: "course", SchoolID: "school", Name: "Other"})
+	in.Objects = append(in.Objects,
+		c.Object{ID: "course-other", Kind: "course", SchoolID: "school", Name: "Other"},
+		c.Object{ID: "offering-other", Kind: "term_course", SchoolID: "school", Name: "Other offering", CourseID: "course-other", TermID: "term1"},
+	)
 	if _, e := s.Import(ctx, p, "seed", in); e != nil {
 		t.Fatal(e)
 	}
 	var count int
-	if e := repo.DB.QueryRow(`SELECT count(*) FROM catalog.outbox WHERE data->>'type'='catalog.discovery.v1'`).Scan(&count); e != nil || count != 5 {
+	if e := repo.DB.QueryRow(`SELECT count(*) FROM catalog.outbox WHERE data->>'type'='catalog.discovery.v1'`).Scan(&count); e != nil || count != 0 {
 		t.Fatal(count, e)
 	}
+	first := publishFixtureDirectory(t, s, p)
+	repo.RequireDirectoryProjection = true
 	if _, e := s.Import(ctx, p, "seed", in); e != nil {
 		t.Fatal(e)
 	}
@@ -43,7 +61,7 @@ func TestDiscoveryEventsRollbackMergeDeletionAndCurrent(t *testing.T) {
 		t.Fatal(e)
 	}
 	merge.PreviewToken = preview.PreviewToken
-	obj, e = s.Merge(ctx, p, "course-other", "merge", merge)
+	_, e = s.Merge(ctx, p, "course-other", "merge", merge)
 	if e != nil {
 		t.Fatal(e)
 	}
@@ -51,7 +69,7 @@ func TestDiscoveryEventsRollbackMergeDeletionAndCurrent(t *testing.T) {
 		t.Fatal(e)
 	}
 	current, e := s.DiscoveryCurrent(ctx, c.Principal{Subject: "issuer:student"}, []string{"course", "course-other", "teacher", "teacher2", "missing"})
-	if e != nil || len(current) != 2 || current[0].Target.ID != "course" || current[0].Revision != obj.Revision {
+	if e != nil || len(current) != 2 || current[0].Target.ID != "course" || current[0].Revision <= first.Version {
 		t.Fatal(current, e)
 	}
 	s.ReadAccess = &readAccess{revoked: true}
@@ -72,45 +90,46 @@ func TestDiscoveryEventsRollbackMergeDeletionAndCurrent(t *testing.T) {
 	}
 	for _, d := range page.Items {
 		if d.Target.ID == "course-other" || d.Target.ID == "teacher" {
-			if d.Visible || d.Revision != 2 || d.Title != "" {
+			if d.Visible || d.Revision <= first.Version || d.Title != "" {
 				t.Fatal(d)
 			}
 		}
 	}
-	// Every event carries only the discovery schema fields, and its data equals history.
-	rows, e := repo.DB.Query(`SELECT o.data,h.data FROM catalog.outbox o JOIN catalog.discovery_history h ON h.id=o.data->>'subject' AND h.revision=(o.data->'data'->>'revision')::bigint WHERE o.data->>'type'='catalog.discovery.v1'`)
+	// The latest event for each published ID carries exactly the snapshot
+	// document, including tombstones. Check the whole set to catch extra IDs.
+	rows, e := repo.DB.Query(`SELECT DISTINCT ON ((data->>'subject') COLLATE "C") data FROM catalog.outbox
+ WHERE data->>'type'='catalog.discovery.v1' ORDER BY (data->>'subject') COLLATE "C", (data->'data'->>'revision')::bigint DESC`)
 	if e != nil {
 		t.Fatal(e)
 	}
+	defer rows.Close()
+	seen := 0
 	for rows.Next() {
-		var raw, history []byte
-		if e = rows.Scan(&raw, &history); e != nil {
+		var raw []byte
+		if e = rows.Scan(&raw); e != nil {
 			t.Fatal(e)
 		}
 		var event map[string]json.RawMessage
-		if e = json.Unmarshal(raw, &event); e != nil {
-			t.Fatal(e)
-		}
-		if len(event) != 7 {
-			t.Fatal(string(raw))
+		if e = json.Unmarshal(raw, &event); e != nil || len(event) != 7 {
+			t.Fatal(string(raw), e)
 		}
 		var d c.DiscoveryDocument
-		if e = json.Unmarshal(event["data"], &d); e != nil {
-			t.Fatal(e)
+		if e = json.Unmarshal(event["data"], &d); e != nil || seen >= len(page.Items) {
+			t.Fatal(d, e)
 		}
-		var stored c.DiscoveryDocument
-		_ = json.Unmarshal(history, &stored)
-		if !reflect.DeepEqual(d, stored) || d.Target.Source != "catalog" || d.Ratings != [5]int{} || d.At.IsZero() {
-			t.Fatal(d, stored)
+		eventDoc, _ := json.Marshal(d)
+		snapshotDoc, _ := json.Marshal(page.Items[seen])
+		if !bytes.Equal(eventDoc, snapshotDoc) || d.Target.Source != "catalog" || d.Ratings != [5]int{} || d.At.IsZero() {
+			t.Fatal(string(eventDoc), string(snapshotDoc))
 		}
 		if strings.Contains(string(raw), "issuer:") || strings.Contains(string(raw), "private") {
 			t.Fatal(string(raw))
 		}
+		seen++
 	}
-	if e = rows.Err(); e != nil {
-		t.Fatal(e)
+	if e = rows.Err(); e != nil || seen != len(page.Items) {
+		t.Fatal(seen, e)
 	}
-	rows.Close()
 	// A late validation failure rolls back previously saved objects and their events.
 	failed := in
 	failed.Revision = 2
@@ -223,6 +242,9 @@ func TestDiscoveryNotificationAndAuditAtomicity(t *testing.T) {
 		if _, e := s.Import(ctx, p, "seed-"+school, in); e != nil {
 			t.Fatal(e)
 		}
+	}
+	if _, e := s.RebuildDirectory(ctx, p, "school", nil); e != nil {
+		t.Fatal(e)
 	}
 	visible, e := s.DiscoveryCurrent(ctx, c.Principal{Subject: "issuer:student"}, []string{"school-teacher", "elsewhere-teacher"})
 	if e != nil || len(visible) != 1 || visible[0].Target.ID != "school-teacher" {
