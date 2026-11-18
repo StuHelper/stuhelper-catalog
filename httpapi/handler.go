@@ -75,10 +75,34 @@ func (h Handler) Routes() http.Handler {
 				return
 			}
 		}
-		ctx, cancel := context.WithTimeout(r.Context(), 15*time.Second)
+		timeout := 15 * time.Second
+		if maintenanceWriteRoute(r) {
+			timeout = 2 * time.Minute
+		}
+		ctx, cancel := context.WithTimeout(r.Context(), timeout)
 		defer cancel()
 		m.ServeHTTP(w, r.WithContext(ctx))
 	})
+}
+func maintenanceWriteRoute(r *http.Request) bool {
+	path := r.URL.Path
+	switch r.Method {
+	case http.MethodPatch:
+		return strings.HasPrefix(path, "/api/v1/catalog/objects/")
+	case http.MethodPost:
+		if strings.HasSuffix(path, "-preview") || strings.HasSuffix(path, "/preview") {
+			return false
+		}
+		return path == "/api/v1/catalog/imports" ||
+			path == "/api/v1/catalog/imports/confirm" ||
+			path == "/api/v1/catalog/course-identities" ||
+			strings.HasPrefix(path, "/api/v1/catalog/objects/") ||
+			strings.HasPrefix(path, "/api/v1/catalog/admin/schools/")
+	case http.MethodPut:
+		return strings.HasPrefix(path, "/api/v1/catalog/admin/schools/")
+	default:
+		return false
+	}
 }
 func respond(w http.ResponseWriter, v any, e error) {
 	w.Header().Set("Content-Type", "application/json")

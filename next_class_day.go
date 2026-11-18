@@ -37,7 +37,13 @@ func (s *Service) authorizeOwnSummary(ctx context.Context, p Principal, school s
 	if s.OwnSummaryAccess == nil {
 		return ErrUnavailable
 	}
-	return s.OwnSummaryAccess.AuthorizeOwnSummary(ctx, p, school)
+	callCtx, cancel := context.WithTimeout(ctx, 2*time.Second)
+	defer cancel()
+	err := s.OwnSummaryAccess.AuthorizeOwnSummary(callCtx, p, school)
+	if err != nil && ctx.Err() == nil && errors.Is(err, context.DeadlineExceeded) {
+		return ErrUnavailable
+	}
+	return err
 }
 
 func timetableBounds(tt *Timetable) (start, end time.Time, ok bool) {
