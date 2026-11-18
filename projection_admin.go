@@ -216,9 +216,9 @@ func (s *Service) ExecuteDirectoryRebuild(ctx context.Context, p Principal, scho
 	if err != nil || claimed == nil {
 		return claimed, err
 	}
-	buildCtx, cancel := context.WithTimeout(ctx, 10*time.Minute)
+	buildCtx, cancel := context.WithTimeout(ctx, min(10*time.Minute, claimed.DeadlineAt.Sub(s.now())))
 	defer cancel()
-	var report ProjectionReport
+	var finished ProjectionRebuildRun
 	buildErr := s.Repo.Transaction(buildCtx, func(t Transaction) error {
 		port, ok := t.(DirectoryProjectionTransaction)
 		if !ok {
@@ -232,7 +232,7 @@ func (s *Service) ExecuteDirectoryRebuild(ctx context.Context, p Principal, scho
 		if err != nil {
 			return err
 		}
-		report, err = port.RebuildDirectory(school, claimed.Policy, s.now())
+		report, err := port.RebuildDirectory(school, claimed.Policy, s.now())
 		if err != nil {
 			return err
 		}
@@ -241,7 +241,7 @@ func (s *Service) ExecuteDirectoryRebuild(ctx context.Context, p Principal, scho
 				return err
 			}
 		}
-		return t.Event(Event{
+		if err := t.Event(Event{
 			ID:       "directory-projection:" + digest([]any{school, report.Version}),
 			Subject:  "school/" + school,
 			Type:     "catalog.directory.rebuilt.v1",
@@ -250,14 +250,17 @@ func (s *Service) ExecuteDirectoryRebuild(ctx context.Context, p Principal, scho
 			Result:   "success",
 			Revision: report.Version,
 			Time:     s.now(),
-		})
+		}); err != nil {
+			return err
+		}
+		finished, err = adminPort.FinishDirectoryRebuild(claimed.ID, &report.Version, "", p.Subject, s.now())
+		return err
 	})
-	var version *int64
-	failure := ""
 	if buildErr == nil {
-		v := report.Version
-		version = &v
-	} else if errors.Is(buildErr, context.DeadlineExceeded) {
+		return &finished, nil
+	}
+	failure := ""
+	if errors.Is(buildErr, context.DeadlineExceeded) {
 		failure = "build_timeout"
 	} else if errors.Is(buildErr, context.Canceled) {
 		failure = "build_canceled"
@@ -268,14 +271,13 @@ func (s *Service) ExecuteDirectoryRebuild(ctx context.Context, p Principal, scho
 	}
 	finishCtx, finishCancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer finishCancel()
-	var finished ProjectionRebuildRun
 	if err := s.Repo.Transaction(finishCtx, func(t Transaction) error {
 		port, err := projectionAdminPort(t)
 		if err != nil {
 			return err
 		}
 		var e error
-		finished, e = port.FinishDirectoryRebuild(claimed.ID, version, failure, p.Subject, s.now())
+		finished, e = port.FinishDirectoryRebuild(claimed.ID, nil, failure, p.Subject, s.now())
 		return e
 	}); err != nil {
 		return nil, err

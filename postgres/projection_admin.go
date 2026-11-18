@@ -1,6 +1,7 @@
 package postgres
 
 import (
+	"context"
 	"database/sql"
 	"errors"
 	"time"
@@ -199,8 +200,14 @@ func (t *transaction) FinishDirectoryRebuild(id string, version *int64, failureR
 	if err != nil {
 		return c.ProjectionRebuildRun{}, err
 	}
+	if run.Status == "timed_out" && failureReason != "" {
+		return run, nil
+	}
 	if run.Status != "running" {
 		return c.ProjectionRebuildRun{}, c.ErrConflict
+	}
+	if failureReason == "" && !now.Before(run.DeadlineAt) {
+		return c.ProjectionRebuildRun{}, context.DeadlineExceeded
 	}
 	run.FinishedAt = &now
 	if run.StartedAt != nil {

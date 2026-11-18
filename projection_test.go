@@ -10,6 +10,7 @@ import (
 	"slices"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -510,5 +511,58 @@ func TestAdminDirectoryProjectionHTTPResetFieldsAndDebouncedWorker(t *testing.T)
 	finalStatus, err := s.AdminDirectoryProjection(ctx, p, "school")
 	if err != nil || finalStatus.Published == nil || finalStatus.Published.Policy.CutoffYear != 2024 || finalStatus.LatestRun == nil || finalStatus.LatestRun.Status != "succeeded" {
 		t.Fatalf("unexpected final status: %+v %v", finalStatus, err)
+	}
+}
+
+func TestExpiredProjectionWorkerCannotPublishOverReplacement(t *testing.T) {
+	s, p, db, before := projectionFixture(t)
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	var now atomic.Int64
+	now.Store(time.Now().Unix())
+	s.Clock = func() time.Time { return time.Unix(now.Load(), 0).UTC() }
+	run, err := s.QueueDirectoryRebuild(ctx, p, "school", "old-worker", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	writer, err := db.BeginTx(ctx, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer writer.Rollback()
+	var pid int
+	if err := writer.QueryRowContext(ctx, "SELECT pg_backend_pid() FROM pg_advisory_xact_lock(hashtextextended('catalog:projection-source:school',0))").Scan(&pid); err != nil {
+		t.Fatal(err)
+	}
+	done := make(chan error, 1)
+	go func() {
+		_, err := s.ExecuteDirectoryRebuild(ctx, p, "school")
+		done <- err
+	}()
+	for {
+		var blocked bool
+		err := db.QueryRowContext(ctx, "SELECT EXISTS(SELECT 1 FROM pg_stat_activity WHERE datname=current_database() AND $1=ANY(pg_blocking_pids(pid)))", pid).Scan(&blocked)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if blocked {
+			break
+		}
+		time.Sleep(5 * time.Millisecond)
+	}
+	now.Store(run.DeadlineAt.Unix() + 1)
+	replacement, err := s.QueueDirectoryRebuild(ctx, p, "school", "replacement", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := writer.Commit(); err != nil {
+		t.Fatal(err)
+	}
+	if err := <-done; err == nil {
+		t.Fatal("expired worker succeeded")
+	}
+	status, err := s.AdminDirectoryProjection(ctx, p, "school")
+	if err != nil || status.Published == nil || status.Published.Version != before.Version || status.LatestRun == nil || status.LatestRun.ID != replacement.ID || status.LatestRun.Status != "queued" {
+		t.Fatal("expired worker changed the published version or replacement", status, err)
 	}
 }
