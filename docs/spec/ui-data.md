@@ -1,18 +1,18 @@
 ---
 type: spec
 status: Accepted
-updated: 2026-11-15
+updated: 2026-11-18
 ---
 
 # 原型目录与本人课程摘要
 
 ## 范围与接口
 
-GET /api/v1/catalog/directory 提供课程和教师目录、分页、类别数量与学院分组。kind 必填，sort 为 hot、recommend、reviews 或 name，limit 为 1 至 100。查询和筛选沿用目录术语。
+GET /api/v1/catalog/directory 提供课程和教师目录、分页、类别数量、学院分组与课程性质分面。kind 必填，sort 为 hot、recommend、reviews 或 name，limit 为 1 至 100。支持 department_ids、category_ids 多选与 credits_min、credits_max 学分区间筛选。
 
-课程行批量带出对象、当前筛选命中的学院和类别、可见评价数、五维档位、推荐等级及热度。课程可能属于多个开课学院或类别，每个分面内部按课程去重。
+课程行批量带出对象、当前筛选命中的学院和类别、可见评价数、五维档位、推荐等级及热度。课程可能属于多个开课学院、类别或性质，每个分面内部按课程去重。未知学分课程不匹配学分区间筛选。
 
-total 是当前筛选的目录对象数。facet_total 与 category_facets 排除 category_id 自身条件，其他条件保持生效。department_facets 保留全部当前筛选。每个分面返回对象数及可见评价合计。
+total 是当前筛选的目录对象数。facet_total 与 category_facets 排除 category_id 和 category_ids 自身条件，其他条件保持生效。department_facets 与 nature_facets 保留全部当前筛选。每个分面返回对象数及可见评价合计。
 
 课程目录按规范课程去重。教师目录按教师汇总，合授评价可能计入多位教师。同一对象可属于多个分面，分面数量不能直接相加。类别成员与目录分类一起缓存，review_count 每次使用当前评价聚合。
 
@@ -36,7 +36,7 @@ reviews 和 favorites 由 backend 注入 DirectoryMetricProvider。catalog 不�
 
 目录成员、分类关系、非零筛选项和默认候选集合持久保存在 catalog 投影表。全量规则、学期排序和失败保留见[可展示目录投影](directory-projection.md)。普通读取不再展开源目录的大表关联。
 
-进程内只缓存已发布投影的读取结果，最多四项、估算 64 MiB，五分钟到期。每次请求读取当前投影版本，只有同版本结果可复用。成员、引用展开和分面共享一个数据库快照。
+进程内缓存已发布投影的读取结果，无筛选默认候选按版本常驻缓存，筛选查询使用最多三十二项 LRU 缓存池，总空间上限 64 MiB，五分钟到期。每次请求读取当前投影版本，只有同版本结果可复用。成员、引用展开和分面共享一个数据库快照。
 
 评分、收藏、浏览和当前内容权限每次重新读取。目录缓存不保存个人数据、评分或授权决定。相同条件的并发读取合并，等待支持取消。默认候选直接加载预计算结果，带筛选的请求在投影关系上计算分面。
 
@@ -50,11 +50,11 @@ GET /api/v1/catalog/me/recent-courses 读取本人最近课程。PUT /api/v1/cat
 
 记录在九十天边界立即不可读。backend 每五秒调用有界清理，每批最多一千条。写入时同时删除本人的过期记录及超出二十门的记录。清空只要求本人登录，资格撤销后仍可清空。
 
-读取与写入都重新检查课程准入和当前状态。不在当前投影的课程不计入最近访问列表，也不产生新的浏览热度。返回的资源数量由 resources 批量统计，缺少或故障时 resources_state 为 unavailable，resource_count 为 null。空列表与依赖不可用分别表示。
+读取与写入都重新检查课程准入和当前状态。不在当前投影的课程不计入最近访问列表，也不产生新的浏览热度。返回的资源数量由 resources 批量统计（设置一秒独立子超时），缺少、故障或子超时时 resources_state 为 unavailable，resource_count 为 null 并保留已记录课程。空列表与依赖不可用分别表示。
 
 ## 下一上课日与待评价候选
 
-GET /api/v1/catalog/me/next-class-day 使用现有本人选课来源和课表，返回下一次仍未结束的课程所在日期、时区、节次、教师与地点。没有后续课程为 empty，缺少展示授权、来源授权或完整排课为 unavailable，不使用演示课表。
+GET /api/v1/catalog/me/next-class-day 使用现有本人选课来源和课表，单次请求只刷新一次来源并限定当前学校，返回下一次仍未结束的课程所在日期、时区、节次、教师与地点。已结束历史学期不因缺少作息配置阻断计算，当前学期存在有效排课时兼容无固定排课课程，任课教师保留未公开标记姓名并省略简介。没有后续课程为 empty，全部缺少排课或缺少授权为 unavailable。
 
 OwnSummaryAccess 单独授权显示本人选课摘要。未装配时，下一上课日与待评价候选均不可用。当前 backend 保持该端口关闭，评课资格来源本身不授予展示权限。
 

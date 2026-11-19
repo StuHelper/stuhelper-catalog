@@ -10,7 +10,7 @@
 
 普通目录展示课程、教师、学期及分类，保留课程与教师的双向关联。学期开课、教学班、授课关系和排课仅供本人接口、管理端及受信模块使用。列表请求受限类型返回 403，详情、摘要和解析返回 404，批量 lookup 将受限 ID 列入 missing_ids。
 
-公开课程与教师摘要返回学校、院系、分类、课程数与教师数，省略 offering_count。管理端摘要保留开课数。目录及筛选数量仍按可见课程或教师去重，规则见[可展示目录投影](docs/spec/directory-projection.md)。人工更正支持清除未知字段，并使用修订号拒绝并发覆盖。
+公开课程与教师摘要返回学校、院系、分类、课程数与教师数，省略 offering_count。管理端摘要保留开课数。目录及筛选数量仍按可见课程或教师去重，规则见[可展示目录投影](docs/spec/directory-projection.md)。维护写入口先校验维护权限与学校范围，人工更正支持清除未知字段，拒绝修改已合并来源别名或写入与对象类型无关的字段，并使用修订号拒绝并发覆盖。
 
 学校检索支持完整标识码、五位代码、名称与目录别名，规则见[学校匹配](docs/spec/audit-discovery.md#学校代码与名称匹配)。
 
@@ -35,7 +35,7 @@ bash scripts/check-with-postgres.sh
 
 当前首次建库迁移已验证。存量生产迁移、学校持续同步、运行库备份和恢复演练仍待实际环境验收。outbox 与业务同事务持久化并通知 OutboxChannel（catalog_outbox）。relay 通过 PendingOutbox 读取待发送事件，并传入需要排除的退避或人工处理主题。消费者持久提交后调用 ConfirmOutbox。通用跨服务 relay 由 backend 装配。
 
-业务规则见 [课程与评价规格](https://github.com/StuHelper/stuhelper-next/blob/develop/docs/spec/academic-content.md)。
+业务规则见 [课程与评价规格](https://github.com/StuHelper/stuhelper/blob/develop/docs/spec/academic-content.md)。
 
 本人名称查询 /catalog/me/references 只返回本人当前或历史选课记录关联对象的 ID、类型和名称，单次最多 100 个 ID。任一 ID 不属于本人记录时拒绝整次请求。名称接口不返回简介、评分、统计或排课详情，公共目录仍检查内容准入。
 

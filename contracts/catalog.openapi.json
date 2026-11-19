@@ -197,7 +197,8 @@
             "schema": {
               "type": "boolean",
               "default": false
-            }
+            },
+            "description": "普通目录不返回停用对象，传 true 返回 400 invalid_input；管理端使用 /catalog/admin/objects。"
           }
         ],
         "description": "读取当前学校的可展示目录投影，当前内容权限在每次请求时检查。课程须在服务端截止学期（默认 2023 秋）及以后有开课记录。kind=term 仅返回截止学期及以后且有可见课程的学期，按 term_order_key 降序、ID 升序分页；前端保持返回顺序。其他类型按 ID 升序。 体育项目作为 kind=course 条目返回 course_type=sports_project。按项目 course_id 查询教师，筛选计数按项目去重。 普通目录仅提供学校、院系、分类、性质、学期、课程和教师；term_course、class、assignment、schedule 仅供管理端或受信服务使用。 kind=teacher&course_id=…、kind=course&teacher_id=… 和 kind=term 保持可用；授课事实只用于计算关联，不返回教学班。"
@@ -937,7 +938,7 @@
           {
             "name": "Idempotency-Key",
             "in": "header",
-            "required": true,
+            "required": false,
             "schema": {
               "type": "string"
             }
@@ -1259,7 +1260,7 @@
           {
             "name": "Idempotency-Key",
             "in": "header",
-            "required": true,
+            "required": false,
             "schema": {
               "type": "string"
             }
@@ -2679,11 +2680,31 @@
           },
           {
             "in": "query",
+            "name": "department_ids",
+            "required": false,
+            "description": "逗号分隔的多个学院 ID（最多 20 项），不能与 department_id 同时传入。",
+            "schema": {
+              "type": "string",
+              "maxLength": 2580
+            }
+          },
+          {
+            "in": "query",
             "name": "category_id",
             "required": false,
             "schema": {
               "type": "string",
               "maxLength": 128
+            }
+          },
+          {
+            "in": "query",
+            "name": "category_ids",
+            "required": false,
+            "description": "逗号分隔的多个课程类别 ID（最多 20 项，仅 kind=course），不能与 category_id 同时传入。",
+            "schema": {
+              "type": "string",
+              "maxLength": 2580
             }
           },
           {
@@ -2702,6 +2723,28 @@
             "schema": {
               "type": "string",
               "maxLength": 128
+            }
+          },
+          {
+            "in": "query",
+            "name": "credits_min",
+            "required": false,
+            "description": "课程最低学分（含，0 至 100，仅 kind=course）；未知学分课程不匹配学分区间筛选。",
+            "schema": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 100
+            }
+          },
+          {
+            "in": "query",
+            "name": "credits_max",
+            "required": false,
+            "description": "课程最高学分（含，0 至 100，仅 kind=course）；未知学分课程不匹配学分区间筛选。",
+            "schema": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 100
             }
           },
           {
@@ -3435,6 +3478,16 @@
             }
           },
           {
+            "name": "q",
+            "in": "query",
+            "required": false,
+            "description": "对未匹配记录的公开姓名与单位做不区分大小写的字面子串筛选，百分号与下划线不作为通配符。",
+            "schema": {
+              "type": "string",
+              "maxLength": 200
+            }
+          },
+          {
             "name": "limit",
             "in": "query",
             "required": false,
@@ -3455,7 +3508,7 @@
             }
           }
         ],
-        "description": "Requires catalog.teacher-sites.read and current school management scope. Every view is audited. Current complete unmatched snapshot only; failed refresh preserves it. Returns public website name/unit, fixed reason and count of same-name catalog candidates, never candidate IDs, staff numbers or contacts. reason_counts covers the entire snapshot; total respects reason. Cursor binds school, reason and snapshot revision; a changed snapshot returns 409. Sorted by site_id.",
+        "description": "Requires catalog.teacher-sites.read and current school management scope. Every view is audited. Current complete unmatched snapshot only; failed refresh preserves it. Returns public website name/unit, fixed reason and count of same-name catalog candidates, never candidate IDs, staff numbers or contacts. reason_counts covers the entire snapshot; total respects reason and q. Cursor binds school, reason, q and snapshot revision; a changed snapshot returns 409. Sorted by site_id.",
         "responses": {
           "200": {
             "description": "Success",
@@ -3634,6 +3687,204 @@
         ],
         "description": "原子应用来源已确认的一对一课程换号关系。要求学校导入权限，两端均已按相同来源修订导入，拒绝缺失、跨学校、链、循环和冲突映射。保留源记录及所有新写入，旧 ID 解析到新课。幂等回执持续保留；同键不同请求返回 409。"
       }
+    },
+    "/api/v1/catalog/admin/schools/{school_id}/directory-projection": {
+      "get": {
+        "operationId": "getDirectoryProjectionStatus",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "school_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            }
+          }
+        ],
+        "description": "读取指定学校当前已发布的目录投影报告、最近失败原因、最近异步重建任务及源目录修订差。要求 catalog.maintain 与学校维护范围，每次查看记录审计。",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DirectoryProjectionStatus"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not permitted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Required dependency unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "operationId": "startDirectoryProjectionRebuild",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "school_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DirectoryProjectionRebuildInput"
+              }
+            }
+          }
+        },
+        "description": "提交目录投影异步重建持久任务，可选更新学校 DirectoryPolicy。要求 catalog.maintain 与学校维护范围。同键同请求重放原任务，已有排队或运行任务或存在未完成来源导入时返回 409。",
+        "responses": {
+          "202": {
+            "description": "Accepted; asynchronous durable rebuild job.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProjectionRebuildRun"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not permitted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict with existing rebuild or incomplete source import",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Required dependency unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -3654,6 +3905,168 @@
         },
         "required": [
           "code"
+        ]
+      },
+      "NullableObject": {
+        "type": "object",
+        "nullable": true,
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "school",
+              "department",
+              "category",
+              "nature",
+              "term",
+              "course",
+              "teacher",
+              "term_course",
+              "class",
+              "assignment",
+              "schedule"
+            ]
+          },
+          "school_id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "code": {
+            "type": "string"
+          },
+          "department_id": {
+            "type": "string"
+          },
+          "category_id": {
+            "type": "string"
+          },
+          "nature_id": {
+            "type": "string"
+          },
+          "course_id": {
+            "type": "string"
+          },
+          "term_id": {
+            "type": "string"
+          },
+          "term_course_id": {
+            "type": "string"
+          },
+          "class_id": {
+            "type": "string"
+          },
+          "teacher_id": {
+            "type": "string"
+          },
+          "credits": {
+            "type": "number",
+            "nullable": true
+          },
+          "biography": {
+            "type": "string"
+          },
+          "location": {
+            "type": "string"
+          },
+          "time_text": {
+            "type": "string"
+          },
+          "aliases": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "保留的通用别名字段。学院曾用名继续使用；课程英文名、曾用课程号和曾用名分别使用独立字段。"
+          },
+          "revision": {
+            "type": "integer"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "inactive": {
+            "type": "boolean"
+          },
+          "canonical_id": {
+            "type": "string"
+          },
+          "schedule_time": {
+            "$ref": "#/components/schemas/ScheduleTime"
+          },
+          "term_order_key": {
+            "type": "integer",
+            "readOnly": true,
+            "description": "结构化时间排序键，与截止学期使用同一规则：自然年 × 10 + 季节（春 1、夏 2、秋 3），例如 20243 表示 2024 秋。不是学年起始年份。学期选项按键倒序、ID 升序；公开目录投影不返回无法解析的学期。"
+          },
+          "latest_term_id": {
+            "type": "string",
+            "readOnly": true,
+            "description": "课程在当前目录投影中最近一次开课的学期 ID，按结构化学期排序键确定。"
+          },
+          "course_type": {
+            "type": "string",
+            "enum": [
+              "sports_project"
+            ],
+            "readOnly": true,
+            "description": "体育项目使用 kind=course 和稳定的项目 ID。普通课程省略此字段。项目详情、教师、学期及评价复用课程接口；编号体育课程原 ID 返回不存在。"
+          },
+          "sports_project_code": {
+            "type": "string",
+            "maxLength": 64,
+            "description": "仅教学班导入使用的来源体育项目代码。由学校适配器读取明确字段，目录规则通过配置将代码映射到项目；不从场地或教师推断。"
+          },
+          "english_name": {
+            "type": "string",
+            "maxLength": 256,
+            "description": "课程英文名。独立于 aliases；缺失时省略。"
+          },
+          "former_codes": {
+            "type": "array",
+            "maxItems": 50,
+            "uniqueItems": true,
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            },
+            "description": "已确认属于同一课程的曾用课程号，可搜索。"
+          },
+          "former_names": {
+            "type": "array",
+            "maxItems": 50,
+            "uniqueItems": true,
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
+            },
+            "description": "课程曾用名，可搜索并在详情显示；不包含英文名或曾用课程号。"
+          },
+          "hours": {
+            "type": "number",
+            "nullable": true,
+            "minimum": 0,
+            "maximum": 10000,
+            "description": "当前课程主档的学时；未知时省略或为 null，0 表示已确认的零学时。"
+          }
+        },
+        "required": [
+          "id",
+          "kind",
+          "school_id",
+          "name",
+          "credits",
+          "aliases",
+          "revision",
+          "updated_at"
         ]
       },
       "Object": {
@@ -4001,6 +4414,24 @@
           "clear_credits": {
             "type": "boolean",
             "description": "Explicitly restore unknown credits; cannot be combined with credits."
+          },
+          "reset_fields": {
+            "type": "array",
+            "maxItems": 7,
+            "uniqueItems": true,
+            "items": {
+              "type": "string",
+              "enum": [
+                "name",
+                "biography",
+                "department_id",
+                "category_id",
+                "nature_id",
+                "code",
+                "credits"
+              ]
+            },
+            "description": "移除对应字段的人工覆盖并恢复教务导入原值，不能与同一字段的新覆盖同时传入。"
           }
         },
         "required": [
@@ -4040,99 +4471,7 @@
             "$ref": "#/components/schemas/Object"
           },
           "department": {
-            "type": "object",
-            "additionalProperties": false,
-            "properties": {
-              "id": {
-                "type": "string"
-              },
-              "kind": {
-                "type": "string",
-                "enum": [
-                  "school",
-                  "department",
-                  "category",
-                  "nature",
-                  "term",
-                  "course",
-                  "teacher",
-                  "term_course",
-                  "class",
-                  "assignment",
-                  "schedule"
-                ]
-              },
-              "school_id": {
-                "type": "string"
-              },
-              "name": {
-                "type": "string"
-              },
-              "code": {
-                "type": "string"
-              },
-              "department_id": {
-                "type": "string"
-              },
-              "category_id": {
-                "type": "string"
-              },
-              "nature_id": {
-                "type": "string"
-              },
-              "course_id": {
-                "type": "string"
-              },
-              "term_id": {
-                "type": "string"
-              },
-              "term_course_id": {
-                "type": "string"
-              },
-              "class_id": {
-                "type": "string"
-              },
-              "teacher_id": {
-                "type": "string"
-              },
-              "credits": {
-                "type": "number",
-                "nullable": true
-              },
-              "biography": {
-                "type": "string"
-              },
-              "location": {
-                "type": "string"
-              },
-              "time_text": {
-                "type": "string"
-              },
-              "aliases": {
-                "type": "array",
-                "items": {
-                  "type": "string"
-                }
-              },
-              "revision": {
-                "type": "integer"
-              },
-              "updated_at": {
-                "type": "string",
-                "format": "date-time"
-              }
-            },
-            "required": [
-              "id",
-              "kind",
-              "school_id",
-              "name",
-              "credits",
-              "aliases",
-              "revision",
-              "updated_at"
-            ],
-            "nullable": true
+            "$ref": "#/components/schemas/NullableObject"
           },
           "categories": {
             "type": "array",
@@ -4144,6 +4483,22 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/Object"
+            }
+          },
+          "courses": {
+            "type": "array",
+            "maxItems": 20,
+            "description": "当摘要对象为教师时，返回当前目录关联的前 20 门可展示课程精简引用（按 ID 升序）；对象为课程时为空数组。",
+            "items": {
+              "$ref": "#/components/schemas/Reference"
+            }
+          },
+          "teachers": {
+            "type": "array",
+            "maxItems": 20,
+            "description": "当摘要对象为课程时，返回当前目录关联的前 20 位可展示任课教师精简引用（按 ID 升序）；对象为教师时为空数组。",
+            "items": {
+              "$ref": "#/components/schemas/Reference"
             }
           },
           "course_count": {
@@ -4168,6 +4523,8 @@
           "department",
           "categories",
           "natures",
+          "courses",
+          "teachers",
           "course_count",
           "teacher_count",
           "offering_count"
@@ -4410,7 +4767,7 @@
           "weeks"
         ],
         "additionalProperties": false,
-        "description": "ISO weekday Monday=1. Explicit week set; odd/even weeks are expanded by importer. End period >= start. Missing structure means not provided. Recognized time_text grammar: 周一 第1-2节 第1-16周(单), with optional 单/双 suffix."
+        "description": "ISO weekday Monday=1. Explicit week set; odd/even weeks are expanded by importer. End period >= start. Missing structure means not provided. Recognized time_text grammar supports single or range periods (第5节, 第1-2节), single, range or ascending comma-separated week segments (第8周, 第1-8,10-16周, 第1,3,5,7周), and optional halfwidth or fullwidth 单/双 suffix."
       },
       "Period": {
         "type": "object",
@@ -4686,6 +5043,12 @@
               "$ref": "#/components/schemas/DirectoryFacet"
             }
           },
+          "nature_facets": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DirectoryFacet"
+            }
+          },
           "generated_at": {
             "type": "string",
             "format": "date-time"
@@ -4693,7 +5056,7 @@
           "facet_total": {
             "type": "integer",
             "minimum": 0,
-            "description": "Distinct objects after all filters except category_id, for the All category badge."
+            "description": "Distinct objects after all filters except category_id / category_ids, for the All category badge."
           }
         },
         "required": [
@@ -4702,6 +5065,7 @@
           "total",
           "category_facets",
           "department_facets",
+          "nature_facets",
           "generated_at",
           "facet_total"
         ]
@@ -4976,6 +5340,143 @@
           }
         }
       },
+      "NullableTeacherMarkCounts": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "teaching",
+          "official",
+          "both",
+          "eligible"
+        ],
+        "properties": {
+          "teaching": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "official": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "both": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "eligible": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          }
+        },
+        "nullable": true
+      },
+      "NullableTeacherRefreshRun": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "school_id",
+          "mode",
+          "trigger",
+          "status",
+          "requested_at",
+          "started_at",
+          "finished_at",
+          "deadline_at",
+          "duration_ms",
+          "requests",
+          "site_count",
+          "counts",
+          "failure_reason"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "school_id": {
+            "type": "string"
+          },
+          "mode": {
+            "type": "string",
+            "enum": [
+              "incremental",
+              "full"
+            ]
+          },
+          "trigger": {
+            "type": "string",
+            "enum": [
+              "manual",
+              "scheduled"
+            ]
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "queued",
+              "running",
+              "succeeded",
+              "failed",
+              "timed_out"
+            ]
+          },
+          "requested_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "started_at": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "finished_at": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "deadline_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "duration_ms": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "requests": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0,
+            "nullable": true
+          },
+          "site_count": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0,
+            "nullable": true
+          },
+          "counts": {
+            "$ref": "#/components/schemas/NullableTeacherMarkCounts"
+          },
+          "failure_reason": {
+            "type": "string",
+            "enum": [
+              "",
+              "crawl_failed",
+              "request_failed",
+              "invalid_snapshot",
+              "import_conflict",
+              "dependency_unavailable",
+              "worker_interrupted",
+              "timeout"
+            ]
+          }
+        },
+        "nullable": true
+      },
       "TeacherRefreshRun": {
         "type": "object",
         "additionalProperties": false,
@@ -5062,8 +5563,7 @@
             "nullable": true
           },
           "counts": {
-            "$ref": "#/components/schemas/TeacherMarkCounts",
-            "nullable": true
+            "$ref": "#/components/schemas/NullableTeacherMarkCounts"
           },
           "failure_reason": {
             "type": "string",
@@ -5089,8 +5589,7 @@
         ],
         "properties": {
           "latest": {
-            "$ref": "#/components/schemas/TeacherRefreshRun",
-            "nullable": true
+            "$ref": "#/components/schemas/NullableTeacherRefreshRun"
           },
           "counts": {
             "$ref": "#/components/schemas/TeacherMarkCounts"
@@ -5193,99 +5692,7 @@
             "$ref": "#/components/schemas/Object"
           },
           "department": {
-            "type": "object",
-            "additionalProperties": false,
-            "properties": {
-              "id": {
-                "type": "string"
-              },
-              "kind": {
-                "type": "string",
-                "enum": [
-                  "school",
-                  "department",
-                  "category",
-                  "nature",
-                  "term",
-                  "course",
-                  "teacher",
-                  "term_course",
-                  "class",
-                  "assignment",
-                  "schedule"
-                ]
-              },
-              "school_id": {
-                "type": "string"
-              },
-              "name": {
-                "type": "string"
-              },
-              "code": {
-                "type": "string"
-              },
-              "department_id": {
-                "type": "string"
-              },
-              "category_id": {
-                "type": "string"
-              },
-              "nature_id": {
-                "type": "string"
-              },
-              "course_id": {
-                "type": "string"
-              },
-              "term_id": {
-                "type": "string"
-              },
-              "term_course_id": {
-                "type": "string"
-              },
-              "class_id": {
-                "type": "string"
-              },
-              "teacher_id": {
-                "type": "string"
-              },
-              "credits": {
-                "type": "number",
-                "nullable": true
-              },
-              "biography": {
-                "type": "string"
-              },
-              "location": {
-                "type": "string"
-              },
-              "time_text": {
-                "type": "string"
-              },
-              "aliases": {
-                "type": "array",
-                "items": {
-                  "type": "string"
-                }
-              },
-              "revision": {
-                "type": "integer"
-              },
-              "updated_at": {
-                "type": "string",
-                "format": "date-time"
-              }
-            },
-            "required": [
-              "id",
-              "kind",
-              "school_id",
-              "name",
-              "credits",
-              "aliases",
-              "revision",
-              "updated_at"
-            ],
-            "nullable": true
+            "$ref": "#/components/schemas/NullableObject"
           },
           "categories": {
             "type": "array",
@@ -5297,6 +5704,22 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/Object"
+            }
+          },
+          "courses": {
+            "type": "array",
+            "maxItems": 20,
+            "description": "当摘要对象为教师时，返回当前目录关联的前 20 门可展示课程精简引用（按 ID 升序）；对象为课程时为空数组。",
+            "items": {
+              "$ref": "#/components/schemas/Reference"
+            }
+          },
+          "teachers": {
+            "type": "array",
+            "maxItems": 20,
+            "description": "当摘要对象为课程时，返回当前目录关联的前 20 位可展示任课教师精简引用（按 ID 升序）；对象为教师时为空数组。",
+            "items": {
+              "$ref": "#/components/schemas/Reference"
             }
           },
           "course_count": {
@@ -5316,6 +5739,8 @@
           "department",
           "categories",
           "natures",
+          "courses",
+          "teachers",
           "course_count",
           "teacher_count"
         ],
@@ -5396,6 +5821,218 @@
           "redirects": {
             "type": "integer"
           }
+        }
+      },
+      "CategoryAlias": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["from", "to"],
+        "properties": {
+          "from": { "type": "string", "minLength": 1, "maxLength": 256 },
+          "to": { "type": "string", "minLength": 1, "maxLength": 256 }
+        }
+      },
+      "SportsProject": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["key", "name", "source_codes"],
+        "properties": {
+          "key": { "type": "string", "minLength": 1, "maxLength": 128 },
+          "name": { "type": "string", "minLength": 1, "maxLength": 256 },
+          "source_codes": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 256,
+            "items": { "type": "string", "minLength": 1, "maxLength": 64 }
+          }
+        }
+      },
+      "SportsDirectoryPolicy": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["category_name", "projects"],
+        "properties": {
+          "category_name": { "type": "string", "minLength": 1, "maxLength": 256 },
+          "course_names": {
+            "type": "array",
+            "maxItems": 256,
+            "items": { "type": "string", "minLength": 1, "maxLength": 256 }
+          },
+          "projects": {
+            "type": "array",
+            "maxItems": 256,
+            "items": { "$ref": "#/components/schemas/SportsProject" }
+          }
+        }
+      },
+      "DirectoryPolicy": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["cutoff_year", "cutoff_season"],
+        "properties": {
+          "cutoff_year": { "type": "integer", "minimum": 1900, "maximum": 2200 },
+          "cutoff_season": { "type": "string", "enum": ["spring", "summer", "autumn"] },
+          "excluded_course_names": {
+            "type": "array",
+            "maxItems": 256,
+            "items": { "type": "string", "minLength": 1, "maxLength": 256 }
+          },
+          "excluded_category_names": {
+            "type": "array",
+            "maxItems": 256,
+            "items": { "type": "string", "minLength": 1, "maxLength": 256 }
+          },
+          "category_aliases": {
+            "type": "array",
+            "maxItems": 256,
+            "items": { "$ref": "#/components/schemas/CategoryAlias" }
+          },
+          "sports": {
+            "allOf": [{ "$ref": "#/components/schemas/SportsDirectoryPolicy" }],
+            "nullable": true
+          }
+        }
+      },
+      "ProjectionReport": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "version",
+          "policy",
+          "objects",
+          "courses",
+          "teachers",
+          "variants",
+          "relations",
+          "teaching_history",
+          "summaries",
+          "documents",
+          "aliases",
+          "selections",
+          "rows",
+          "options",
+          "invalid_terms",
+          "bytes",
+          "storage_bytes",
+          "duration_ms",
+          "marks",
+          "built_at"
+        ],
+        "properties": {
+          "excluded_courses": { "type": "integer", "format": "int64", "minimum": 0 },
+          "sports_projects": { "type": "integer", "format": "int64", "minimum": 0 },
+          "sports_source_courses": { "type": "integer", "format": "int64", "minimum": 0 },
+          "sports_classes": { "type": "integer", "format": "int64", "minimum": 0 },
+          "unresolved_sports_classes": { "type": "integer", "format": "int64", "minimum": 0 },
+          "sports_unresolved_reasons": {
+            "type": "object",
+            "additionalProperties": { "type": "integer", "format": "int64", "minimum": 0 }
+          },
+          "version": { "type": "integer", "format": "int64" },
+          "policy": { "$ref": "#/components/schemas/DirectoryPolicy" },
+          "objects": { "type": "integer", "format": "int64", "minimum": 0 },
+          "courses": { "type": "integer", "format": "int64", "minimum": 0 },
+          "teachers": { "type": "integer", "format": "int64", "minimum": 0 },
+          "variants": { "type": "integer", "format": "int64", "minimum": 0 },
+          "relations": { "type": "integer", "format": "int64", "minimum": 0 },
+          "teaching_history": { "type": "integer", "format": "int64", "minimum": 0 },
+          "summaries": { "type": "integer", "format": "int64", "minimum": 0 },
+          "documents": { "type": "integer", "format": "int64", "minimum": 0 },
+          "aliases": { "type": "integer", "format": "int64", "minimum": 0 },
+          "selections": { "type": "integer", "format": "int64", "minimum": 0 },
+          "rows": { "type": "integer", "format": "int64", "minimum": 0 },
+          "options": { "type": "integer", "format": "int64", "minimum": 0 },
+          "invalid_terms": { "type": "integer", "format": "int64", "minimum": 0 },
+          "bytes": { "type": "integer", "format": "int64", "minimum": 0 },
+          "storage_bytes": { "type": "integer", "format": "int64", "minimum": 0 },
+          "duration_ms": { "type": "integer", "format": "int64", "minimum": 0 },
+          "marks": { "$ref": "#/components/schemas/TeacherMarkCounts" },
+          "built_at": { "type": "string", "format": "date-time" }
+        }
+      },
+      "ProjectionFailure": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["reason", "failed_at"],
+        "properties": {
+          "reason": { "type": "string" },
+          "failed_at": { "type": "string", "format": "date-time" }
+        }
+      },
+      "ProjectionRebuildRun": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "school_id",
+          "status",
+          "requested_at",
+          "started_at",
+          "finished_at",
+          "deadline_at",
+          "duration_ms",
+          "version",
+          "failure_reason"
+        ],
+        "properties": {
+          "id": { "type": "string" },
+          "school_id": { "type": "string" },
+          "status": {
+            "type": "string",
+            "enum": ["queued", "running", "succeeded", "failed", "timed_out"]
+          },
+          "policy": {
+            "allOf": [{ "$ref": "#/components/schemas/DirectoryPolicy" }],
+            "nullable": true
+          },
+          "requested_at": { "type": "string", "format": "date-time" },
+          "started_at": { "type": "string", "format": "date-time", "nullable": true },
+          "finished_at": { "type": "string", "format": "date-time", "nullable": true },
+          "deadline_at": { "type": "string", "format": "date-time" },
+          "duration_ms": { "type": "integer", "format": "int64", "minimum": 0 },
+          "version": { "type": "integer", "format": "int64", "nullable": true },
+          "failure_reason": { "type": "string" }
+        }
+      },
+      "DirectoryProjectionRebuildInput": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "policy": {
+            "allOf": [{ "$ref": "#/components/schemas/DirectoryPolicy" }],
+            "nullable": true
+          }
+        }
+      },
+      "DirectoryProjectionStatus": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "published",
+          "latest_failure",
+          "latest_run",
+          "source_revision",
+          "published_revision",
+          "source_revision_lag",
+          "pending_rebuild"
+        ],
+        "properties": {
+          "published": {
+            "allOf": [{ "$ref": "#/components/schemas/ProjectionReport" }],
+            "nullable": true
+          },
+          "latest_failure": {
+            "allOf": [{ "$ref": "#/components/schemas/ProjectionFailure" }],
+            "nullable": true
+          },
+          "latest_run": {
+            "allOf": [{ "$ref": "#/components/schemas/ProjectionRebuildRun" }],
+            "nullable": true
+          },
+          "source_revision": { "type": "integer", "format": "int64", "minimum": 0 },
+          "published_revision": { "type": "integer", "format": "int64", "minimum": 0 },
+          "source_revision_lag": { "type": "integer", "format": "int64", "minimum": 0 },
+          "pending_rebuild": { "type": "boolean" }
         }
       }
     }

@@ -4,10 +4,12 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 
 	c "github.com/StuHelper/stuhelper-catalog"
 	"github.com/StuHelper/stuhelper-catalog/httpapi"
@@ -127,4 +129,93 @@ func TestSummaryAndEnrollmentKeepMergedRelations(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
+}
+
+func TestSummaryRelatedCourseAndTeacherPreview(t *testing.T) {
+	repo, _ := database(t)
+	repo.RequireTeacherDirectory = true
+	s := &c.Service{Repo: repo, ReadAccess: &readAccess{}, DirectoryMetrics: uiMetrics{}}
+	p := c.Principal{Subject: "issuer:student", Schools: []string{"school"}, CanImport: true, CanMaintain: true}
+	ctx := context.Background()
+
+	objects := []c.Object{
+		{ID: "school", Kind: "school", SchoolID: "school", Name: "School", Aliases: []string{}},
+		{ID: "dept", Kind: "department", SchoolID: "school", Name: "Department", Aliases: []string{}},
+		{ID: "term", Kind: "term", SchoolID: "school", Name: "2024 Autumn", Aliases: []string{}},
+		{ID: "course-a", Kind: "course", SchoolID: "school", Name: "Algorithms", DepartmentID: "dept", Aliases: []string{}},
+		{ID: "course-b", Kind: "course", SchoolID: "school", Name: "Systems", DepartmentID: "dept", Aliases: []string{}},
+		{ID: "offering-a", Kind: "term_course", SchoolID: "school", Name: "Algorithms Offering", CourseID: "course-a", TermID: "term", Aliases: []string{}},
+		{ID: "offering-b", Kind: "term_course", SchoolID: "school", Name: "Systems Offering", CourseID: "course-b", TermID: "term", Aliases: []string{}},
+		{ID: "class-a", Kind: "class", SchoolID: "school", Name: "Class A", TermCourseID: "offering-a", Aliases: []string{}},
+		{ID: "class-b", Kind: "class", SchoolID: "school", Name: "Class B", TermCourseID: "offering-b", Aliases: []string{}},
+		{ID: "teacher-official", Kind: "teacher", SchoolID: "school", Name: "Official Only", DepartmentID: "dept", Aliases: []string{}},
+		{ID: "teacher-hidden", Kind: "teacher", SchoolID: "school", Name: "Hidden Unmarked", DepartmentID: "dept", Aliases: []string{}},
+	}
+	for i := 1; i <= 25; i++ {
+		tid := fmt.Sprintf("teacher-%02d", i)
+		objects = append(objects,
+			c.Object{ID: tid, Kind: "teacher", SchoolID: "school", Name: fmt.Sprintf("Teacher %02d", i), DepartmentID: "dept", Aliases: []string{}},
+			c.Object{ID: fmt.Sprintf("assign-a-%02d", i), Kind: "assignment", SchoolID: "school", Name: "Assign", ClassID: "class-a", TeacherID: tid, Aliases: []string{}},
+		)
+	}
+	objects = append(objects, c.Object{ID: "assign-b-01", Kind: "assignment", SchoolID: "school", Name: "Assign B", ClassID: "class-b", TeacherID: "teacher-01", Aliases: []string{}})
+
+	if _, err := s.Import(ctx, p, "seed", c.Import{SchoolID: "school", SourceID: "source", Revision: 1, FetchedAt: time.Now(), Objects: objects}); err != nil {
+		t.Fatal(err)
+	}
+	if err := s.SaveTermOrders(ctx, p, "school", []c.TermOrder{{ID: "term", Year: 2024, Season: "autumn"}}); err != nil {
+		t.Fatal(err)
+	}
+	candidates, err := s.TeacherCandidates(ctx, p, "school", "", 500)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := s.ImportTeacherSites(ctx, p, c.TeacherSiteSnapshot{
+		CandidateFingerprint: c.TeacherCandidateFingerprint(candidates),
+		SchoolID:             "school", SourceID: "sites", Revision: 1, ObservedAt: time.Now().UTC(),
+		Matches: []c.TeacherSiteMatch{{TeacherID: "teacher-official", Name: "Official Only", DepartmentID: "dept", URL: "https://shi.buaa.edu.cn/official/zh_CN/index.htm"}},
+	}); err != nil {
+		t.Fatal(err)
+	}
+
+	checkMode := func(mode string) {
+		t.Helper()
+		courseSum, err := s.ReadSummary(ctx, p, "course-a")
+		if err != nil {
+			t.Fatalf("%s course ReadSummary: %v", mode, err)
+		}
+		if courseSum.TeacherCount != 25 || len(courseSum.Teachers) != 20 || len(courseSum.Courses) != 0 {
+			t.Fatalf("%s course preview mismatch: count=%d teachers=%d courses=%d", mode, courseSum.TeacherCount, len(courseSum.Teachers), len(courseSum.Courses))
+		}
+		if courseSum.Teachers[0].ID != "teacher-01" || courseSum.Teachers[0].Kind != "teacher" || courseSum.Teachers[0].Name != "Teacher 01" || courseSum.Teachers[19].ID != "teacher-20" {
+			t.Fatalf("%s course teachers order/fields: first=%+v last=%+v", mode, courseSum.Teachers[0], courseSum.Teachers[19])
+		}
+
+		teacherSum, err := s.ReadSummary(ctx, p, "teacher-01")
+		if err != nil {
+			t.Fatalf("%s teacher ReadSummary: %v", mode, err)
+		}
+		if teacherSum.CourseCount != 2 || len(teacherSum.Courses) != 2 || len(teacherSum.Teachers) != 0 {
+			t.Fatalf("%s teacher preview mismatch: count=%d courses=%+v teachers=%+v", mode, teacherSum.CourseCount, teacherSum.Courses, teacherSum.Teachers)
+		}
+		if teacherSum.Courses[0].ID != "course-a" || teacherSum.Courses[0].Name != "Algorithms" || teacherSum.Courses[1].ID != "course-b" || teacherSum.Courses[1].Name != "Systems" {
+			t.Fatalf("%s teacher courses order/fields: %+v", mode, teacherSum.Courses)
+		}
+
+		officialSum, err := s.ReadSummary(ctx, p, "teacher-official")
+		if err != nil {
+			t.Fatalf("%s official teacher ReadSummary: %v", mode, err)
+		}
+		if officialSum.CourseCount != 0 || officialSum.Courses == nil || len(officialSum.Courses) != 0 || officialSum.Teachers == nil || len(officialSum.Teachers) != 0 {
+			t.Fatalf("%s official-only teacher should have empty non-nil slices: %+v", mode, officialSum)
+		}
+	}
+
+	checkMode("source")
+
+	repo.RequireDirectoryProjection = true
+	if _, err := s.RebuildDirectory(ctx, p, "school", nil); err != nil {
+		t.Fatal(err)
+	}
+	checkMode("projection")
 }

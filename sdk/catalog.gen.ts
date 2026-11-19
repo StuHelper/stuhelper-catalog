@@ -468,7 +468,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** @description Requires catalog.teacher-sites.read and current school management scope. Every view is audited. Current complete unmatched snapshot only; failed refresh preserves it. Returns public website name/unit, fixed reason and count of same-name catalog candidates, never candidate IDs, staff numbers or contacts. reason_counts covers the entire snapshot; total respects reason. Cursor binds school, reason and snapshot revision; a changed snapshot returns 409. Sorted by site_id. */
+        /** @description Requires catalog.teacher-sites.read and current school management scope. Every view is audited. Current complete unmatched snapshot only; failed refresh preserves it. Returns public website name/unit, fixed reason and count of same-name catalog candidates, never candidate IDs, staff numbers or contacts. reason_counts covers the entire snapshot; total respects reason and q. Cursor binds school, reason, q and snapshot revision; a changed snapshot returns 409. Sorted by site_id. */
         get: operations["listUnmatchedTeacherSites"];
         put?: never;
         post?: never;
@@ -495,6 +495,24 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/catalog/admin/schools/{school_id}/directory-projection": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description 读取指定学校当前已发布的目录投影报告、最近失败原因、最近异步重建任务及源目录修订差。要求 catalog.maintain 与学校维护范围，每次查看记录审计。 */
+        get: operations["getDirectoryProjectionStatus"];
+        put?: never;
+        /** @description 提交目录投影异步重建持久任务，可选更新学校 DirectoryPolicy。要求 catalog.maintain 与学校维护范围。同键同请求重放原任务，已有排队或运行任务或存在未完成来源导入时返回 409。 */
+        post: operations["startDirectoryProjectionRebuild"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -502,6 +520,53 @@ export interface components {
         Error: {
             code: string;
         };
+        NullableObject: {
+            id: string;
+            /** @enum {string} */
+            kind: "school" | "department" | "category" | "nature" | "term" | "course" | "teacher" | "term_course" | "class" | "assignment" | "schedule";
+            school_id: string;
+            name: string;
+            code?: string;
+            department_id?: string;
+            category_id?: string;
+            nature_id?: string;
+            course_id?: string;
+            term_id?: string;
+            term_course_id?: string;
+            class_id?: string;
+            teacher_id?: string;
+            credits: number | null;
+            biography?: string;
+            location?: string;
+            time_text?: string;
+            /** @description 保留的通用别名字段。学院曾用名继续使用；课程英文名、曾用课程号和曾用名分别使用独立字段。 */
+            aliases: string[];
+            revision: number;
+            /** Format: date-time */
+            updated_at: string;
+            inactive?: boolean;
+            canonical_id?: string;
+            schedule_time?: components["schemas"]["ScheduleTime"];
+            /** @description 结构化时间排序键，与截止学期使用同一规则：自然年 × 10 + 季节（春 1、夏 2、秋 3），例如 20243 表示 2024 秋。不是学年起始年份。学期选项按键倒序、ID 升序；公开目录投影不返回无法解析的学期。 */
+            readonly term_order_key?: number;
+            /** @description 课程在当前目录投影中最近一次开课的学期 ID，按结构化学期排序键确定。 */
+            readonly latest_term_id?: string;
+            /**
+             * @description 体育项目使用 kind=course 和稳定的项目 ID。普通课程省略此字段。项目详情、教师、学期及评价复用课程接口；编号体育课程原 ID 返回不存在。
+             * @enum {string}
+             */
+            readonly course_type?: "sports_project";
+            /** @description 仅教学班导入使用的来源体育项目代码。由学校适配器读取明确字段，目录规则通过配置将代码映射到项目；不从场地或教师推断。 */
+            sports_project_code?: string;
+            /** @description 课程英文名。独立于 aliases；缺失时省略。 */
+            english_name?: string;
+            /** @description 已确认属于同一课程的曾用课程号，可搜索。 */
+            former_codes?: string[];
+            /** @description 课程曾用名，可搜索并在详情显示；不包含英文名或曾用课程号。 */
+            former_names?: string[];
+            /** @description 当前课程主档的学时；未知时省略或为 null，0 表示已确认的零学时。 */
+            hours?: number | null;
+        } | null;
         Object: {
             id: string;
             /** @enum {string} */
@@ -598,6 +663,8 @@ export interface components {
             credits?: number;
             /** @description Explicitly restore unknown credits; cannot be combined with credits. */
             clear_credits?: boolean;
+            /** @description 移除对应字段的人工覆盖并恢复教务导入原值，不能与同一字段的新覆盖同时传入。 */
+            reset_fields?: ("name" | "biography" | "department_id" | "category_id" | "nature_id" | "code" | "credits")[];
         };
         Lookup: {
             items: components["schemas"]["Object"][];
@@ -607,32 +674,13 @@ export interface components {
         Summary: {
             object: components["schemas"]["Object"];
             school: components["schemas"]["Object"];
-            department: {
-                id: string;
-                /** @enum {string} */
-                kind: "school" | "department" | "category" | "nature" | "term" | "course" | "teacher" | "term_course" | "class" | "assignment" | "schedule";
-                school_id: string;
-                name: string;
-                code?: string;
-                department_id?: string;
-                category_id?: string;
-                nature_id?: string;
-                course_id?: string;
-                term_id?: string;
-                term_course_id?: string;
-                class_id?: string;
-                teacher_id?: string;
-                credits: number | null;
-                biography?: string;
-                location?: string;
-                time_text?: string;
-                aliases: string[];
-                revision: number;
-                /** Format: date-time */
-                updated_at: string;
-            } | null;
+            department: components["schemas"]["NullableObject"];
             categories: components["schemas"]["Object"][];
             natures: components["schemas"]["Object"][];
+            /** @description 当摘要对象为教师时，返回当前目录关联的前 20 门可展示课程精简引用（按 ID 升序）；对象为课程时为空数组。 */
+            courses: components["schemas"]["Reference"][];
+            /** @description 当摘要对象为课程时，返回当前目录关联的前 20 位可展示任课教师精简引用（按 ID 升序）；对象为教师时为空数组。 */
+            teachers: components["schemas"]["Reference"][];
             /** @description 当前目录投影中关联的可展示课程数量。 */
             course_count: number;
             /** @description 当前目录投影中关联的可展示教师数量。 */
@@ -686,7 +734,7 @@ export interface components {
             items: components["schemas"]["Reference"][];
             missing_ids: string[];
         };
-        /** @description ISO weekday Monday=1. Explicit week set; odd/even weeks are expanded by importer. End period >= start. Missing structure means not provided. Recognized time_text grammar: 周一 第1-2节 第1-16周(单), with optional 单/双 suffix. */
+        /** @description ISO weekday Monday=1. Explicit week set; odd/even weeks are expanded by importer. End period >= start. Missing structure means not provided. Recognized time_text grammar supports single or range periods (第5节, 第1-2节), single, range or ascending comma-separated week segments (第8周, 第1-8,10-16周, 第1,3,5,7周), and optional halfwidth or fullwidth 单/双 suffix. */
         ScheduleTime: {
             weekday: number;
             start_period: number;
@@ -755,9 +803,10 @@ export interface components {
             total: number;
             category_facets: components["schemas"]["DirectoryFacet"][];
             department_facets: components["schemas"]["DirectoryFacet"][];
+            nature_facets: components["schemas"]["DirectoryFacet"][];
             /** Format: date-time */
             generated_at: string;
-            /** @description Distinct objects after all filters except category_id, for the All category badge. */
+            /** @description Distinct objects after all filters except category_id / category_ids, for the All category badge. */
             facet_total: number;
         };
         RecentCourse: {
@@ -827,6 +876,43 @@ export interface components {
             /** @enum {string} */
             mode: "incremental" | "full";
         };
+        NullableTeacherMarkCounts: {
+            /** Format: int64 */
+            teaching: number;
+            /** Format: int64 */
+            official: number;
+            /** Format: int64 */
+            both: number;
+            /** Format: int64 */
+            eligible: number;
+        } | null;
+        NullableTeacherRefreshRun: {
+            id: string;
+            school_id: string;
+            /** @enum {string} */
+            mode: "incremental" | "full";
+            /** @enum {string} */
+            trigger: "manual" | "scheduled";
+            /** @enum {string} */
+            status: "queued" | "running" | "succeeded" | "failed" | "timed_out";
+            /** Format: date-time */
+            requested_at: string;
+            /** Format: date-time */
+            started_at: string | null;
+            /** Format: date-time */
+            finished_at: string | null;
+            /** Format: date-time */
+            deadline_at: string;
+            /** Format: int64 */
+            duration_ms: number;
+            /** Format: int64 */
+            requests: number | null;
+            /** Format: int64 */
+            site_count: number | null;
+            counts: components["schemas"]["NullableTeacherMarkCounts"];
+            /** @enum {string} */
+            failure_reason: "" | "crawl_failed" | "request_failed" | "invalid_snapshot" | "import_conflict" | "dependency_unavailable" | "worker_interrupted" | "timeout";
+        } | null;
         TeacherRefreshRun: {
             id: string;
             school_id: string;
@@ -850,12 +936,12 @@ export interface components {
             requests: number | null;
             /** Format: int64 */
             site_count: number | null;
-            counts: components["schemas"]["TeacherMarkCounts"];
+            counts: components["schemas"]["NullableTeacherMarkCounts"];
             /** @enum {string} */
             failure_reason: "" | "crawl_failed" | "request_failed" | "invalid_snapshot" | "import_conflict" | "dependency_unavailable" | "worker_interrupted" | "timeout";
         };
         TeacherRefreshStatus: {
-            latest: components["schemas"]["TeacherRefreshRun"];
+            latest: components["schemas"]["NullableTeacherRefreshRun"];
             counts: components["schemas"]["TeacherMarkCounts"];
         };
         UnmatchedTeacherSite: {
@@ -885,32 +971,13 @@ export interface components {
         PublicSummary: {
             object: components["schemas"]["Object"];
             school: components["schemas"]["Object"];
-            department: {
-                id: string;
-                /** @enum {string} */
-                kind: "school" | "department" | "category" | "nature" | "term" | "course" | "teacher" | "term_course" | "class" | "assignment" | "schedule";
-                school_id: string;
-                name: string;
-                code?: string;
-                department_id?: string;
-                category_id?: string;
-                nature_id?: string;
-                course_id?: string;
-                term_id?: string;
-                term_course_id?: string;
-                class_id?: string;
-                teacher_id?: string;
-                credits: number | null;
-                biography?: string;
-                location?: string;
-                time_text?: string;
-                aliases: string[];
-                revision: number;
-                /** Format: date-time */
-                updated_at: string;
-            } | null;
+            department: components["schemas"]["NullableObject"];
             categories: components["schemas"]["Object"][];
             natures: components["schemas"]["Object"][];
+            /** @description 当摘要对象为教师时，返回当前目录关联的前 20 门可展示课程精简引用（按 ID 升序）；对象为课程时为空数组。 */
+            courses: components["schemas"]["Reference"][];
+            /** @description 当摘要对象为课程时，返回当前目录关联的前 20 位可展示任课教师精简引用（按 ID 升序）；对象为教师时为空数组。 */
+            teachers: components["schemas"]["Reference"][];
             /** @description 当前目录投影中关联的可展示课程数量。 */
             course_count: number;
             /** @description 当前目录投影中关联的可展示教师数量。 */
@@ -933,6 +1000,122 @@ export interface components {
             id: string;
             mappings: number;
             redirects: number;
+        };
+        CategoryAlias: {
+            from: string;
+            to: string;
+        };
+        SportsProject: {
+            key: string;
+            name: string;
+            source_codes: string[];
+        };
+        SportsDirectoryPolicy: {
+            category_name: string;
+            course_names?: string[];
+            projects: components["schemas"]["SportsProject"][];
+        };
+        DirectoryPolicy: {
+            cutoff_year: number;
+            /** @enum {string} */
+            cutoff_season: "spring" | "summer" | "autumn";
+            excluded_course_names?: string[];
+            excluded_category_names?: string[];
+            category_aliases?: components["schemas"]["CategoryAlias"][];
+            sports?: components["schemas"]["SportsDirectoryPolicy"] | null;
+        };
+        ProjectionReport: {
+            /** Format: int64 */
+            excluded_courses?: number;
+            /** Format: int64 */
+            sports_projects?: number;
+            /** Format: int64 */
+            sports_source_courses?: number;
+            /** Format: int64 */
+            sports_classes?: number;
+            /** Format: int64 */
+            unresolved_sports_classes?: number;
+            sports_unresolved_reasons?: {
+                [key: string]: number;
+            };
+            /** Format: int64 */
+            version: number;
+            policy: components["schemas"]["DirectoryPolicy"];
+            /** Format: int64 */
+            objects: number;
+            /** Format: int64 */
+            courses: number;
+            /** Format: int64 */
+            teachers: number;
+            /** Format: int64 */
+            variants: number;
+            /** Format: int64 */
+            relations: number;
+            /** Format: int64 */
+            teaching_history: number;
+            /** Format: int64 */
+            summaries: number;
+            /** Format: int64 */
+            documents: number;
+            /** Format: int64 */
+            aliases: number;
+            /** Format: int64 */
+            selections: number;
+            /** Format: int64 */
+            rows: number;
+            /** Format: int64 */
+            options: number;
+            /** Format: int64 */
+            invalid_terms: number;
+            /** Format: int64 */
+            bytes: number;
+            /** Format: int64 */
+            storage_bytes: number;
+            /** Format: int64 */
+            duration_ms: number;
+            marks: components["schemas"]["TeacherMarkCounts"];
+            /** Format: date-time */
+            built_at: string;
+        };
+        ProjectionFailure: {
+            reason: string;
+            /** Format: date-time */
+            failed_at: string;
+        };
+        ProjectionRebuildRun: {
+            id: string;
+            school_id: string;
+            /** @enum {string} */
+            status: "queued" | "running" | "succeeded" | "failed" | "timed_out";
+            policy?: components["schemas"]["DirectoryPolicy"] | null;
+            /** Format: date-time */
+            requested_at: string;
+            /** Format: date-time */
+            started_at: string | null;
+            /** Format: date-time */
+            finished_at: string | null;
+            /** Format: date-time */
+            deadline_at: string;
+            /** Format: int64 */
+            duration_ms: number;
+            /** Format: int64 */
+            version: number | null;
+            failure_reason: string;
+        };
+        DirectoryProjectionRebuildInput: {
+            policy?: components["schemas"]["DirectoryPolicy"] | null;
+        };
+        DirectoryProjectionStatus: {
+            published: components["schemas"]["ProjectionReport"] | null;
+            latest_failure: components["schemas"]["ProjectionFailure"] | null;
+            latest_run: components["schemas"]["ProjectionRebuildRun"] | null;
+            /** Format: int64 */
+            source_revision: number;
+            /** Format: int64 */
+            published_revision: number;
+            /** Format: int64 */
+            source_revision_lag: number;
+            pending_rebuild: boolean;
         };
     };
     responses: never;
@@ -963,6 +1146,7 @@ export interface operations {
                 term_course_id?: string;
                 /** @description 普通目录禁止使用此教学班粒度筛选，返回 403 forbidden；管理端使用 /catalog/admin/objects。 */
                 class_id?: string;
+                /** @description 普通目录不返回停用对象，传 true 返回 400 invalid_input；管理端使用 /catalog/admin/objects。 */
                 include_inactive?: boolean;
             };
             header?: never;
@@ -1512,8 +1696,8 @@ export interface operations {
     previewMerge: {
         parameters: {
             query?: never;
-            header: {
-                "Idempotency-Key": string;
+            header?: {
+                "Idempotency-Key"?: string;
             };
             path: {
                 id: string;
@@ -1758,8 +1942,8 @@ export interface operations {
     previewImport: {
         parameters: {
             query?: never;
-            header: {
-                "Idempotency-Key": string;
+            header?: {
+                "Idempotency-Key"?: string;
             };
             path?: never;
             cookie?: never;
@@ -2795,9 +2979,17 @@ export interface operations {
                 school_id?: string;
                 q?: string;
                 department_id?: string;
+                /** @description 逗号分隔的多个学院 ID（最多 20 项），不能与 department_id 同时传入。 */
+                department_ids?: string;
                 category_id?: string;
+                /** @description 逗号分隔的多个课程类别 ID（最多 20 项，仅 kind=course），不能与 category_id 同时传入。 */
+                category_ids?: string;
                 nature_id?: string;
                 teacher_id?: string;
+                /** @description 课程最低学分（含，0 至 100，仅 kind=course）；未知学分课程不匹配学分区间筛选。 */
+                credits_min?: number;
+                /** @description 课程最高学分（含，0 至 100，仅 kind=course）；未知学分课程不匹配学分区间筛选。 */
+                credits_max?: number;
                 sort?: "hot" | "recommend" | "reviews" | "name";
                 after?: string;
                 limit?: number;
@@ -3410,6 +3602,8 @@ export interface operations {
         parameters: {
             query?: {
                 reason?: "catalog_name_absent" | "catalog_unit_missing" | "site_unit_missing" | "unit_mismatch" | "ambiguous_catalog" | "ambiguous_site";
+                /** @description 对未匹配记录的公开姓名与单位做不区分大小写的字面子串筛选，百分号与下划线不作为通配符。 */
+                q?: string;
                 limit?: number;
                 after?: string;
             };
@@ -3547,6 +3741,155 @@ export interface operations {
                 };
             };
             /** @description Revision or idempotency conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Required dependency unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    getDirectoryProjectionStatus: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                school_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DirectoryProjectionStatus"];
+                };
+            };
+            /** @description Invalid input */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Authentication required */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not permitted */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Required dependency unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    startDirectoryProjectionRebuild: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path: {
+                school_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DirectoryProjectionRebuildInput"];
+            };
+        };
+        responses: {
+            /** @description Accepted; asynchronous durable rebuild job. */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProjectionRebuildRun"];
+                };
+            };
+            /** @description Invalid input */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Authentication required */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not permitted */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Conflict with existing rebuild or incomplete source import */
             409: {
                 headers: {
                     [name: string]: unknown;

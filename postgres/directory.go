@@ -92,6 +92,19 @@ func (t *transaction) Lookup(ids []string) ([]catalog.Object, error) {
 	if t.projectionRead {
 		return t.projectedLookup(ids)
 	}
+	if catalog.TeacherMaintenanceRead(t.ctx) {
+		return list[catalog.Object](t, `SELECT item FROM (
+ SELECT requested.id AS sort_id, catalog.public_object(o.data->'object') || CASE WHEN o.kind='term' THEN jsonb_build_object('term_order_key',COALESCE(tr.sort_key,0)) ELSE '{}'::jsonb END || CASE WHEN o.id<>requested.id THEN jsonb_build_object('id',requested.id,'canonical_id',o.id) ELSE '{}'::jsonb END AS item
+ FROM unnest($1::text[]) requested(id) JOIN catalog.objects o ON o.id=catalog.canonical(requested.id) LEFT JOIN catalog.term_orders tr ON tr.id=o.id AND tr.school_id=o.school_id WHERE true`+t.teacherVisibility("o")+`
+ UNION ALL
+ SELECT requested.id AS sort_id, o.data || CASE WHEN o.id<>requested.id THEN jsonb_build_object('id',requested.id,'canonical_id',o.id) ELSE '{}'::jsonb END AS item
+ FROM catalog.projection_heads h CROSS JOIN unnest($1::text[]) requested(id)
+ LEFT JOIN catalog.projection_aliases a ON a.version=h.version AND a.alias_id=requested.id
+ JOIN catalog.projection_objects o ON o.version=h.version AND o.id=COALESCE(a.canonical_id,requested.id)
+ WHERE NOT EXISTS(SELECT 1 FROM catalog.objects src WHERE src.id=catalog.canonical(requested.id))
+   AND NOT EXISTS(SELECT 1 FROM catalog.objects src WHERE src.id=o.id)
+) combined ORDER BY sort_id`, ids)
+	}
 	return list[catalog.Object](t, `SELECT catalog.public_object(o.data->'object') || CASE WHEN o.kind='term' THEN jsonb_build_object('term_order_key',COALESCE(tr.sort_key,0)) ELSE '{}'::jsonb END || CASE WHEN o.id<>requested.id THEN jsonb_build_object('id',requested.id,'canonical_id',o.id) ELSE '{}'::jsonb END FROM unnest($1::text[]) requested(id) JOIN catalog.objects o ON o.id=catalog.canonical(requested.id) LEFT JOIN catalog.term_orders tr ON tr.id=o.id AND tr.school_id=o.school_id WHERE true`+t.teacherVisibility("o")+` ORDER BY requested.id`, ids)
 }
 
@@ -99,7 +112,22 @@ func (t *transaction) Summary(object catalog.Object) (catalog.Summary, error) {
 	if t.projectionRead {
 		return t.projectedSummary(object)
 	}
-	out := catalog.Summary{Object: object, Categories: []catalog.Object{}, Natures: []catalog.Object{}}
+	if catalog.TeacherMaintenanceRead(t.ctx) {
+		var inSource bool
+		if err := t.tx.QueryRowContext(t.ctx, `SELECT EXISTS(SELECT 1 FROM catalog.objects WHERE id=catalog.canonical($1))`, object.ID).Scan(&inSource); err != nil {
+			return catalog.Summary{}, safe(err)
+		}
+		if !inSource {
+			return t.projectedSummary(object)
+		}
+	}
+	out := catalog.Summary{
+		Object:     object,
+		Categories: []catalog.Object{},
+		Natures:    []catalog.Object{},
+		Courses:    []catalog.Reference{},
+		Teachers:   []catalog.Reference{},
+	}
 	refs, err := t.Lookup([]string{object.SchoolID, object.DepartmentID})
 	if err != nil {
 		return out, err
@@ -147,6 +175,15 @@ func (t *transaction) Summary(object catalog.Object) (catalog.Summary, error) {
 			} else {
 				out.Natures = append(out.Natures, ref)
 			}
+		}
+		out.Teachers, err = list[catalog.Reference](t, summaryCourseTeachersSQL+t.teacherVisibility("teacher")+` ORDER BY teacher.id LIMIT 20`, id)
+		if err != nil {
+			return out, err
+		}
+	} else if object.Kind == "teacher" {
+		out.Courses, err = list[catalog.Reference](t, summaryTeacherCoursesSQL, id)
+		if err != nil {
+			return out, err
 		}
 	}
 	return out, nil
@@ -215,3 +252,29 @@ const summaryClassificationsSQL = `WITH course_ids AS (
  UNION SELECT nature_id AS id,'nature' AS kind FROM related
 )
 SELECT o.data->'object' FROM identifiers r JOIN catalog.objects o ON o.id=r.id AND o.kind=r.kind ORDER BY o.id LIMIT 1001`
+
+const summaryCourseTeachersSQL = `WITH course_ids AS (
+ SELECT $1::text AS id UNION SELECT alias_id FROM catalog.redirects WHERE canonical_id=$1
+), teacher_ids AS (
+ SELECT DISTINCT catalog.canonical(a.teacher_id) AS id
+ FROM catalog.objects tc
+ JOIN catalog.objects cl ON cl.term_course_id=tc.id AND cl.kind='class'
+ JOIN catalog.objects a ON a.class_id=cl.id AND a.kind='assignment'
+ WHERE tc.kind='term_course' AND tc.course_id IN (SELECT id FROM course_ids)
+)
+SELECT jsonb_build_object('id',teacher.id,'canonical_id',teacher.id,'kind','teacher','name',teacher.name)
+FROM teacher_ids r JOIN catalog.objects teacher ON teacher.id=r.id AND teacher.kind='teacher'
+WHERE NOT COALESCE((teacher.data->'object'->>'inactive')::boolean,false)`
+
+const summaryTeacherCoursesSQL = `WITH teacher_ids AS (
+ SELECT $1::text AS id UNION SELECT alias_id FROM catalog.redirects WHERE canonical_id=$1
+), course_ids AS (
+ SELECT DISTINCT catalog.canonical(tc.course_id) AS id
+ FROM catalog.objects a
+ JOIN catalog.objects cl ON cl.id=a.class_id AND cl.kind='class'
+ JOIN catalog.objects tc ON tc.id=cl.term_course_id AND tc.kind='term_course'
+ WHERE a.kind='assignment' AND a.teacher_id IN (SELECT id FROM teacher_ids)
+)
+SELECT jsonb_build_object('id',course.id,'canonical_id',course.id,'kind','course','name',course.name)
+FROM course_ids r JOIN catalog.objects course ON course.id=r.id AND course.kind='course'
+WHERE NOT COALESCE((course.data->'object'->>'inactive')::boolean,false) ORDER BY course.id LIMIT 20`
