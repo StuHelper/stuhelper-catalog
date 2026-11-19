@@ -35,7 +35,7 @@ bash scripts/check-with-postgres.sh
 
 当前首次建库迁移已验证。存量生产迁移、学校持续同步、运行库备份和恢复演练仍待实际环境验收。outbox 与业务同事务持久化并通知 OutboxChannel（catalog_outbox）。relay 通过 PendingOutbox 读取待发送事件，并传入需要排除的退避或人工处理主题。消费者持久提交后调用 ConfirmOutbox。通用跨服务 relay 由 backend 装配。
 
-业务规则见 [课程与评价规格](https://github.com/StuHelper/stuhelper-next/blob/develop/docs/spec/academic-content.md)。
+业务规则见 [课程与评价规格](https://github.com/StuHelper/stuhelper/blob/develop/docs/spec/academic-content.md)。
 
 本人名称查询 /catalog/me/references 只返回本人当前或历史选课记录关联对象的 ID、类型和名称，单次最多 100 个 ID。任一 ID 不属于本人记录时拒绝整次请求。名称接口不返回简介、评分、统计或排课详情，公共目录仍检查内容准入。
 
