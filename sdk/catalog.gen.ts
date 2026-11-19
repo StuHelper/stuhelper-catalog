@@ -539,6 +539,7 @@ export interface components {
             biography?: string;
             location?: string;
             time_text?: string;
+            /** @description 保留的通用别名字段。学院曾用名继续使用；课程英文名、曾用课程号和曾用名分别使用独立字段。 */
             aliases: string[];
             revision: number;
             /** Format: date-time */
@@ -546,14 +547,24 @@ export interface components {
             inactive?: boolean;
             canonical_id?: string;
             schedule_time?: components["schemas"]["ScheduleTime"];
+            /** @description 结构化时间排序键，与截止学期使用同一规则：自然年 × 10 + 季节（春 1、夏 2、秋 3），例如 20243 表示 2024 秋。不是学年起始年份。学期选项按键倒序、ID 升序；公开目录投影不返回无法解析的学期。 */
             readonly term_order_key?: number;
+            /** @description 课程在当前目录投影中最近一次开课的学期 ID，按结构化学期排序键确定。 */
             readonly latest_term_id?: string;
-            /** @enum {string} */
+            /**
+             * @description 体育项目使用 kind=course 和稳定的项目 ID。普通课程省略此字段。项目详情、教师、学期及评价复用课程接口；编号体育课程原 ID 返回不存在。
+             * @enum {string}
+             */
             readonly course_type?: "sports_project";
+            /** @description 仅教学班导入使用的来源体育项目代码。由学校适配器读取明确字段，目录规则通过配置将代码映射到项目；不从场地或教师推断。 */
             sports_project_code?: string;
+            /** @description 课程英文名。独立于 aliases；缺失时省略。 */
             english_name?: string;
+            /** @description 已确认属于同一课程的曾用课程号，可搜索。 */
             former_codes?: string[];
+            /** @description 课程曾用名，可搜索并在详情显示；不包含英文名或曾用课程号。 */
             former_names?: string[];
+            /** @description 当前课程主档的学时；未知时省略或为 null，0 表示已确认的零学时。 */
             hours?: number | null;
         } | null;
         Object: {
@@ -865,6 +876,43 @@ export interface components {
             /** @enum {string} */
             mode: "incremental" | "full";
         };
+        NullableTeacherMarkCounts: {
+            /** Format: int64 */
+            teaching: number;
+            /** Format: int64 */
+            official: number;
+            /** Format: int64 */
+            both: number;
+            /** Format: int64 */
+            eligible: number;
+        } | null;
+        NullableTeacherRefreshRun: {
+            id: string;
+            school_id: string;
+            /** @enum {string} */
+            mode: "incremental" | "full";
+            /** @enum {string} */
+            trigger: "manual" | "scheduled";
+            /** @enum {string} */
+            status: "queued" | "running" | "succeeded" | "failed" | "timed_out";
+            /** Format: date-time */
+            requested_at: string;
+            /** Format: date-time */
+            started_at: string | null;
+            /** Format: date-time */
+            finished_at: string | null;
+            /** Format: date-time */
+            deadline_at: string;
+            /** Format: int64 */
+            duration_ms: number;
+            /** Format: int64 */
+            requests: number | null;
+            /** Format: int64 */
+            site_count: number | null;
+            counts: components["schemas"]["NullableTeacherMarkCounts"];
+            /** @enum {string} */
+            failure_reason: "" | "crawl_failed" | "request_failed" | "invalid_snapshot" | "import_conflict" | "dependency_unavailable" | "worker_interrupted" | "timeout";
+        } | null;
         TeacherRefreshRun: {
             id: string;
             school_id: string;
@@ -888,12 +936,12 @@ export interface components {
             requests: number | null;
             /** Format: int64 */
             site_count: number | null;
-            counts: components["schemas"]["TeacherMarkCounts"];
+            counts: components["schemas"]["NullableTeacherMarkCounts"];
             /** @enum {string} */
             failure_reason: "" | "crawl_failed" | "request_failed" | "invalid_snapshot" | "import_conflict" | "dependency_unavailable" | "worker_interrupted" | "timeout";
         };
         TeacherRefreshStatus: {
-            latest: components["schemas"]["TeacherRefreshRun"];
+            latest: components["schemas"]["NullableTeacherRefreshRun"];
             counts: components["schemas"]["TeacherMarkCounts"];
         };
         UnmatchedTeacherSite: {
@@ -1648,8 +1696,8 @@ export interface operations {
     previewMerge: {
         parameters: {
             query?: never;
-            header: {
-                "Idempotency-Key": string;
+            header?: {
+                "Idempotency-Key"?: string;
             };
             path: {
                 id: string;
@@ -1894,8 +1942,8 @@ export interface operations {
     previewImport: {
         parameters: {
             query?: never;
-            header: {
-                "Idempotency-Key": string;
+            header?: {
+                "Idempotency-Key"?: string;
             };
             path?: never;
             cookie?: never;

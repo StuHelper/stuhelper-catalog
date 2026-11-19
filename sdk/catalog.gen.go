@@ -171,6 +171,105 @@ func (e NullableObjectKind) Valid() bool {
 	}
 }
 
+// Defines values for NullableTeacherRefreshRunFailureReason.
+const (
+	NullableTeacherRefreshRunFailureReasonCrawlFailed           NullableTeacherRefreshRunFailureReason = "crawl_failed"
+	NullableTeacherRefreshRunFailureReasonDependencyUnavailable NullableTeacherRefreshRunFailureReason = "dependency_unavailable"
+	NullableTeacherRefreshRunFailureReasonEmpty                 NullableTeacherRefreshRunFailureReason = ""
+	NullableTeacherRefreshRunFailureReasonImportConflict        NullableTeacherRefreshRunFailureReason = "import_conflict"
+	NullableTeacherRefreshRunFailureReasonInvalidSnapshot       NullableTeacherRefreshRunFailureReason = "invalid_snapshot"
+	NullableTeacherRefreshRunFailureReasonRequestFailed         NullableTeacherRefreshRunFailureReason = "request_failed"
+	NullableTeacherRefreshRunFailureReasonTimeout               NullableTeacherRefreshRunFailureReason = "timeout"
+	NullableTeacherRefreshRunFailureReasonWorkerInterrupted     NullableTeacherRefreshRunFailureReason = "worker_interrupted"
+)
+
+// Valid indicates whether the value is a known member of the NullableTeacherRefreshRunFailureReason enum.
+func (e NullableTeacherRefreshRunFailureReason) Valid() bool {
+	switch e {
+	case NullableTeacherRefreshRunFailureReasonCrawlFailed:
+		return true
+	case NullableTeacherRefreshRunFailureReasonDependencyUnavailable:
+		return true
+	case NullableTeacherRefreshRunFailureReasonEmpty:
+		return true
+	case NullableTeacherRefreshRunFailureReasonImportConflict:
+		return true
+	case NullableTeacherRefreshRunFailureReasonInvalidSnapshot:
+		return true
+	case NullableTeacherRefreshRunFailureReasonRequestFailed:
+		return true
+	case NullableTeacherRefreshRunFailureReasonTimeout:
+		return true
+	case NullableTeacherRefreshRunFailureReasonWorkerInterrupted:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for NullableTeacherRefreshRunMode.
+const (
+	NullableTeacherRefreshRunModeFull        NullableTeacherRefreshRunMode = "full"
+	NullableTeacherRefreshRunModeIncremental NullableTeacherRefreshRunMode = "incremental"
+)
+
+// Valid indicates whether the value is a known member of the NullableTeacherRefreshRunMode enum.
+func (e NullableTeacherRefreshRunMode) Valid() bool {
+	switch e {
+	case NullableTeacherRefreshRunModeFull:
+		return true
+	case NullableTeacherRefreshRunModeIncremental:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for NullableTeacherRefreshRunStatus.
+const (
+	NullableTeacherRefreshRunStatusFailed    NullableTeacherRefreshRunStatus = "failed"
+	NullableTeacherRefreshRunStatusQueued    NullableTeacherRefreshRunStatus = "queued"
+	NullableTeacherRefreshRunStatusRunning   NullableTeacherRefreshRunStatus = "running"
+	NullableTeacherRefreshRunStatusSucceeded NullableTeacherRefreshRunStatus = "succeeded"
+	NullableTeacherRefreshRunStatusTimedOut  NullableTeacherRefreshRunStatus = "timed_out"
+)
+
+// Valid indicates whether the value is a known member of the NullableTeacherRefreshRunStatus enum.
+func (e NullableTeacherRefreshRunStatus) Valid() bool {
+	switch e {
+	case NullableTeacherRefreshRunStatusFailed:
+		return true
+	case NullableTeacherRefreshRunStatusQueued:
+		return true
+	case NullableTeacherRefreshRunStatusRunning:
+		return true
+	case NullableTeacherRefreshRunStatusSucceeded:
+		return true
+	case NullableTeacherRefreshRunStatusTimedOut:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for NullableTeacherRefreshRunTrigger.
+const (
+	NullableTeacherRefreshRunTriggerManual    NullableTeacherRefreshRunTrigger = "manual"
+	NullableTeacherRefreshRunTriggerScheduled NullableTeacherRefreshRunTrigger = "scheduled"
+)
+
+// Valid indicates whether the value is a known member of the NullableTeacherRefreshRunTrigger enum.
+func (e NullableTeacherRefreshRunTrigger) Valid() bool {
+	switch e {
+	case NullableTeacherRefreshRunTriggerManual:
+		return true
+	case NullableTeacherRefreshRunTriggerScheduled:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for ObjectCourseType.
 const (
 	ObjectCourseTypeSportsProject ObjectCourseType = "sports_project"
@@ -404,16 +503,16 @@ func (e TeacherRefreshRunStatus) Valid() bool {
 
 // Defines values for TeacherRefreshRunTrigger.
 const (
-	Manual    TeacherRefreshRunTrigger = "manual"
-	Scheduled TeacherRefreshRunTrigger = "scheduled"
+	TeacherRefreshRunTriggerManual    TeacherRefreshRunTrigger = "manual"
+	TeacherRefreshRunTriggerScheduled TeacherRefreshRunTrigger = "scheduled"
 )
 
 // Valid indicates whether the value is a known member of the TeacherRefreshRunTrigger enum.
 func (e TeacherRefreshRunTrigger) Valid() bool {
 	switch e {
-	case Manual:
+	case TeacherRefreshRunTriggerManual:
 		return true
-	case Scheduled:
+	case TeacherRefreshRunTriggerScheduled:
 		return true
 	default:
 		return false
@@ -797,46 +896,101 @@ type NextLesson struct {
 
 // NullableObject defines model for NullableObject.
 type NullableObject struct {
-	Aliases      []string                  `json:"aliases"`
-	Biography    *string                   `json:"biography,omitempty"`
-	CanonicalId  *string                   `json:"canonical_id,omitempty"`
-	CategoryId   *string                   `json:"category_id,omitempty"`
-	ClassId      *string                   `json:"class_id,omitempty"`
-	Code         *string                   `json:"code,omitempty"`
-	CourseId     *string                   `json:"course_id,omitempty"`
+	// Aliases 保留的通用别名字段。学院曾用名继续使用；课程英文名、曾用课程号和曾用名分别使用独立字段。
+	Aliases     []string `json:"aliases"`
+	Biography   *string  `json:"biography,omitempty"`
+	CanonicalId *string  `json:"canonical_id,omitempty"`
+	CategoryId  *string  `json:"category_id,omitempty"`
+	ClassId     *string  `json:"class_id,omitempty"`
+	Code        *string  `json:"code,omitempty"`
+	CourseId    *string  `json:"course_id,omitempty"`
+
+	// CourseType 体育项目使用 kind=course 和稳定的项目 ID。普通课程省略此字段。项目详情、教师、学期及评价复用课程接口；编号体育课程原 ID 返回不存在。
 	CourseType   *NullableObjectCourseType `json:"course_type,omitempty"`
 	Credits      *float32                  `json:"credits"`
 	DepartmentId *string                   `json:"department_id,omitempty"`
-	EnglishName  *string                   `json:"english_name,omitempty"`
-	FormerCodes  *[]string                 `json:"former_codes,omitempty"`
-	FormerNames  *[]string                 `json:"former_names,omitempty"`
-	Hours        *float32                  `json:"hours,omitempty"`
-	Id           string                    `json:"id"`
-	Inactive     *bool                     `json:"inactive,omitempty"`
-	Kind         NullableObjectKind        `json:"kind"`
-	LatestTermId *string                   `json:"latest_term_id,omitempty"`
-	Location     *string                   `json:"location,omitempty"`
-	Name         string                    `json:"name"`
-	NatureId     *string                   `json:"nature_id,omitempty"`
-	Revision     int                       `json:"revision"`
+
+	// EnglishName 课程英文名。独立于 aliases；缺失时省略。
+	EnglishName *string `json:"english_name,omitempty"`
+
+	// FormerCodes 已确认属于同一课程的曾用课程号，可搜索。
+	FormerCodes *[]string `json:"former_codes,omitempty"`
+
+	// FormerNames 课程曾用名，可搜索并在详情显示；不包含英文名或曾用课程号。
+	FormerNames *[]string `json:"former_names,omitempty"`
+
+	// Hours 当前课程主档的学时；未知时省略或为 null，0 表示已确认的零学时。
+	Hours    *float32           `json:"hours,omitempty"`
+	Id       string             `json:"id"`
+	Inactive *bool              `json:"inactive,omitempty"`
+	Kind     NullableObjectKind `json:"kind"`
+
+	// LatestTermId 课程在当前目录投影中最近一次开课的学期 ID，按结构化学期排序键确定。
+	LatestTermId *string `json:"latest_term_id,omitempty"`
+	Location     *string `json:"location,omitempty"`
+	Name         string  `json:"name"`
+	NatureId     *string `json:"nature_id,omitempty"`
+	Revision     int     `json:"revision"`
 
 	// ScheduleTime ISO weekday Monday=1. Explicit week set; odd/even weeks are expanded by importer. End period >= start. Missing structure means not provided. Recognized time_text grammar supports single or range periods (第5节, 第1-2节), single, range or ascending comma-separated week segments (第8周, 第1-8,10-16周, 第1,3,5,7周), and optional halfwidth or fullwidth 单/双 suffix.
-	ScheduleTime      *ScheduleTime `json:"schedule_time,omitempty"`
-	SchoolId          string        `json:"school_id"`
-	SportsProjectCode *string       `json:"sports_project_code,omitempty"`
-	TeacherId         *string       `json:"teacher_id,omitempty"`
-	TermCourseId      *string       `json:"term_course_id,omitempty"`
-	TermId            *string       `json:"term_id,omitempty"`
-	TermOrderKey      *int          `json:"term_order_key,omitempty"`
-	TimeText          *string       `json:"time_text,omitempty"`
-	UpdatedAt         time.Time     `json:"updated_at"`
+	ScheduleTime *ScheduleTime `json:"schedule_time,omitempty"`
+	SchoolId     string        `json:"school_id"`
+
+	// SportsProjectCode 仅教学班导入使用的来源体育项目代码。由学校适配器读取明确字段，目录规则通过配置将代码映射到项目；不从场地或教师推断。
+	SportsProjectCode *string `json:"sports_project_code,omitempty"`
+	TeacherId         *string `json:"teacher_id,omitempty"`
+	TermCourseId      *string `json:"term_course_id,omitempty"`
+	TermId            *string `json:"term_id,omitempty"`
+
+	// TermOrderKey 结构化时间排序键，与截止学期使用同一规则：自然年 × 10 + 季节（春 1、夏 2、秋 3），例如 20243 表示 2024 秋。不是学年起始年份。学期选项按键倒序、ID 升序；公开目录投影不返回无法解析的学期。
+	TermOrderKey *int      `json:"term_order_key,omitempty"`
+	TimeText     *string   `json:"time_text,omitempty"`
+	UpdatedAt    time.Time `json:"updated_at"`
 }
 
-// NullableObjectCourseType defines model for NullableObject.CourseType.
+// NullableObjectCourseType 体育项目使用 kind=course 和稳定的项目 ID。普通课程省略此字段。项目详情、教师、学期及评价复用课程接口；编号体育课程原 ID 返回不存在。
 type NullableObjectCourseType string
 
 // NullableObjectKind defines model for NullableObject.Kind.
 type NullableObjectKind string
+
+// NullableTeacherMarkCounts defines model for NullableTeacherMarkCounts.
+type NullableTeacherMarkCounts struct {
+	Both     int64 `json:"both"`
+	Eligible int64 `json:"eligible"`
+	Official int64 `json:"official"`
+	Teaching int64 `json:"teaching"`
+}
+
+// NullableTeacherRefreshRun defines model for NullableTeacherRefreshRun.
+type NullableTeacherRefreshRun struct {
+	Counts        *NullableTeacherMarkCounts             `json:"counts"`
+	DeadlineAt    time.Time                              `json:"deadline_at"`
+	DurationMs    int64                                  `json:"duration_ms"`
+	FailureReason NullableTeacherRefreshRunFailureReason `json:"failure_reason"`
+	FinishedAt    *time.Time                             `json:"finished_at"`
+	Id            string                                 `json:"id"`
+	Mode          NullableTeacherRefreshRunMode          `json:"mode"`
+	RequestedAt   time.Time                              `json:"requested_at"`
+	Requests      *int64                                 `json:"requests"`
+	SchoolId      string                                 `json:"school_id"`
+	SiteCount     *int64                                 `json:"site_count"`
+	StartedAt     *time.Time                             `json:"started_at"`
+	Status        NullableTeacherRefreshRunStatus        `json:"status"`
+	Trigger       NullableTeacherRefreshRunTrigger       `json:"trigger"`
+}
+
+// NullableTeacherRefreshRunFailureReason defines model for NullableTeacherRefreshRun.FailureReason.
+type NullableTeacherRefreshRunFailureReason string
+
+// NullableTeacherRefreshRunMode defines model for NullableTeacherRefreshRun.Mode.
+type NullableTeacherRefreshRunMode string
+
+// NullableTeacherRefreshRunStatus defines model for NullableTeacherRefreshRun.Status.
+type NullableTeacherRefreshRunStatus string
+
+// NullableTeacherRefreshRunTrigger defines model for NullableTeacherRefreshRun.Trigger.
+type NullableTeacherRefreshRunTrigger string
 
 // Object defines model for Object.
 type Object struct {
@@ -1132,7 +1286,7 @@ type TeacherRefreshInputMode string
 
 // TeacherRefreshRun defines model for TeacherRefreshRun.
 type TeacherRefreshRun struct {
-	Counts        TeacherMarkCounts              `json:"counts"`
+	Counts        *NullableTeacherMarkCounts     `json:"counts"`
 	DeadlineAt    time.Time                      `json:"deadline_at"`
 	DurationMs    int64                          `json:"duration_ms"`
 	FailureReason TeacherRefreshRunFailureReason `json:"failure_reason"`
@@ -1162,8 +1316,8 @@ type TeacherRefreshRunTrigger string
 
 // TeacherRefreshStatus defines model for TeacherRefreshStatus.
 type TeacherRefreshStatus struct {
-	Counts TeacherMarkCounts `json:"counts"`
-	Latest TeacherRefreshRun `json:"latest"`
+	Counts TeacherMarkCounts          `json:"counts"`
+	Latest *NullableTeacherRefreshRun `json:"latest"`
 }
 
 // Timetable School and term scoped. PUT revision 0 creates; subsequent writes require current revision. Duplicate identical PUT with previous revision returns stored result. Period numbers unique and increasing with nonoverlapping same-day times.
@@ -1315,7 +1469,7 @@ type ConfirmImportParams struct {
 
 // PreviewImportParams defines parameters for PreviewImport.
 type PreviewImportParams struct {
-	IdempotencyKey string `json:"Idempotency-Key"`
+	IdempotencyKey *string `json:"Idempotency-Key,omitempty"`
 }
 
 // MyEnrollmentsParams defines parameters for MyEnrollments.
@@ -1396,7 +1550,7 @@ type MergeObjectParams struct {
 
 // PreviewMergeParams defines parameters for PreviewMerge.
 type PreviewMergeParams struct {
-	IdempotencyKey string `json:"Idempotency-Key"`
+	IdempotencyKey *string `json:"Idempotency-Key,omitempty"`
 }
 
 // SetObjectStateParams defines parameters for SetObjectState.
@@ -3632,14 +3786,16 @@ func NewPreviewImportRequestWithBody(server string, params *PreviewImportParams,
 
 	if params != nil {
 
-		var headerParam0 string
+		if params.IdempotencyKey != nil {
+			var headerParam0 string
 
-		headerParam0, err = runtime.StyleParamWithOptions("simple", false, "Idempotency-Key", params.IdempotencyKey, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationHeader, Type: "string", Format: ""})
-		if err != nil {
-			return nil, err
+			headerParam0, err = runtime.StyleParamWithOptions("simple", false, "Idempotency-Key", *params.IdempotencyKey, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationHeader, Type: "string", Format: ""})
+			if err != nil {
+				return nil, err
+			}
+
+			req.Header.Set("Idempotency-Key", headerParam0)
 		}
-
-		req.Header.Set("Idempotency-Key", headerParam0)
 
 	}
 
@@ -4521,14 +4677,16 @@ func NewPreviewMergeRequestWithBody(server string, id string, params *PreviewMer
 
 	if params != nil {
 
-		var headerParam0 string
+		if params.IdempotencyKey != nil {
+			var headerParam0 string
 
-		headerParam0, err = runtime.StyleParamWithOptions("simple", false, "Idempotency-Key", params.IdempotencyKey, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationHeader, Type: "string", Format: ""})
-		if err != nil {
-			return nil, err
+			headerParam0, err = runtime.StyleParamWithOptions("simple", false, "Idempotency-Key", *params.IdempotencyKey, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationHeader, Type: "string", Format: ""})
+			if err != nil {
+				return nil, err
+			}
+
+			req.Header.Set("Idempotency-Key", headerParam0)
 		}
-
-		req.Header.Set("Idempotency-Key", headerParam0)
 
 	}
 

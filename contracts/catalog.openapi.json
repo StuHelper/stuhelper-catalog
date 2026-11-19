@@ -938,7 +938,7 @@
           {
             "name": "Idempotency-Key",
             "in": "header",
-            "required": true,
+            "required": false,
             "schema": {
               "type": "string"
             }
@@ -1260,7 +1260,7 @@
           {
             "name": "Idempotency-Key",
             "in": "header",
-            "required": true,
+            "required": false,
             "schema": {
               "type": "string"
             }
@@ -3981,7 +3981,8 @@
             "type": "array",
             "items": {
               "type": "string"
-            }
+            },
+            "description": "保留的通用别名字段。学院曾用名继续使用；课程英文名、曾用课程号和曾用名分别使用独立字段。"
           },
           "revision": {
             "type": "integer"
@@ -4001,26 +4002,31 @@
           },
           "term_order_key": {
             "type": "integer",
-            "readOnly": true
+            "readOnly": true,
+            "description": "结构化时间排序键，与截止学期使用同一规则：自然年 × 10 + 季节（春 1、夏 2、秋 3），例如 20243 表示 2024 秋。不是学年起始年份。学期选项按键倒序、ID 升序；公开目录投影不返回无法解析的学期。"
           },
           "latest_term_id": {
             "type": "string",
-            "readOnly": true
+            "readOnly": true,
+            "description": "课程在当前目录投影中最近一次开课的学期 ID，按结构化学期排序键确定。"
           },
           "course_type": {
             "type": "string",
             "enum": [
               "sports_project"
             ],
-            "readOnly": true
+            "readOnly": true,
+            "description": "体育项目使用 kind=course 和稳定的项目 ID。普通课程省略此字段。项目详情、教师、学期及评价复用课程接口；编号体育课程原 ID 返回不存在。"
           },
           "sports_project_code": {
             "type": "string",
-            "maxLength": 64
+            "maxLength": 64,
+            "description": "仅教学班导入使用的来源体育项目代码。由学校适配器读取明确字段，目录规则通过配置将代码映射到项目；不从场地或教师推断。"
           },
           "english_name": {
             "type": "string",
-            "maxLength": 256
+            "maxLength": 256,
+            "description": "课程英文名。独立于 aliases；缺失时省略。"
           },
           "former_codes": {
             "type": "array",
@@ -4030,7 +4036,8 @@
               "type": "string",
               "minLength": 1,
               "maxLength": 128
-            }
+            },
+            "description": "已确认属于同一课程的曾用课程号，可搜索。"
           },
           "former_names": {
             "type": "array",
@@ -4040,13 +4047,15 @@
               "type": "string",
               "minLength": 1,
               "maxLength": 256
-            }
+            },
+            "description": "课程曾用名，可搜索并在详情显示；不包含英文名或曾用课程号。"
           },
           "hours": {
             "type": "number",
             "nullable": true,
             "minimum": 0,
-            "maximum": 10000
+            "maximum": 10000,
+            "description": "当前课程主档的学时；未知时省略或为 null，0 表示已确认的零学时。"
           }
         },
         "required": [
@@ -5331,6 +5340,143 @@
           }
         }
       },
+      "NullableTeacherMarkCounts": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "teaching",
+          "official",
+          "both",
+          "eligible"
+        ],
+        "properties": {
+          "teaching": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "official": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "both": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "eligible": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          }
+        },
+        "nullable": true
+      },
+      "NullableTeacherRefreshRun": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "school_id",
+          "mode",
+          "trigger",
+          "status",
+          "requested_at",
+          "started_at",
+          "finished_at",
+          "deadline_at",
+          "duration_ms",
+          "requests",
+          "site_count",
+          "counts",
+          "failure_reason"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "school_id": {
+            "type": "string"
+          },
+          "mode": {
+            "type": "string",
+            "enum": [
+              "incremental",
+              "full"
+            ]
+          },
+          "trigger": {
+            "type": "string",
+            "enum": [
+              "manual",
+              "scheduled"
+            ]
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "queued",
+              "running",
+              "succeeded",
+              "failed",
+              "timed_out"
+            ]
+          },
+          "requested_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "started_at": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "finished_at": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "deadline_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "duration_ms": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "requests": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0,
+            "nullable": true
+          },
+          "site_count": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0,
+            "nullable": true
+          },
+          "counts": {
+            "$ref": "#/components/schemas/NullableTeacherMarkCounts"
+          },
+          "failure_reason": {
+            "type": "string",
+            "enum": [
+              "",
+              "crawl_failed",
+              "request_failed",
+              "invalid_snapshot",
+              "import_conflict",
+              "dependency_unavailable",
+              "worker_interrupted",
+              "timeout"
+            ]
+          }
+        },
+        "nullable": true
+      },
       "TeacherRefreshRun": {
         "type": "object",
         "additionalProperties": false,
@@ -5417,8 +5563,7 @@
             "nullable": true
           },
           "counts": {
-            "$ref": "#/components/schemas/TeacherMarkCounts",
-            "nullable": true
+            "$ref": "#/components/schemas/NullableTeacherMarkCounts"
           },
           "failure_reason": {
             "type": "string",
@@ -5444,8 +5589,7 @@
         ],
         "properties": {
           "latest": {
-            "$ref": "#/components/schemas/TeacherRefreshRun",
-            "nullable": true
+            "$ref": "#/components/schemas/NullableTeacherRefreshRun"
           },
           "counts": {
             "$ref": "#/components/schemas/TeacherMarkCounts"
