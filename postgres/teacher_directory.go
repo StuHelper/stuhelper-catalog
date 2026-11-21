@@ -293,6 +293,13 @@ func (t *transaction) publishTeacherSiteMarks(school string, at time.Time) error
 	if err := t.syncTeacherDiscoveryAndActivity(school, nil, at); err != nil {
 		return err
 	}
-	_, err := t.RebuildPublishedDirectory(school, at)
-	return err
+	report, err := t.RebuildPublishedDirectory(school, at)
+	if err != nil || report == nil {
+		return err
+	}
+	// This complete generation now reflects every decision under the school
+	// lock. Its teacher snapshot replaces the temporary read overlay.
+	_, err = t.tx.ExecContext(t.ctx, `UPDATE catalog.projection_pending SET homepage_revoked_ids='{}'
+ WHERE school_id=$1 AND cardinality(homepage_revoked_ids)>0`, school)
+	return safe(err)
 }

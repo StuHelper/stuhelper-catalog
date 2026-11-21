@@ -119,7 +119,38 @@ func (t *transaction) SetTeacherSiteDecision(school, siteID string, in c.Teacher
 	// A projection build may already be reading a committed set of marks. Its
 	// pending watermark must not clear this later decision. The school lock
 	// still serializes this decision with catalog and site snapshot writers.
-	return out, t.markProjectionPending(school)
+	return out, t.markHomepageProjectionPending(school, changed)
+}
+
+func (t *transaction) markHomepageProjectionPending(school string, changed []string) error {
+	// Only these teachers can have lost the evidence used by an in-flight
+	// generation. A later decision can remove its restored IDs from the set.
+	result, err := t.tx.ExecContext(t.ctx, `WITH revoked AS (
+ SELECT changed.id FROM unnest($2::text[]) changed(id)
+ LEFT JOIN catalog.objects o ON o.id=changed.id AND o.school_id=$1
+ LEFT JOIN catalog.teacher_directory td ON td.teacher_id=o.id AND td.school_id=$1
+ WHERE NOT COALESCE((o.id=catalog.canonical(o.id)
+ AND NOT COALESCE((o.data->'object'->>'inactive')::boolean,false)
+ AND `+officialTeacherCondition("td", "o")+`),false)
+ )
+ INSERT INTO catalog.projection_pending AS pending(school_id,requested_at,updated_at,homepage_revoked_ids)
+ SELECT $1,clock_timestamp(),clock_timestamp(),ARRAY(SELECT id FROM revoked)
+ WHERE EXISTS(SELECT 1 FROM catalog.projection_heads WHERE school_id=$1)
+ ON CONFLICT(school_id) DO UPDATE SET
+ updated_at=GREATEST(excluded.updated_at,pending.updated_at + interval '1 microsecond'),
+ homepage_revoked_ids=ARRAY(
+  SELECT id FROM unnest(pending.homepage_revoked_ids) kept(id) WHERE id<>ALL($2::text[])
+  UNION ALL SELECT unnest(excluded.homepage_revoked_ids)
+ )`, school, changed)
+	if err != nil {
+		return safe(err)
+	}
+	written, err := result.RowsAffected()
+	if err != nil || written == 0 {
+		return safe(err)
+	}
+	_, err = t.tx.ExecContext(t.ctx, `SELECT pg_notify($1,$2)`, c.ProjectionChannel, school)
+	return safe(err)
 }
 
 func (t *transaction) requireActiveHomepageTeacher(school, teacher string) error {

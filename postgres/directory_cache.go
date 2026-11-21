@@ -223,16 +223,13 @@ func (t *transaction) directorySelection(q c.DirectoryQuery) (*directorySelectio
 	var revision, pendingHomepageRevision int64
 	if t.projectionRead {
 		var err error
-		revision, err = t.projectionVersion(q.SchoolID)
+		if q.Kind == "teacher" {
+			revision, pendingHomepageRevision, err = t.projectionVersionWithHomepageRevocations(q.SchoolID)
+		} else {
+			revision, err = t.projectionVersion(q.SchoolID)
+		}
 		if err != nil {
 			return nil, err
-		}
-		if q.Kind == "teacher" {
-			if err := t.tx.QueryRowContext(t.ctx, `SELECT COALESCE((
- SELECT s.revision FROM catalog.projection_pending p JOIN catalog.teacher_homepage_review_state s USING(school_id)
- WHERE p.school_id=$1),0)`, q.SchoolID).Scan(&pendingHomepageRevision); err != nil {
-				return nil, safe(err)
-			}
 		}
 	} else if err := t.tx.QueryRowContext(t.ctx, `SELECT revision FROM catalog.directory_revision WHERE singleton`).Scan(&revision); err != nil {
 		return nil, safe(err)
@@ -248,7 +245,7 @@ func (t *transaction) directorySelection(q c.DirectoryQuery) (*directorySelectio
 		var raw []byte
 		query, args, err := directorySelectionQuery(q)
 		if t.projectionRead {
-			query, args, err = projectedSelectionQuery(q, revision)
+			query, args, err = projectedSelectionQuery(q, revision, pendingHomepageRevision != 0)
 			if unfiltered && pendingHomepageRevision == 0 {
 				// Older publications stored candidates without their nature memberships.
 				// Recompute them from the same immutable version on the first cache miss.

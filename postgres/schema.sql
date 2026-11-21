@@ -252,6 +252,7 @@ CREATE TABLE IF NOT EXISTS catalog.projection_failures (
 CREATE TABLE IF NOT EXISTS catalog.projection_pending (
  school_id text PRIMARY KEY, requested_at timestamptz NOT NULL, updated_at timestamptz NOT NULL
 );
+ALTER TABLE catalog.projection_pending ADD COLUMN IF NOT EXISTS homepage_revoked_ids text[] NOT NULL DEFAULT '{}';
 CREATE TABLE IF NOT EXISTS catalog.projection_rebuild_runs (
  id text PRIMARY KEY, school_id text NOT NULL,
  status text NOT NULL CHECK(status IN ('queued','running','succeeded','failed','timed_out')),

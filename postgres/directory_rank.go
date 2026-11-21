@@ -167,7 +167,14 @@ func (t *transaction) Directory(q c.DirectoryQuery, cursor c.DirectoryPosition, 
 	}
 	objects := map[string]c.Object{}
 	if len(ids) > 0 {
-		values, err := t.Lookup(ids)
+		var values []c.Object
+		if t.projectionRead {
+			// Selection already applied pending teacher revocations in this
+			// snapshot. The added department and category IDs are labels.
+			values, err = t.projectedLookup(ids, false)
+		} else {
+			values, err = t.Lookup(ids)
+		}
 		if err != nil {
 			return c.DirectoryResult{}, err
 		}

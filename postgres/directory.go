@@ -90,7 +90,7 @@ func (t *transaction) List(f catalog.Filter) ([]catalog.Object, error) {
 
 func (t *transaction) Lookup(ids []string) ([]catalog.Object, error) {
 	if t.projectionRead {
-		return t.projectedLookup(ids)
+		return t.projectedLookup(ids, true)
 	}
 	if catalog.TeacherMaintenanceRead(t.ctx) {
 		return list[catalog.Object](t, `SELECT item FROM (
