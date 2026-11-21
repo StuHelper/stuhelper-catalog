@@ -453,7 +453,7 @@ export interface paths {
         /** @description Requires catalog.teacher-sites.read and current school management scope. Every view is audited. Latest run includes safe failure code and observed request/site counts; unknown measurements are null. Counts reflect current visible teacher marks. */
         get: operations["getTeacherRefreshStatus"];
         put?: never;
-        /** @description Requires catalog.teacher-sites.refresh and current school management scope. Audited durable enqueue. Only one queued/running refresh globally; a competing request returns 409. Replay with the same actor, school, key and mode returns the original run; a different mode conflicts. The deadline includes queue time: 45 minutes for incremental and 4 hours for manual full refresh. The monthly scheduler only enqueues incremental work. A timeout preserves the published snapshot. */
+        /** @description Requires catalog.teacher-sites.refresh and current school management scope. Audited durable enqueue. Only one queued/running refresh globally; a competing request returns 409. Replay with the same actor, school, key and mode returns the original run; a different mode conflicts. Use the returned deadline_at as the expiry of the specific run, including queue time. The monthly scheduler only enqueues incremental work. A timeout preserves the published snapshot. */
         post: operations["startTeacherRefresh"];
         delete?: never;
         options?: never;
@@ -973,7 +973,10 @@ export interface components {
             started_at: string | null;
             /** Format: date-time */
             finished_at: string | null;
-            /** Format: date-time */
+            /**
+             * Format: date-time
+             * @description Server-assigned expiry of this run, including time spent in the queue. Idempotent replays return the recorded deadline.
+             */
             deadline_at: string;
             /** Format: int64 */
             duration_ms: number;
@@ -1000,7 +1003,10 @@ export interface components {
             started_at: string | null;
             /** Format: date-time */
             finished_at: string | null;
-            /** Format: date-time */
+            /**
+             * Format: date-time
+             * @description Server-assigned expiry of this run, including time spent in the queue. Idempotent replays return the recorded deadline.
+             */
             deadline_at: string;
             /** Format: int64 */
             duration_ms: number;

@@ -82,11 +82,11 @@ func TestTeacherRefreshDurableConcurrencyIdempotencyAndTimeout(t *testing.T) {
 	if e != nil {
 		t.Fatal(e)
 	}
-	if next.DeadlineAt.Sub(next.RequestedAt) != 4*time.Hour {
+	if next.DeadlineAt.Sub(next.RequestedAt) != 8*time.Hour {
 		t.Fatal("unexpected full refresh deadline", next.DeadlineAt)
 	}
 	replay, e := s.QueueTeacherRefresh(ctx, p, "school", "full", "manual", "stable")
-	if e != nil || replay.ID != next.ID {
+	if e != nil || replay.ID != next.ID || !replay.DeadlineAt.Equal(next.DeadlineAt) {
 		t.Fatal("idempotency", replay, e)
 	}
 	if _, e = s.QueueTeacherRefresh(ctx, p, "school", "incremental", "manual", "stable"); !errors.Is(e, c.ErrConflict) {
@@ -95,8 +95,13 @@ func TestTeacherRefreshDurableConcurrencyIdempotencyAndTimeout(t *testing.T) {
 	if _, e = s.ClaimTeacherRefresh(ctx, p, "school"); e != nil {
 		t.Fatal(e)
 	}
-	now = next.DeadlineAt.Add(time.Second)
+	now = next.RequestedAt.Add(4*time.Hour + time.Second)
 	status, e := s.TeacherRefreshStatus(ctx, p, "school")
+	if e != nil || status.Latest.Status != "running" {
+		t.Fatal("full refresh stopped at the previous deadline", status, e)
+	}
+	now = next.DeadlineAt.Add(time.Second)
+	status, e = s.TeacherRefreshStatus(ctx, p, "school")
 	if e != nil || status.Latest.Status != "timed_out" || status.Latest.FailureReason != "timeout" {
 		t.Fatal(status, e)
 	}
@@ -158,7 +163,13 @@ func TestTeacherRefreshUnmatchedPaginationPrivacyAndFailureRetention(t *testing.
 	if _, e = s.ClaimTeacherRefresh(ctx, p, "school"); e != nil {
 		t.Fatal(e)
 	}
-	if _, e = s.CompleteTeacherRefresh(ctx, p, failed.ID, c.TeacherRefreshCompletion{FailureReason: "request_failed"}); e != nil {
+	requests := int64(115201)
+	completion := c.TeacherRefreshCompletion{FailureReason: "request_failed", Requests: &requests}
+	if _, e = s.CompleteTeacherRefresh(ctx, p, failed.ID, completion); !errors.Is(e, c.ErrInput) {
+		t.Fatal("request count beyond the full budget was accepted", e)
+	}
+	requests = 110000
+	if _, e = s.CompleteTeacherRefresh(ctx, p, failed.ID, completion); e != nil {
 		t.Fatal(e)
 	}
 	retained, e := s.ReadUnmatchedTeacherSites(ctx, p, "school", "", "", 2)
@@ -166,7 +177,7 @@ func TestTeacherRefreshUnmatchedPaginationPrivacyAndFailureRetention(t *testing.
 		t.Fatal("failure destroyed snapshot", retained, e)
 	}
 	status, e := s.TeacherRefreshStatus(ctx, p, "school")
-	if e != nil || status.Latest.Status != "failed" || status.Counts.Eligible != 3 {
+	if e != nil || status.Latest.Status != "failed" || status.Latest.Requests == nil || *status.Latest.Requests != requests || status.Counts.Eligible != 3 {
 		t.Fatal(status, e)
 	}
 	denied := p

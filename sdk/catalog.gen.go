@@ -1081,7 +1081,9 @@ type NullableTeacherMarkCounts struct {
 
 // NullableTeacherRefreshRun defines model for NullableTeacherRefreshRun.
 type NullableTeacherRefreshRun struct {
-	Counts        *NullableTeacherMarkCounts             `json:"counts"`
+	Counts *NullableTeacherMarkCounts `json:"counts"`
+
+	// DeadlineAt Server-assigned expiry of this run, including time spent in the queue. Idempotent replays return the recorded deadline.
 	DeadlineAt    time.Time                              `json:"deadline_at"`
 	DurationMs    int64                                  `json:"duration_ms"`
 	FailureReason NullableTeacherRefreshRunFailureReason `json:"failure_reason"`
@@ -1655,7 +1657,9 @@ type TeacherRefreshInputMode string
 
 // TeacherRefreshRun defines model for TeacherRefreshRun.
 type TeacherRefreshRun struct {
-	Counts        *NullableTeacherMarkCounts     `json:"counts"`
+	Counts *NullableTeacherMarkCounts `json:"counts"`
+
+	// DeadlineAt Server-assigned expiry of this run, including time spent in the queue. Idempotent replays return the recorded deadline.
 	DeadlineAt    time.Time                      `json:"deadline_at"`
 	DurationMs    int64                          `json:"duration_ms"`
 	FailureReason TeacherRefreshRunFailureReason `json:"failure_reason"`
@@ -2136,13 +2140,13 @@ type ClientInterface interface {
 	// StartTeacherRefreshWithBody performs a POST /api/v1/catalog/admin/schools/{school_id}/teacher-sites/refresh (the `StartTeacherRefresh` operationId) request,
 	// with any type of body and a specified content type.
 	//
-	// Requires catalog.teacher-sites.refresh and current school management scope. Audited durable enqueue. Only one queued/running refresh globally; a competing request returns 409. Replay with the same actor, school, key and mode returns the original run; a different mode conflicts. The deadline includes queue time: 45 minutes for incremental and 4 hours for manual full refresh. The monthly scheduler only enqueues incremental work. A timeout preserves the published snapshot.
+	// Requires catalog.teacher-sites.refresh and current school management scope. Audited durable enqueue. Only one queued/running refresh globally; a competing request returns 409. Replay with the same actor, school, key and mode returns the original run; a different mode conflicts. Use the returned deadline_at as the expiry of the specific run, including queue time. The monthly scheduler only enqueues incremental work. A timeout preserves the published snapshot.
 	StartTeacherRefreshWithBody(ctx context.Context, schoolId string, params *StartTeacherRefreshParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// StartTeacherRefresh performs a POST /api/v1/catalog/admin/schools/{school_id}/teacher-sites/refresh (the `StartTeacherRefresh` operationId) request.
 	// Takes a body of the `application/json` content type.
 	//
-	// Requires catalog.teacher-sites.refresh and current school management scope. Audited durable enqueue. Only one queued/running refresh globally; a competing request returns 409. Replay with the same actor, school, key and mode returns the original run; a different mode conflicts. The deadline includes queue time: 45 minutes for incremental and 4 hours for manual full refresh. The monthly scheduler only enqueues incremental work. A timeout preserves the published snapshot.
+	// Requires catalog.teacher-sites.refresh and current school management scope. Audited durable enqueue. Only one queued/running refresh globally; a competing request returns 409. Replay with the same actor, school, key and mode returns the original run; a different mode conflicts. Use the returned deadline_at as the expiry of the specific run, including queue time. The monthly scheduler only enqueues incremental work. A timeout preserves the published snapshot.
 	StartTeacherRefresh(ctx context.Context, schoolId string, params *StartTeacherRefreshParams, body StartTeacherRefreshJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// ListTeacherHomepageReviewSites performs a GET /api/v1/catalog/admin/schools/{school_id}/teacher-sites/review/sites (the `ListTeacherHomepageReviewSites` operationId) request.
@@ -2482,7 +2486,7 @@ func (c *Client) GetTeacherRefreshStatus(ctx context.Context, schoolId string, r
 // StartTeacherRefreshWithBody performs a POST /api/v1/catalog/admin/schools/{school_id}/teacher-sites/refresh (the `StartTeacherRefresh` operationId) request,
 // with any type of body and a specified content type.
 //
-// Requires catalog.teacher-sites.refresh and current school management scope. Audited durable enqueue. Only one queued/running refresh globally; a competing request returns 409. Replay with the same actor, school, key and mode returns the original run; a different mode conflicts. The deadline includes queue time: 45 minutes for incremental and 4 hours for manual full refresh. The monthly scheduler only enqueues incremental work. A timeout preserves the published snapshot.
+// Requires catalog.teacher-sites.refresh and current school management scope. Audited durable enqueue. Only one queued/running refresh globally; a competing request returns 409. Replay with the same actor, school, key and mode returns the original run; a different mode conflicts. Use the returned deadline_at as the expiry of the specific run, including queue time. The monthly scheduler only enqueues incremental work. A timeout preserves the published snapshot.
 func (c *Client) StartTeacherRefreshWithBody(ctx context.Context, schoolId string, params *StartTeacherRefreshParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewStartTeacherRefreshRequestWithBody(c.Server, schoolId, params, contentType, body)
 	if err != nil {
@@ -2498,7 +2502,7 @@ func (c *Client) StartTeacherRefreshWithBody(ctx context.Context, schoolId strin
 // StartTeacherRefresh performs a POST /api/v1/catalog/admin/schools/{school_id}/teacher-sites/refresh (the `StartTeacherRefresh` operationId) request.
 // Takes a body of the `application/json` content type.
 //
-// Requires catalog.teacher-sites.refresh and current school management scope. Audited durable enqueue. Only one queued/running refresh globally; a competing request returns 409. Replay with the same actor, school, key and mode returns the original run; a different mode conflicts. The deadline includes queue time: 45 minutes for incremental and 4 hours for manual full refresh. The monthly scheduler only enqueues incremental work. A timeout preserves the published snapshot.
+// Requires catalog.teacher-sites.refresh and current school management scope. Audited durable enqueue. Only one queued/running refresh globally; a competing request returns 409. Replay with the same actor, school, key and mode returns the original run; a different mode conflicts. Use the returned deadline_at as the expiry of the specific run, including queue time. The monthly scheduler only enqueues incremental work. A timeout preserves the published snapshot.
 func (c *Client) StartTeacherRefresh(ctx context.Context, schoolId string, params *StartTeacherRefreshParams, body StartTeacherRefreshJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewStartTeacherRefreshRequest(c.Server, schoolId, params, body)
 	if err != nil {
@@ -5812,7 +5816,7 @@ type ClientWithResponsesInterface interface {
 	// StartTeacherRefreshWithBodyWithResponse performs a POST /api/v1/catalog/admin/schools/{school_id}/teacher-sites/refresh (the `StartTeacherRefresh` operationId) request,
 	// with any type of body and a specified content type.
 	//
-	// Requires catalog.teacher-sites.refresh and current school management scope. Audited durable enqueue. Only one queued/running refresh globally; a competing request returns 409. Replay with the same actor, school, key and mode returns the original run; a different mode conflicts. The deadline includes queue time: 45 minutes for incremental and 4 hours for manual full refresh. The monthly scheduler only enqueues incremental work. A timeout preserves the published snapshot.
+	// Requires catalog.teacher-sites.refresh and current school management scope. Audited durable enqueue. Only one queued/running refresh globally; a competing request returns 409. Replay with the same actor, school, key and mode returns the original run; a different mode conflicts. Use the returned deadline_at as the expiry of the specific run, including queue time. The monthly scheduler only enqueues incremental work. A timeout preserves the published snapshot.
 	//
 	// Returns a wrapper object for the known response body format(s).
 	StartTeacherRefreshWithBodyWithResponse(ctx context.Context, schoolId string, params *StartTeacherRefreshParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*StartTeacherRefreshResponse, error)
@@ -5820,7 +5824,7 @@ type ClientWithResponsesInterface interface {
 	// StartTeacherRefreshWithResponse performs a POST /api/v1/catalog/admin/schools/{school_id}/teacher-sites/refresh (the `StartTeacherRefresh` operationId) request.
 	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
 	//
-	// Requires catalog.teacher-sites.refresh and current school management scope. Audited durable enqueue. Only one queued/running refresh globally; a competing request returns 409. Replay with the same actor, school, key and mode returns the original run; a different mode conflicts. The deadline includes queue time: 45 minutes for incremental and 4 hours for manual full refresh. The monthly scheduler only enqueues incremental work. A timeout preserves the published snapshot.
+	// Requires catalog.teacher-sites.refresh and current school management scope. Audited durable enqueue. Only one queued/running refresh globally; a competing request returns 409. Replay with the same actor, school, key and mode returns the original run; a different mode conflicts. Use the returned deadline_at as the expiry of the specific run, including queue time. The monthly scheduler only enqueues incremental work. A timeout preserves the published snapshot.
 	StartTeacherRefreshWithResponse(ctx context.Context, schoolId string, params *StartTeacherRefreshParams, body StartTeacherRefreshJSONRequestBody, reqEditors ...RequestEditorFn) (*StartTeacherRefreshResponse, error)
 
 	// ListTeacherHomepageReviewSitesWithResponse performs a GET /api/v1/catalog/admin/schools/{school_id}/teacher-sites/review/sites (the `ListTeacherHomepageReviewSites` operationId) request.
@@ -9424,7 +9428,7 @@ func (c *ClientWithResponses) GetTeacherRefreshStatusWithResponse(ctx context.Co
 // StartTeacherRefreshWithBodyWithResponse performs a POST /api/v1/catalog/admin/schools/{school_id}/teacher-sites/refresh (the `StartTeacherRefresh` operationId) request,
 // with any type of body and a specified content type.
 //
-// Requires catalog.teacher-sites.refresh and current school management scope. Audited durable enqueue. Only one queued/running refresh globally; a competing request returns 409. Replay with the same actor, school, key and mode returns the original run; a different mode conflicts. The deadline includes queue time: 45 minutes for incremental and 4 hours for manual full refresh. The monthly scheduler only enqueues incremental work. A timeout preserves the published snapshot.
+// Requires catalog.teacher-sites.refresh and current school management scope. Audited durable enqueue. Only one queued/running refresh globally; a competing request returns 409. Replay with the same actor, school, key and mode returns the original run; a different mode conflicts. Use the returned deadline_at as the expiry of the specific run, including queue time. The monthly scheduler only enqueues incremental work. A timeout preserves the published snapshot.
 //
 // Returns a wrapper object for the known response body format(s).
 func (c *ClientWithResponses) StartTeacherRefreshWithBodyWithResponse(ctx context.Context, schoolId string, params *StartTeacherRefreshParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*StartTeacherRefreshResponse, error) {
@@ -9438,7 +9442,7 @@ func (c *ClientWithResponses) StartTeacherRefreshWithBodyWithResponse(ctx contex
 // StartTeacherRefreshWithResponse performs a POST /api/v1/catalog/admin/schools/{school_id}/teacher-sites/refresh (the `StartTeacherRefresh` operationId) request.
 // Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
 //
-// Requires catalog.teacher-sites.refresh and current school management scope. Audited durable enqueue. Only one queued/running refresh globally; a competing request returns 409. Replay with the same actor, school, key and mode returns the original run; a different mode conflicts. The deadline includes queue time: 45 minutes for incremental and 4 hours for manual full refresh. The monthly scheduler only enqueues incremental work. A timeout preserves the published snapshot.
+// Requires catalog.teacher-sites.refresh and current school management scope. Audited durable enqueue. Only one queued/running refresh globally; a competing request returns 409. Replay with the same actor, school, key and mode returns the original run; a different mode conflicts. Use the returned deadline_at as the expiry of the specific run, including queue time. The monthly scheduler only enqueues incremental work. A timeout preserves the published snapshot.
 func (c *ClientWithResponses) StartTeacherRefreshWithResponse(ctx context.Context, schoolId string, params *StartTeacherRefreshParams, body StartTeacherRefreshJSONRequestBody, reqEditors ...RequestEditorFn) (*StartTeacherRefreshResponse, error) {
 	rsp, err := c.StartTeacherRefresh(ctx, schoolId, params, body, reqEditors...)
 	if err != nil {

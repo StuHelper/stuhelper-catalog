@@ -13,7 +13,10 @@ import (
 
 const (
 	TeacherRefreshTimeout     = 45 * time.Minute
-	teacherFullRefreshTimeout = 4 * time.Hour
+	teacherFullRefreshTimeout = 8 * time.Hour
+
+	// TeacherRefreshMaxRequests bounds reported requests at four per second.
+	TeacherRefreshMaxRequests = int64(teacherFullRefreshTimeout/time.Second) * 4
 )
 
 var TeacherUnmatchedReasons = []string{"catalog_name_absent", "catalog_unit_missing", "site_unit_missing", "unit_mismatch", "ambiguous_catalog", "ambiguous_site"}
@@ -367,7 +370,7 @@ func (s *Service) CompleteTeacherRefresh(ctx context.Context, p Principal, id st
 	if p.Subject == "" || !p.CanImport || !ValidID(id) {
 		return out, ErrForbidden
 	}
-	if !slices.Contains([]string{"", "crawl_failed", "request_failed", "invalid_snapshot", "import_conflict", "dependency_unavailable", "worker_interrupted", "timeout"}, in.FailureReason) || in.Requests != nil && (*in.Requests < 0 || *in.Requests > 100000) || in.SiteCount != nil && (*in.SiteCount < 0 || *in.SiteCount > 20000) {
+	if !slices.Contains([]string{"", "crawl_failed", "request_failed", "invalid_snapshot", "import_conflict", "dependency_unavailable", "worker_interrupted", "timeout"}, in.FailureReason) || in.Requests != nil && (*in.Requests < 0 || *in.Requests > TeacherRefreshMaxRequests) || in.SiteCount != nil && (*in.SiteCount < 0 || *in.SiteCount > 20000) {
 		return out, ErrInput
 	}
 	if in.FailureReason == "" {
