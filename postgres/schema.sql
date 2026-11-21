@@ -28,6 +28,8 @@ CREATE TABLE IF NOT EXISTS catalog.teacher_directory (
 CREATE INDEX IF NOT EXISTS catalog_teacher_directory_school ON catalog.teacher_directory(school_id,teacher_id) WHERE teaching OR official;
 ALTER TABLE catalog.teacher_directory ADD COLUMN IF NOT EXISTS homepage_site_id text NOT NULL DEFAULT '';
 ALTER TABLE catalog.teacher_directory ADD COLUMN IF NOT EXISTS homepage_manual boolean NOT NULL DEFAULT false;
+ALTER TABLE catalog.teacher_directory ADD COLUMN IF NOT EXISTS verified_homepage boolean NOT NULL DEFAULT false;
+ALTER TABLE catalog.teacher_directory ADD COLUMN IF NOT EXISTS verified_homepage_at timestamptz;
 CREATE INDEX IF NOT EXISTS catalog_teacher_directory_homepage ON catalog.teacher_directory(school_id,homepage_site_id) WHERE homepage_site_id<>'' AND official;
 CREATE TABLE IF NOT EXISTS catalog.teacher_site_sources (
  school_id text PRIMARY KEY REFERENCES catalog.objects(id), source_id text NOT NULL,
@@ -231,8 +233,30 @@ CREATE UNIQUE INDEX IF NOT EXISTS catalog_teacher_homepage_decision_teacher
 CREATE TABLE IF NOT EXISTS catalog.teacher_homepage_review_state (
  school_id text PRIMARY KEY REFERENCES catalog.objects(id), revision bigint NOT NULL CHECK(revision>0)
 );
+-- Publication controls follow the directory teacher independently of the
+-- current match and are never replaced by a website snapshot.
+CREATE TABLE IF NOT EXISTS catalog.teacher_homepage_controls (
+ school_id text NOT NULL REFERENCES catalog.objects(id), teacher_id text NOT NULL REFERENCES catalog.objects(id),
+ revision bigint NOT NULL CHECK(revision>0),
+ page_visibility text NOT NULL CHECK(page_visibility IN ('visible','hidden','stopped')),
+ rules jsonb NOT NULL CHECK(jsonb_typeof(rules)='array'), updated_at timestamptz NOT NULL,
+ PRIMARY KEY(school_id,teacher_id)
+);
+CREATE TABLE IF NOT EXISTS catalog.teacher_homepage_allowlists (
+ school_id text PRIMARY KEY REFERENCES catalog.objects(id), revision bigint NOT NULL CHECK(revision>0),
+ fields jsonb NOT NULL CHECK(jsonb_typeof(fields)='array'), updated_at timestamptz NOT NULL
+);
+CREATE TABLE IF NOT EXISTS catalog.teacher_homepage_override_photos (
+ school_id text NOT NULL, teacher_id text NOT NULL, photo_id text NOT NULL CHECK(photo_id ~ '^[0-9a-f]{64}$'),
+ media_type text NOT NULL CHECK(media_type IN ('image/jpeg','image/png')),
+ width integer NOT NULL CHECK(width BETWEEN 1 AND 4096), height integer NOT NULL CHECK(height BETWEEN 1 AND 4096),
+ data bytea NOT NULL CHECK(octet_length(data) BETWEEN 1 AND 2097152),
+ PRIMARY KEY(school_id,teacher_id), CHECK(width*height<=8388608),
+ FOREIGN KEY(school_id,teacher_id) REFERENCES catalog.teacher_homepage_controls(school_id,teacher_id) DEFERRABLE INITIALLY DEFERRED
+);
 REVOKE ALL ON TABLE catalog.teacher_homepage_sites,catalog.teacher_homepage_photos,catalog.teacher_homepage_teachers,
- catalog.teacher_homepage_decisions,catalog.teacher_homepage_review_state FROM PUBLIC;
+ catalog.teacher_homepage_decisions,catalog.teacher_homepage_review_state,catalog.teacher_homepage_controls,
+ catalog.teacher_homepage_allowlists,catalog.teacher_homepage_override_photos FROM PUBLIC;
 -- Versioned public directory. Source objects and private enrollments remain owned
 -- by their existing tables. A head is published only after every projection passes.
 CREATE TABLE IF NOT EXISTS catalog.term_orders (
@@ -253,6 +277,7 @@ CREATE TABLE IF NOT EXISTS catalog.projection_pending (
  school_id text PRIMARY KEY, requested_at timestamptz NOT NULL, updated_at timestamptz NOT NULL
 );
 ALTER TABLE catalog.projection_pending ADD COLUMN IF NOT EXISTS homepage_revoked_ids text[] NOT NULL DEFAULT '{}';
+ALTER TABLE catalog.projection_pending ADD COLUMN IF NOT EXISTS verified_teachers_unavailable_ids text[] NOT NULL DEFAULT '{}';
 CREATE TABLE IF NOT EXISTS catalog.projection_rebuild_runs (
  id text PRIMARY KEY, school_id text NOT NULL,
  status text NOT NULL CHECK(status IN ('queued','running','succeeded','failed','timed_out')),
@@ -277,6 +302,7 @@ CREATE TABLE IF NOT EXISTS catalog.projection_objects (
  teaching boolean NOT NULL DEFAULT false, official boolean NOT NULL DEFAULT false, data jsonb NOT NULL,
  PRIMARY KEY(version,id)
 );
+ALTER TABLE catalog.projection_objects ADD COLUMN IF NOT EXISTS verified_homepage boolean NOT NULL DEFAULT false;
 CREATE INDEX IF NOT EXISTS projection_objects_page ON catalog.projection_objects(version,kind,id) WHERE visible;
 CREATE INDEX IF NOT EXISTS projection_objects_terms ON catalog.projection_objects(version,kind,term_key DESC,id) WHERE visible;
 CREATE INDEX IF NOT EXISTS projection_objects_course ON catalog.projection_objects(version,course_id,kind,id);

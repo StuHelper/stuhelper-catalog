@@ -43,7 +43,7 @@ func teacherHomepagePostgresSnapshot(t *testing.T, s *c.Service, p c.Principal) 
 			Profile: c.TeacherHomepage{
 				Name: name, Email: raw + "@example.org", Phone: "555-0100", OfficeLocation: "Synthetic lab", HireDate: "2023-08",
 				Biography: "Synthetic website biography", Research: "Synthetic research", Discipline: "Synthetic discipline",
-				Fields:   []c.TeacherHomepageField{{Label: "Other", Value: "A field from the website"}},
+				Fields:   []c.TeacherHomepageField{{Label: "学术兼职", Value: "A field from the website"}},
 				Sections: []c.TeacherHomepageSection{{Title: "Publications", Text: "Synthetic publication"}},
 			},
 		}

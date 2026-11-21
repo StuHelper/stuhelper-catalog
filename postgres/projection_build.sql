@@ -1,9 +1,10 @@
-INSERT INTO catalog.projection_objects(version,id,school_id,kind,name,department_id,category_id,nature_id,term_key,official,data)
+INSERT INTO catalog.projection_objects(version,id,school_id,kind,name,department_id,category_id,nature_id,term_key,official,verified_homepage,data)
 SELECT $2,o.id,o.school_id,o.kind,o.name,catalog.canonical(o.department_id),catalog.canonical(o.category_id),catalog.canonical(o.nature_id),
  COALESCE(t.sort_key,0),COALESCE(td.official AND (td.homepage_manual OR (td.matched_name=o.name AND td.matched_department_id=o.department_id)),false),
+ COALESCE(td.verified_homepage,false),
  catalog.public_object(o.data->'object')-'term_order_key'-'latest_term_id'
 FROM catalog.objects o LEFT JOIN catalog.term_orders t ON t.id=o.id AND t.school_id=o.school_id
-LEFT JOIN catalog.teacher_directory td ON td.teacher_id=o.id
+LEFT JOIN catalog.teacher_directory td ON td.teacher_id=o.id AND td.school_id=o.school_id
 WHERE o.school_id=$1 AND o.kind IN('school','department','category','nature','term','course','teacher')
 AND NOT COALESCE((o.data->'object'->>'inactive')::boolean,false)
 AND NOT EXISTS(SELECT 1 FROM catalog.redirects r WHERE r.alias_id=o.id);
@@ -53,7 +54,7 @@ UPDATE catalog.projection_objects te SET teaching=EXISTS(SELECT 1 FROM catalog.p
  WHERE a.version=$2 AND a.kind='assignment' AND a.teacher_id=te.id)
 WHERE te.version=$2 AND te.kind='teacher';
 -- step
-UPDATE catalog.projection_objects SET visible=(teaching OR official) WHERE version=$2 AND kind='teacher';
+UPDATE catalog.projection_objects SET visible=(teaching OR official OR verified_homepage) WHERE version=$2 AND kind='teacher';
 -- step
 INSERT INTO catalog.projection_variants(version,course_id,offering_id,class_id,term_id,term_key,department_id,category_id,nature_id,teacher_ids)
 SELECT $2,tc.course_id,tc.id,COALESCE(cl.id,''),tc.term_id,tc.term_key,

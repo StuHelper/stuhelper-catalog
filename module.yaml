@@ -27,12 +27,18 @@ capabilities:
   - catalog.directory
   - catalog.teacher-sites.read
   - catalog.teacher-sites.refresh
+  - catalog.teacher-sites.requests
 capability_requires:
   catalog.teacher-sites.read:
     - id: identity
       api: 1
   catalog.teacher-sites.refresh:
     - id: identity
+      api: 1
+  catalog.teacher-sites.requests:
+    - id: identity
+      api: 1
+    - id: verification
       api: 1
   catalog.read:
     - id: identity
@@ -111,6 +117,33 @@ scenario_tests:
     - teacher_homepage_postgres_test.go#TestTeacherHomepagePostgresDecisionAtomicity
   CAT-TEACHER-07:
     - teacher_homepage_postgres_test.go#TestTeacherHomepagePostgresRefreshPreservesDecisions
+  CAT-TEACHER-08:
+    - teacher_homepage_render_test.go#TestTeacherHomepagePresentationSuppressesMultilineContactCopies
+    - teacher_homepage_controls_postgres_test.go#TestTeacherHomepageControlsPostgresVisibilityAndRefresh
+    - teacher_homepage_controls_postgres_test.go#TestTeacherHomepageControlsPostgresSchoolAllowlistAndReplacementPhoto
+    - teacher_homepage_photo_upload_test.go#TestValidateTeacherHomepagePhotoUpload
+    - httpapi/teacher_homepage_photo_test.go#TestWriteTeacherHomepagePhotoUsesPrivateSameOriginResponse
+    - teacher_homepage_complaint_test.go#TestTeacherHomepageComplaintHideRevisionAndReplay
+  CAT-TEACHER-09:
+    - teacher_homepage_capacity_postgres_test.go#TestTeacherHomepageControlsPostgresRejectsOverrideCapacity
+    - teacher_homepage_controls_postgres_test.go#TestTeacherHomepageControlsPostgresAuditAndReplay
+    - teacher_homepage_controls_storage_test.go#TestTeacherHomepageControlsPostgresPersistence
+    - teacher_homepage_change_audit_test.go#TestTeacherHomepageAuditRecordsChangesWithoutProfileData
+    - teacher_homepage_change_audit_test.go#TestTeacherHomepageAuditDistinguishesPageAndAllowlistChanges
+    - httpapi/teacher_homepage_body_test.go#TestTeacherHomepageInputSizeAndJSONErrors
+  CAT-TEACHER-10:
+    - teacher_homepage_capacity_postgres_test.go#TestTeacherHomepageRequestsPostgresRejectsApprovalBeyondOverrideCapacity
+    - teacher_homepage_requests_postgres_test.go#TestTeacherHomepageRequestsPostgresAuthorizationAndReview
+    - teacher_homepage_requests_postgres_test.go#TestTeacherHomepageRequestsPostgresSubmissionQuota
+    - teacher_homepage_request_repository_test.go#TestTeacherHomepageRequestRepositoryScopeAndKeyset
+  CAT-TEACHER-11:
+    - teacher_homepage_requests_postgres_test.go#TestTeacherHomepageRequestsPostgresDecisionAndOutboxAtomicity
+    - teacher_homepage_request_notification_test.go#TestTeacherHomepageRequestNotificationUsesOriginalPrivateReceipt
+  CAT-TEACHER-12:
+    - teacher_homepage_requests_postgres_test.go#TestTeacherHomepageRequestsPostgresIndependentPortrait
+    - teacher_homepage_publication_test.go#TestVerifiedTeacherHomepagePublicationCreatesIndependentDirectoryEvidence
+  CAT-TEACHER-13:
+    - teacher_homepage_request_repository_test.go#TestTeacherHomepageRequestRetention
   CAT-SOURCE-01:
     - enrollment_source_test.go#TestOwnSourceRefreshIsAtomicScopedAndDurablyIdempotent
     - source_concurrency_test.go#TestSourceSnapshotCoordinatesWithOrdinaryImport

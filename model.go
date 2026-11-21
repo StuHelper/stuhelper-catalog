@@ -13,6 +13,7 @@ var (
 	ErrNotFound        = errors.New("not_found")
 	ErrForbidden       = errors.New("forbidden")
 	ErrConflict        = errors.New("conflict")
+	ErrRateLimited     = errors.New("rate_limited")
 	ErrUnavailable     = errors.New("unavailable")
 )
 
@@ -159,6 +160,7 @@ type Event struct {
 	ID, Subject, Type, SchoolID, Actor string
 	Revision                           int64
 	Time                               time.Time
+	HomepageChanges                    *TeacherHomepageAuditChanges `json:"homepage_changes,omitempty"`
 }
 type Replay struct {
 	Digest  string

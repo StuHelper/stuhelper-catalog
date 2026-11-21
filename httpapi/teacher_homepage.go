@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/url"
-	"strconv"
 
 	"github.com/StuHelper/stuhelper-catalog"
 )
@@ -26,6 +25,7 @@ func teacherHomepageRequested(r *http.Request) (bool, error) {
 
 func (h Handler) teacherHomepageRoutes(m *http.ServeMux) {
 	const root = "/api/v1/catalog/admin/schools/{school_id}/teacher-sites/review"
+	h.teacherHomepageControlRoutes(m)
 	m.HandleFunc("GET /api/v1/catalog/objects/{id}/teacher-homepage/photos/{photo_id}", h.teacherHomepagePhoto)
 	m.HandleFunc("GET "+root+"/sites", h.teacherHomepageReviewSites)
 	m.HandleFunc("GET "+root+"/teachers", h.teacherHomepageReviewTeachers)
@@ -43,16 +43,7 @@ func (h Handler) teacherHomepagePhoto(w http.ResponseWriter, r *http.Request) {
 		respond(w, nil, err)
 		return
 	}
-	if photo.MediaType != "image/jpeg" && photo.MediaType != "image/png" {
-		respond(w, nil, catalog.ErrUnavailable)
-		return
-	}
-	w.Header().Set("Content-Type", photo.MediaType)
-	w.Header().Set("Content-Length", strconv.Itoa(len(photo.Bytes)))
-	w.WriteHeader(http.StatusOK)
-	if r.Method != http.MethodHead {
-		_, _ = w.Write(photo.Bytes)
-	}
+	writeTeacherHomepagePhoto(w, r, photo)
 }
 
 func teacherHomepageReviewQuery(r *http.Request) (catalog.TeacherReviewQuery, error) {

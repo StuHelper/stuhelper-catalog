@@ -26,7 +26,10 @@ var courseSearchSchema string
 //go:embed activity_calendar.sql
 var activityCalendarSchema string
 
-var Schema = baseSchema + "\n" + courseSearchSchema + "\n" + activityCalendarSchema
+//go:embed teacher_homepage_requests.sql
+var teacherHomepageRequestSchema string
+
+var Schema = baseSchema + "\n" + courseSearchSchema + "\n" + activityCalendarSchema + "\n" + teacherHomepageRequestSchema
 
 type Repository struct {
 	DB *sql.DB
@@ -318,7 +321,7 @@ func (t *transaction) recordAudit(v catalog.Event) error {
 		result = "unknown"
 	}
 	reason := ""
-	if v.Reason == "catalog.merge" || v.Reason == "catalog.state_change" {
+	if v.Reason == "catalog.merge" || v.Reason == "catalog.state_change" || catalog.ValidTeacherHomepageAuditReason(v.Type, v.Reason) {
 		reason = v.Reason
 	}
 	actor, target, action, school := v.Actor, v.Subject, v.Type, v.SchoolID

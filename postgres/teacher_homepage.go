@@ -58,6 +58,17 @@ func (t *transaction) TeacherHomepagePhoto(school, teacherID, photoID string) (c
 	return out, safe(err)
 }
 
+func (t *transaction) TeacherHomepageSourceRevision(school, teacherID string) (string, int64, error) {
+	var siteID string
+	var revision int64
+	err := t.tx.QueryRowContext(t.ctx, `SELECT s.site_id,s.revision`+
+		homepageTeacherFrom()+homepageTeacherWhere(), school, teacherID).Scan(&siteID, &revision)
+	if errors.Is(err, sql.ErrNoRows) {
+		return "", 0, nil
+	}
+	return siteID, revision, safe(err)
+}
+
 func (t *transaction) SetTeacherSiteDecision(school, siteID string, in c.TeacherSiteDecisionInput, at time.Time) (c.TeacherSiteDecision, error) {
 	var (
 		out                   = c.TeacherSiteDecision{SiteID: siteID}
@@ -125,22 +136,28 @@ func (t *transaction) SetTeacherSiteDecision(school, siteID string, in c.Teacher
 func (t *transaction) markHomepageProjectionPending(school string, changed []string) error {
 	// Only these teachers can have lost the evidence used by an in-flight
 	// generation. A later decision can remove its restored IDs from the set.
-	result, err := t.tx.ExecContext(t.ctx, `WITH revoked AS (
- SELECT changed.id FROM unnest($2::text[]) changed(id)
+	result, err := t.tx.ExecContext(t.ctx, `WITH current AS (
+ SELECT changed.id,
+ COALESCE(o.id=catalog.canonical(o.id) AND NOT COALESCE((o.data->'object'->>'inactive')::boolean,false),false) AS active,
+ COALESCE((`+homepageTeacherEvidence("td", "o")+`),false) AS homepage,
+ COALESCE(td.verified_homepage,false) AS independently_approved
+ FROM unnest($2::text[]) changed(id)
  LEFT JOIN catalog.objects o ON o.id=changed.id AND o.school_id=$1
  LEFT JOIN catalog.teacher_directory td ON td.teacher_id=o.id AND td.school_id=$1
- WHERE NOT COALESCE((o.id=catalog.canonical(o.id)
- AND NOT COALESCE((o.data->'object'->>'inactive')::boolean,false)
- AND `+officialTeacherCondition("td", "o")+`),false)
  )
- INSERT INTO catalog.projection_pending AS pending(school_id,requested_at,updated_at,homepage_revoked_ids)
- SELECT $1,clock_timestamp(),clock_timestamp(),ARRAY(SELECT id FROM revoked)
+ INSERT INTO catalog.projection_pending AS pending(school_id,requested_at,updated_at,homepage_revoked_ids,verified_teachers_unavailable_ids)
+ SELECT $1,clock_timestamp(),clock_timestamp(),ARRAY(SELECT id FROM current WHERE NOT(active AND homepage)),
+ ARRAY(SELECT id FROM current WHERE independently_approved AND NOT active)
  WHERE EXISTS(SELECT 1 FROM catalog.projection_heads WHERE school_id=$1)
  ON CONFLICT(school_id) DO UPDATE SET
  updated_at=GREATEST(excluded.updated_at,pending.updated_at + interval '1 microsecond'),
  homepage_revoked_ids=ARRAY(
   SELECT id FROM unnest(pending.homepage_revoked_ids) kept(id) WHERE id<>ALL($2::text[])
   UNION ALL SELECT unnest(excluded.homepage_revoked_ids)
+ ),
+ verified_teachers_unavailable_ids=ARRAY(
+  SELECT id FROM unnest(pending.verified_teachers_unavailable_ids) kept(id) WHERE id<>ALL($2::text[])
+  UNION ALL SELECT unnest(excluded.verified_teachers_unavailable_ids)
  )`, school, changed)
 	if err != nil {
 		return safe(err)

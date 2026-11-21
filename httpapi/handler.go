@@ -30,6 +30,7 @@ func (h Handler) Routes() http.Handler {
 	h.adminReadRoutes(m)
 	h.teacherRefreshRoutes(m)
 	h.teacherHomepageRoutes(m)
+	h.teacherHomepageRequestRoutes(m)
 	m.HandleFunc("GET /api/v1/catalog/filter-options", h.filterOptions)
 	m.HandleFunc("GET /api/v1/catalog/me/references", func(w http.ResponseWriter, r *http.Request) {
 		p, ok := h.principal(w, r)
@@ -135,7 +136,7 @@ func respond(w http.ResponseWriter, v any, e error) {
 		for _, item := range []struct {
 			e error
 			s int
-		}{{catalog.ErrScheduleIncomplete, 422}, {catalog.ErrUnauthenticated, 401}, {catalog.ErrInput, 400}, {catalog.ErrForbidden, 403}, {catalog.ErrNotFound, 404}, {catalog.ErrConflict, 409}} {
+		}{{catalog.ErrScheduleIncomplete, 422}, {catalog.ErrUnauthenticated, 401}, {catalog.ErrInput, 400}, {catalog.ErrForbidden, 403}, {catalog.ErrNotFound, 404}, {catalog.ErrConflict, 409}, {catalog.ErrTeacherHomepageCapacity, 409}, {catalog.ErrRateLimited, 429}} {
 			if errors.Is(e, item.e) {
 				status = item.s
 				code = item.e.Error()

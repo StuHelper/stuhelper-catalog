@@ -12,22 +12,28 @@ import (
 const projectedObjectFrom = ` FROM catalog.projection_heads h
  JOIN catalog.projection_objects o ON o.version=h.version`
 
-// Pending revocations are a small, uncorrelated set. The read and the overlay
-// share a statement snapshot, even for ID/alias lookups across schools.
+// Pending revocations are small, uncorrelated sets shared by the read's
+// statement snapshot. Teaching can replace a lost website match while a
+// deactivated or merged teacher is suppressed regardless of source.
 func projectedVisible(alias string) string {
-	return alias + `.visible AND (` + alias + `.teaching OR ` + alias + `.id NOT IN(
- SELECT unnest(homepage_revoked_ids) FROM catalog.projection_pending WHERE cardinality(homepage_revoked_ids)>0))`
+	return alias + `.visible AND (` + alias + `.kind<>'teacher' OR ((` + alias + `.teaching OR ` + alias + `.id NOT IN(
+ SELECT unnest(homepage_revoked_ids) FROM catalog.projection_pending WHERE cardinality(homepage_revoked_ids)>0))
+ AND ` + alias + `.id NOT IN(SELECT unnest(verified_teachers_unavailable_ids) FROM catalog.projection_pending
+ WHERE cardinality(verified_teachers_unavailable_ids)>0)))`
 }
 
-func (t *transaction) projectionVersionWithHomepageRevocations(school string) (version, decisionRevision int64, err error) {
-	err = t.tx.QueryRowContext(t.ctx, `SELECT h.version,COALESCE(s.revision,0) FROM catalog.projection_heads h
- LEFT JOIN catalog.projection_pending p ON p.school_id=h.school_id AND cardinality(p.homepage_revoked_ids)>0
- LEFT JOIN catalog.teacher_homepage_review_state s ON s.school_id=p.school_id
- WHERE h.school_id=$1`, school).Scan(&version, &decisionRevision)
+func (t *transaction) projectionVersionWithHomepageRevocations(school string) (version, pendingRevision int64, err error) {
+	// Independent eligibility can change before any website review exists.
+	// The pending timestamp versions the overlay and its filter cache.
+	err = t.tx.QueryRowContext(t.ctx, `SELECT h.version,COALESCE((EXTRACT(EPOCH FROM p.updated_at)*1000000)::bigint,0)
+ FROM catalog.projection_heads h
+ LEFT JOIN catalog.projection_pending p ON p.school_id=h.school_id
+ AND cardinality(p.homepage_revoked_ids)+cardinality(p.verified_teachers_unavailable_ids)>0
+ WHERE h.school_id=$1`, school).Scan(&version, &pendingRevision)
 	if err != nil {
 		return 0, 0, c.ErrUnavailable
 	}
-	return version, decisionRevision, nil
+	return version, pendingRevision, nil
 }
 
 func (t *transaction) projectedObject(id string) (c.Object, error) {

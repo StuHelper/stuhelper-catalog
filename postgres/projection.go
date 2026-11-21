@@ -408,7 +408,7 @@ func (t *transaction) validateProjection(school string, out *c.ProjectionReport)
 	var valid bool
 	err = t.tx.QueryRowContext(t.ctx, `SELECT NOT EXISTS(SELECT 1 FROM catalog.projection_objects o WHERE o.version=$1 AND o.visible AND
  ((o.kind='course' AND NOT EXISTS(SELECT 1 FROM catalog.projection_variants v WHERE v.version=$1 AND v.course_id=o.id AND v.offering_id<>''))
- OR (o.kind='teacher' AND NOT(o.teaching OR o.official)))) AND
+ OR (o.kind='teacher' AND NOT(o.teaching OR o.official OR o.verified_homepage)))) AND
  NOT EXISTS(SELECT 1 FROM catalog.projection_variants v WHERE v.version=$1 AND v.offering_id<>'' AND v.term_key<$2)`, out.Version, c.TermOrderKey(out.Policy.CutoffYear, out.Policy.CutoffSeason)).Scan(&valid)
 	if err != nil {
 		return safe(err)
