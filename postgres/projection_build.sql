@@ -1,6 +1,6 @@
 INSERT INTO catalog.projection_objects(version,id,school_id,kind,name,department_id,category_id,nature_id,term_key,official,data)
 SELECT $2,o.id,o.school_id,o.kind,o.name,catalog.canonical(o.department_id),catalog.canonical(o.category_id),catalog.canonical(o.nature_id),
- COALESCE(t.sort_key,0),COALESCE(td.official AND td.matched_name=o.name AND td.matched_department_id=o.department_id,false),
+ COALESCE(t.sort_key,0),COALESCE(td.official AND (td.homepage_manual OR (td.matched_name=o.name AND td.matched_department_id=o.department_id)),false),
  catalog.public_object(o.data->'object')-'term_order_key'-'latest_term_id'
 FROM catalog.objects o LEFT JOIN catalog.term_orders t ON t.id=o.id AND t.school_id=o.school_id
 LEFT JOIN catalog.teacher_directory td ON td.teacher_id=o.id

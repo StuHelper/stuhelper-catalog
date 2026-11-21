@@ -188,6 +188,9 @@ func (t *transaction) Object(id string) (catalog.Record, error) {
 }
 func (t *transaction) SaveObject(r catalog.Record) error {
 	o := r.Object
+	if o.TeacherHomepage != nil || r.Imported.TeacherHomepage != nil {
+		return catalog.ErrInput
+	}
 	if !o.UpdatedAt.IsZero() && o.UpdatedAt.After(t.mutationTime) {
 		t.mutationTime = o.UpdatedAt
 	}

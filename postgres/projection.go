@@ -281,7 +281,7 @@ func (t *transaction) RebuildDirectory(school string, policy *c.DirectoryPolicy,
 		return out, err
 	}
 	for _, kind := range []string{"course", "teacher"} {
-		query, args, e := projectedSelectionQuery(c.DirectoryQuery{Filter: c.Filter{Kind: kind, SchoolID: school}}, out.Version)
+		query, args, e := projectedSelectionQuery(c.DirectoryQuery{Filter: c.Filter{Kind: kind, SchoolID: school}}, out.Version, false)
 		if e != nil {
 			return out, e
 		}

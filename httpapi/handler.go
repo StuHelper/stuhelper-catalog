@@ -29,6 +29,7 @@ func (h Handler) Routes() http.Handler {
 	h.operationRoutes(m)
 	h.adminReadRoutes(m)
 	h.teacherRefreshRoutes(m)
+	h.teacherHomepageRoutes(m)
 	m.HandleFunc("GET /api/v1/catalog/filter-options", h.filterOptions)
 	m.HandleFunc("GET /api/v1/catalog/me/references", func(w http.ResponseWriter, r *http.Request) {
 		p, ok := h.principal(w, r)
@@ -51,12 +52,34 @@ func (h Handler) Routes() http.Handler {
 		if !ok {
 			return
 		}
+		includeHomepage, e := teacherHomepageRequested(r)
+		if e != nil {
+			respond(w, nil, e)
+			return
+		}
+		if includeHomepage {
+			w.Header().Set("Cache-Control", "private, no-store")
+			v, e := h.Service.ReadSummaryWithTeacherHomepage(r.Context(), p, r.PathValue("id"))
+			respond(w, v, e)
+			return
+		}
 		v, e := h.Service.ReadSummary(r.Context(), p, r.PathValue("id"))
 		respond(w, v, e)
 	})
 	m.HandleFunc("GET /api/v1/catalog/objects/{id}", func(w http.ResponseWriter, r *http.Request) {
 		p, ok := h.principal(w, r)
 		if !ok {
+			return
+		}
+		includeHomepage, e := teacherHomepageRequested(r)
+		if e != nil {
+			respond(w, nil, e)
+			return
+		}
+		if includeHomepage {
+			w.Header().Set("Cache-Control", "private, no-store")
+			v, e := h.Service.ReadWithTeacherHomepage(r.Context(), p, r.PathValue("id"))
+			respond(w, v, e)
 			return
 		}
 		v, e := h.Service.Read(r.Context(), p, r.PathValue("id"))

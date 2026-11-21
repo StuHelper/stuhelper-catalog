@@ -75,6 +75,9 @@ func validText(v string, n int) bool {
 var kinds = []string{"school", "department", "category", "nature", "term", "course", "teacher", "term_course", "class", "assignment", "schedule"}
 
 func validateObject(o Object, school string) error {
+	if o.TeacherHomepage != nil {
+		return ErrInput
+	}
 	if !validCourseFields(o) {
 		return ErrInput
 	}

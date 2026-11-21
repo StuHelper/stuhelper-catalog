@@ -220,17 +220,21 @@ func (cache *directoryCache) get(ctx context.Context, key string, revision int64
 	}
 }
 func (t *transaction) directorySelection(q c.DirectoryQuery) (*directorySelection, error) {
-	var revision int64
+	var revision, pendingHomepageRevision int64
 	if t.projectionRead {
 		var err error
-		revision, err = t.projectionVersion(q.SchoolID)
+		if q.Kind == "teacher" {
+			revision, pendingHomepageRevision, err = t.projectionVersionWithHomepageRevocations(q.SchoolID)
+		} else {
+			revision, err = t.projectionVersion(q.SchoolID)
+		}
 		if err != nil {
 			return nil, err
 		}
 	} else if err := t.tx.QueryRowContext(t.ctx, `SELECT revision FROM catalog.directory_revision WHERE singleton`).Scan(&revision); err != nil {
 		return nil, safe(err)
 	}
-	input, err := json.Marshal([]any{q.Kind, q.SchoolID, q.Query, q.DepartmentID, q.DepartmentIDs, q.CategoryID, q.CategoryIDs, q.NatureID, q.TeacherID, q.CreditsMin, q.CreditsMax, t.requireTeacherDirectory, t.projectionRead})
+	input, err := json.Marshal([]any{q.Kind, q.SchoolID, q.Query, q.DepartmentID, q.DepartmentIDs, q.CategoryID, q.CategoryIDs, q.NatureID, q.TeacherID, q.CreditsMin, q.CreditsMax, t.requireTeacherDirectory, t.projectionRead, pendingHomepageRevision})
 	if err != nil {
 		return nil, c.ErrInput
 	}
@@ -241,8 +245,8 @@ func (t *transaction) directorySelection(q c.DirectoryQuery) (*directorySelectio
 		var raw []byte
 		query, args, err := directorySelectionQuery(q)
 		if t.projectionRead {
-			query, args, err = projectedSelectionQuery(q, revision)
-			if unfiltered {
+			query, args, err = projectedSelectionQuery(q, revision, pendingHomepageRevision != 0)
+			if unfiltered && pendingHomepageRevision == 0 {
 				// Older publications stored candidates without their nature memberships.
 				// Recompute them from the same immutable version on the first cache miss.
 				err = t.tx.QueryRowContext(t.ctx, `SELECT CASE WHEN jsonb_array_length(data->'candidates')=0

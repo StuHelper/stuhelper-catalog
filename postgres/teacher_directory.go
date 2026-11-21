@@ -6,16 +6,22 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	c "github.com/StuHelper/stuhelper-catalog"
 	"slices"
 	"time"
+
+	c "github.com/StuHelper/stuhelper-catalog"
 )
 
-// SQL visibility is applied before pagination and aggregation. An official match
-// is invalidated immediately if the matched catalog name or department changes.
+func officialTeacherCondition(directory, object string) string {
+	return directory + `.official AND (` + directory + `.homepage_manual OR (` +
+		directory + `.matched_name=` + object + `.name AND ` + directory + `.matched_department_id=` + object + `.department_id))`
+}
+
+// Automatic matches retain their source identity guard; a manual match uses
+// the catalog identity selected by the school administrator.
 func markedTeacherSQL(alias string) string {
 	return `EXISTS(SELECT 1 FROM catalog.teacher_directory td WHERE td.teacher_id=` + alias + `.id
- AND (td.teaching OR (td.official AND td.matched_name=` + alias + `.name AND td.matched_department_id=` + alias + `.department_id)))`
+ AND (td.teaching OR (` + officialTeacherCondition("td", alias) + `)))`
 }
 
 func (t *transaction) teacherVisibility(alias string) string {
@@ -96,9 +102,10 @@ func (t *transaction) directoryCounts(school string) (c.TeacherDirectoryResult, 
 		return t.projectedMarks(school)
 	}
 	var out c.TeacherDirectoryResult
+	official := officialTeacherCondition("td", "o")
 	err := t.tx.QueryRowContext(t.ctx, `SELECT count(*) FILTER(WHERE td.teaching),
- count(*) FILTER(WHERE td.official AND td.matched_name=o.name AND td.matched_department_id=o.department_id),
- count(*) FILTER(WHERE td.teaching AND td.official AND td.matched_name=o.name AND td.matched_department_id=o.department_id), count(*)
+ count(*) FILTER(WHERE `+official+`),
+ count(*) FILTER(WHERE td.teaching AND `+official+`), count(*)
  FROM catalog.objects o JOIN catalog.teacher_directory td ON td.teacher_id=o.id
  WHERE o.school_id=$1 AND o.kind='teacher' AND NOT EXISTS(SELECT 1 FROM catalog.redirects r WHERE r.alias_id=o.id)
  AND NOT COALESCE((o.data->'object'->>'inactive')::boolean,false) AND `+markedTeacherSQL("o"), school).Scan(&out.Teaching, &out.Official, &out.Both, &out.Eligible)
@@ -137,44 +144,36 @@ type teacherSourceState struct {
 	Digest   string `json:"digest"`
 }
 
-func (t *transaction) teacherCandidateFingerprint(school string) (string, error) {
+func (t *transaction) teacherCandidateFingerprint(school string) (string, int, error) {
 	rows, err := t.tx.QueryContext(t.ctx, `SELECT o.id,o.name,o.department_id,COALESCE(d.name,'') FROM catalog.objects o
  LEFT JOIN catalog.objects d ON d.id=o.department_id AND d.kind='department' AND d.school_id=o.school_id
  WHERE o.school_id=$1 AND o.kind='teacher' AND NOT EXISTS(SELECT 1 FROM catalog.redirects r WHERE r.alias_id=o.id) ORDER BY o.id LIMIT 100001`, school)
 	if err != nil {
-		return "", safe(err)
+		return "", 0, safe(err)
 	}
 	defer rows.Close()
 	candidates := []c.TeacherCandidate{}
 	for rows.Next() {
 		var candidate c.TeacherCandidate
 		if err := rows.Scan(&candidate.ID, &candidate.Name, &candidate.DepartmentID, &candidate.Unit); err != nil {
-			return "", safe(err)
+			return "", 0, safe(err)
 		}
 		candidates = append(candidates, candidate)
 	}
 	if err := rows.Err(); err != nil {
-		return "", safe(err)
+		return "", 0, safe(err)
 	}
 	if len(candidates) > 100000 {
-		return "", c.ErrUnavailable
+		return "", 0, c.ErrUnavailable
 	}
-	return c.TeacherCandidateFingerprint(candidates), nil
+	return c.TeacherCandidateFingerprint(candidates), len(candidates), nil
 }
 
 func (t *transaction) ReplaceTeacherSites(in c.TeacherSiteSnapshot, actor string, at time.Time) (c.TeacherDirectoryResult, error) {
-	if !at.IsZero() && at.After(t.mutationTime) {
-		t.mutationTime = at
-	}
-	if err := t.touchProjection(in.SchoolID); err != nil {
-		return c.TeacherDirectoryResult{}, err
-	}
-	raw, err := json.Marshal(in)
+	digest, err := teacherSiteSnapshotDigest(in)
 	if err != nil {
 		return c.TeacherDirectoryResult{}, c.ErrInput
 	}
-	sum := sha256.Sum256(raw)
-	digest := hex.EncodeToString(sum[:])
 	old, err := read[teacherSourceState](t, `SELECT jsonb_build_object('revision',revision,'digest',digest) FROM catalog.teacher_site_sources WHERE school_id=$1`, in.SchoolID)
 	if err == nil {
 		if in.Revision < old.Revision || in.Revision == old.Revision && digest != old.Digest {
@@ -186,11 +185,17 @@ func (t *transaction) ReplaceTeacherSites(in c.TeacherSiteSnapshot, actor string
 	} else if !errors.Is(err, c.ErrNotFound) {
 		return c.TeacherDirectoryResult{}, err
 	}
-	currentFingerprint, err := t.teacherCandidateFingerprint(in.SchoolID)
+	if at.After(t.mutationTime) {
+		t.mutationTime = at
+	}
+	if err := t.touchProjection(in.SchoolID); err != nil {
+		return c.TeacherDirectoryResult{}, err
+	}
+	currentFingerprint, candidateCount, err := t.teacherCandidateFingerprint(in.SchoolID)
 	if err != nil {
 		return c.TeacherDirectoryResult{}, err
 	}
-	if currentFingerprint != in.CandidateFingerprint {
+	if currentFingerprint != in.CandidateFingerprint || in.Sites != nil && candidateCount != len(in.Teachers) {
 		return c.TeacherDirectoryResult{}, c.ErrConflict
 	}
 	matches, err := json.Marshal(in.Matches)
@@ -207,18 +212,13 @@ func (t *transaction) ReplaceTeacherSites(in c.TeacherSiteSnapshot, actor string
 	if valid != len(in.Matches) {
 		return c.TeacherDirectoryResult{}, c.ErrConflict
 	}
-	// Clear the preceding complete set and set this set within the same transaction.
-	_, err = t.tx.ExecContext(t.ctx, `UPDATE catalog.teacher_directory SET official=false,official_updated_at=$2,updated_at=$2,
- matched_name='',matched_department_id='',homepage_url='' WHERE school_id=$1 AND official`, in.SchoolID, at)
-	if err != nil {
-		return c.TeacherDirectoryResult{}, safe(err)
+	if in.Sites != nil {
+		err = t.replaceTeacherHomepageSnapshot(in, at)
+	} else {
+		err = t.replaceLegacyTeacherSiteMatches(in.SchoolID, string(matches), at)
 	}
-	_, err = t.tx.ExecContext(t.ctx, `INSERT INTO catalog.teacher_directory(teacher_id,school_id,official,matched_name,matched_department_id,homepage_url,official_updated_at,updated_at)
- SELECT teacher_id,$2,true,name,department_id,url,$3,$3 FROM jsonb_to_recordset($1::jsonb) m(teacher_id text,name text,department_id text,url text)
- ON CONFLICT(teacher_id) DO UPDATE SET official=true,matched_name=excluded.matched_name,matched_department_id=excluded.matched_department_id,
- homepage_url=excluded.homepage_url,official_updated_at=excluded.official_updated_at,updated_at=excluded.updated_at`, string(matches), in.SchoolID, at)
 	if err != nil {
-		return c.TeacherDirectoryResult{}, safe(err)
+		return c.TeacherDirectoryResult{}, err
 	}
 	_, err = t.tx.ExecContext(t.ctx, `INSERT INTO catalog.teacher_site_sources(school_id,source_id,revision,digest,observed_at,updated_at)
  VALUES($1,$2,$3,$4,$5,$6) ON CONFLICT(school_id) DO UPDATE SET source_id=excluded.source_id,revision=excluded.revision,digest=excluded.digest,observed_at=excluded.observed_at,updated_at=excluded.updated_at`, in.SchoolID, in.SourceID, in.Revision, digest, in.ObservedAt, at)
@@ -229,11 +229,77 @@ func (t *transaction) ReplaceTeacherSites(in c.TeacherSiteSnapshot, actor string
 		Type: "catalog.teacher-sites.refreshed.v1", SchoolID: in.SchoolID, Actor: actor, Revision: in.Revision, Result: "success", Time: at}); err != nil {
 		return c.TeacherDirectoryResult{}, err
 	}
-	if err := t.syncTeacherDiscoveryAndActivity(in.SchoolID, nil, at); err != nil {
-		return c.TeacherDirectoryResult{}, err
-	}
-	if _, err := t.RebuildPublishedDirectory(in.SchoolID, at); err != nil {
+	if err := t.publishTeacherSiteMarks(in.SchoolID, at); err != nil {
 		return c.TeacherDirectoryResult{}, err
 	}
 	return t.directoryCounts(in.SchoolID)
+}
+
+func teacherSiteSnapshotDigest(in c.TeacherSiteSnapshot) (string, error) {
+	hash := sha256.New()
+	if in.Sites == nil {
+		// Preserve the digest of legacy snapshots to support existing replays.
+		raw, err := json.Marshal(in)
+		if err != nil {
+			return "", err
+		}
+		hash.Write(raw)
+	} else {
+		sites, teachers := in.Sites, in.Teachers
+		in.Sites, in.Teachers = nil, nil
+		encoder := json.NewEncoder(hash)
+		if err := encoder.Encode(in); err != nil {
+			return "", err
+		}
+		if err := encoder.Encode([2]int{len(sites), len(teachers)}); err != nil {
+			return "", err
+		}
+		for _, site := range sites {
+			if err := encoder.Encode(site); err != nil {
+				return "", err
+			}
+		}
+		for _, teacher := range teachers {
+			if err := encoder.Encode(teacher); err != nil {
+				return "", err
+			}
+		}
+	}
+	return hex.EncodeToString(hash.Sum(nil)), nil
+}
+
+func (t *transaction) replaceLegacyTeacherSiteMatches(school, matches string, at time.Time) error {
+	var v2 bool
+	if err := t.tx.QueryRowContext(t.ctx, `SELECT EXISTS(SELECT 1 FROM catalog.teacher_homepage_review_state WHERE school_id=$1)`, school).Scan(&v2); err != nil {
+		return safe(err)
+	}
+	if v2 {
+		return c.ErrConflict
+	}
+	// Clear the preceding complete set and set this set within the same transaction.
+	_, err := t.tx.ExecContext(t.ctx, `UPDATE catalog.teacher_directory SET official=false,official_updated_at=$2,updated_at=$2,
+ matched_name='',matched_department_id='',homepage_url='' WHERE school_id=$1 AND official`, school, at)
+	if err != nil {
+		return safe(err)
+	}
+	_, err = t.tx.ExecContext(t.ctx, `INSERT INTO catalog.teacher_directory(teacher_id,school_id,official,matched_name,matched_department_id,homepage_url,official_updated_at,updated_at)
+ SELECT teacher_id,$2,true,name,department_id,url,$3,$3 FROM jsonb_to_recordset($1::jsonb) m(teacher_id text,name text,department_id text,url text)
+ ON CONFLICT(teacher_id) DO UPDATE SET official=true,matched_name=excluded.matched_name,matched_department_id=excluded.matched_department_id,
+ homepage_url=excluded.homepage_url,official_updated_at=excluded.official_updated_at,updated_at=excluded.updated_at`, matches, school, at)
+	return safe(err)
+}
+
+func (t *transaction) publishTeacherSiteMarks(school string, at time.Time) error {
+	if err := t.syncTeacherDiscoveryAndActivity(school, nil, at); err != nil {
+		return err
+	}
+	report, err := t.RebuildPublishedDirectory(school, at)
+	if err != nil || report == nil {
+		return err
+	}
+	// This complete generation now reflects every decision under the school
+	// lock. Its teacher snapshot replaces the temporary read overlay.
+	_, err = t.tx.ExecContext(t.ctx, `UPDATE catalog.projection_pending SET homepage_revoked_ids='{}'
+ WHERE school_id=$1 AND cardinality(homepage_revoked_ids)>0`, school)
+	return safe(err)
 }

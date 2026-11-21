@@ -25,6 +25,11 @@ func (r *Repository) CheckRuntime(ctx context.Context) error {
  AND has_table_privilege(current_user,'catalog.teacher_refresh_runs','SELECT,INSERT,UPDATE')
  AND has_table_privilege(current_user,'catalog.teacher_unmatched_sites','SELECT,INSERT,DELETE')
  AND has_table_privilege(current_user,'catalog.teacher_unmatched_snapshots','SELECT,INSERT,UPDATE')
+ AND (SELECT bool_and(has_table_privilege(current_user,'catalog.'||name,verb))
+ FROM unnest(ARRAY['teacher_homepage_sites','teacher_homepage_photos','teacher_homepage_teachers','teacher_homepage_decisions','teacher_homepage_review_state']) name
+ CROSS JOIN unnest(ARRAY['SELECT','INSERT','UPDATE']) verb)
+ AND (SELECT bool_and(has_table_privilege(current_user,'catalog.'||name,'DELETE'))
+ FROM unnest(ARRAY['teacher_homepage_sites','teacher_homepage_photos','teacher_homepage_teachers']) name)
  AND has_sequence_privilege(current_user,pg_get_serial_sequence('catalog.teacher_refresh_runs','position'),'USAGE')`).Scan(&ready)
 		if err != nil || !ready {
 			return catalog.ErrUnavailable

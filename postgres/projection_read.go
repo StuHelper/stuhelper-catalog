@@ -11,18 +11,39 @@ import (
 // The caller's current content authorization remains in the catalog Service.
 const projectedObjectFrom = ` FROM catalog.projection_heads h
  JOIN catalog.projection_objects o ON o.version=h.version`
-const projectedDetailVisible = `o.visible`
+
+// Pending revocations are a small, uncorrelated set. The read and the overlay
+// share a statement snapshot, even for ID/alias lookups across schools.
+func projectedVisible(alias string) string {
+	return alias + `.visible AND (` + alias + `.teaching OR ` + alias + `.id NOT IN(
+ SELECT unnest(homepage_revoked_ids) FROM catalog.projection_pending WHERE cardinality(homepage_revoked_ids)>0))`
+}
+
+func (t *transaction) projectionVersionWithHomepageRevocations(school string) (version, decisionRevision int64, err error) {
+	err = t.tx.QueryRowContext(t.ctx, `SELECT h.version,COALESCE(s.revision,0) FROM catalog.projection_heads h
+ LEFT JOIN catalog.projection_pending p ON p.school_id=h.school_id AND cardinality(p.homepage_revoked_ids)>0
+ LEFT JOIN catalog.teacher_homepage_review_state s ON s.school_id=p.school_id
+ WHERE h.school_id=$1`, school).Scan(&version, &decisionRevision)
+	if err != nil {
+		return 0, 0, c.ErrUnavailable
+	}
+	return version, decisionRevision, nil
+}
 
 func (t *transaction) projectedObject(id string) (c.Object, error) {
 	return read[c.Object](t, `SELECT o.data || CASE WHEN o.id<>$1 THEN jsonb_build_object('id',$1,'canonical_id',o.id) ELSE '{}'::jsonb END`+projectedObjectFrom+`
- WHERE o.id=COALESCE((SELECT canonical_id FROM catalog.projection_aliases a WHERE a.version=h.version AND a.alias_id=$1),$1) AND `+projectedDetailVisible, id)
+ WHERE o.id=COALESCE((SELECT canonical_id FROM catalog.projection_aliases a WHERE a.version=h.version AND a.alias_id=$1),$1) AND `+projectedVisible("o"), id)
 }
-func (t *transaction) projectedLookup(ids []string) ([]c.Object, error) {
+func (t *transaction) projectedLookup(ids []string, hidePendingRevocations bool) ([]c.Object, error) {
+	visible := "o.visible"
+	if hidePendingRevocations {
+		visible = projectedVisible("o")
+	}
 	return list[c.Object](t, `SELECT o.data || CASE WHEN o.id<>requested.id THEN jsonb_build_object('id',requested.id,'canonical_id',o.id) ELSE '{}'::jsonb END
  FROM catalog.projection_heads h CROSS JOIN unnest($1::text[]) requested(id)
  LEFT JOIN catalog.projection_aliases a ON a.version=h.version AND a.alias_id=requested.id
  JOIN catalog.projection_objects o ON o.version=h.version AND o.id=COALESCE(a.canonical_id,requested.id)
- WHERE `+projectedDetailVisible+` ORDER BY requested.id`, ids)
+ WHERE `+visible+` ORDER BY requested.id`, ids)
 }
 func (t *transaction) projectedSummary(object c.Object) (c.Summary, error) {
 	return read[c.Summary](t, `SELECT s.data || jsonb_build_object('object',(s.data->'object') ||
@@ -47,6 +68,9 @@ func (t *transaction) projectedList(f c.Filter) ([]c.Object, error) {
 		return `COALESCE((SELECT canonical_id FROM catalog.projection_aliases a WHERE a.version=o.version AND a.alias_id=` + p + `),` + p + `)`
 	}
 	where := []string{"o.visible", "o.kind=" + bind(f.Kind)}
+	if f.Kind == "teacher" {
+		where[0] = projectedVisible("o")
+	}
 	if f.SchoolID != "" {
 		where = append(where, "h.school_id="+bind(f.SchoolID))
 	}

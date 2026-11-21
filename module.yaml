@@ -98,6 +98,16 @@ scenario_tests:
   CAT-TEACHER-03:
     - teacher_directory_test.go#TestTeacherSitesAtomicReplayRevocationAndChangedIdentity
     - teacher_directory_test.go#TestTeacherDirectoryKeepsAuthorizedMaintenanceOfHiddenTeachers
+  CAT-TEACHER-04:
+    - teacher_homepage_postgres_test.go#TestTeacherHomepagePostgresProjectionAndAdmission
+    - teacher_homepage_test.go#TestTeacherHomepageDetailsAndPhotoRequireCurrentAdmission
+  CAT-TEACHER-05:
+    - teacher_homepage_postgres_test.go#TestTeacherHomepagePostgresReviewPaginationAndScope
+    - teacher_homepage_test.go#TestTeacherSiteReviewHTTPRequiresSchoolPermissions
+  CAT-TEACHER-06:
+    - teacher_homepage_postgres_test.go#TestTeacherHomepagePostgresDecisionAtomicity
+  CAT-TEACHER-07:
+    - teacher_homepage_postgres_test.go#TestTeacherHomepagePostgresRefreshPreservesDecisions
   CAT-SOURCE-01:
     - enrollment_source_test.go#TestOwnSourceRefreshIsAtomicScopedAndDurablyIdempotent
     - source_concurrency_test.go#TestSourceSnapshotCoordinatesWithOrdinaryImport

@@ -6,7 +6,7 @@ import (
 	"strings"
 )
 
-func projectedSelectionQuery(q c.DirectoryQuery, version int64) (string, []any, error) {
+func projectedSelectionQuery(q c.DirectoryQuery, version int64, useHomepageRevocations bool) (string, []any, error) {
 	args := []any{version, q.Kind}
 	bind := func(v any) string { args = append(args, v); return fmt.Sprintf("$%d", len(args)) }
 	canonical := func(id string) string {
@@ -18,6 +18,9 @@ func projectedSelectionQuery(q c.DirectoryQuery, version int64) (string, []any, 
 		return `ARRAY(SELECT DISTINCT COALESCE(a.canonical_id,u.id) FROM unnest(` + p + `::text[]) u(id) LEFT JOIN catalog.projection_aliases a ON a.version=$1 AND a.alias_id=u.id)`
 	}
 	baseWhere := []string{"o.version=$1", "o.kind=$2", "o.visible"}
+	if useHomepageRevocations {
+		baseWhere[2] = projectedVisible("o")
+	}
 	if q.Query != "" {
 		p := bind(q.Query)
 		baseWhere = append(baseWhere, `catalog.matches_query(o.data,`+p+`)`)

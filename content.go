@@ -44,21 +44,40 @@ func (s *Service) readScope(ctx context.Context, p Principal, requested string) 
 	return school, nil
 }
 func (s *Service) readObject(ctx context.Context, p Principal, id string) (Object, error) {
+	var out Object
+	err := s.readPublicObject(ctx, p, id, false, func(_ Transaction, object Object) error {
+		out = object
+		return nil
+	})
+	return out, err
+}
+
+func (s *Service) readPublicObject(ctx context.Context, p Principal, id string, consistent bool, read func(Transaction, Object) error) error {
 	school, e := s.readScope(ctx, p, "")
 	if e != nil {
-		return Object{}, e
+		return e
 	}
-	object, e := s.Get(ctx, id)
-	if e != nil {
-		return Object{}, e
+	if !ValidID(id) {
+		return ErrInput
 	}
-	if teachingDetail(object.Kind) || object.Inactive {
-		return Object{}, ErrNotFound
-	}
-	if object.SchoolID != school {
-		return Object{}, ErrForbidden
-	}
-	return object, nil
+	return s.Repo.Transaction(ctx, func(t Transaction) error {
+		if port, ok := t.(TeacherRefreshTransaction); consistent && ok {
+			if err := port.BeginTeacherRefreshSnapshot(); err != nil {
+				return err
+			}
+		}
+		object, err := t.PublicObject(id)
+		if err != nil {
+			return err
+		}
+		if teachingDetail(object.Kind) || object.Inactive {
+			return ErrNotFound
+		}
+		if object.SchoolID != school {
+			return ErrForbidden
+		}
+		return read(t, object)
+	})
 }
 func (s *Service) ReadList(ctx context.Context, p Principal, f Filter) (Page, error) {
 	start := time.Now()
@@ -107,12 +126,48 @@ func (s *Service) Read(ctx context.Context, p Principal, id string) (Object, err
 	s.recordRecentCourse(ctx, p, object)
 	return object, nil
 }
-func (s *Service) ReadSummary(ctx context.Context, p Principal, id string) (PublicSummary, error) {
-	object, e := s.readObject(ctx, p, id)
-	if e != nil {
-		return PublicSummary{}, e
+
+func (s *Service) ReadWithTeacherHomepage(ctx context.Context, p Principal, id string) (Object, error) {
+	var out Object
+	err := s.readPublicObject(ctx, p, id, true, func(t Transaction, object Object) error {
+		if err := attachTeacherHomepage(t, &object); err != nil {
+			return err
+		}
+		out = object
+		return nil
+	})
+	if err != nil {
+		return Object{}, err
 	}
-	summary, e := s.Summary(ctx, id)
+	s.recordView(ctx, p, out)
+	s.recordRecentCourse(ctx, p, out)
+	return out, nil
+}
+
+func (s *Service) ReadSummary(ctx context.Context, p Principal, id string) (PublicSummary, error) {
+	return s.readSummary(ctx, p, id, false)
+}
+
+func (s *Service) ReadSummaryWithTeacherHomepage(ctx context.Context, p Principal, id string) (PublicSummary, error) {
+	return s.readSummary(ctx, p, id, true)
+}
+
+func (s *Service) readSummary(ctx context.Context, p Principal, id string, homepage bool) (PublicSummary, error) {
+	var summary Summary
+	e := s.readPublicObject(ctx, p, id, homepage, func(t Transaction, object Object) error {
+		if object.Kind != "course" && object.Kind != "teacher" {
+			return ErrInput
+		}
+		var err error
+		summary, err = t.Summary(object)
+		if err != nil {
+			return err
+		}
+		if homepage {
+			return attachTeacherHomepage(t, &summary.Object)
+		}
+		return nil
+	})
 	if e != nil {
 		return PublicSummary{}, e
 	}
@@ -120,8 +175,8 @@ func (s *Service) ReadSummary(ctx context.Context, p Principal, id string) (Publ
 	if dept != nil && dept.Inactive {
 		dept = nil
 	}
-	s.recordView(ctx, p, object)
-	s.recordRecentCourse(ctx, p, object)
+	s.recordView(ctx, p, summary.Object)
+	s.recordRecentCourse(ctx, p, summary.Object)
 	courses := summary.Courses
 	if courses == nil {
 		courses = []Reference{}

@@ -15,7 +15,16 @@ func (t *transaction) FilterOptions(kind, school string) (c.FilterOptions, error
 		return out, safe(err)
 	}
 	if t.projectionRead {
-		return t.projectedFilterOptions(kind, school)
+		if kind != "teacher" {
+			return t.projectedFilterOptions(kind, school)
+		}
+		_, pending, err := t.projectionVersionWithHomepageRevocations(school)
+		if err != nil {
+			return out, err
+		}
+		if pending == 0 {
+			return t.projectedFilterOptions(kind, school)
+		}
 	}
 	selection, err := t.directorySelection(c.DirectoryQuery{Filter: c.Filter{Kind: kind, SchoolID: school}})
 	if err != nil {
