@@ -205,7 +205,7 @@ func (t *transaction) Directory(q c.DirectoryQuery, cursor c.DirectoryPosition, 
 	return out, nil
 }
 func (t *transaction) directoryViews(kind, school string, from, until time.Time) (map[string]int64, error) {
-	rows, err := t.tx.QueryContext(t.ctx, `SELECT target_id,sum(first_count) FROM catalog.activity_buckets WHERE school_id=$1 AND kind=$2 AND day>=$3 AND day<$4 AND visible GROUP BY target_id LIMIT 100001`, school, kind, from, until)
+	rows, err := t.tx.QueryContext(t.ctx, `SELECT target_id,sum(first_count) FROM catalog.activity_buckets WHERE school_id=$1 AND kind=$2 AND day>=$3 AND day<$4 AND visible GROUP BY target_id LIMIT 100001`, school, kind, c.ActivityDate(from).Format(time.DateOnly), c.ActivityDate(until).Format(time.DateOnly))
 	if err != nil {
 		return nil, safe(err)
 	}

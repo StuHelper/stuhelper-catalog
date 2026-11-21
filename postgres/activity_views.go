@@ -54,37 +54,29 @@ func (t *transaction) RecordView(actor string, o m.Object, at time.Time) (bool, 
 	if current.Inactive || current.CanonicalID != "" || current.ID != o.ID || current.Kind != o.Kind || current.SchoolID != o.SchoolID || (o.Kind != "course" && o.Kind != "teacher") {
 		return false, m.ErrForbidden
 	}
-	day := at.UTC().Truncate(24 * time.Hour)
-	var before, legacyUntil time.Time
+	day := m.ActivityDate(at)
+	date := day.Format(time.DateOnly)
+	var before time.Time
 	if _, e = t.tx.ExecContext(t.ctx, `SELECT pg_advisory_xact_lock_shared(hashtextextended('catalog:view-retention',0))`); e != nil {
 		return false, safe(e)
 	}
-	if e = t.tx.QueryRowContext(t.ctx, `SELECT before_day,legacy_until_day FROM catalog.view_retention WHERE singleton`).Scan(&before, &legacyUntil); e != nil {
+	if e = t.tx.QueryRowContext(t.ctx, `SELECT before_day FROM catalog.view_retention WHERE singleton`).Scan(&before); e != nil {
 		return false, safe(e)
 	}
-	if day.Before(before) {
+	if day.Before(m.ActivityDate(before)) {
 		return false, m.ErrInput
 	}
-	secret, e := t.viewDayKey(day)
+	secret, e := t.viewDayKey(date)
 	if e != nil {
 		return false, e
 	}
 	defer clear(secret)
-	raw, _ := json.Marshal([]string{"catalog.view.v2", day.Format(time.DateOnly), actor, o.Kind, o.ID})
+	// UTC tokens cannot determine whether the view belongs to this Beijing date.
+	raw, _ := json.Marshal([]string{"catalog.view.v3", date, actor, o.Kind, o.ID})
 	mac := hmac.New(sha256.New, secret)
 	_, _ = mac.Write(raw)
 	key := fmt.Sprintf("%x", mac.Sum(nil))
-	// During the upgrade day, preserve deduplication for a view recorded by the
-	// preceding binary. No new legacy tokens are written.
-	legacySeen := false
-	if !day.After(legacyUntil) {
-		legacy, _ := json.Marshal([]string{"catalog.view.v1", actor, o.Kind, o.ID})
-		legacyKey := fmt.Sprintf("%x", sha256.Sum256(legacy))
-		if e = t.tx.QueryRowContext(t.ctx, `SELECT EXISTS(SELECT 1 FROM catalog.view_dedup WHERE digest=$1 AND day=$2)`, legacyKey, day).Scan(&legacySeen); e != nil {
-			return false, safe(e)
-		}
-	}
-	result, e := t.tx.ExecContext(t.ctx, `INSERT INTO catalog.view_dedup(digest,day) VALUES($1,$2) ON CONFLICT DO NOTHING`, key, day)
+	result, e := t.tx.ExecContext(t.ctx, `INSERT INTO catalog.view_dedup(digest,day) VALUES($1,$2) ON CONFLICT DO NOTHING`, key, date)
 	if e != nil {
 		return false, safe(e)
 	}
@@ -92,19 +84,19 @@ func (t *transaction) RecordView(actor string, o m.Object, at time.Time) (bool, 
 	if e != nil {
 		return false, safe(e)
 	}
-	if n == 0 || legacySeen {
+	if n == 0 {
 		return false, nil
 	}
 	e = t.changeActivity(o.Kind, o.ID, o.SchoolID, day, 1, 0, nil, at)
 	return e == nil, e
 }
 
-// Keep only the current UTC day's opaque tokens. Cleaning never changes counts.
+// Keep only the current Beijing day's opaque tokens. Cleaning never changes counts.
 func (r *Repository) PruneViewDedup(ctx context.Context, now time.Time, limit int) (int64, error) {
 	if now.IsZero() || limit < 1 || limit > 1000 {
 		return 0, m.ErrInput
 	}
-	before := now.UTC().Truncate(24 * time.Hour)
+	before := m.ActivityDate(now).Format(time.DateOnly)
 	tx, e := r.DB.BeginTx(ctx, nil)
 	if e != nil {
 		return 0, safe(e)
@@ -127,7 +119,7 @@ func (r *Repository) PruneViewDedup(ctx context.Context, now time.Time, limit in
 	return n, safe(tx.Commit())
 }
 
-func (t *transaction) viewDayKey(day time.Time) ([]byte, error) {
+func (t *transaction) viewDayKey(day string) ([]byte, error) {
 	var key []byte
 	err := t.tx.QueryRowContext(t.ctx, `SELECT key FROM catalog.view_day_keys WHERE day=$1`, day).Scan(&key)
 	if errors.Is(err, sql.ErrNoRows) {
@@ -155,7 +147,7 @@ func (r *Repository) PruneViewKeys(ctx context.Context, now time.Time, limit int
 	if now.IsZero() || limit < 1 || limit > 1000 {
 		return 0, m.ErrInput
 	}
-	result, err := r.DB.ExecContext(ctx, `DELETE FROM catalog.view_day_keys WHERE day IN (SELECT day FROM catalog.view_day_keys WHERE day<$1 ORDER BY day LIMIT $2)`, now.UTC().Truncate(24*time.Hour), limit)
+	result, err := r.DB.ExecContext(ctx, `DELETE FROM catalog.view_day_keys WHERE day IN (SELECT day FROM catalog.view_day_keys WHERE day<$1 ORDER BY day LIMIT $2)`, m.ActivityDate(now).Format(time.DateOnly), limit)
 	if err != nil {
 		return 0, safe(err)
 	}

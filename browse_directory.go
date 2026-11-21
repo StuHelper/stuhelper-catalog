@@ -50,6 +50,7 @@ type DirectoryMetric struct {
 	Dimensions     [5]DirectoryBand `json:"dimensions"`
 }
 type DirectoryMetricProvider interface {
+	// Metrics receives inclusive and exclusive boundaries at Beijing midnight.
 	Metrics(context.Context, Principal, string, string, time.Time, time.Time) ([]DirectoryMetric, error)
 }
 type DirectoryItem struct {
@@ -76,9 +77,11 @@ type DirectoryPage struct {
 	DepartmentFacets []DirectoryFacet `json:"department_facets"`
 	NatureFacets     []DirectoryFacet `json:"nature_facets"`
 	GeneratedAt      time.Time        `json:"generated_at"`
+	WindowDays       int              `json:"window_days"`
 }
 type DirectoryPosition struct {
 	Version        int64   `json:"version,omitempty"`
+	WindowStart    string  `json:"window_start,omitempty"`
 	Scope          string  `json:"scope"`
 	ID             string  `json:"id"`
 	Name           string  `json:"name"`
@@ -209,6 +212,11 @@ func (s *Service) ReadDirectory(ctx context.Context, p Principal, q DirectoryQue
 	if config.Validate() != nil || s.DirectoryMetrics == nil {
 		return out, ErrUnavailable
 	}
+	from, until := ActivityWindow(out.GeneratedAt, config.WindowDays)
+	windowStart := ""
+	if q.Sort != "name" {
+		windowStart = from.Format(time.DateOnly)
+	}
 	scope := directoryScope(p, q, config)
 	position := DirectoryPosition{}
 	if q.After != "" {
@@ -217,9 +225,10 @@ func (s *Service) ReadDirectory(ctx context.Context, p Principal, q DirectoryQue
 			!validText(position.Name, 256) || position.Heat < 0 || math.IsNaN(position.Heat) || math.IsInf(position.Heat, 0) || position.Reviews < 0 || position.Recommendation < 0 || position.Recommendation > 4 {
 			return out, ErrInput
 		}
+		if position.WindowStart != windowStart {
+			return out, ErrConflict
+		}
 	}
-	until := out.GeneratedAt.UTC().Truncate(24 * time.Hour).Add(24 * time.Hour)
-	from := until.AddDate(0, 0, -config.WindowDays)
 	callCtx, cancel := context.WithTimeout(ctx, 3*time.Second)
 	defer cancel()
 	metrics, err := s.DirectoryMetrics.Metrics(callCtx, p, school, q.Kind, from, until)
@@ -261,7 +270,7 @@ func (s *Service) ReadDirectory(ctx context.Context, p Principal, q DirectoryQue
 	if len(result.Rows) > q.Limit {
 		result.Rows = result.Rows[:q.Limit]
 		last := result.Rows[len(result.Rows)-1]
-		position = DirectoryPosition{Version: result.Version, Scope: scope, ID: last.Item.Object.ID, Name: last.Item.Object.Name, Heat: last.Item.Heat, Reviews: last.Item.ReviewCount, Recommendation: last.Rank}
+		position = DirectoryPosition{Version: result.Version, WindowStart: windowStart, Scope: scope, ID: last.Item.Object.ID, Name: last.Item.Object.Name, Heat: last.Item.Heat, Reviews: last.Item.ReviewCount, Recommendation: last.Rank}
 		encoded, err := json.Marshal(position)
 		if err != nil {
 			return DirectoryPage{}, ErrUnavailable
@@ -272,5 +281,6 @@ func (s *Service) ReadDirectory(ctx context.Context, p Principal, q DirectoryQue
 		out.Items = append(out.Items, row.Item)
 	}
 	out.Total, out.FacetTotal, out.CategoryFacets, out.DepartmentFacets, out.NatureFacets = result.Total, result.FacetTotal, result.CategoryFacets, result.DepartmentFacets, result.NatureFacets
+	out.WindowDays = config.WindowDays
 	return out, nil
 }

@@ -23,7 +23,10 @@ var baseSchema string
 //go:embed course_search.sql
 var courseSearchSchema string
 
-var Schema = baseSchema + "\n" + courseSearchSchema
+//go:embed activity_calendar.sql
+var activityCalendarSchema string
+
+var Schema = baseSchema + "\n" + courseSearchSchema + "\n" + activityCalendarSchema
 
 type Repository struct {
 	DB *sql.DB
