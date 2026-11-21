@@ -28,7 +28,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** @description Requires current content admission in the served school: valid campus eligibility or verified teacher status. Missing admission returns 403; unavailable required facts return 503. No preview, content, counts or statistics are returned on rejection. 教师公开查询由服务端目录标记过滤：有授课记录或已匹配官网名单即可保留。列表、详情、批量查询、筛选选项及计数使用相同依据。未标记的教师详情返回 not_found。 Courses outside the current visible directory projection return not_found, including direct links. 普通目录仅提供学校、院系、分类、性质、学期、课程和教师；term_course、class、assignment、schedule 仅供管理端或受信服务使用。 教师详情可选择附带当前匹配官网资料。教师院系与职称仍取目录字段。 */
+        /** @description Requires current content admission in the served school: valid campus eligibility or verified teacher status. Missing admission returns 403; unavailable required facts return 503. No preview, content, counts or statistics are returned on rejection. 教师公开查询由服务端目录标记过滤：具有有效授课、官网匹配或经核实的独立主页资料任一依据即可保留。列表、详情、批量查询、筛选选项及计数使用相同依据。未标记的教师详情返回 not_found。 Courses outside the current visible directory projection return not_found, including direct links. 普通目录仅提供学校、院系、分类、性质、学期、课程和教师；term_course、class、assignment、schedule 仅供管理端或受信服务使用。 教师详情可选择附带可展示的主页资料。教师院系与职称仍取目录字段。 */
         get: operations["getObject"];
         put?: never;
         post?: never;
@@ -79,7 +79,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** @description Requires current content admission in the served school: valid campus eligibility or verified teacher status. Missing admission returns 403; unavailable required facts return 503. No preview, content, counts or statistics are returned on rejection. 教师公开查询由服务端目录标记过滤：有授课记录或已匹配官网名单即可保留。列表、详情、批量查询、筛选选项及计数使用相同依据。未标记的教师详情返回 not_found。 普通目录仅提供学校、院系、分类、性质、学期、课程和教师；term_course、class、assignment、schedule 仅供管理端或受信服务使用。 教学班相关 ID 与未知 ID 一样列入 missing_ids，不返回其对象。混合查询仍返回其余可见课程和教师。 */
+        /** @description Requires current content admission in the served school: valid campus eligibility or verified teacher status. Missing admission returns 403; unavailable required facts return 503. No preview, content, counts or statistics are returned on rejection. 教师公开查询由服务端目录标记过滤：具有有效授课、官网匹配或经核实的独立主页资料任一依据即可保留。列表、详情、批量查询、筛选选项及计数使用相同依据。未标记的教师详情返回 not_found。 普通目录仅提供学校、院系、分类、性质、学期、课程和教师；term_course、class、assignment、schedule 仅供管理端或受信服务使用。 教学班相关 ID 与未知 ID 一样列入 missing_ids，不返回其对象。混合查询仍返回其余可见课程和教师。 */
         get: operations["lookupObjects"];
         put?: never;
         post?: never;
@@ -96,7 +96,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** @description Requires current content admission in the served school: valid campus eligibility or verified teacher status. Missing admission returns 403; unavailable required facts return 503. No preview, content, counts or statistics are returned on rejection. 教师公开查询由服务端目录标记过滤：有授课记录或已匹配官网名单即可保留。列表、详情、批量查询、筛选选项及计数使用相同依据。未标记的教师详情返回 not_found。 Courses outside the current visible directory projection return not_found, including direct links. 普通目录仅提供学校、院系、分类、性质、学期、课程和教师；term_course、class、assignment、schedule 仅供管理端或受信服务使用。 include_teacher_homepage 参数仅作用于摘要主对象 object。 */
+        /** @description Requires current content admission in the served school: valid campus eligibility or verified teacher status. Missing admission returns 403; unavailable required facts return 503. No preview, content, counts or statistics are returned on rejection. 教师公开查询由服务端目录标记过滤：具有有效授课、官网匹配或经核实的独立主页资料任一依据即可保留。列表、详情、批量查询、筛选选项及计数使用相同依据。未标记的教师详情返回 not_found。 Courses outside the current visible directory projection return not_found, including direct links. 普通目录仅提供学校、院系、分类、性质、学期、课程和教师；term_course、class、assignment、schedule 仅供管理端或受信服务使用。 include_teacher_homepage 参数仅作用于摘要主对象 object。 */
         get: operations["getObjectSummary"];
         put?: never;
         post?: never;
@@ -193,7 +193,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** @description Requires current content admission in the served school: valid campus eligibility or verified teacher status. Missing admission returns 403; unavailable required facts return 503. No preview, content, counts or statistics are returned on rejection. 教师公开查询由服务端目录标记过滤：有授课记录或已匹配官网名单即可保留。列表、详情、批量查询、筛选选项及计数使用相同依据。未标记的教师详情返回 not_found。 普通目录仅提供学校、院系、分类、性质、学期、课程和教师；term_course、class、assignment、schedule 仅供管理端或受信服务使用。 */
+        /** @description Requires current content admission in the served school: valid campus eligibility or verified teacher status. Missing admission returns 403; unavailable required facts return 503. No preview, content, counts or statistics are returned on rejection. 教师公开查询由服务端目录标记过滤：具有有效授课、官网匹配或经核实的独立主页资料任一依据即可保留。列表、详情、批量查询、筛选选项及计数使用相同依据。未标记的教师详情返回 not_found。 普通目录仅提供学校、院系、分类、性质、学期、课程和教师；term_course、class、assignment、schedule 仅供管理端或受信服务使用。 */
         get: operations["resolveObject"];
         put?: never;
         post?: never;
@@ -581,6 +581,179 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/catalog/admin/schools/{school_id}/teacher-sites/teachers/{teacher_id}/homepage": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description 要求 catalog.maintain 和当前学校管理范围。返回当前采集资料及人工控制，供管理员分别核对来源与显示设置。未匹配或当前来源不可用时省略 source。禁止缓存。 */
+        get: operations["getTeacherHomepageControls"];
+        /** @description 要求 catalog.maintain 和当前学校管理范围。以请求中完整的人工设置替换旧设置。剔除头像字节后的设置最多 1 MiB。控制、审计和幂等回执同一事务提交。首次修改时使用修订 0。相同操作者、学校、幂等键和请求重放返回原结果。 */
+        put: operations["setTeacherHomepageControls"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/catalog/objects/{id}/teacher-homepage": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description 沿用教师目录的当前内容准入和学校范围。profile 为应用字段白名单、人工覆盖与隐藏设置后的纯文本投影。当前公开教师可展示已审批的独立资料。无可展示资料、整页隐藏或已停止展示时返回空对象。禁止缓存。 */
+        get: operations["getTeacherHomepage"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/catalog/admin/schools/{school_id}/teacher-sites/homepage-counts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description 要求 catalog.maintain 和当前学校管理范围。已核实人工资料单列统计，不计为官网匹配。三种依据可重叠，eligible 为并集。统计读取当前资料和已选定的授课截止条件，批准引入的新教师在下一代目录投影发布后进入公开列表。禁止缓存。 */
+        get: operations["getTeacherHomepageCounts"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/catalog/admin/schools/{school_id}/teacher-sites/allowlist": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description 要求 catalog.maintain 和当前学校管理范围。读取该校教师主页的采集字段白名单。禁止缓存。 */
+        get: operations["getTeacherHomepageAllowlist"];
+        /** @description 要求 catalog.maintain 和当前学校管理范围。替换完整采集字段白名单，并在同一事务保存修订、审计及幂等回执。管理员明确保存的覆盖值拥有独立的展示权限。隐藏与停止展示优先。 */
+        put: operations["setTeacherHomepageAllowlist"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/catalog/objects/{id}/teacher-homepage/requests": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description 按提交账号读取该目录教师的申请，同时复核当前有效教师认证和教师目录关联。查询范围与本人可访问的教师目录对象一致。禁止缓存。 */
+        get: operations["listMyTeacherHomepageRequests"];
+        put?: never;
+        /** @description 仅当前通过教师认证、并已关联该学校和目录教师的账号可提交。提交后进入管理员队列，处理结果通过站内通知告知本人。不含头像字节的申请正文最多 1 MiB。同一账号每分钟最多提交十条新申请。相同账号、教师、幂等键和请求重放返回原结果。 */
+        post: operations["submitTeacherHomepageRequest"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/catalog/me/teacher-homepage/requests/{request_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description 按提交账号读取申请详情，并复核有效教师认证与目录教师关联。供站内通知直达。其他账号请求同一标识时返回 404。禁止缓存。 */
+        get: operations["getMyTeacherHomepageRequest"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/catalog/admin/schools/{school_id}/teacher-sites/requests": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description 要求 catalog.maintain 和当前学校管理范围。按学校、状态和可选教师筛选，使用稳定顺序和游标分页。禁止缓存。 */
+        get: operations["listTeacherHomepageRequests"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/catalog/admin/schools/{school_id}/teacher-sites/requests/{request_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description 要求 catalog.maintain 和当前学校管理范围。读取本校申请的原始提案和处理结果。禁止缓存。 */
+        get: operations["getTeacherHomepageRequest"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/catalog/admin/schools/{school_id}/teacher-sites/requests/{request_id}/decision": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** @description 要求 catalog.maintain 和当前学校管理范围。批准时应用申请对应字段修改或隐藏。发布新值前重新核对申请人的有效教师归属。状态、显示规则、审计、通知事件和幂等回执在同一事务提交。相同操作者、学校、幂等键和请求重放返回原结果。 */
+        put: operations["resolveTeacherHomepageRequest"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/catalog/admin/schools/{school_id}/teacher-sites/requests/{request_id}/photo": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description 要求 catalog.maintain 和当前学校管理范围。管理员在审核时仅可读取该校申请携带的已验证头像。禁止缓存。 */
+        get: operations["getTeacherHomepageRequestPhoto"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -634,7 +807,7 @@ export interface components {
             former_names?: string[];
             /** @description 当前课程主档的学时；未知时省略或为 null，0 表示已确认的零学时。 */
             hours?: number | null;
-            /** @description 派生的响应字段。教师详情和摘要主对象在请求 include_teacher_homepage=true 且存在当前有效匹配资料时返回。 */
+            /** @description 派生的响应字段。教师详情和摘要主对象在请求 include_teacher_homepage=true 且姓名和资料可展示时返回。 */
             readonly teacher_homepage?: components["schemas"]["TeacherHomepage"];
         } | null;
         Object: {
@@ -683,7 +856,7 @@ export interface components {
             former_names?: string[];
             /** @description 当前课程主档的学时；未知时省略或为 null，0 表示已确认的零学时。 */
             hours?: number | null;
-            /** @description 派生的响应字段。教师详情和摘要主对象在请求 include_teacher_homepage=true 且存在当前有效匹配资料时返回。 */
+            /** @description 派生的响应字段。教师详情和摘要主对象在请求 include_teacher_homepage=true 且姓名和资料可展示时返回。 */
             readonly teacher_homepage?: components["schemas"]["TeacherHomepage"];
         };
         Page: {
@@ -1387,6 +1560,245 @@ export interface components {
             /** @description 下一页游标，末页为空字符串。 */
             next: string;
         };
+        TeacherHomepageFieldSelector: {
+            /**
+             * @description 教师主页字段。page 专用于本人申请隐藏整页。TeacherHomepage.name 表示官网姓名。目录姓名、院系与职称由教务对象维护。
+             * @enum {string}
+             */
+            field: "name" | "position" | "education" | "degree" | "discipline" | "supervisors" | "email" | "phone" | "office_location" | "hire_date" | "biography" | "research" | "fields" | "sections" | "photo" | "page";
+            /** @description 仅 fields 或 sections 可使用。匹配 fields 标签或 sections 标题；省略时操作整组。相同标签或标题的重复值一起处理。 */
+            label?: string;
+        };
+        TeacherHomepageCounts: {
+            /**
+             * Format: int64
+             * @description 由授课事实获得目录展示资格的教师数。
+             */
+            teaching: number;
+            /**
+             * Format: int64
+             * @description 由有效官网匹配获得目录展示资格的教师数。
+             */
+            official: number;
+            /**
+             * Format: int64
+             * @description 同时具有授课及有效官网匹配依据的教师数。
+             */
+            both: number;
+            /**
+             * Format: int64
+             * @description 具有至少一项资格的目录教师数，每位教师只计一次。
+             */
+            eligible: number;
+            /**
+             * Format: int64
+             * @description 具有经核实、已批准的独立主页资料依据的教师数。与授课或官网依据可重叠。允许隐藏主页资料而保留此项资格。
+             */
+            verified_homepage: number;
+        };
+        TeacherHomepageAllowlist: {
+            /** Format: int64 */
+            revision: number;
+            /** @description 获准展示的唯一采集字段选择器。学校可显式保存空名单。动态 fields 或 sections 只列附明确 label 的单项。 */
+            fields: components["schemas"]["TeacherHomepageFieldSelector"][];
+        };
+        TeacherHomepageAllowlistInput: {
+            /** Format: int64 */
+            expected_revision: number;
+            /** @description 完整名单。拒绝 page、重复选择器，以及缺少明确标签的动态 fields 或 sections 条目。 */
+            fields: components["schemas"]["TeacherHomepageFieldSelector"][];
+        };
+        /** @description 只返回与所选字段类型对应的一种值。文本均按纯文本显示。photo 返回已验证图片元数据。 */
+        TeacherHomepageFieldValue: {
+            /** @description 用于固定文本字段或指定标签的通用字段、栏目。name 最多 256 字符；biography 和 research 最多 16000 字符；其余固定文本字段最多 512 字符；通用字段值最多 1024，栏目正文最多 16000 字符。 */
+            text?: string;
+            /** @description 导师类别完整列表。显式空数组清空。 */
+            supervisors?: components["schemas"]["TeacherHomepageSupervisor"][];
+            /** @description 通用字段完整列表。显式空数组清空。 */
+            fields?: components["schemas"]["TeacherHomepageField"][];
+            /** @description 栏目完整列表。显式空数组清空。 */
+            sections?: components["schemas"]["TeacherHomepageSection"][];
+            photo?: components["schemas"]["TeacherHomepagePortrait"];
+        };
+        TeacherHomepageFieldRule: {
+            field: components["schemas"]["TeacherHomepageFieldSelector"];
+            /** @description true 隐藏该字段。隐藏优先于覆盖，保留覆盖值供恢复时使用。 */
+            hidden: boolean;
+            override?: components["schemas"]["TeacherHomepageFieldValue"];
+        };
+        TeacherHomepageControls: {
+            /** Format: int64 */
+            revision: number;
+            /**
+             * @description visible 允许按字段展示。hidden 隐藏整组教师主页资料。stopped 标记停止展示。隐藏与停止展示时均收回资料和照片访问，并持久保留字段设置。
+             * @enum {string}
+             */
+            page_visibility: "visible" | "hidden" | "stopped";
+            /** @description 当前教师存在经本人申请及管理员批准的独立主页资料。 */
+            readonly independent: boolean;
+            /** @description 当前人工字段规则。无规则返回空数组。 */
+            rules: components["schemas"]["TeacherHomepageFieldRule"][];
+        };
+        TeacherHomepageControlsView: {
+            source?: components["schemas"]["TeacherHomepage"];
+            controls: components["schemas"]["TeacherHomepageControls"];
+        };
+        TeacherHomepageControlsInput: {
+            /** Format: int64 */
+            expected_revision: number;
+            /**
+             * @description visible 允许按字段展示。hidden 隐藏整组教师主页资料。stopped 标记停止展示。隐藏与停止展示时均收回资料和照片访问，并持久保留字段设置。
+             * @enum {string}
+             */
+            page_visibility: "visible" | "hidden" | "stopped";
+            /** @description 完整人工规则列表。省略旧规则将其移除。保留规则且省略 override 撤销覆盖。重复字段选择器无效。 */
+            rules: components["schemas"]["TeacherHomepageFieldRuleInput"][];
+        };
+        TeacherHomepageRequestInput: {
+            /**
+             * @description 更正、补充或隐藏。更正与补充要求 value，隐藏省略 value。
+             * @enum {string}
+             */
+            kind: "correction" | "supplement" | "hide";
+            field: components["schemas"]["TeacherHomepageFieldSelector"];
+            value?: components["schemas"]["TeacherHomepageProposalValue"];
+            /** @description 反馈说明，去除首尾空白后须有内容。 */
+            message: string;
+        };
+        TeacherHomepageRequest: {
+            id: string;
+            teacher_id: string;
+            /** @enum {string} */
+            kind: "correction" | "supplement" | "hide";
+            field: components["schemas"]["TeacherHomepageFieldSelector"];
+            value?: components["schemas"]["TeacherHomepageFieldValue"];
+            /** @description 申请人填写的说明。 */
+            message: string;
+            /** @enum {string} */
+            status: "pending" | "approved" | "rejected";
+            /** Format: int64 */
+            revision: number;
+            /**
+             * Format: date-time
+             * @description 首次提交时间。
+             */
+            created_at: string;
+            /**
+             * Format: date-time
+             * @description 处理完成时间，待处理时省略。
+             */
+            resolved_at?: string;
+            /** @description 向本人反馈的处理说明，待处理时省略。 */
+            resolution_note?: string;
+        };
+        TeacherHomepageRequestPage: {
+            /** @description 按请求顺序返回。达到 3 MiB 页面预算时在条目边界分页。 */
+            items: components["schemas"]["TeacherHomepageRequest"][];
+            /** Format: int64 */
+            total: number;
+            /** @description 下一页游标，空字符串表示末页。 */
+            next: string;
+        };
+        TeacherHomepageRequestDecisionInput: {
+            /** @enum {string} */
+            action: "approve" | "reject";
+            /** Format: int64 */
+            expected_revision: number;
+            /**
+             * Format: int64
+             * @description 批准时必填，使用当前教师主页控制修订。拒绝时省略。
+             */
+            expected_homepage_revision?: number;
+            /** @description 反馈给申请人的处理结论，去除首尾空白后须有内容。 */
+            note: string;
+        };
+        TeacherHomepagePublicProfile: {
+            /** @description 允许显示时提供的官网姓名。被隐藏或未获准时省略。 */
+            name?: string;
+            /** @description 官网主要任职或职务。教师职称使用目录字段。 */
+            position?: string;
+            /** @description 官网学历。 */
+            education?: string;
+            /** @description 官网学位。 */
+            degree?: string;
+            /** @description 官网学科。教师院系使用目录字段。 */
+            discipline?: string;
+            /** @description 官网公开的导师身份。 */
+            supervisors: ("博士生导师" | "硕士生导师")[];
+            /** @description 官网公开邮箱的显示文本，可包含多个地址或防垃圾邮件写法。 */
+            email?: string;
+            /** @description 官网公开电话号码的显示文本，可包含区号、分机或多个号码。 */
+            phone?: string;
+            /** @description 官网公开办公地点。 */
+            office_location?: string;
+            /** @description 官网入职或入校任教时间的显示文本，保留来源的日期精度及格式。 */
+            hire_date?: string;
+            /** @description 官网个人简介，纯文本。原始页签也可能包含该内容。 */
+            biography?: string;
+            /** @description 官网研究方向或领域，纯文本。原始页签也可能包含该内容。 */
+            research?: string;
+            /** @description 按主页显示顺序提供其他字段。院系和职称以目录为准。 */
+            fields: components["schemas"]["TeacherHomepageField"][];
+            /** @description 按主页显示顺序提供可见页签及正文分区。 */
+            sections: components["schemas"]["TeacherHomepageSection"][];
+            photo?: components["schemas"]["TeacherHomepagePhoto"];
+        };
+        /** @description 应用白名单、个人控制与匹配状态后的教师主页。资料不可展示时省略 profile。 */
+        TeacherHomepagePublicView: {
+            profile?: components["schemas"]["TeacherHomepagePublicProfile"];
+        };
+        /** @enum {string} */
+        TeacherHomepageSupervisor: "博士生导师" | "硕士生导师";
+        /** @description 只填与所选字段类型对应的一种值。page 隐藏不提交值。 */
+        TeacherHomepageFieldValueInput: {
+            /** @description 用于固定文本字段或指定标签的通用字段、栏目。name 最多 256 字符；biography 和 research 最多 16000 字符；其余固定文本字段最多 512 字符；通用字段值最多 1024，栏目正文最多 16000 字符。 */
+            text?: string;
+            /** @description 导师类别完整列表。显式空数组清空。 */
+            supervisors?: components["schemas"]["TeacherHomepageSupervisor"][];
+            /** @description 通用字段完整列表。显式空数组清空。 */
+            fields?: components["schemas"]["TeacherHomepageField"][];
+            /** @description 栏目完整列表。显式空数组清空。 */
+            sections?: components["schemas"]["TeacherHomepageSection"][];
+            photo?: components["schemas"]["TeacherHomepagePortraitUpload"] | components["schemas"]["TeacherHomepagePortraitReuse"];
+        };
+        /** @description 只填与所选字段类型对应的一种值。page 隐藏不提交值。 */
+        TeacherHomepageProposalValue: {
+            /** @description 用于固定文本字段或指定标签的通用字段、栏目。name 最多 256 字符；biography 和 research 最多 16000 字符；其余固定文本字段最多 512 字符；通用字段值最多 1024，栏目正文最多 16000 字符。 */
+            text?: string;
+            /** @description 导师类别完整列表。显式空数组清空。 */
+            supervisors?: components["schemas"]["TeacherHomepageSupervisor"][];
+            /** @description 通用字段完整列表。显式空数组清空。 */
+            fields?: components["schemas"]["TeacherHomepageField"][];
+            /** @description 栏目完整列表。显式空数组清空。 */
+            sections?: components["schemas"]["TeacherHomepageSection"][];
+            photo?: components["schemas"]["TeacherHomepagePortraitUpload"];
+        };
+        TeacherHomepageFieldRuleInput: {
+            field: components["schemas"]["TeacherHomepageFieldSelector"];
+            /** @description true 隐藏该字段。隐藏优先于覆盖，保留覆盖值供恢复时使用。 */
+            hidden: boolean;
+            override?: components["schemas"]["TeacherHomepageFieldValueInput"];
+        };
+        TeacherHomepagePortrait: {
+            id: string;
+            /** @enum {string} */
+            content_type: "image/jpeg" | "image/png";
+            width: number;
+            height: number;
+        };
+        TeacherHomepagePortraitUpload: {
+            /** @enum {string} */
+            content_type: "image/jpeg" | "image/png";
+            /**
+             * Format: byte
+             * @description 经标准 base64 编码的 JPEG 或 PNG 数据。解码后最多 2 MiB，单边不超过 4096 像素，总面积不超过 8,388,608 像素。服务器校验实际类型和尺寸。
+             */
+            data: string;
+        };
+        /** @description 保留当前已持久化的同一教师的覆盖头像。提交 GET 返回的覆盖头像 id。 */
+        TeacherHomepagePortraitReuse: {
+            id: string;
+        };
     };
     responses: never;
     parameters: never;
@@ -1493,7 +1905,7 @@ export interface operations {
     getObject: {
         parameters: {
             query?: {
-                /** @description 设为 true 时，教师与当前官网站点存在有效自动匹配或人工绑定，且已有资料时返回 teacher_homepage。缺失或 false 时省略该字段。 */
+                /** @description 设为 true 且官网姓名和资料可展示时返回 teacher_homepage。缺失、false 或姓名未获准展示时省略该字段。独立教师主页接口支持逐字段隐藏。 */
                 include_teacher_homepage?: boolean;
             };
             header?: never;
@@ -1893,7 +2305,7 @@ export interface operations {
     getObjectSummary: {
         parameters: {
             query?: {
-                /** @description 设为 true 时，教师与当前官网站点存在有效自动匹配或人工绑定，且已有资料时返回 teacher_homepage。缺失或 false 时省略该字段。 */
+                /** @description 设为 true 且官网姓名和资料可展示时返回 teacher_homepage。缺失、false 或姓名未获准展示时省略该字段。独立教师主页接口支持逐字段隐藏。 */
                 include_teacher_homepage?: boolean;
             };
             header?: never;
@@ -4499,6 +4911,990 @@ export interface operations {
                 };
             };
             /** @description Required dependency unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    getTeacherHomepageControls: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description 当前管理学校。 */
+                school_id: string;
+                /** @description 目录教师标识。 */
+                teacher_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 成功。 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TeacherHomepageControlsView"];
+                };
+            };
+            /** @description invalid_input。字段、内容、分页参数或幂等键不符合约定。 */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description unauthenticated。需要登录。 */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description forbidden。当前账号没有对应学校维护权限或有效的本人教师关联。 */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description not_found。目标教师或申请在允许范围内不存在。 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description unavailable。必要的认证、目录、审计或通知依赖暂不可用。 */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    setTeacherHomepageControls: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description 网络重试沿用原请求标识与内容。 */
+                "Idempotency-Key": string;
+            };
+            path: {
+                /** @description 当前管理学校。 */
+                school_id: string;
+                /** @description 目录教师标识。 */
+                teacher_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TeacherHomepageControlsInput"];
+            };
+        };
+        responses: {
+            /** @description 成功。 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TeacherHomepageControls"];
+                };
+            };
+            /** @description invalid_input。字段、内容、分页参数或幂等键不符合约定。 */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description unauthenticated。需要登录。 */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description forbidden。当前账号没有对应学校维护权限或有效的本人教师关联。 */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description not_found。目标教师或申请在允许范围内不存在。 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description conflict。修订已变化、申请已处理或幂等键对应的内容不同。 */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description unavailable。必要的认证、目录、审计或通知依赖暂不可用。 */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    getTeacherHomepage: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description 目录教师对象标识。 */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 成功。 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TeacherHomepagePublicView"];
+                };
+            };
+            /** @description invalid_input。字段、内容、分页参数或幂等键不符合约定。 */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description unauthenticated。需要登录。 */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description forbidden。当前账号没有对应学校维护权限或有效的本人教师关联。 */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description not_found。目标教师或申请在允许范围内不存在。 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description unavailable。必要的认证、目录、审计或通知依赖暂不可用。 */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    getTeacherHomepageCounts: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description 当前管理学校。 */
+                school_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 成功。 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TeacherHomepageCounts"];
+                };
+            };
+            /** @description invalid_input。字段、内容、分页参数或幂等键不符合约定。 */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description unauthenticated。需要登录。 */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description forbidden。当前账号没有对应学校维护权限或有效的本人教师关联。 */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description not_found。目标教师或申请在允许范围内不存在。 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description unavailable。必要的认证、目录、审计或通知依赖暂不可用。 */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    getTeacherHomepageAllowlist: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description 当前管理学校。 */
+                school_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 成功。 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TeacherHomepageAllowlist"];
+                };
+            };
+            /** @description invalid_input。字段、内容、分页参数或幂等键不符合约定。 */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description unauthenticated。需要登录。 */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description forbidden。当前账号没有对应学校维护权限或有效的本人教师关联。 */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description not_found。目标教师或申请在允许范围内不存在。 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description unavailable。必要的认证、目录、审计或通知依赖暂不可用。 */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    setTeacherHomepageAllowlist: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description 网络重试沿用原请求标识与内容。 */
+                "Idempotency-Key": string;
+            };
+            path: {
+                /** @description 当前管理学校。 */
+                school_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TeacherHomepageAllowlistInput"];
+            };
+        };
+        responses: {
+            /** @description 成功。 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TeacherHomepageAllowlist"];
+                };
+            };
+            /** @description invalid_input。字段、内容、分页参数或幂等键不符合约定。 */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description unauthenticated。需要登录。 */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description forbidden。当前账号没有对应学校维护权限或有效的本人教师关联。 */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description not_found。目标教师或申请在允许范围内不存在。 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description conflict。修订已变化、申请已处理或幂等键对应的内容不同。 */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description unavailable。必要的认证、目录、审计或通知依赖暂不可用。 */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    listMyTeacherHomepageRequests: {
+        parameters: {
+            query?: {
+                status?: "pending" | "approved" | "rejected" | "all";
+                /** @description 上一页的 next。游标仅用于相同学校、教师、申请状态及查看范围。 */
+                after?: string;
+                /** @description 页面条目上限。 */
+                limit?: number;
+            };
+            header?: never;
+            path: {
+                /** @description 目录教师对象标识。 */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 成功。 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TeacherHomepageRequestPage"];
+                };
+            };
+            /** @description invalid_input。字段、内容、分页参数或幂等键不符合约定。 */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description unauthenticated。需要登录。 */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description forbidden。当前账号没有对应学校维护权限或有效的本人教师关联。 */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description not_found。目标教师或申请在允许范围内不存在。 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description unavailable。必要的认证、目录、审计或通知依赖暂不可用。 */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    submitTeacherHomepageRequest: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description 网络重试沿用原请求标识与内容。 */
+                "Idempotency-Key": string;
+            };
+            path: {
+                /** @description 目录教师对象标识。 */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TeacherHomepageRequestInput"];
+            };
+        };
+        responses: {
+            /** @description 成功。 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TeacherHomepageRequest"];
+                };
+            };
+            /** @description invalid_input。字段、内容、分页参数或幂等键不符合约定。 */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description unauthenticated。需要登录。 */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description forbidden。当前账号没有对应学校维护权限或有效的本人教师关联。 */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description not_found。目标教师或申请在允许范围内不存在。 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description conflict。修订已变化、申请已处理或幂等键对应的内容不同。 */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description rate_limited。当前账号在一分钟内已提交十条新申请。 */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description unavailable。必要的认证、目录、审计或通知依赖暂不可用。 */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    getMyTeacherHomepageRequest: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description 申请标识。 */
+                request_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 成功。 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TeacherHomepageRequest"];
+                };
+            };
+            /** @description invalid_input。字段、内容、分页参数或幂等键不符合约定。 */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description unauthenticated。需要登录。 */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description forbidden。当前账号没有对应学校维护权限或有效的本人教师关联。 */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description not_found。目标教师或申请在允许范围内不存在。 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description unavailable。必要的认证、目录、审计或通知依赖暂不可用。 */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    listTeacherHomepageRequests: {
+        parameters: {
+            query?: {
+                status?: "pending" | "approved" | "rejected" | "all";
+                /** @description 仅列出指定目录教师的申请。 */
+                teacher_id?: string;
+                /** @description 上一页的 next。游标仅用于相同学校、教师、申请状态及查看范围。 */
+                after?: string;
+                /** @description 页面条目上限。 */
+                limit?: number;
+            };
+            header?: never;
+            path: {
+                /** @description 当前管理学校。 */
+                school_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 成功。 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TeacherHomepageRequestPage"];
+                };
+            };
+            /** @description invalid_input。字段、内容、分页参数或幂等键不符合约定。 */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description unauthenticated。需要登录。 */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description forbidden。当前账号没有对应学校维护权限或有效的本人教师关联。 */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description not_found。目标教师或申请在允许范围内不存在。 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description unavailable。必要的认证、目录、审计或通知依赖暂不可用。 */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    getTeacherHomepageRequest: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description 当前管理学校。 */
+                school_id: string;
+                /** @description 申请标识。 */
+                request_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 成功。 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TeacherHomepageRequest"];
+                };
+            };
+            /** @description invalid_input。字段、内容、分页参数或幂等键不符合约定。 */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description unauthenticated。需要登录。 */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description forbidden。当前账号没有对应学校维护权限或有效的本人教师关联。 */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description not_found。目标教师或申请在允许范围内不存在。 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description unavailable。必要的认证、目录、审计或通知依赖暂不可用。 */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    resolveTeacherHomepageRequest: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description 网络重试沿用原请求标识与内容。 */
+                "Idempotency-Key": string;
+            };
+            path: {
+                /** @description 当前管理学校。 */
+                school_id: string;
+                /** @description 申请标识。 */
+                request_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TeacherHomepageRequestDecisionInput"];
+            };
+        };
+        responses: {
+            /** @description 成功。 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TeacherHomepageRequest"];
+                };
+            };
+            /** @description invalid_input。字段、内容、分页参数或幂等键不符合约定。 */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description unauthenticated。需要登录。 */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description forbidden。当前账号没有对应学校维护权限或有效的本人教师关联。 */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description not_found。目标教师或申请在允许范围内不存在。 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description conflict。修订已变化、申请已处理或幂等键对应的内容不同。 */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description unavailable。必要的认证、目录、审计或通知依赖暂不可用。 */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    getTeacherHomepageRequestPhoto: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description 当前管理学校。 */
+                school_id: string;
+                /** @description 申请标识。 */
+                request_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 重新编码并去除来源元数据的申请头像。 */
+            200: {
+                headers: {
+                    "Cache-Control"?: "private, no-store";
+                    "Content-Length"?: number;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "image/jpeg": string;
+                    "image/png": string;
+                };
+            };
+            /** @description invalid_input。字段、内容、分页参数或幂等键不符合约定。 */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description unauthenticated。需要登录。 */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description forbidden。当前账号没有对应学校维护权限或有效的本人教师关联。 */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description not_found。目标教师或申请在允许范围内不存在。 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description unavailable。必要的认证、目录、审计或通知依赖暂不可用。 */
             503: {
                 headers: {
                     [name: string]: unknown;

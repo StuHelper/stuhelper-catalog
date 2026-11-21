@@ -420,6 +420,48 @@ func (e TeacherHomepageSupervisors) Valid() bool {
 	}
 }
 
+// Defines values for TeacherHomepageControlsPageVisibility.
+const (
+	TeacherHomepageControlsPageVisibilityHidden  TeacherHomepageControlsPageVisibility = "hidden"
+	TeacherHomepageControlsPageVisibilityStopped TeacherHomepageControlsPageVisibility = "stopped"
+	TeacherHomepageControlsPageVisibilityVisible TeacherHomepageControlsPageVisibility = "visible"
+)
+
+// Valid indicates whether the value is a known member of the TeacherHomepageControlsPageVisibility enum.
+func (e TeacherHomepageControlsPageVisibility) Valid() bool {
+	switch e {
+	case TeacherHomepageControlsPageVisibilityHidden:
+		return true
+	case TeacherHomepageControlsPageVisibilityStopped:
+		return true
+	case TeacherHomepageControlsPageVisibilityVisible:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for TeacherHomepageControlsInputPageVisibility.
+const (
+	TeacherHomepageControlsInputPageVisibilityHidden  TeacherHomepageControlsInputPageVisibility = "hidden"
+	TeacherHomepageControlsInputPageVisibilityStopped TeacherHomepageControlsInputPageVisibility = "stopped"
+	TeacherHomepageControlsInputPageVisibilityVisible TeacherHomepageControlsInputPageVisibility = "visible"
+)
+
+// Valid indicates whether the value is a known member of the TeacherHomepageControlsInputPageVisibility enum.
+func (e TeacherHomepageControlsInputPageVisibility) Valid() bool {
+	switch e {
+	case TeacherHomepageControlsInputPageVisibilityHidden:
+		return true
+	case TeacherHomepageControlsInputPageVisibilityStopped:
+		return true
+	case TeacherHomepageControlsInputPageVisibilityVisible:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for TeacherHomepageDecisionAction.
 const (
 	TeacherHomepageDecisionActionBind   TeacherHomepageDecisionAction = "bind"
@@ -459,18 +501,231 @@ func (e TeacherHomepageDecisionInputAction) Valid() bool {
 	}
 }
 
+// Defines values for TeacherHomepageFieldSelectorField.
+const (
+	TeacherHomepageFieldSelectorFieldBiography      TeacherHomepageFieldSelectorField = "biography"
+	TeacherHomepageFieldSelectorFieldDegree         TeacherHomepageFieldSelectorField = "degree"
+	TeacherHomepageFieldSelectorFieldDiscipline     TeacherHomepageFieldSelectorField = "discipline"
+	TeacherHomepageFieldSelectorFieldEducation      TeacherHomepageFieldSelectorField = "education"
+	TeacherHomepageFieldSelectorFieldEmail          TeacherHomepageFieldSelectorField = "email"
+	TeacherHomepageFieldSelectorFieldFields         TeacherHomepageFieldSelectorField = "fields"
+	TeacherHomepageFieldSelectorFieldHireDate       TeacherHomepageFieldSelectorField = "hire_date"
+	TeacherHomepageFieldSelectorFieldName           TeacherHomepageFieldSelectorField = "name"
+	TeacherHomepageFieldSelectorFieldOfficeLocation TeacherHomepageFieldSelectorField = "office_location"
+	TeacherHomepageFieldSelectorFieldPage           TeacherHomepageFieldSelectorField = "page"
+	TeacherHomepageFieldSelectorFieldPhone          TeacherHomepageFieldSelectorField = "phone"
+	TeacherHomepageFieldSelectorFieldPhoto          TeacherHomepageFieldSelectorField = "photo"
+	TeacherHomepageFieldSelectorFieldPosition       TeacherHomepageFieldSelectorField = "position"
+	TeacherHomepageFieldSelectorFieldResearch       TeacherHomepageFieldSelectorField = "research"
+	TeacherHomepageFieldSelectorFieldSections       TeacherHomepageFieldSelectorField = "sections"
+	TeacherHomepageFieldSelectorFieldSupervisors    TeacherHomepageFieldSelectorField = "supervisors"
+)
+
+// Valid indicates whether the value is a known member of the TeacherHomepageFieldSelectorField enum.
+func (e TeacherHomepageFieldSelectorField) Valid() bool {
+	switch e {
+	case TeacherHomepageFieldSelectorFieldBiography:
+		return true
+	case TeacherHomepageFieldSelectorFieldDegree:
+		return true
+	case TeacherHomepageFieldSelectorFieldDiscipline:
+		return true
+	case TeacherHomepageFieldSelectorFieldEducation:
+		return true
+	case TeacherHomepageFieldSelectorFieldEmail:
+		return true
+	case TeacherHomepageFieldSelectorFieldFields:
+		return true
+	case TeacherHomepageFieldSelectorFieldHireDate:
+		return true
+	case TeacherHomepageFieldSelectorFieldName:
+		return true
+	case TeacherHomepageFieldSelectorFieldOfficeLocation:
+		return true
+	case TeacherHomepageFieldSelectorFieldPage:
+		return true
+	case TeacherHomepageFieldSelectorFieldPhone:
+		return true
+	case TeacherHomepageFieldSelectorFieldPhoto:
+		return true
+	case TeacherHomepageFieldSelectorFieldPosition:
+		return true
+	case TeacherHomepageFieldSelectorFieldResearch:
+		return true
+	case TeacherHomepageFieldSelectorFieldSections:
+		return true
+	case TeacherHomepageFieldSelectorFieldSupervisors:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for TeacherHomepagePhotoContentType.
 const (
-	Imagejpeg TeacherHomepagePhotoContentType = "image/jpeg"
-	Imagepng  TeacherHomepagePhotoContentType = "image/png"
+	TeacherHomepagePhotoContentTypeImagejpeg TeacherHomepagePhotoContentType = "image/jpeg"
+	TeacherHomepagePhotoContentTypeImagepng  TeacherHomepagePhotoContentType = "image/png"
 )
 
 // Valid indicates whether the value is a known member of the TeacherHomepagePhotoContentType enum.
 func (e TeacherHomepagePhotoContentType) Valid() bool {
 	switch e {
-	case Imagejpeg:
+	case TeacherHomepagePhotoContentTypeImagejpeg:
 		return true
-	case Imagepng:
+	case TeacherHomepagePhotoContentTypeImagepng:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for TeacherHomepagePortraitContentType.
+const (
+	TeacherHomepagePortraitContentTypeImagejpeg TeacherHomepagePortraitContentType = "image/jpeg"
+	TeacherHomepagePortraitContentTypeImagepng  TeacherHomepagePortraitContentType = "image/png"
+)
+
+// Valid indicates whether the value is a known member of the TeacherHomepagePortraitContentType enum.
+func (e TeacherHomepagePortraitContentType) Valid() bool {
+	switch e {
+	case TeacherHomepagePortraitContentTypeImagejpeg:
+		return true
+	case TeacherHomepagePortraitContentTypeImagepng:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for TeacherHomepagePortraitUploadContentType.
+const (
+	TeacherHomepagePortraitUploadContentTypeImagejpeg TeacherHomepagePortraitUploadContentType = "image/jpeg"
+	TeacherHomepagePortraitUploadContentTypeImagepng  TeacherHomepagePortraitUploadContentType = "image/png"
+)
+
+// Valid indicates whether the value is a known member of the TeacherHomepagePortraitUploadContentType enum.
+func (e TeacherHomepagePortraitUploadContentType) Valid() bool {
+	switch e {
+	case TeacherHomepagePortraitUploadContentTypeImagejpeg:
+		return true
+	case TeacherHomepagePortraitUploadContentTypeImagepng:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for TeacherHomepagePublicProfileSupervisors.
+const (
+	TeacherHomepagePublicProfileSupervisorsEmpty TeacherHomepagePublicProfileSupervisors = "博士生导师"
+	TeacherHomepagePublicProfileSupervisorsN1    TeacherHomepagePublicProfileSupervisors = "硕士生导师"
+)
+
+// Valid indicates whether the value is a known member of the TeacherHomepagePublicProfileSupervisors enum.
+func (e TeacherHomepagePublicProfileSupervisors) Valid() bool {
+	switch e {
+	case TeacherHomepagePublicProfileSupervisorsEmpty:
+		return true
+	case TeacherHomepagePublicProfileSupervisorsN1:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for TeacherHomepageRequestKind.
+const (
+	TeacherHomepageRequestKindCorrection TeacherHomepageRequestKind = "correction"
+	TeacherHomepageRequestKindHide       TeacherHomepageRequestKind = "hide"
+	TeacherHomepageRequestKindSupplement TeacherHomepageRequestKind = "supplement"
+)
+
+// Valid indicates whether the value is a known member of the TeacherHomepageRequestKind enum.
+func (e TeacherHomepageRequestKind) Valid() bool {
+	switch e {
+	case TeacherHomepageRequestKindCorrection:
+		return true
+	case TeacherHomepageRequestKindHide:
+		return true
+	case TeacherHomepageRequestKindSupplement:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for TeacherHomepageRequestStatus.
+const (
+	TeacherHomepageRequestStatusApproved TeacherHomepageRequestStatus = "approved"
+	TeacherHomepageRequestStatusPending  TeacherHomepageRequestStatus = "pending"
+	TeacherHomepageRequestStatusRejected TeacherHomepageRequestStatus = "rejected"
+)
+
+// Valid indicates whether the value is a known member of the TeacherHomepageRequestStatus enum.
+func (e TeacherHomepageRequestStatus) Valid() bool {
+	switch e {
+	case TeacherHomepageRequestStatusApproved:
+		return true
+	case TeacherHomepageRequestStatusPending:
+		return true
+	case TeacherHomepageRequestStatusRejected:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for TeacherHomepageRequestDecisionInputAction.
+const (
+	TeacherHomepageRequestDecisionInputActionApprove TeacherHomepageRequestDecisionInputAction = "approve"
+	TeacherHomepageRequestDecisionInputActionReject  TeacherHomepageRequestDecisionInputAction = "reject"
+)
+
+// Valid indicates whether the value is a known member of the TeacherHomepageRequestDecisionInputAction enum.
+func (e TeacherHomepageRequestDecisionInputAction) Valid() bool {
+	switch e {
+	case TeacherHomepageRequestDecisionInputActionApprove:
+		return true
+	case TeacherHomepageRequestDecisionInputActionReject:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for TeacherHomepageRequestInputKind.
+const (
+	TeacherHomepageRequestInputKindCorrection TeacherHomepageRequestInputKind = "correction"
+	TeacherHomepageRequestInputKindHide       TeacherHomepageRequestInputKind = "hide"
+	TeacherHomepageRequestInputKindSupplement TeacherHomepageRequestInputKind = "supplement"
+)
+
+// Valid indicates whether the value is a known member of the TeacherHomepageRequestInputKind enum.
+func (e TeacherHomepageRequestInputKind) Valid() bool {
+	switch e {
+	case TeacherHomepageRequestInputKindCorrection:
+		return true
+	case TeacherHomepageRequestInputKindHide:
+		return true
+	case TeacherHomepageRequestInputKindSupplement:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for TeacherHomepageSupervisor.
+const (
+	TeacherHomepageSupervisorEmpty TeacherHomepageSupervisor = "博士生导师"
+	TeacherHomepageSupervisorN1    TeacherHomepageSupervisor = "硕士生导师"
+)
+
+// Valid indicates whether the value is a known member of the TeacherHomepageSupervisor enum.
+func (e TeacherHomepageSupervisor) Valid() bool {
+	switch e {
+	case TeacherHomepageSupervisorEmpty:
+		return true
+	case TeacherHomepageSupervisorN1:
 		return true
 	default:
 		return false
@@ -624,6 +879,30 @@ func (e UnmatchedTeacherSiteReason) Valid() bool {
 	}
 }
 
+// Defines values for ListTeacherHomepageRequestsParamsStatus.
+const (
+	ListTeacherHomepageRequestsParamsStatusAll      ListTeacherHomepageRequestsParamsStatus = "all"
+	ListTeacherHomepageRequestsParamsStatusApproved ListTeacherHomepageRequestsParamsStatus = "approved"
+	ListTeacherHomepageRequestsParamsStatusPending  ListTeacherHomepageRequestsParamsStatus = "pending"
+	ListTeacherHomepageRequestsParamsStatusRejected ListTeacherHomepageRequestsParamsStatus = "rejected"
+)
+
+// Valid indicates whether the value is a known member of the ListTeacherHomepageRequestsParamsStatus enum.
+func (e ListTeacherHomepageRequestsParamsStatus) Valid() bool {
+	switch e {
+	case ListTeacherHomepageRequestsParamsStatusAll:
+		return true
+	case ListTeacherHomepageRequestsParamsStatusApproved:
+		return true
+	case ListTeacherHomepageRequestsParamsStatusPending:
+		return true
+	case ListTeacherHomepageRequestsParamsStatusRejected:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for ListTeacherHomepageReviewSitesParamsStatus.
 const (
 	ListTeacherHomepageReviewSitesParamsStatusAll     ListTeacherHomepageReviewSitesParamsStatus = "all"
@@ -747,6 +1026,30 @@ func (e GetFilterOptionsParamsKind) Valid() bool {
 	case GetFilterOptionsParamsKindCourse:
 		return true
 	case GetFilterOptionsParamsKindTeacher:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ListMyTeacherHomepageRequestsParamsStatus.
+const (
+	ListMyTeacherHomepageRequestsParamsStatusAll      ListMyTeacherHomepageRequestsParamsStatus = "all"
+	ListMyTeacherHomepageRequestsParamsStatusApproved ListMyTeacherHomepageRequestsParamsStatus = "approved"
+	ListMyTeacherHomepageRequestsParamsStatusPending  ListMyTeacherHomepageRequestsParamsStatus = "pending"
+	ListMyTeacherHomepageRequestsParamsStatusRejected ListMyTeacherHomepageRequestsParamsStatus = "rejected"
+)
+
+// Valid indicates whether the value is a known member of the ListMyTeacherHomepageRequestsParamsStatus enum.
+func (e ListMyTeacherHomepageRequestsParamsStatus) Valid() bool {
+	switch e {
+	case ListMyTeacherHomepageRequestsParamsStatusAll:
+		return true
+	case ListMyTeacherHomepageRequestsParamsStatusApproved:
+		return true
+	case ListMyTeacherHomepageRequestsParamsStatusPending:
+		return true
+	case ListMyTeacherHomepageRequestsParamsStatusRejected:
 		return true
 	default:
 		return false
@@ -1056,7 +1359,7 @@ type NullableObject struct {
 	// SportsProjectCode 仅教学班导入使用的来源体育项目代码。由学校适配器读取明确字段，目录规则通过配置将代码映射到项目；不从场地或教师推断。
 	SportsProjectCode *string `json:"sports_project_code,omitempty"`
 
-	// TeacherHomepage 派生的响应字段。教师详情和摘要主对象在请求 include_teacher_homepage=true 且存在当前有效匹配资料时返回。
+	// TeacherHomepage 派生的响应字段。教师详情和摘要主对象在请求 include_teacher_homepage=true 且姓名和资料可展示时返回。
 	TeacherHomepage *TeacherHomepage `json:"teacher_homepage,omitempty"`
 	TeacherId       *string          `json:"teacher_id,omitempty"`
 	TermCourseId    *string          `json:"term_course_id,omitempty"`
@@ -1159,7 +1462,7 @@ type Object struct {
 	// SportsProjectCode 仅教学班导入使用的来源体育项目代码。由学校适配器读取明确字段，目录规则通过配置将代码映射到项目；不从场地或教师推断。
 	SportsProjectCode *string `json:"sports_project_code,omitempty"`
 
-	// TeacherHomepage 派生的响应字段。教师详情和摘要主对象在请求 include_teacher_homepage=true 且存在当前有效匹配资料时返回。
+	// TeacherHomepage 派生的响应字段。教师详情和摘要主对象在请求 include_teacher_homepage=true 且姓名和资料可展示时返回。
 	TeacherHomepage *TeacherHomepage `json:"teacher_homepage,omitempty"`
 	TeacherId       *string          `json:"teacher_id,omitempty"`
 	TermCourseId    *string          `json:"term_course_id,omitempty"`
@@ -1444,6 +1747,77 @@ type TeacherHomepage struct {
 // TeacherHomepageSupervisors defines model for TeacherHomepage.Supervisors.
 type TeacherHomepageSupervisors string
 
+// TeacherHomepageAllowlist defines model for TeacherHomepageAllowlist.
+type TeacherHomepageAllowlist struct {
+	// Fields 获准展示的唯一采集字段选择器。学校可显式保存空名单。动态 fields 或 sections 只列附明确 label 的单项。
+	Fields   []TeacherHomepageFieldSelector `json:"fields"`
+	Revision int64                          `json:"revision"`
+}
+
+// TeacherHomepageAllowlistInput defines model for TeacherHomepageAllowlistInput.
+type TeacherHomepageAllowlistInput struct {
+	ExpectedRevision int64 `json:"expected_revision"`
+
+	// Fields 完整名单。拒绝 page、重复选择器，以及缺少明确标签的动态 fields 或 sections 条目。
+	Fields []TeacherHomepageFieldSelector `json:"fields"`
+}
+
+// TeacherHomepageControls defines model for TeacherHomepageControls.
+type TeacherHomepageControls struct {
+	// Independent 当前教师存在经本人申请及管理员批准的独立主页资料。
+	Independent *bool `json:"independent,omitempty"`
+
+	// PageVisibility visible 允许按字段展示。hidden 隐藏整组教师主页资料。stopped 标记停止展示。隐藏与停止展示时均收回资料和照片访问，并持久保留字段设置。
+	PageVisibility TeacherHomepageControlsPageVisibility `json:"page_visibility"`
+	Revision       int64                                 `json:"revision"`
+
+	// Rules 当前人工字段规则。无规则返回空数组。
+	Rules []TeacherHomepageFieldRule `json:"rules"`
+}
+
+// TeacherHomepageControlsPageVisibility visible 允许按字段展示。hidden 隐藏整组教师主页资料。stopped 标记停止展示。隐藏与停止展示时均收回资料和照片访问，并持久保留字段设置。
+type TeacherHomepageControlsPageVisibility string
+
+// TeacherHomepageControlsInput defines model for TeacherHomepageControlsInput.
+type TeacherHomepageControlsInput struct {
+	ExpectedRevision int64 `json:"expected_revision"`
+
+	// PageVisibility visible 允许按字段展示。hidden 隐藏整组教师主页资料。stopped 标记停止展示。隐藏与停止展示时均收回资料和照片访问，并持久保留字段设置。
+	PageVisibility TeacherHomepageControlsInputPageVisibility `json:"page_visibility"`
+
+	// Rules 完整人工规则列表。省略旧规则将其移除。保留规则且省略 override 撤销覆盖。重复字段选择器无效。
+	Rules []TeacherHomepageFieldRuleInput `json:"rules"`
+}
+
+// TeacherHomepageControlsInputPageVisibility visible 允许按字段展示。hidden 隐藏整组教师主页资料。stopped 标记停止展示。隐藏与停止展示时均收回资料和照片访问，并持久保留字段设置。
+type TeacherHomepageControlsInputPageVisibility string
+
+// TeacherHomepageControlsView defines model for TeacherHomepageControlsView.
+type TeacherHomepageControlsView struct {
+	Controls TeacherHomepageControls `json:"controls"`
+
+	// Source 当前已匹配的官网资料。未提供的可选字段省略，数组空时返回 []。资料 UTF-8 JSON 大小不超过 1 MiB。
+	Source *TeacherHomepage `json:"source,omitempty"`
+}
+
+// TeacherHomepageCounts defines model for TeacherHomepageCounts.
+type TeacherHomepageCounts struct {
+	// Both 同时具有授课及有效官网匹配依据的教师数。
+	Both int64 `json:"both"`
+
+	// Eligible 具有至少一项资格的目录教师数，每位教师只计一次。
+	Eligible int64 `json:"eligible"`
+
+	// Official 由有效官网匹配获得目录展示资格的教师数。
+	Official int64 `json:"official"`
+
+	// Teaching 由授课事实获得目录展示资格的教师数。
+	Teaching int64 `json:"teaching"`
+
+	// VerifiedHomepage 具有经核实、已批准的独立主页资料依据的教师数。与授课或官网依据可重叠。允许隐藏主页资料而保留此项资格。
+	VerifiedHomepage int64 `json:"verified_homepage"`
+}
+
 // TeacherHomepageDecision defines model for TeacherHomepageDecision.
 type TeacherHomepageDecision struct {
 	// Action bind 为人工绑定。reject 为标记不对应。
@@ -1491,6 +1865,77 @@ type TeacherHomepageField struct {
 	Value string `json:"value"`
 }
 
+// TeacherHomepageFieldRule defines model for TeacherHomepageFieldRule.
+type TeacherHomepageFieldRule struct {
+	Field TeacherHomepageFieldSelector `json:"field"`
+
+	// Hidden true 隐藏该字段。隐藏优先于覆盖，保留覆盖值供恢复时使用。
+	Hidden bool `json:"hidden"`
+
+	// Override 只返回与所选字段类型对应的一种值。文本均按纯文本显示。photo 返回已验证图片元数据。
+	Override *TeacherHomepageFieldValue `json:"override,omitempty"`
+}
+
+// TeacherHomepageFieldRuleInput defines model for TeacherHomepageFieldRuleInput.
+type TeacherHomepageFieldRuleInput struct {
+	Field TeacherHomepageFieldSelector `json:"field"`
+
+	// Hidden true 隐藏该字段。隐藏优先于覆盖，保留覆盖值供恢复时使用。
+	Hidden bool `json:"hidden"`
+
+	// Override 只填与所选字段类型对应的一种值。page 隐藏不提交值。
+	Override *TeacherHomepageFieldValueInput `json:"override,omitempty"`
+}
+
+// TeacherHomepageFieldSelector defines model for TeacherHomepageFieldSelector.
+type TeacherHomepageFieldSelector struct {
+	// Field 教师主页字段。page 专用于本人申请隐藏整页。TeacherHomepage.name 表示官网姓名。目录姓名、院系与职称由教务对象维护。
+	Field TeacherHomepageFieldSelectorField `json:"field"`
+
+	// Label 仅 fields 或 sections 可使用。匹配 fields 标签或 sections 标题；省略时操作整组。相同标签或标题的重复值一起处理。
+	Label *string `json:"label,omitempty"`
+}
+
+// TeacherHomepageFieldSelectorField 教师主页字段。page 专用于本人申请隐藏整页。TeacherHomepage.name 表示官网姓名。目录姓名、院系与职称由教务对象维护。
+type TeacherHomepageFieldSelectorField string
+
+// TeacherHomepageFieldValue 只返回与所选字段类型对应的一种值。文本均按纯文本显示。photo 返回已验证图片元数据。
+type TeacherHomepageFieldValue struct {
+	// Fields 通用字段完整列表。显式空数组清空。
+	Fields *[]TeacherHomepageField  `json:"fields,omitempty"`
+	Photo  *TeacherHomepagePortrait `json:"photo,omitempty"`
+
+	// Sections 栏目完整列表。显式空数组清空。
+	Sections *[]TeacherHomepageSection `json:"sections,omitempty"`
+
+	// Supervisors 导师类别完整列表。显式空数组清空。
+	Supervisors *[]TeacherHomepageSupervisor `json:"supervisors,omitempty"`
+
+	// Text 用于固定文本字段或指定标签的通用字段、栏目。name 最多 256 字符；biography 和 research 最多 16000 字符；其余固定文本字段最多 512 字符；通用字段值最多 1024，栏目正文最多 16000 字符。
+	Text *string `json:"text,omitempty"`
+}
+
+// TeacherHomepageFieldValueInput 只填与所选字段类型对应的一种值。page 隐藏不提交值。
+type TeacherHomepageFieldValueInput struct {
+	// Fields 通用字段完整列表。显式空数组清空。
+	Fields *[]TeacherHomepageField               `json:"fields,omitempty"`
+	Photo  *TeacherHomepageFieldValueInput_Photo `json:"photo,omitempty"`
+
+	// Sections 栏目完整列表。显式空数组清空。
+	Sections *[]TeacherHomepageSection `json:"sections,omitempty"`
+
+	// Supervisors 导师类别完整列表。显式空数组清空。
+	Supervisors *[]TeacherHomepageSupervisor `json:"supervisors,omitempty"`
+
+	// Text 用于固定文本字段或指定标签的通用字段、栏目。name 最多 256 字符；biography 和 research 最多 16000 字符；其余固定文本字段最多 512 字符；通用字段值最多 1024，栏目正文最多 16000 字符。
+	Text *string `json:"text,omitempty"`
+}
+
+// TeacherHomepageFieldValueInput_Photo defines model for TeacherHomepageFieldValueInput.Photo.
+type TeacherHomepageFieldValueInput_Photo struct {
+	union json.RawMessage
+}
+
 // TeacherHomepagePhoto 官网头像的本地副本，最多 2 MiB，总面积最多 8,388,608 像素。
 type TeacherHomepagePhoto struct {
 	// ContentType 照片的实际图片类型。
@@ -1508,6 +1953,177 @@ type TeacherHomepagePhoto struct {
 
 // TeacherHomepagePhotoContentType 照片的实际图片类型。
 type TeacherHomepagePhotoContentType string
+
+// TeacherHomepagePortrait defines model for TeacherHomepagePortrait.
+type TeacherHomepagePortrait struct {
+	ContentType TeacherHomepagePortraitContentType `json:"content_type"`
+	Height      int                                `json:"height"`
+	Id          string                             `json:"id"`
+	Width       int                                `json:"width"`
+}
+
+// TeacherHomepagePortraitContentType defines model for TeacherHomepagePortrait.ContentType.
+type TeacherHomepagePortraitContentType string
+
+// TeacherHomepagePortraitReuse 保留当前已持久化的同一教师的覆盖头像。提交 GET 返回的覆盖头像 id。
+type TeacherHomepagePortraitReuse struct {
+	Id string `json:"id"`
+}
+
+// TeacherHomepagePortraitUpload defines model for TeacherHomepagePortraitUpload.
+type TeacherHomepagePortraitUpload struct {
+	ContentType TeacherHomepagePortraitUploadContentType `json:"content_type"`
+
+	// Data 经标准 base64 编码的 JPEG 或 PNG 数据。解码后最多 2 MiB，单边不超过 4096 像素，总面积不超过 8,388,608 像素。服务器校验实际类型和尺寸。
+	Data []byte `json:"data"`
+}
+
+// TeacherHomepagePortraitUploadContentType defines model for TeacherHomepagePortraitUpload.ContentType.
+type TeacherHomepagePortraitUploadContentType string
+
+// TeacherHomepageProposalValue 只填与所选字段类型对应的一种值。page 隐藏不提交值。
+type TeacherHomepageProposalValue struct {
+	// Fields 通用字段完整列表。显式空数组清空。
+	Fields *[]TeacherHomepageField        `json:"fields,omitempty"`
+	Photo  *TeacherHomepagePortraitUpload `json:"photo,omitempty"`
+
+	// Sections 栏目完整列表。显式空数组清空。
+	Sections *[]TeacherHomepageSection `json:"sections,omitempty"`
+
+	// Supervisors 导师类别完整列表。显式空数组清空。
+	Supervisors *[]TeacherHomepageSupervisor `json:"supervisors,omitempty"`
+
+	// Text 用于固定文本字段或指定标签的通用字段、栏目。name 最多 256 字符；biography 和 research 最多 16000 字符；其余固定文本字段最多 512 字符；通用字段值最多 1024，栏目正文最多 16000 字符。
+	Text *string `json:"text,omitempty"`
+}
+
+// TeacherHomepagePublicProfile defines model for TeacherHomepagePublicProfile.
+type TeacherHomepagePublicProfile struct {
+	// Biography 官网个人简介，纯文本。原始页签也可能包含该内容。
+	Biography *string `json:"biography,omitempty"`
+
+	// Degree 官网学位。
+	Degree *string `json:"degree,omitempty"`
+
+	// Discipline 官网学科。教师院系使用目录字段。
+	Discipline *string `json:"discipline,omitempty"`
+
+	// Education 官网学历。
+	Education *string `json:"education,omitempty"`
+
+	// Email 官网公开邮箱的显示文本，可包含多个地址或防垃圾邮件写法。
+	Email *string `json:"email,omitempty"`
+
+	// Fields 按主页显示顺序提供其他字段。院系和职称以目录为准。
+	Fields []TeacherHomepageField `json:"fields"`
+
+	// HireDate 官网入职或入校任教时间的显示文本，保留来源的日期精度及格式。
+	HireDate *string `json:"hire_date,omitempty"`
+
+	// Name 允许显示时提供的官网姓名。被隐藏或未获准时省略。
+	Name *string `json:"name,omitempty"`
+
+	// OfficeLocation 官网公开办公地点。
+	OfficeLocation *string `json:"office_location,omitempty"`
+
+	// Phone 官网公开电话号码的显示文本，可包含区号、分机或多个号码。
+	Phone *string `json:"phone,omitempty"`
+
+	// Photo 官网头像的本地副本，最多 2 MiB，总面积最多 8,388,608 像素。
+	Photo *TeacherHomepagePhoto `json:"photo,omitempty"`
+
+	// Position 官网主要任职或职务。教师职称使用目录字段。
+	Position *string `json:"position,omitempty"`
+
+	// Research 官网研究方向或领域，纯文本。原始页签也可能包含该内容。
+	Research *string `json:"research,omitempty"`
+
+	// Sections 按主页显示顺序提供可见页签及正文分区。
+	Sections []TeacherHomepageSection `json:"sections"`
+
+	// Supervisors 官网公开的导师身份。
+	Supervisors []TeacherHomepagePublicProfileSupervisors `json:"supervisors"`
+}
+
+// TeacherHomepagePublicProfileSupervisors defines model for TeacherHomepagePublicProfile.Supervisors.
+type TeacherHomepagePublicProfileSupervisors string
+
+// TeacherHomepagePublicView 应用白名单、个人控制与匹配状态后的教师主页。资料不可展示时省略 profile。
+type TeacherHomepagePublicView struct {
+	Profile *TeacherHomepagePublicProfile `json:"profile,omitempty"`
+}
+
+// TeacherHomepageRequest defines model for TeacherHomepageRequest.
+type TeacherHomepageRequest struct {
+	// CreatedAt 首次提交时间。
+	CreatedAt time.Time                    `json:"created_at"`
+	Field     TeacherHomepageFieldSelector `json:"field"`
+	Id        string                       `json:"id"`
+	Kind      TeacherHomepageRequestKind   `json:"kind"`
+
+	// Message 申请人填写的说明。
+	Message string `json:"message"`
+
+	// ResolutionNote 向本人反馈的处理说明，待处理时省略。
+	ResolutionNote *string `json:"resolution_note,omitempty"`
+
+	// ResolvedAt 处理完成时间，待处理时省略。
+	ResolvedAt *time.Time                   `json:"resolved_at,omitempty"`
+	Revision   int64                        `json:"revision"`
+	Status     TeacherHomepageRequestStatus `json:"status"`
+	TeacherId  string                       `json:"teacher_id"`
+
+	// Value 只返回与所选字段类型对应的一种值。文本均按纯文本显示。photo 返回已验证图片元数据。
+	Value *TeacherHomepageFieldValue `json:"value,omitempty"`
+}
+
+// TeacherHomepageRequestKind defines model for TeacherHomepageRequest.Kind.
+type TeacherHomepageRequestKind string
+
+// TeacherHomepageRequestStatus defines model for TeacherHomepageRequest.Status.
+type TeacherHomepageRequestStatus string
+
+// TeacherHomepageRequestDecisionInput defines model for TeacherHomepageRequestDecisionInput.
+type TeacherHomepageRequestDecisionInput struct {
+	Action TeacherHomepageRequestDecisionInputAction `json:"action"`
+
+	// ExpectedHomepageRevision 批准时必填，使用当前教师主页控制修订。拒绝时省略。
+	ExpectedHomepageRevision *int64 `json:"expected_homepage_revision,omitempty"`
+	ExpectedRevision         int64  `json:"expected_revision"`
+
+	// Note 反馈给申请人的处理结论，去除首尾空白后须有内容。
+	Note string `json:"note"`
+}
+
+// TeacherHomepageRequestDecisionInputAction defines model for TeacherHomepageRequestDecisionInput.Action.
+type TeacherHomepageRequestDecisionInputAction string
+
+// TeacherHomepageRequestInput defines model for TeacherHomepageRequestInput.
+type TeacherHomepageRequestInput struct {
+	Field TeacherHomepageFieldSelector `json:"field"`
+
+	// Kind 更正、补充或隐藏。更正与补充要求 value，隐藏省略 value。
+	Kind TeacherHomepageRequestInputKind `json:"kind"`
+
+	// Message 反馈说明，去除首尾空白后须有内容。
+	Message string `json:"message"`
+
+	// Value 只填与所选字段类型对应的一种值。page 隐藏不提交值。
+	Value *TeacherHomepageProposalValue `json:"value,omitempty"`
+}
+
+// TeacherHomepageRequestInputKind 更正、补充或隐藏。更正与补充要求 value，隐藏省略 value。
+type TeacherHomepageRequestInputKind string
+
+// TeacherHomepageRequestPage defines model for TeacherHomepageRequestPage.
+type TeacherHomepageRequestPage struct {
+	// Items 按请求顺序返回。达到 3 MiB 页面预算时在条目边界分页。
+	Items []TeacherHomepageRequest `json:"items"`
+
+	// Next 下一页游标，空字符串表示末页。
+	Next  string `json:"next"`
+	Total int64  `json:"total"`
+}
 
 // TeacherHomepageReviewSite defines model for TeacherHomepageReviewSite.
 type TeacherHomepageReviewSite struct {
@@ -1642,6 +2258,9 @@ type TeacherHomepageSection struct {
 	Title string `json:"title"`
 }
 
+// TeacherHomepageSupervisor defines model for TeacherHomepageSupervisor.
+type TeacherHomepageSupervisor string
+
 // TeacherMarkCounts defines model for TeacherMarkCounts.
 type TeacherMarkCounts struct {
 	Both     int64 `json:"both"`
@@ -1769,8 +2388,37 @@ type StartDirectoryProjectionRebuildParams struct {
 	IdempotencyKey string `json:"Idempotency-Key"`
 }
 
+// SetTeacherHomepageAllowlistParams defines parameters for SetTeacherHomepageAllowlist.
+type SetTeacherHomepageAllowlistParams struct {
+	// IdempotencyKey 网络重试沿用原请求标识与内容。
+	IdempotencyKey string `json:"Idempotency-Key"`
+}
+
 // StartTeacherRefreshParams defines parameters for StartTeacherRefresh.
 type StartTeacherRefreshParams struct {
+	IdempotencyKey string `json:"Idempotency-Key"`
+}
+
+// ListTeacherHomepageRequestsParams defines parameters for ListTeacherHomepageRequests.
+type ListTeacherHomepageRequestsParams struct {
+	Status *ListTeacherHomepageRequestsParamsStatus `form:"status,omitempty" json:"status,omitempty"`
+
+	// TeacherId 仅列出指定目录教师的申请。
+	TeacherId *string `form:"teacher_id,omitempty" json:"teacher_id,omitempty"`
+
+	// After 上一页的 next。游标仅用于相同学校、教师、申请状态及查看范围。
+	After *string `form:"after,omitempty" json:"after,omitempty"`
+
+	// Limit 页面条目上限。
+	Limit *int `form:"limit,omitempty" json:"limit,omitempty"`
+}
+
+// ListTeacherHomepageRequestsParamsStatus defines parameters for ListTeacherHomepageRequests.
+type ListTeacherHomepageRequestsParamsStatus string
+
+// ResolveTeacherHomepageRequestParams defines parameters for ResolveTeacherHomepageRequest.
+type ResolveTeacherHomepageRequestParams struct {
+	// IdempotencyKey 网络重试沿用原请求标识与内容。
 	IdempotencyKey string `json:"Idempotency-Key"`
 }
 
@@ -1810,6 +2458,12 @@ type ListTeacherHomepageReviewTeachersParams struct {
 
 // ListTeacherHomepageReviewTeachersParamsStatus defines parameters for ListTeacherHomepageReviewTeachers.
 type ListTeacherHomepageReviewTeachersParamsStatus string
+
+// SetTeacherHomepageControlsParams defines parameters for SetTeacherHomepageControls.
+type SetTeacherHomepageControlsParams struct {
+	// IdempotencyKey 网络重试沿用原请求标识与内容。
+	IdempotencyKey string `json:"Idempotency-Key"`
+}
 
 // ListUnmatchedTeacherSitesParams defines parameters for ListUnmatchedTeacherSites.
 type ListUnmatchedTeacherSitesParams struct {
@@ -1953,7 +2607,7 @@ type LookupObjectsParams struct {
 
 // GetObjectParams defines parameters for GetObject.
 type GetObjectParams struct {
-	// IncludeTeacherHomepage 设为 true 时，教师与当前官网站点存在有效自动匹配或人工绑定，且已有资料时返回 teacher_homepage。缺失或 false 时省略该字段。
+	// IncludeTeacherHomepage 设为 true 且官网姓名和资料可展示时返回 teacher_homepage。缺失、false 或姓名未获准展示时省略该字段。独立教师主页接口支持逐字段隐藏。
 	IncludeTeacherHomepage *bool `form:"include_teacher_homepage,omitempty" json:"include_teacher_homepage,omitempty"`
 }
 
@@ -1979,18 +2633,47 @@ type SetObjectStateParams struct {
 
 // GetObjectSummaryParams defines parameters for GetObjectSummary.
 type GetObjectSummaryParams struct {
-	// IncludeTeacherHomepage 设为 true 时，教师与当前官网站点存在有效自动匹配或人工绑定，且已有资料时返回 teacher_homepage。缺失或 false 时省略该字段。
+	// IncludeTeacherHomepage 设为 true 且官网姓名和资料可展示时返回 teacher_homepage。缺失、false 或姓名未获准展示时省略该字段。独立教师主页接口支持逐字段隐藏。
 	IncludeTeacherHomepage *bool `form:"include_teacher_homepage,omitempty" json:"include_teacher_homepage,omitempty"`
+}
+
+// ListMyTeacherHomepageRequestsParams defines parameters for ListMyTeacherHomepageRequests.
+type ListMyTeacherHomepageRequestsParams struct {
+	Status *ListMyTeacherHomepageRequestsParamsStatus `form:"status,omitempty" json:"status,omitempty"`
+
+	// After 上一页的 next。游标仅用于相同学校、教师、申请状态及查看范围。
+	After *string `form:"after,omitempty" json:"after,omitempty"`
+
+	// Limit 页面条目上限。
+	Limit *int `form:"limit,omitempty" json:"limit,omitempty"`
+}
+
+// ListMyTeacherHomepageRequestsParamsStatus defines parameters for ListMyTeacherHomepageRequests.
+type ListMyTeacherHomepageRequestsParamsStatus string
+
+// SubmitTeacherHomepageRequestParams defines parameters for SubmitTeacherHomepageRequest.
+type SubmitTeacherHomepageRequestParams struct {
+	// IdempotencyKey 网络重试沿用原请求标识与内容。
+	IdempotencyKey string `json:"Idempotency-Key"`
 }
 
 // StartDirectoryProjectionRebuildJSONRequestBody defines body for StartDirectoryProjectionRebuild for application/json ContentType.
 type StartDirectoryProjectionRebuildJSONRequestBody = DirectoryProjectionRebuildInput
 
+// SetTeacherHomepageAllowlistJSONRequestBody defines body for SetTeacherHomepageAllowlist for application/json ContentType.
+type SetTeacherHomepageAllowlistJSONRequestBody = TeacherHomepageAllowlistInput
+
 // StartTeacherRefreshJSONRequestBody defines body for StartTeacherRefresh for application/json ContentType.
 type StartTeacherRefreshJSONRequestBody = TeacherRefreshInput
 
+// ResolveTeacherHomepageRequestJSONRequestBody defines body for ResolveTeacherHomepageRequest for application/json ContentType.
+type ResolveTeacherHomepageRequestJSONRequestBody = TeacherHomepageRequestDecisionInput
+
 // SetTeacherHomepageDecisionJSONRequestBody defines body for SetTeacherHomepageDecision for application/json ContentType.
 type SetTeacherHomepageDecisionJSONRequestBody = TeacherHomepageDecisionInput
+
+// SetTeacherHomepageControlsJSONRequestBody defines body for SetTeacherHomepageControls for application/json ContentType.
+type SetTeacherHomepageControlsJSONRequestBody = TeacherHomepageControlsInput
 
 // PutTimetableJSONRequestBody defines body for PutTimetable for application/json ContentType.
 type PutTimetableJSONRequestBody = Timetable
@@ -2018,6 +2701,71 @@ type PreviewMergeJSONRequestBody = MergeInput
 
 // SetObjectStateJSONRequestBody defines body for SetObjectState for application/json ContentType.
 type SetObjectStateJSONRequestBody = ObjectState
+
+// SubmitTeacherHomepageRequestJSONRequestBody defines body for SubmitTeacherHomepageRequest for application/json ContentType.
+type SubmitTeacherHomepageRequestJSONRequestBody = TeacherHomepageRequestInput
+
+// AsTeacherHomepagePortraitUpload returns the union data inside the TeacherHomepageFieldValueInput_Photo as a TeacherHomepagePortraitUpload
+func (t TeacherHomepageFieldValueInput_Photo) AsTeacherHomepagePortraitUpload() (TeacherHomepagePortraitUpload, error) {
+	var body TeacherHomepagePortraitUpload
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromTeacherHomepagePortraitUpload overwrites any union data inside the TeacherHomepageFieldValueInput_Photo as the provided TeacherHomepagePortraitUpload
+func (t *TeacherHomepageFieldValueInput_Photo) FromTeacherHomepagePortraitUpload(v TeacherHomepagePortraitUpload) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeTeacherHomepagePortraitUpload performs a merge with any union data inside the TeacherHomepageFieldValueInput_Photo, using the provided TeacherHomepagePortraitUpload
+func (t *TeacherHomepageFieldValueInput_Photo) MergeTeacherHomepagePortraitUpload(v TeacherHomepagePortraitUpload) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsTeacherHomepagePortraitReuse returns the union data inside the TeacherHomepageFieldValueInput_Photo as a TeacherHomepagePortraitReuse
+func (t TeacherHomepageFieldValueInput_Photo) AsTeacherHomepagePortraitReuse() (TeacherHomepagePortraitReuse, error) {
+	var body TeacherHomepagePortraitReuse
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromTeacherHomepagePortraitReuse overwrites any union data inside the TeacherHomepageFieldValueInput_Photo as the provided TeacherHomepagePortraitReuse
+func (t *TeacherHomepageFieldValueInput_Photo) FromTeacherHomepagePortraitReuse(v TeacherHomepagePortraitReuse) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeTeacherHomepagePortraitReuse performs a merge with any union data inside the TeacherHomepageFieldValueInput_Photo, using the provided TeacherHomepagePortraitReuse
+func (t *TeacherHomepageFieldValueInput_Photo) MergeTeacherHomepagePortraitReuse(v TeacherHomepagePortraitReuse) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+func (t TeacherHomepageFieldValueInput_Photo) MarshalJSON() ([]byte, error) {
+	b, err := t.union.MarshalJSON()
+	return b, err
+}
+
+func (t *TeacherHomepageFieldValueInput_Photo) UnmarshalJSON(b []byte) error {
+	err := t.union.UnmarshalJSON(b)
+	return err
+}
 
 // RequestEditorFn is the function signature for the RequestEditor callback function
 type RequestEditorFn func(ctx context.Context, req *http.Request) error
@@ -2135,6 +2883,28 @@ type ClientInterface interface {
 	// 提交目录投影异步重建持久任务，可选更新学校 DirectoryPolicy。要求 catalog.maintain 与学校维护范围。同键同请求重放原任务，已有排队或运行任务或存在未完成来源导入时返回 409。
 	StartDirectoryProjectionRebuild(ctx context.Context, schoolId string, params *StartDirectoryProjectionRebuildParams, body StartDirectoryProjectionRebuildJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
+	// GetTeacherHomepageAllowlist performs a GET /api/v1/catalog/admin/schools/{school_id}/teacher-sites/allowlist (the `GetTeacherHomepageAllowlist` operationId) request.
+	//
+	// 要求 catalog.maintain 和当前学校管理范围。读取该校教师主页的采集字段白名单。禁止缓存。
+	GetTeacherHomepageAllowlist(ctx context.Context, schoolId string, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// SetTeacherHomepageAllowlistWithBody performs a PUT /api/v1/catalog/admin/schools/{school_id}/teacher-sites/allowlist (the `SetTeacherHomepageAllowlist` operationId) request,
+	// with any type of body and a specified content type.
+	//
+	// 要求 catalog.maintain 和当前学校管理范围。替换完整采集字段白名单，并在同一事务保存修订、审计及幂等回执。管理员明确保存的覆盖值拥有独立的展示权限。隐藏与停止展示优先。
+	SetTeacherHomepageAllowlistWithBody(ctx context.Context, schoolId string, params *SetTeacherHomepageAllowlistParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// SetTeacherHomepageAllowlist performs a PUT /api/v1/catalog/admin/schools/{school_id}/teacher-sites/allowlist (the `SetTeacherHomepageAllowlist` operationId) request.
+	// Takes a body of the `application/json` content type.
+	//
+	// 要求 catalog.maintain 和当前学校管理范围。替换完整采集字段白名单，并在同一事务保存修订、审计及幂等回执。管理员明确保存的覆盖值拥有独立的展示权限。隐藏与停止展示优先。
+	SetTeacherHomepageAllowlist(ctx context.Context, schoolId string, params *SetTeacherHomepageAllowlistParams, body SetTeacherHomepageAllowlistJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// GetTeacherHomepageCounts performs a GET /api/v1/catalog/admin/schools/{school_id}/teacher-sites/homepage-counts (the `GetTeacherHomepageCounts` operationId) request.
+	//
+	// 要求 catalog.maintain 和当前学校管理范围。已核实人工资料单列统计，不计为官网匹配。三种依据可重叠，eligible 为并集。统计读取当前资料和已选定的授课截止条件，批准引入的新教师在下一代目录投影发布后进入公开列表。禁止缓存。
+	GetTeacherHomepageCounts(ctx context.Context, schoolId string, reqEditors ...RequestEditorFn) (*http.Response, error)
+
 	// GetTeacherRefreshStatus performs a GET /api/v1/catalog/admin/schools/{school_id}/teacher-sites/refresh (the `GetTeacherRefreshStatus` operationId) request.
 	//
 	// Requires catalog.teacher-sites.read and current school management scope. Every view is audited. Latest run includes safe failure code and observed request/site counts; unknown measurements are null. Counts reflect current visible teacher marks.
@@ -2151,6 +2921,33 @@ type ClientInterface interface {
 	//
 	// Requires catalog.teacher-sites.refresh and current school management scope. Audited durable enqueue. Only one queued/running refresh globally; a competing request returns 409. Replay with the same actor, school, key and mode returns the original run; a different mode conflicts. Use the returned deadline_at as the expiry of the specific run, including queue time. The monthly scheduler only enqueues incremental work. A timeout preserves the published snapshot.
 	StartTeacherRefresh(ctx context.Context, schoolId string, params *StartTeacherRefreshParams, body StartTeacherRefreshJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// ListTeacherHomepageRequests performs a GET /api/v1/catalog/admin/schools/{school_id}/teacher-sites/requests (the `ListTeacherHomepageRequests` operationId) request.
+	//
+	// 要求 catalog.maintain 和当前学校管理范围。按学校、状态和可选教师筛选，使用稳定顺序和游标分页。禁止缓存。
+	ListTeacherHomepageRequests(ctx context.Context, schoolId string, params *ListTeacherHomepageRequestsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// GetTeacherHomepageRequest performs a GET /api/v1/catalog/admin/schools/{school_id}/teacher-sites/requests/{request_id} (the `GetTeacherHomepageRequest` operationId) request.
+	//
+	// 要求 catalog.maintain 和当前学校管理范围。读取本校申请的原始提案和处理结果。禁止缓存。
+	GetTeacherHomepageRequest(ctx context.Context, schoolId string, requestId string, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// ResolveTeacherHomepageRequestWithBody performs a PUT /api/v1/catalog/admin/schools/{school_id}/teacher-sites/requests/{request_id}/decision (the `ResolveTeacherHomepageRequest` operationId) request,
+	// with any type of body and a specified content type.
+	//
+	// 要求 catalog.maintain 和当前学校管理范围。批准时应用申请对应字段修改或隐藏。发布新值前重新核对申请人的有效教师归属。状态、显示规则、审计、通知事件和幂等回执在同一事务提交。相同操作者、学校、幂等键和请求重放返回原结果。
+	ResolveTeacherHomepageRequestWithBody(ctx context.Context, schoolId string, requestId string, params *ResolveTeacherHomepageRequestParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// ResolveTeacherHomepageRequest performs a PUT /api/v1/catalog/admin/schools/{school_id}/teacher-sites/requests/{request_id}/decision (the `ResolveTeacherHomepageRequest` operationId) request.
+	// Takes a body of the `application/json` content type.
+	//
+	// 要求 catalog.maintain 和当前学校管理范围。批准时应用申请对应字段修改或隐藏。发布新值前重新核对申请人的有效教师归属。状态、显示规则、审计、通知事件和幂等回执在同一事务提交。相同操作者、学校、幂等键和请求重放返回原结果。
+	ResolveTeacherHomepageRequest(ctx context.Context, schoolId string, requestId string, params *ResolveTeacherHomepageRequestParams, body ResolveTeacherHomepageRequestJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// GetTeacherHomepageRequestPhoto performs a GET /api/v1/catalog/admin/schools/{school_id}/teacher-sites/requests/{request_id}/photo (the `GetTeacherHomepageRequestPhoto` operationId) request.
+	//
+	// 要求 catalog.maintain 和当前学校管理范围。管理员在审核时仅可读取该校申请携带的已验证头像。禁止缓存。
+	GetTeacherHomepageRequestPhoto(ctx context.Context, schoolId string, requestId string, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// ListTeacherHomepageReviewSites performs a GET /api/v1/catalog/admin/schools/{school_id}/teacher-sites/review/sites (the `ListTeacherHomepageReviewSites` operationId) request.
 	//
@@ -2173,6 +2970,23 @@ type ClientInterface interface {
 	//
 	// 要求 catalog.teacher-sites.read 和当前学校管理范围。按 ID 升序分页，服务端记录查看审计。每页列表正文达到 3 MiB 前提前分页，继续使用 next 读取后续记录。 包含目录教师、原因和同名站点候选摘要。
 	ListTeacherHomepageReviewTeachers(ctx context.Context, schoolId string, params *ListTeacherHomepageReviewTeachersParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// GetTeacherHomepageControls performs a GET /api/v1/catalog/admin/schools/{school_id}/teacher-sites/teachers/{teacher_id}/homepage (the `GetTeacherHomepageControls` operationId) request.
+	//
+	// 要求 catalog.maintain 和当前学校管理范围。返回当前采集资料及人工控制，供管理员分别核对来源与显示设置。未匹配或当前来源不可用时省略 source。禁止缓存。
+	GetTeacherHomepageControls(ctx context.Context, schoolId string, teacherId string, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// SetTeacherHomepageControlsWithBody performs a PUT /api/v1/catalog/admin/schools/{school_id}/teacher-sites/teachers/{teacher_id}/homepage (the `SetTeacherHomepageControls` operationId) request,
+	// with any type of body and a specified content type.
+	//
+	// 要求 catalog.maintain 和当前学校管理范围。以请求中完整的人工设置替换旧设置。剔除头像字节后的设置最多 1 MiB。控制、审计和幂等回执同一事务提交。首次修改时使用修订 0。相同操作者、学校、幂等键和请求重放返回原结果。
+	SetTeacherHomepageControlsWithBody(ctx context.Context, schoolId string, teacherId string, params *SetTeacherHomepageControlsParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// SetTeacherHomepageControls performs a PUT /api/v1/catalog/admin/schools/{school_id}/teacher-sites/teachers/{teacher_id}/homepage (the `SetTeacherHomepageControls` operationId) request.
+	// Takes a body of the `application/json` content type.
+	//
+	// 要求 catalog.maintain 和当前学校管理范围。以请求中完整的人工设置替换旧设置。剔除头像字节后的设置最多 1 MiB。控制、审计和幂等回执同一事务提交。首次修改时使用修订 0。相同操作者、学校、幂等键和请求重放返回原结果。
+	SetTeacherHomepageControls(ctx context.Context, schoolId string, teacherId string, params *SetTeacherHomepageControlsParams, body SetTeacherHomepageControlsJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// ListUnmatchedTeacherSites performs a GET /api/v1/catalog/admin/schools/{school_id}/teacher-sites/unmatched (the `ListUnmatchedTeacherSites` operationId) request.
 	//
@@ -2286,6 +3100,11 @@ type ClientInterface interface {
 	// Complete term export, at most 100 enrollments and 10000 occurrences; unavailable if exceeded. 422 schedule_incomplete when any meeting time, required period or timetable is missing, or local time is ambiguous/nonexistent. UTC DTSTART/DTEND correctly derived from IANA timezone. Stable UID per subject/term/class/meeting/week. No partial calendar.
 	MyCalendar(ctx context.Context, params *MyCalendarParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
+	// GetMyTeacherHomepageRequest performs a GET /api/v1/catalog/me/teacher-homepage/requests/{request_id} (the `GetMyTeacherHomepageRequest` operationId) request.
+	//
+	// 按提交账号读取申请详情，并复核有效教师认证与目录教师关联。供站内通知直达。其他账号请求同一标识时返回 404。禁止缓存。.
+	GetMyTeacherHomepageRequest(ctx context.Context, requestId string, reqEditors ...RequestEditorFn) (*http.Response, error)
+
 	// ListObjects performs a GET /api/v1/catalog/objects (the `ListObjects` operationId) request.
 	//
 	// 读取当前学校的可展示目录投影，当前内容权限在每次请求时检查。课程须在服务端截止学期（默认 2023 秋）及以后有开课记录。kind=term 仅返回截止学期及以后且有可见课程的学期，按 term_order_key 降序、ID 升序分页；前端保持返回顺序。其他类型按 ID 升序。 体育项目作为 kind=course 条目返回 course_type=sports_project。按项目 course_id 查询教师，筛选计数按项目去重。 普通目录仅提供学校、院系、分类、性质、学期、课程和教师；term_course、class、assignment、schedule 仅供管理端或受信服务使用。 kind=teacher&course_id=…、kind=course&teacher_id=… 和 kind=term 保持可用；授课事实只用于计算关联，不返回教学班。.
@@ -2293,12 +3112,12 @@ type ClientInterface interface {
 
 	// LookupObjects performs a GET /api/v1/catalog/objects/lookup (the `LookupObjects` operationId) request.
 	//
-	// Requires current content admission in the served school: valid campus eligibility or verified teacher status. Missing admission returns 403; unavailable required facts return 503. No preview, content, counts or statistics are returned on rejection. 教师公开查询由服务端目录标记过滤：有授课记录或已匹配官网名单即可保留。列表、详情、批量查询、筛选选项及计数使用相同依据。未标记的教师详情返回 not_found。 普通目录仅提供学校、院系、分类、性质、学期、课程和教师；term_course、class、assignment、schedule 仅供管理端或受信服务使用。 教学班相关 ID 与未知 ID 一样列入 missing_ids，不返回其对象。混合查询仍返回其余可见课程和教师。
+	// Requires current content admission in the served school: valid campus eligibility or verified teacher status. Missing admission returns 403; unavailable required facts return 503. No preview, content, counts or statistics are returned on rejection. 教师公开查询由服务端目录标记过滤：具有有效授课、官网匹配或经核实的独立主页资料任一依据即可保留。列表、详情、批量查询、筛选选项及计数使用相同依据。未标记的教师详情返回 not_found。 普通目录仅提供学校、院系、分类、性质、学期、课程和教师；term_course、class、assignment、schedule 仅供管理端或受信服务使用。 教学班相关 ID 与未知 ID 一样列入 missing_ids，不返回其对象。混合查询仍返回其余可见课程和教师。
 	LookupObjects(ctx context.Context, params *LookupObjectsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// GetObject performs a GET /api/v1/catalog/objects/{id} (the `GetObject` operationId) request.
 	//
-	// Requires current content admission in the served school: valid campus eligibility or verified teacher status. Missing admission returns 403; unavailable required facts return 503. No preview, content, counts or statistics are returned on rejection. 教师公开查询由服务端目录标记过滤：有授课记录或已匹配官网名单即可保留。列表、详情、批量查询、筛选选项及计数使用相同依据。未标记的教师详情返回 not_found。 Courses outside the current visible directory projection return not_found, including direct links. 普通目录仅提供学校、院系、分类、性质、学期、课程和教师；term_course、class、assignment、schedule 仅供管理端或受信服务使用。 教师详情可选择附带当前匹配官网资料。教师院系与职称仍取目录字段。
+	// Requires current content admission in the served school: valid campus eligibility or verified teacher status. Missing admission returns 403; unavailable required facts return 503. No preview, content, counts or statistics are returned on rejection. 教师公开查询由服务端目录标记过滤：具有有效授课、官网匹配或经核实的独立主页资料任一依据即可保留。列表、详情、批量查询、筛选选项及计数使用相同依据。未标记的教师详情返回 not_found。 Courses outside the current visible directory projection return not_found, including direct links. 普通目录仅提供学校、院系、分类、性质、学期、课程和教师；term_course、class、assignment、schedule 仅供管理端或受信服务使用。 教师详情可选择附带可展示的主页资料。教师院系与职称仍取目录字段。
 	GetObject(ctx context.Context, id string, params *GetObjectParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// CorrectObjectWithBody performs a PATCH /api/v1/catalog/objects/{id} (the `CorrectObject` operationId) request,
@@ -2327,7 +3146,7 @@ type ClientInterface interface {
 
 	// ResolveObject performs a GET /api/v1/catalog/objects/{id}/resolution (the `ResolveObject` operationId) request.
 	//
-	// Requires current content admission in the served school: valid campus eligibility or verified teacher status. Missing admission returns 403; unavailable required facts return 503. No preview, content, counts or statistics are returned on rejection. 教师公开查询由服务端目录标记过滤：有授课记录或已匹配官网名单即可保留。列表、详情、批量查询、筛选选项及计数使用相同依据。未标记的教师详情返回 not_found。 普通目录仅提供学校、院系、分类、性质、学期、课程和教师；term_course、class、assignment、schedule 仅供管理端或受信服务使用。
+	// Requires current content admission in the served school: valid campus eligibility or verified teacher status. Missing admission returns 403; unavailable required facts return 503. No preview, content, counts or statistics are returned on rejection. 教师公开查询由服务端目录标记过滤：具有有效授课、官网匹配或经核实的独立主页资料任一依据即可保留。列表、详情、批量查询、筛选选项及计数使用相同依据。未标记的教师详情返回 not_found。 普通目录仅提供学校、院系、分类、性质、学期、课程和教师；term_course、class、assignment、schedule 仅供管理端或受信服务使用。
 	ResolveObject(ctx context.Context, id string, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// SetObjectStateWithBody performs a POST /api/v1/catalog/objects/{id}/state (the `SetObjectState` operationId) request,
@@ -2340,13 +3159,35 @@ type ClientInterface interface {
 
 	// GetObjectSummary performs a GET /api/v1/catalog/objects/{id}/summary (the `GetObjectSummary` operationId) request.
 	//
-	// Requires current content admission in the served school: valid campus eligibility or verified teacher status. Missing admission returns 403; unavailable required facts return 503. No preview, content, counts or statistics are returned on rejection. 教师公开查询由服务端目录标记过滤：有授课记录或已匹配官网名单即可保留。列表、详情、批量查询、筛选选项及计数使用相同依据。未标记的教师详情返回 not_found。 Courses outside the current visible directory projection return not_found, including direct links. 普通目录仅提供学校、院系、分类、性质、学期、课程和教师；term_course、class、assignment、schedule 仅供管理端或受信服务使用。 include_teacher_homepage 参数仅作用于摘要主对象 object。
+	// Requires current content admission in the served school: valid campus eligibility or verified teacher status. Missing admission returns 403; unavailable required facts return 503. No preview, content, counts or statistics are returned on rejection. 教师公开查询由服务端目录标记过滤：具有有效授课、官网匹配或经核实的独立主页资料任一依据即可保留。列表、详情、批量查询、筛选选项及计数使用相同依据。未标记的教师详情返回 not_found。 Courses outside the current visible directory projection return not_found, including direct links. 普通目录仅提供学校、院系、分类、性质、学期、课程和教师；term_course、class、assignment、schedule 仅供管理端或受信服务使用。 include_teacher_homepage 参数仅作用于摘要主对象 object。
 	GetObjectSummary(ctx context.Context, id string, params *GetObjectSummaryParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// GetTeacherHomepage performs a GET /api/v1/catalog/objects/{id}/teacher-homepage (the `GetTeacherHomepage` operationId) request.
+	//
+	// 沿用教师目录的当前内容准入和学校范围。profile 为应用字段白名单、人工覆盖与隐藏设置后的纯文本投影。当前公开教师可展示已审批的独立资料。无可展示资料、整页隐藏或已停止展示时返回空对象。禁止缓存。.
+	GetTeacherHomepage(ctx context.Context, id string, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// GetTeacherHomepagePhoto performs a GET /api/v1/catalog/objects/{id}/teacher-homepage/photos/{photo_id} (the `GetTeacherHomepagePhoto` operationId) request.
 	//
 	// 沿用当前教师详情的登录、学校内容准入和目录可见性。教师仍与站点匹配且该摘要对应当前照片时返回图片，否则返回 404。客户端用登录凭证读取二进制，可将 Blob 转为图片地址。响应禁止缓存。.
 	GetTeacherHomepagePhoto(ctx context.Context, id string, photoId string, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// ListMyTeacherHomepageRequests performs a GET /api/v1/catalog/objects/{id}/teacher-homepage/requests (the `ListMyTeacherHomepageRequests` operationId) request.
+	//
+	// 按提交账号读取该目录教师的申请，同时复核当前有效教师认证和教师目录关联。查询范围与本人可访问的教师目录对象一致。禁止缓存。.
+	ListMyTeacherHomepageRequests(ctx context.Context, id string, params *ListMyTeacherHomepageRequestsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// SubmitTeacherHomepageRequestWithBody performs a POST /api/v1/catalog/objects/{id}/teacher-homepage/requests (the `SubmitTeacherHomepageRequest` operationId) request,
+	// with any type of body and a specified content type.
+	//
+	// 仅当前通过教师认证、并已关联该学校和目录教师的账号可提交。提交后进入管理员队列，处理结果通过站内通知告知本人。不含头像字节的申请正文最多 1 MiB。同一账号每分钟最多提交十条新申请。相同账号、教师、幂等键和请求重放返回原结果。.
+	SubmitTeacherHomepageRequestWithBody(ctx context.Context, id string, params *SubmitTeacherHomepageRequestParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// SubmitTeacherHomepageRequest performs a POST /api/v1/catalog/objects/{id}/teacher-homepage/requests (the `SubmitTeacherHomepageRequest` operationId) request.
+	// Takes a body of the `application/json` content type.
+	//
+	// 仅当前通过教师认证、并已关联该学校和目录教师的账号可提交。提交后进入管理员队列，处理结果通过站内通知告知本人。不含头像字节的申请正文最多 1 MiB。同一账号每分钟最多提交十条新申请。相同账号、教师、幂等键和请求重放返回原结果。.
+	SubmitTeacherHomepageRequest(ctx context.Context, id string, params *SubmitTeacherHomepageRequestParams, body SubmitTeacherHomepageRequestJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 }
 
 // AdminListObjects performs a GET /api/v1/catalog/admin/objects (the `AdminListObjects` operationId) request.
@@ -2471,6 +3312,68 @@ func (c *Client) StartDirectoryProjectionRebuild(ctx context.Context, schoolId s
 	return c.Client.Do(req)
 }
 
+// GetTeacherHomepageAllowlist performs a GET /api/v1/catalog/admin/schools/{school_id}/teacher-sites/allowlist (the `GetTeacherHomepageAllowlist` operationId) request.
+//
+// 要求 catalog.maintain 和当前学校管理范围。读取该校教师主页的采集字段白名单。禁止缓存。
+func (c *Client) GetTeacherHomepageAllowlist(ctx context.Context, schoolId string, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetTeacherHomepageAllowlistRequest(c.Server, schoolId)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// SetTeacherHomepageAllowlistWithBody performs a PUT /api/v1/catalog/admin/schools/{school_id}/teacher-sites/allowlist (the `SetTeacherHomepageAllowlist` operationId) request,
+// with any type of body and a specified content type.
+//
+// 要求 catalog.maintain 和当前学校管理范围。替换完整采集字段白名单，并在同一事务保存修订、审计及幂等回执。管理员明确保存的覆盖值拥有独立的展示权限。隐藏与停止展示优先。
+func (c *Client) SetTeacherHomepageAllowlistWithBody(ctx context.Context, schoolId string, params *SetTeacherHomepageAllowlistParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewSetTeacherHomepageAllowlistRequestWithBody(c.Server, schoolId, params, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// SetTeacherHomepageAllowlist performs a PUT /api/v1/catalog/admin/schools/{school_id}/teacher-sites/allowlist (the `SetTeacherHomepageAllowlist` operationId) request.
+// Takes a body of the `application/json` content type.
+//
+// 要求 catalog.maintain 和当前学校管理范围。替换完整采集字段白名单，并在同一事务保存修订、审计及幂等回执。管理员明确保存的覆盖值拥有独立的展示权限。隐藏与停止展示优先。
+func (c *Client) SetTeacherHomepageAllowlist(ctx context.Context, schoolId string, params *SetTeacherHomepageAllowlistParams, body SetTeacherHomepageAllowlistJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewSetTeacherHomepageAllowlistRequest(c.Server, schoolId, params, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// GetTeacherHomepageCounts performs a GET /api/v1/catalog/admin/schools/{school_id}/teacher-sites/homepage-counts (the `GetTeacherHomepageCounts` operationId) request.
+//
+// 要求 catalog.maintain 和当前学校管理范围。已核实人工资料单列统计，不计为官网匹配。三种依据可重叠，eligible 为并集。统计读取当前资料和已选定的授课截止条件，批准引入的新教师在下一代目录投影发布后进入公开列表。禁止缓存。
+func (c *Client) GetTeacherHomepageCounts(ctx context.Context, schoolId string, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetTeacherHomepageCountsRequest(c.Server, schoolId)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
 // GetTeacherRefreshStatus performs a GET /api/v1/catalog/admin/schools/{school_id}/teacher-sites/refresh (the `GetTeacherRefreshStatus` operationId) request.
 //
 // Requires catalog.teacher-sites.read and current school management scope. Every view is audited. Latest run includes safe failure code and observed request/site counts; unknown measurements are null. Counts reflect current visible teacher marks.
@@ -2508,6 +3411,83 @@ func (c *Client) StartTeacherRefreshWithBody(ctx context.Context, schoolId strin
 // Requires catalog.teacher-sites.refresh and current school management scope. Audited durable enqueue. Only one queued/running refresh globally; a competing request returns 409. Replay with the same actor, school, key and mode returns the original run; a different mode conflicts. Use the returned deadline_at as the expiry of the specific run, including queue time. The monthly scheduler only enqueues incremental work. A timeout preserves the published snapshot.
 func (c *Client) StartTeacherRefresh(ctx context.Context, schoolId string, params *StartTeacherRefreshParams, body StartTeacherRefreshJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewStartTeacherRefreshRequest(c.Server, schoolId, params, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// ListTeacherHomepageRequests performs a GET /api/v1/catalog/admin/schools/{school_id}/teacher-sites/requests (the `ListTeacherHomepageRequests` operationId) request.
+//
+// 要求 catalog.maintain 和当前学校管理范围。按学校、状态和可选教师筛选，使用稳定顺序和游标分页。禁止缓存。
+func (c *Client) ListTeacherHomepageRequests(ctx context.Context, schoolId string, params *ListTeacherHomepageRequestsParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewListTeacherHomepageRequestsRequest(c.Server, schoolId, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// GetTeacherHomepageRequest performs a GET /api/v1/catalog/admin/schools/{school_id}/teacher-sites/requests/{request_id} (the `GetTeacherHomepageRequest` operationId) request.
+//
+// 要求 catalog.maintain 和当前学校管理范围。读取本校申请的原始提案和处理结果。禁止缓存。
+func (c *Client) GetTeacherHomepageRequest(ctx context.Context, schoolId string, requestId string, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetTeacherHomepageRequestRequest(c.Server, schoolId, requestId)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// ResolveTeacherHomepageRequestWithBody performs a PUT /api/v1/catalog/admin/schools/{school_id}/teacher-sites/requests/{request_id}/decision (the `ResolveTeacherHomepageRequest` operationId) request,
+// with any type of body and a specified content type.
+//
+// 要求 catalog.maintain 和当前学校管理范围。批准时应用申请对应字段修改或隐藏。发布新值前重新核对申请人的有效教师归属。状态、显示规则、审计、通知事件和幂等回执在同一事务提交。相同操作者、学校、幂等键和请求重放返回原结果。
+func (c *Client) ResolveTeacherHomepageRequestWithBody(ctx context.Context, schoolId string, requestId string, params *ResolveTeacherHomepageRequestParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewResolveTeacherHomepageRequestRequestWithBody(c.Server, schoolId, requestId, params, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// ResolveTeacherHomepageRequest performs a PUT /api/v1/catalog/admin/schools/{school_id}/teacher-sites/requests/{request_id}/decision (the `ResolveTeacherHomepageRequest` operationId) request.
+// Takes a body of the `application/json` content type.
+//
+// 要求 catalog.maintain 和当前学校管理范围。批准时应用申请对应字段修改或隐藏。发布新值前重新核对申请人的有效教师归属。状态、显示规则、审计、通知事件和幂等回执在同一事务提交。相同操作者、学校、幂等键和请求重放返回原结果。
+func (c *Client) ResolveTeacherHomepageRequest(ctx context.Context, schoolId string, requestId string, params *ResolveTeacherHomepageRequestParams, body ResolveTeacherHomepageRequestJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewResolveTeacherHomepageRequestRequest(c.Server, schoolId, requestId, params, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// GetTeacherHomepageRequestPhoto performs a GET /api/v1/catalog/admin/schools/{school_id}/teacher-sites/requests/{request_id}/photo (the `GetTeacherHomepageRequestPhoto` operationId) request.
+//
+// 要求 catalog.maintain 和当前学校管理范围。管理员在审核时仅可读取该校申请携带的已验证头像。禁止缓存。
+func (c *Client) GetTeacherHomepageRequestPhoto(ctx context.Context, schoolId string, requestId string, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetTeacherHomepageRequestPhotoRequest(c.Server, schoolId, requestId)
 	if err != nil {
 		return nil, err
 	}
@@ -2570,6 +3550,53 @@ func (c *Client) SetTeacherHomepageDecision(ctx context.Context, schoolId string
 // 要求 catalog.teacher-sites.read 和当前学校管理范围。按 ID 升序分页，服务端记录查看审计。每页列表正文达到 3 MiB 前提前分页，继续使用 next 读取后续记录。 包含目录教师、原因和同名站点候选摘要。
 func (c *Client) ListTeacherHomepageReviewTeachers(ctx context.Context, schoolId string, params *ListTeacherHomepageReviewTeachersParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewListTeacherHomepageReviewTeachersRequest(c.Server, schoolId, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// GetTeacherHomepageControls performs a GET /api/v1/catalog/admin/schools/{school_id}/teacher-sites/teachers/{teacher_id}/homepage (the `GetTeacherHomepageControls` operationId) request.
+//
+// 要求 catalog.maintain 和当前学校管理范围。返回当前采集资料及人工控制，供管理员分别核对来源与显示设置。未匹配或当前来源不可用时省略 source。禁止缓存。
+func (c *Client) GetTeacherHomepageControls(ctx context.Context, schoolId string, teacherId string, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetTeacherHomepageControlsRequest(c.Server, schoolId, teacherId)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// SetTeacherHomepageControlsWithBody performs a PUT /api/v1/catalog/admin/schools/{school_id}/teacher-sites/teachers/{teacher_id}/homepage (the `SetTeacherHomepageControls` operationId) request,
+// with any type of body and a specified content type.
+//
+// 要求 catalog.maintain 和当前学校管理范围。以请求中完整的人工设置替换旧设置。剔除头像字节后的设置最多 1 MiB。控制、审计和幂等回执同一事务提交。首次修改时使用修订 0。相同操作者、学校、幂等键和请求重放返回原结果。
+func (c *Client) SetTeacherHomepageControlsWithBody(ctx context.Context, schoolId string, teacherId string, params *SetTeacherHomepageControlsParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewSetTeacherHomepageControlsRequestWithBody(c.Server, schoolId, teacherId, params, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// SetTeacherHomepageControls performs a PUT /api/v1/catalog/admin/schools/{school_id}/teacher-sites/teachers/{teacher_id}/homepage (the `SetTeacherHomepageControls` operationId) request.
+// Takes a body of the `application/json` content type.
+//
+// 要求 catalog.maintain 和当前学校管理范围。以请求中完整的人工设置替换旧设置。剔除头像字节后的设置最多 1 MiB。控制、审计和幂等回执同一事务提交。首次修改时使用修订 0。相同操作者、学校、幂等键和请求重放返回原结果。
+func (c *Client) SetTeacherHomepageControls(ctx context.Context, schoolId string, teacherId string, params *SetTeacherHomepageControlsParams, body SetTeacherHomepageControlsJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewSetTeacherHomepageControlsRequest(c.Server, schoolId, teacherId, params, body)
 	if err != nil {
 		return nil, err
 	}
@@ -2912,6 +3939,21 @@ func (c *Client) MyCalendar(ctx context.Context, params *MyCalendarParams, reqEd
 	return c.Client.Do(req)
 }
 
+// GetMyTeacherHomepageRequest performs a GET /api/v1/catalog/me/teacher-homepage/requests/{request_id} (the `GetMyTeacherHomepageRequest` operationId) request.
+//
+// 按提交账号读取申请详情，并复核有效教师认证与目录教师关联。供站内通知直达。其他账号请求同一标识时返回 404。禁止缓存。.
+func (c *Client) GetMyTeacherHomepageRequest(ctx context.Context, requestId string, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetMyTeacherHomepageRequestRequest(c.Server, requestId)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
 // ListObjects performs a GET /api/v1/catalog/objects (the `ListObjects` operationId) request.
 //
 // 读取当前学校的可展示目录投影，当前内容权限在每次请求时检查。课程须在服务端截止学期（默认 2023 秋）及以后有开课记录。kind=term 仅返回截止学期及以后且有可见课程的学期，按 term_order_key 降序、ID 升序分页；前端保持返回顺序。其他类型按 ID 升序。 体育项目作为 kind=course 条目返回 course_type=sports_project。按项目 course_id 查询教师，筛选计数按项目去重。 普通目录仅提供学校、院系、分类、性质、学期、课程和教师；term_course、class、assignment、schedule 仅供管理端或受信服务使用。 kind=teacher&course_id=…、kind=course&teacher_id=… 和 kind=term 保持可用；授课事实只用于计算关联，不返回教学班。.
@@ -2929,7 +3971,7 @@ func (c *Client) ListObjects(ctx context.Context, params *ListObjectsParams, req
 
 // LookupObjects performs a GET /api/v1/catalog/objects/lookup (the `LookupObjects` operationId) request.
 //
-// Requires current content admission in the served school: valid campus eligibility or verified teacher status. Missing admission returns 403; unavailable required facts return 503. No preview, content, counts or statistics are returned on rejection. 教师公开查询由服务端目录标记过滤：有授课记录或已匹配官网名单即可保留。列表、详情、批量查询、筛选选项及计数使用相同依据。未标记的教师详情返回 not_found。 普通目录仅提供学校、院系、分类、性质、学期、课程和教师；term_course、class、assignment、schedule 仅供管理端或受信服务使用。 教学班相关 ID 与未知 ID 一样列入 missing_ids，不返回其对象。混合查询仍返回其余可见课程和教师。
+// Requires current content admission in the served school: valid campus eligibility or verified teacher status. Missing admission returns 403; unavailable required facts return 503. No preview, content, counts or statistics are returned on rejection. 教师公开查询由服务端目录标记过滤：具有有效授课、官网匹配或经核实的独立主页资料任一依据即可保留。列表、详情、批量查询、筛选选项及计数使用相同依据。未标记的教师详情返回 not_found。 普通目录仅提供学校、院系、分类、性质、学期、课程和教师；term_course、class、assignment、schedule 仅供管理端或受信服务使用。 教学班相关 ID 与未知 ID 一样列入 missing_ids，不返回其对象。混合查询仍返回其余可见课程和教师。
 func (c *Client) LookupObjects(ctx context.Context, params *LookupObjectsParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewLookupObjectsRequest(c.Server, params)
 	if err != nil {
@@ -2944,7 +3986,7 @@ func (c *Client) LookupObjects(ctx context.Context, params *LookupObjectsParams,
 
 // GetObject performs a GET /api/v1/catalog/objects/{id} (the `GetObject` operationId) request.
 //
-// Requires current content admission in the served school: valid campus eligibility or verified teacher status. Missing admission returns 403; unavailable required facts return 503. No preview, content, counts or statistics are returned on rejection. 教师公开查询由服务端目录标记过滤：有授课记录或已匹配官网名单即可保留。列表、详情、批量查询、筛选选项及计数使用相同依据。未标记的教师详情返回 not_found。 Courses outside the current visible directory projection return not_found, including direct links. 普通目录仅提供学校、院系、分类、性质、学期、课程和教师；term_course、class、assignment、schedule 仅供管理端或受信服务使用。 教师详情可选择附带当前匹配官网资料。教师院系与职称仍取目录字段。
+// Requires current content admission in the served school: valid campus eligibility or verified teacher status. Missing admission returns 403; unavailable required facts return 503. No preview, content, counts or statistics are returned on rejection. 教师公开查询由服务端目录标记过滤：具有有效授课、官网匹配或经核实的独立主页资料任一依据即可保留。列表、详情、批量查询、筛选选项及计数使用相同依据。未标记的教师详情返回 not_found。 Courses outside the current visible directory projection return not_found, including direct links. 普通目录仅提供学校、院系、分类、性质、学期、课程和教师；term_course、class、assignment、schedule 仅供管理端或受信服务使用。 教师详情可选择附带可展示的主页资料。教师院系与职称仍取目录字段。
 func (c *Client) GetObject(ctx context.Context, id string, params *GetObjectParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewGetObjectRequest(c.Server, id, params)
 	if err != nil {
@@ -3043,7 +4085,7 @@ func (c *Client) PreviewMerge(ctx context.Context, id string, params *PreviewMer
 
 // ResolveObject performs a GET /api/v1/catalog/objects/{id}/resolution (the `ResolveObject` operationId) request.
 //
-// Requires current content admission in the served school: valid campus eligibility or verified teacher status. Missing admission returns 403; unavailable required facts return 503. No preview, content, counts or statistics are returned on rejection. 教师公开查询由服务端目录标记过滤：有授课记录或已匹配官网名单即可保留。列表、详情、批量查询、筛选选项及计数使用相同依据。未标记的教师详情返回 not_found。 普通目录仅提供学校、院系、分类、性质、学期、课程和教师；term_course、class、assignment、schedule 仅供管理端或受信服务使用。
+// Requires current content admission in the served school: valid campus eligibility or verified teacher status. Missing admission returns 403; unavailable required facts return 503. No preview, content, counts or statistics are returned on rejection. 教师公开查询由服务端目录标记过滤：具有有效授课、官网匹配或经核实的独立主页资料任一依据即可保留。列表、详情、批量查询、筛选选项及计数使用相同依据。未标记的教师详情返回 not_found。 普通目录仅提供学校、院系、分类、性质、学期、课程和教师；term_course、class、assignment、schedule 仅供管理端或受信服务使用。
 func (c *Client) ResolveObject(ctx context.Context, id string, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewResolveObjectRequest(c.Server, id)
 	if err != nil {
@@ -3086,9 +4128,24 @@ func (c *Client) SetObjectState(ctx context.Context, id string, params *SetObjec
 
 // GetObjectSummary performs a GET /api/v1/catalog/objects/{id}/summary (the `GetObjectSummary` operationId) request.
 //
-// Requires current content admission in the served school: valid campus eligibility or verified teacher status. Missing admission returns 403; unavailable required facts return 503. No preview, content, counts or statistics are returned on rejection. 教师公开查询由服务端目录标记过滤：有授课记录或已匹配官网名单即可保留。列表、详情、批量查询、筛选选项及计数使用相同依据。未标记的教师详情返回 not_found。 Courses outside the current visible directory projection return not_found, including direct links. 普通目录仅提供学校、院系、分类、性质、学期、课程和教师；term_course、class、assignment、schedule 仅供管理端或受信服务使用。 include_teacher_homepage 参数仅作用于摘要主对象 object。
+// Requires current content admission in the served school: valid campus eligibility or verified teacher status. Missing admission returns 403; unavailable required facts return 503. No preview, content, counts or statistics are returned on rejection. 教师公开查询由服务端目录标记过滤：具有有效授课、官网匹配或经核实的独立主页资料任一依据即可保留。列表、详情、批量查询、筛选选项及计数使用相同依据。未标记的教师详情返回 not_found。 Courses outside the current visible directory projection return not_found, including direct links. 普通目录仅提供学校、院系、分类、性质、学期、课程和教师；term_course、class、assignment、schedule 仅供管理端或受信服务使用。 include_teacher_homepage 参数仅作用于摘要主对象 object。
 func (c *Client) GetObjectSummary(ctx context.Context, id string, params *GetObjectSummaryParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewGetObjectSummaryRequest(c.Server, id, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// GetTeacherHomepage performs a GET /api/v1/catalog/objects/{id}/teacher-homepage (the `GetTeacherHomepage` operationId) request.
+//
+// 沿用教师目录的当前内容准入和学校范围。profile 为应用字段白名单、人工覆盖与隐藏设置后的纯文本投影。当前公开教师可展示已审批的独立资料。无可展示资料、整页隐藏或已停止展示时返回空对象。禁止缓存。.
+func (c *Client) GetTeacherHomepage(ctx context.Context, id string, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetTeacherHomepageRequest(c.Server, id)
 	if err != nil {
 		return nil, err
 	}
@@ -3104,6 +4161,53 @@ func (c *Client) GetObjectSummary(ctx context.Context, id string, params *GetObj
 // 沿用当前教师详情的登录、学校内容准入和目录可见性。教师仍与站点匹配且该摘要对应当前照片时返回图片，否则返回 404。客户端用登录凭证读取二进制，可将 Blob 转为图片地址。响应禁止缓存。.
 func (c *Client) GetTeacherHomepagePhoto(ctx context.Context, id string, photoId string, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewGetTeacherHomepagePhotoRequest(c.Server, id, photoId)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// ListMyTeacherHomepageRequests performs a GET /api/v1/catalog/objects/{id}/teacher-homepage/requests (the `ListMyTeacherHomepageRequests` operationId) request.
+//
+// 按提交账号读取该目录教师的申请，同时复核当前有效教师认证和教师目录关联。查询范围与本人可访问的教师目录对象一致。禁止缓存。.
+func (c *Client) ListMyTeacherHomepageRequests(ctx context.Context, id string, params *ListMyTeacherHomepageRequestsParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewListMyTeacherHomepageRequestsRequest(c.Server, id, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// SubmitTeacherHomepageRequestWithBody performs a POST /api/v1/catalog/objects/{id}/teacher-homepage/requests (the `SubmitTeacherHomepageRequest` operationId) request,
+// with any type of body and a specified content type.
+//
+// 仅当前通过教师认证、并已关联该学校和目录教师的账号可提交。提交后进入管理员队列，处理结果通过站内通知告知本人。不含头像字节的申请正文最多 1 MiB。同一账号每分钟最多提交十条新申请。相同账号、教师、幂等键和请求重放返回原结果。.
+func (c *Client) SubmitTeacherHomepageRequestWithBody(ctx context.Context, id string, params *SubmitTeacherHomepageRequestParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewSubmitTeacherHomepageRequestRequestWithBody(c.Server, id, params, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// SubmitTeacherHomepageRequest performs a POST /api/v1/catalog/objects/{id}/teacher-homepage/requests (the `SubmitTeacherHomepageRequest` operationId) request.
+// Takes a body of the `application/json` content type.
+//
+// 仅当前通过教师认证、并已关联该学校和目录教师的账号可提交。提交后进入管理员队列，处理结果通过站内通知告知本人。不含头像字节的申请正文最多 1 MiB。同一账号每分钟最多提交十条新申请。相同账号、教师、幂等键和请求重放返回原结果。.
+func (c *Client) SubmitTeacherHomepageRequest(ctx context.Context, id string, params *SubmitTeacherHomepageRequestParams, body SubmitTeacherHomepageRequestJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewSubmitTeacherHomepageRequestRequest(c.Server, id, params, body)
 	if err != nil {
 		return nil, err
 	}
@@ -3566,6 +4670,134 @@ func NewStartDirectoryProjectionRebuildRequestWithBody(server string, schoolId s
 	return req, nil
 }
 
+// NewGetTeacherHomepageAllowlistRequest constructs an http.Request for the GetTeacherHomepageAllowlist method
+func NewGetTeacherHomepageAllowlistRequest(server string, schoolId string) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "school_id", schoolId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/catalog/admin/schools/%s/teacher-sites/allowlist", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewSetTeacherHomepageAllowlistRequest calls the generic SetTeacherHomepageAllowlist builder with application/json body
+func NewSetTeacherHomepageAllowlistRequest(server string, schoolId string, params *SetTeacherHomepageAllowlistParams, body SetTeacherHomepageAllowlistJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewSetTeacherHomepageAllowlistRequestWithBody(server, schoolId, params, "application/json", bodyReader)
+}
+
+// NewSetTeacherHomepageAllowlistRequestWithBody constructs an http.Request for the SetTeacherHomepageAllowlist method, with any body, and a specified content type
+func NewSetTeacherHomepageAllowlistRequestWithBody(server string, schoolId string, params *SetTeacherHomepageAllowlistParams, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "school_id", schoolId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/catalog/admin/schools/%s/teacher-sites/allowlist", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPut, queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	if params != nil {
+
+		var headerParam0 string
+
+		headerParam0, err = runtime.StyleParamWithOptions("simple", false, "Idempotency-Key", params.IdempotencyKey, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationHeader, Type: "string", Format: ""})
+		if err != nil {
+			return nil, err
+		}
+
+		req.Header.Set("Idempotency-Key", headerParam0)
+
+	}
+
+	return req, nil
+}
+
+// NewGetTeacherHomepageCountsRequest constructs an http.Request for the GetTeacherHomepageCounts method
+func NewGetTeacherHomepageCountsRequest(server string, schoolId string) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "school_id", schoolId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/catalog/admin/schools/%s/teacher-sites/homepage-counts", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
 // NewGetTeacherRefreshStatusRequest constructs an http.Request for the GetTeacherRefreshStatus method
 func NewGetTeacherRefreshStatusRequest(server string, schoolId string) (*http.Request, error) {
 	var err error
@@ -3655,6 +4887,252 @@ func NewStartTeacherRefreshRequestWithBody(server string, schoolId string, param
 
 		req.Header.Set("Idempotency-Key", headerParam0)
 
+	}
+
+	return req, nil
+}
+
+// NewListTeacherHomepageRequestsRequest constructs an http.Request for the ListTeacherHomepageRequests method
+func NewListTeacherHomepageRequestsRequest(server string, schoolId string, params *ListTeacherHomepageRequestsParams) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "school_id", schoolId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/catalog/admin/schools/%s/teacher-sites/requests", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		// queryValues collects non-styled parameters (passthrough, JSON)
+		// that are safe to round-trip through url.Values.Encode().
+		queryValues := queryURL.Query()
+		// rawQueryFragments collects pre-encoded query fragments from
+		// styled parameters, preserving literal commas as delimiters
+		// per the OpenAPI spec (e.g. "color=blue,black,brown").
+		var rawQueryFragments []string
+
+		if params.Status != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "status", *params.Status, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.TeacherId != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "teacher_id", *params.TeacherId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.After != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "after", *params.After, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.Limit != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "limit", *params.Limit, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "integer", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if encoded := queryValues.Encode(); encoded != "" {
+			rawQueryFragments = append(rawQueryFragments, encoded)
+		}
+		queryURL.RawQuery = strings.Join(rawQueryFragments, "&")
+	}
+
+	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewGetTeacherHomepageRequestRequest constructs an http.Request for the GetTeacherHomepageRequest method
+func NewGetTeacherHomepageRequestRequest(server string, schoolId string, requestId string) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "school_id", schoolId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithOptions("simple", false, "request_id", requestId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/catalog/admin/schools/%s/teacher-sites/requests/%s", pathParam0, pathParam1)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewResolveTeacherHomepageRequestRequest calls the generic ResolveTeacherHomepageRequest builder with application/json body
+func NewResolveTeacherHomepageRequestRequest(server string, schoolId string, requestId string, params *ResolveTeacherHomepageRequestParams, body ResolveTeacherHomepageRequestJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewResolveTeacherHomepageRequestRequestWithBody(server, schoolId, requestId, params, "application/json", bodyReader)
+}
+
+// NewResolveTeacherHomepageRequestRequestWithBody constructs an http.Request for the ResolveTeacherHomepageRequest method, with any body, and a specified content type
+func NewResolveTeacherHomepageRequestRequestWithBody(server string, schoolId string, requestId string, params *ResolveTeacherHomepageRequestParams, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "school_id", schoolId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithOptions("simple", false, "request_id", requestId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/catalog/admin/schools/%s/teacher-sites/requests/%s/decision", pathParam0, pathParam1)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPut, queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	if params != nil {
+
+		var headerParam0 string
+
+		headerParam0, err = runtime.StyleParamWithOptions("simple", false, "Idempotency-Key", params.IdempotencyKey, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationHeader, Type: "string", Format: ""})
+		if err != nil {
+			return nil, err
+		}
+
+		req.Header.Set("Idempotency-Key", headerParam0)
+
+	}
+
+	return req, nil
+}
+
+// NewGetTeacherHomepageRequestPhotoRequest constructs an http.Request for the GetTeacherHomepageRequestPhoto method
+func NewGetTeacherHomepageRequestPhotoRequest(server string, schoolId string, requestId string) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "school_id", schoolId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithOptions("simple", false, "request_id", requestId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/catalog/admin/schools/%s/teacher-sites/requests/%s/photo", pathParam0, pathParam1)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
 	}
 
 	return req, nil
@@ -3916,6 +5394,114 @@ func NewListTeacherHomepageReviewTeachersRequest(server string, schoolId string,
 	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
 	if err != nil {
 		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewGetTeacherHomepageControlsRequest constructs an http.Request for the GetTeacherHomepageControls method
+func NewGetTeacherHomepageControlsRequest(server string, schoolId string, teacherId string) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "school_id", schoolId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithOptions("simple", false, "teacher_id", teacherId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/catalog/admin/schools/%s/teacher-sites/teachers/%s/homepage", pathParam0, pathParam1)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewSetTeacherHomepageControlsRequest calls the generic SetTeacherHomepageControls builder with application/json body
+func NewSetTeacherHomepageControlsRequest(server string, schoolId string, teacherId string, params *SetTeacherHomepageControlsParams, body SetTeacherHomepageControlsJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewSetTeacherHomepageControlsRequestWithBody(server, schoolId, teacherId, params, "application/json", bodyReader)
+}
+
+// NewSetTeacherHomepageControlsRequestWithBody constructs an http.Request for the SetTeacherHomepageControls method, with any body, and a specified content type
+func NewSetTeacherHomepageControlsRequestWithBody(server string, schoolId string, teacherId string, params *SetTeacherHomepageControlsParams, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "school_id", schoolId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithOptions("simple", false, "teacher_id", teacherId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/catalog/admin/schools/%s/teacher-sites/teachers/%s/homepage", pathParam0, pathParam1)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPut, queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	if params != nil {
+
+		var headerParam0 string
+
+		headerParam0, err = runtime.StyleParamWithOptions("simple", false, "Idempotency-Key", params.IdempotencyKey, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationHeader, Type: "string", Format: ""})
+		if err != nil {
+			return nil, err
+		}
+
+		req.Header.Set("Idempotency-Key", headerParam0)
+
 	}
 
 	return req, nil
@@ -5010,6 +6596,40 @@ func NewMyCalendarRequest(server string, params *MyCalendarParams) (*http.Reques
 	return req, nil
 }
 
+// NewGetMyTeacherHomepageRequestRequest constructs an http.Request for the GetMyTeacherHomepageRequest method
+func NewGetMyTeacherHomepageRequestRequest(server string, requestId string) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "request_id", requestId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/catalog/me/teacher-homepage/requests/%s", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
 // NewListObjectsRequest constructs an http.Request for the ListObjects method
 func NewListObjectsRequest(server string, params *ListObjectsParams) (*http.Request, error) {
 	var err error
@@ -5668,6 +7288,40 @@ func NewGetObjectSummaryRequest(server string, id string, params *GetObjectSumma
 	return req, nil
 }
 
+// NewGetTeacherHomepageRequest constructs an http.Request for the GetTeacherHomepage method
+func NewGetTeacherHomepageRequest(server string, id string) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "id", id, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/catalog/objects/%s/teacher-homepage", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
 // NewGetTeacherHomepagePhotoRequest constructs an http.Request for the GetTeacherHomepagePhoto method
 func NewGetTeacherHomepagePhotoRequest(server string, id string, photoId string) (*http.Request, error) {
 	var err error
@@ -5704,6 +7358,151 @@ func NewGetTeacherHomepagePhotoRequest(server string, id string, photoId string)
 	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
 	if err != nil {
 		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewListMyTeacherHomepageRequestsRequest constructs an http.Request for the ListMyTeacherHomepageRequests method
+func NewListMyTeacherHomepageRequestsRequest(server string, id string, params *ListMyTeacherHomepageRequestsParams) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "id", id, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/catalog/objects/%s/teacher-homepage/requests", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		// queryValues collects non-styled parameters (passthrough, JSON)
+		// that are safe to round-trip through url.Values.Encode().
+		queryValues := queryURL.Query()
+		// rawQueryFragments collects pre-encoded query fragments from
+		// styled parameters, preserving literal commas as delimiters
+		// per the OpenAPI spec (e.g. "color=blue,black,brown").
+		var rawQueryFragments []string
+
+		if params.Status != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "status", *params.Status, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.After != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "after", *params.After, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.Limit != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "limit", *params.Limit, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "integer", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if encoded := queryValues.Encode(); encoded != "" {
+			rawQueryFragments = append(rawQueryFragments, encoded)
+		}
+		queryURL.RawQuery = strings.Join(rawQueryFragments, "&")
+	}
+
+	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewSubmitTeacherHomepageRequestRequest calls the generic SubmitTeacherHomepageRequest builder with application/json body
+func NewSubmitTeacherHomepageRequestRequest(server string, id string, params *SubmitTeacherHomepageRequestParams, body SubmitTeacherHomepageRequestJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewSubmitTeacherHomepageRequestRequestWithBody(server, id, params, "application/json", bodyReader)
+}
+
+// NewSubmitTeacherHomepageRequestRequestWithBody constructs an http.Request for the SubmitTeacherHomepageRequest method, with any body, and a specified content type
+func NewSubmitTeacherHomepageRequestRequestWithBody(server string, id string, params *SubmitTeacherHomepageRequestParams, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "id", id, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/catalog/objects/%s/teacher-homepage/requests", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPost, queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	if params != nil {
+
+		var headerParam0 string
+
+		headerParam0, err = runtime.StyleParamWithOptions("simple", false, "Idempotency-Key", params.IdempotencyKey, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationHeader, Type: "string", Format: ""})
+		if err != nil {
+			return nil, err
+		}
+
+		req.Header.Set("Idempotency-Key", headerParam0)
+
 	}
 
 	return req, nil
@@ -5809,6 +7608,34 @@ type ClientWithResponsesInterface interface {
 	// 提交目录投影异步重建持久任务，可选更新学校 DirectoryPolicy。要求 catalog.maintain 与学校维护范围。同键同请求重放原任务，已有排队或运行任务或存在未完成来源导入时返回 409。
 	StartDirectoryProjectionRebuildWithResponse(ctx context.Context, schoolId string, params *StartDirectoryProjectionRebuildParams, body StartDirectoryProjectionRebuildJSONRequestBody, reqEditors ...RequestEditorFn) (*StartDirectoryProjectionRebuildResponse, error)
 
+	// GetTeacherHomepageAllowlistWithResponse performs a GET /api/v1/catalog/admin/schools/{school_id}/teacher-sites/allowlist (the `GetTeacherHomepageAllowlist` operationId) request.
+	//
+	// 要求 catalog.maintain 和当前学校管理范围。读取该校教师主页的采集字段白名单。禁止缓存。
+	//
+	// Returns a wrapper object for the known response body format(s).
+	GetTeacherHomepageAllowlistWithResponse(ctx context.Context, schoolId string, reqEditors ...RequestEditorFn) (*GetTeacherHomepageAllowlistResponse, error)
+
+	// SetTeacherHomepageAllowlistWithBodyWithResponse performs a PUT /api/v1/catalog/admin/schools/{school_id}/teacher-sites/allowlist (the `SetTeacherHomepageAllowlist` operationId) request,
+	// with any type of body and a specified content type.
+	//
+	// 要求 catalog.maintain 和当前学校管理范围。替换完整采集字段白名单，并在同一事务保存修订、审计及幂等回执。管理员明确保存的覆盖值拥有独立的展示权限。隐藏与停止展示优先。
+	//
+	// Returns a wrapper object for the known response body format(s).
+	SetTeacherHomepageAllowlistWithBodyWithResponse(ctx context.Context, schoolId string, params *SetTeacherHomepageAllowlistParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*SetTeacherHomepageAllowlistResponse, error)
+
+	// SetTeacherHomepageAllowlistWithResponse performs a PUT /api/v1/catalog/admin/schools/{school_id}/teacher-sites/allowlist (the `SetTeacherHomepageAllowlist` operationId) request.
+	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+	//
+	// 要求 catalog.maintain 和当前学校管理范围。替换完整采集字段白名单，并在同一事务保存修订、审计及幂等回执。管理员明确保存的覆盖值拥有独立的展示权限。隐藏与停止展示优先。
+	SetTeacherHomepageAllowlistWithResponse(ctx context.Context, schoolId string, params *SetTeacherHomepageAllowlistParams, body SetTeacherHomepageAllowlistJSONRequestBody, reqEditors ...RequestEditorFn) (*SetTeacherHomepageAllowlistResponse, error)
+
+	// GetTeacherHomepageCountsWithResponse performs a GET /api/v1/catalog/admin/schools/{school_id}/teacher-sites/homepage-counts (the `GetTeacherHomepageCounts` operationId) request.
+	//
+	// 要求 catalog.maintain 和当前学校管理范围。已核实人工资料单列统计，不计为官网匹配。三种依据可重叠，eligible 为并集。统计读取当前资料和已选定的授课截止条件，批准引入的新教师在下一代目录投影发布后进入公开列表。禁止缓存。
+	//
+	// Returns a wrapper object for the known response body format(s).
+	GetTeacherHomepageCountsWithResponse(ctx context.Context, schoolId string, reqEditors ...RequestEditorFn) (*GetTeacherHomepageCountsResponse, error)
+
 	// GetTeacherRefreshStatusWithResponse performs a GET /api/v1/catalog/admin/schools/{school_id}/teacher-sites/refresh (the `GetTeacherRefreshStatus` operationId) request.
 	//
 	// Requires catalog.teacher-sites.read and current school management scope. Every view is audited. Latest run includes safe failure code and observed request/site counts; unknown measurements are null. Counts reflect current visible teacher marks.
@@ -5829,6 +7656,41 @@ type ClientWithResponsesInterface interface {
 	//
 	// Requires catalog.teacher-sites.refresh and current school management scope. Audited durable enqueue. Only one queued/running refresh globally; a competing request returns 409. Replay with the same actor, school, key and mode returns the original run; a different mode conflicts. Use the returned deadline_at as the expiry of the specific run, including queue time. The monthly scheduler only enqueues incremental work. A timeout preserves the published snapshot.
 	StartTeacherRefreshWithResponse(ctx context.Context, schoolId string, params *StartTeacherRefreshParams, body StartTeacherRefreshJSONRequestBody, reqEditors ...RequestEditorFn) (*StartTeacherRefreshResponse, error)
+
+	// ListTeacherHomepageRequestsWithResponse performs a GET /api/v1/catalog/admin/schools/{school_id}/teacher-sites/requests (the `ListTeacherHomepageRequests` operationId) request.
+	//
+	// 要求 catalog.maintain 和当前学校管理范围。按学校、状态和可选教师筛选，使用稳定顺序和游标分页。禁止缓存。
+	//
+	// Returns a wrapper object for the known response body format(s).
+	ListTeacherHomepageRequestsWithResponse(ctx context.Context, schoolId string, params *ListTeacherHomepageRequestsParams, reqEditors ...RequestEditorFn) (*ListTeacherHomepageRequestsResponse, error)
+
+	// GetTeacherHomepageRequestWithResponse performs a GET /api/v1/catalog/admin/schools/{school_id}/teacher-sites/requests/{request_id} (the `GetTeacherHomepageRequest` operationId) request.
+	//
+	// 要求 catalog.maintain 和当前学校管理范围。读取本校申请的原始提案和处理结果。禁止缓存。
+	//
+	// Returns a wrapper object for the known response body format(s).
+	GetTeacherHomepageRequestWithResponse(ctx context.Context, schoolId string, requestId string, reqEditors ...RequestEditorFn) (*GetTeacherHomepageRequestResponse, error)
+
+	// ResolveTeacherHomepageRequestWithBodyWithResponse performs a PUT /api/v1/catalog/admin/schools/{school_id}/teacher-sites/requests/{request_id}/decision (the `ResolveTeacherHomepageRequest` operationId) request,
+	// with any type of body and a specified content type.
+	//
+	// 要求 catalog.maintain 和当前学校管理范围。批准时应用申请对应字段修改或隐藏。发布新值前重新核对申请人的有效教师归属。状态、显示规则、审计、通知事件和幂等回执在同一事务提交。相同操作者、学校、幂等键和请求重放返回原结果。
+	//
+	// Returns a wrapper object for the known response body format(s).
+	ResolveTeacherHomepageRequestWithBodyWithResponse(ctx context.Context, schoolId string, requestId string, params *ResolveTeacherHomepageRequestParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*ResolveTeacherHomepageRequestResponse, error)
+
+	// ResolveTeacherHomepageRequestWithResponse performs a PUT /api/v1/catalog/admin/schools/{school_id}/teacher-sites/requests/{request_id}/decision (the `ResolveTeacherHomepageRequest` operationId) request.
+	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+	//
+	// 要求 catalog.maintain 和当前学校管理范围。批准时应用申请对应字段修改或隐藏。发布新值前重新核对申请人的有效教师归属。状态、显示规则、审计、通知事件和幂等回执在同一事务提交。相同操作者、学校、幂等键和请求重放返回原结果。
+	ResolveTeacherHomepageRequestWithResponse(ctx context.Context, schoolId string, requestId string, params *ResolveTeacherHomepageRequestParams, body ResolveTeacherHomepageRequestJSONRequestBody, reqEditors ...RequestEditorFn) (*ResolveTeacherHomepageRequestResponse, error)
+
+	// GetTeacherHomepageRequestPhotoWithResponse performs a GET /api/v1/catalog/admin/schools/{school_id}/teacher-sites/requests/{request_id}/photo (the `GetTeacherHomepageRequestPhoto` operationId) request.
+	//
+	// 要求 catalog.maintain 和当前学校管理范围。管理员在审核时仅可读取该校申请携带的已验证头像。禁止缓存。
+	//
+	// Returns a wrapper object for the known response body format(s).
+	GetTeacherHomepageRequestPhotoWithResponse(ctx context.Context, schoolId string, requestId string, reqEditors ...RequestEditorFn) (*GetTeacherHomepageRequestPhotoResponse, error)
 
 	// ListTeacherHomepageReviewSitesWithResponse performs a GET /api/v1/catalog/admin/schools/{school_id}/teacher-sites/review/sites (the `ListTeacherHomepageReviewSites` operationId) request.
 	//
@@ -5857,6 +7719,27 @@ type ClientWithResponsesInterface interface {
 	//
 	// Returns a wrapper object for the known response body format(s).
 	ListTeacherHomepageReviewTeachersWithResponse(ctx context.Context, schoolId string, params *ListTeacherHomepageReviewTeachersParams, reqEditors ...RequestEditorFn) (*ListTeacherHomepageReviewTeachersResponse, error)
+
+	// GetTeacherHomepageControlsWithResponse performs a GET /api/v1/catalog/admin/schools/{school_id}/teacher-sites/teachers/{teacher_id}/homepage (the `GetTeacherHomepageControls` operationId) request.
+	//
+	// 要求 catalog.maintain 和当前学校管理范围。返回当前采集资料及人工控制，供管理员分别核对来源与显示设置。未匹配或当前来源不可用时省略 source。禁止缓存。
+	//
+	// Returns a wrapper object for the known response body format(s).
+	GetTeacherHomepageControlsWithResponse(ctx context.Context, schoolId string, teacherId string, reqEditors ...RequestEditorFn) (*GetTeacherHomepageControlsResponse, error)
+
+	// SetTeacherHomepageControlsWithBodyWithResponse performs a PUT /api/v1/catalog/admin/schools/{school_id}/teacher-sites/teachers/{teacher_id}/homepage (the `SetTeacherHomepageControls` operationId) request,
+	// with any type of body and a specified content type.
+	//
+	// 要求 catalog.maintain 和当前学校管理范围。以请求中完整的人工设置替换旧设置。剔除头像字节后的设置最多 1 MiB。控制、审计和幂等回执同一事务提交。首次修改时使用修订 0。相同操作者、学校、幂等键和请求重放返回原结果。
+	//
+	// Returns a wrapper object for the known response body format(s).
+	SetTeacherHomepageControlsWithBodyWithResponse(ctx context.Context, schoolId string, teacherId string, params *SetTeacherHomepageControlsParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*SetTeacherHomepageControlsResponse, error)
+
+	// SetTeacherHomepageControlsWithResponse performs a PUT /api/v1/catalog/admin/schools/{school_id}/teacher-sites/teachers/{teacher_id}/homepage (the `SetTeacherHomepageControls` operationId) request.
+	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+	//
+	// 要求 catalog.maintain 和当前学校管理范围。以请求中完整的人工设置替换旧设置。剔除头像字节后的设置最多 1 MiB。控制、审计和幂等回执同一事务提交。首次修改时使用修订 0。相同操作者、学校、幂等键和请求重放返回原结果。
+	SetTeacherHomepageControlsWithResponse(ctx context.Context, schoolId string, teacherId string, params *SetTeacherHomepageControlsParams, body SetTeacherHomepageControlsJSONRequestBody, reqEditors ...RequestEditorFn) (*SetTeacherHomepageControlsResponse, error)
 
 	// ListUnmatchedTeacherSitesWithResponse performs a GET /api/v1/catalog/admin/schools/{school_id}/teacher-sites/unmatched (the `ListUnmatchedTeacherSites` operationId) request.
 	//
@@ -6004,6 +7887,13 @@ type ClientWithResponsesInterface interface {
 	// Returns a wrapper object for the known response body format(s).
 	MyCalendarWithResponse(ctx context.Context, params *MyCalendarParams, reqEditors ...RequestEditorFn) (*MyCalendarResponse, error)
 
+	// GetMyTeacherHomepageRequestWithResponse performs a GET /api/v1/catalog/me/teacher-homepage/requests/{request_id} (the `GetMyTeacherHomepageRequest` operationId) request.
+	//
+	// 按提交账号读取申请详情，并复核有效教师认证与目录教师关联。供站内通知直达。其他账号请求同一标识时返回 404。禁止缓存。.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	GetMyTeacherHomepageRequestWithResponse(ctx context.Context, requestId string, reqEditors ...RequestEditorFn) (*GetMyTeacherHomepageRequestResponse, error)
+
 	// ListObjectsWithResponse performs a GET /api/v1/catalog/objects (the `ListObjects` operationId) request.
 	//
 	// 读取当前学校的可展示目录投影，当前内容权限在每次请求时检查。课程须在服务端截止学期（默认 2023 秋）及以后有开课记录。kind=term 仅返回截止学期及以后且有可见课程的学期，按 term_order_key 降序、ID 升序分页；前端保持返回顺序。其他类型按 ID 升序。 体育项目作为 kind=course 条目返回 course_type=sports_project。按项目 course_id 查询教师，筛选计数按项目去重。 普通目录仅提供学校、院系、分类、性质、学期、课程和教师；term_course、class、assignment、schedule 仅供管理端或受信服务使用。 kind=teacher&course_id=…、kind=course&teacher_id=… 和 kind=term 保持可用；授课事实只用于计算关联，不返回教学班。.
@@ -6013,14 +7903,14 @@ type ClientWithResponsesInterface interface {
 
 	// LookupObjectsWithResponse performs a GET /api/v1/catalog/objects/lookup (the `LookupObjects` operationId) request.
 	//
-	// Requires current content admission in the served school: valid campus eligibility or verified teacher status. Missing admission returns 403; unavailable required facts return 503. No preview, content, counts or statistics are returned on rejection. 教师公开查询由服务端目录标记过滤：有授课记录或已匹配官网名单即可保留。列表、详情、批量查询、筛选选项及计数使用相同依据。未标记的教师详情返回 not_found。 普通目录仅提供学校、院系、分类、性质、学期、课程和教师；term_course、class、assignment、schedule 仅供管理端或受信服务使用。 教学班相关 ID 与未知 ID 一样列入 missing_ids，不返回其对象。混合查询仍返回其余可见课程和教师。
+	// Requires current content admission in the served school: valid campus eligibility or verified teacher status. Missing admission returns 403; unavailable required facts return 503. No preview, content, counts or statistics are returned on rejection. 教师公开查询由服务端目录标记过滤：具有有效授课、官网匹配或经核实的独立主页资料任一依据即可保留。列表、详情、批量查询、筛选选项及计数使用相同依据。未标记的教师详情返回 not_found。 普通目录仅提供学校、院系、分类、性质、学期、课程和教师；term_course、class、assignment、schedule 仅供管理端或受信服务使用。 教学班相关 ID 与未知 ID 一样列入 missing_ids，不返回其对象。混合查询仍返回其余可见课程和教师。
 	//
 	// Returns a wrapper object for the known response body format(s).
 	LookupObjectsWithResponse(ctx context.Context, params *LookupObjectsParams, reqEditors ...RequestEditorFn) (*LookupObjectsResponse, error)
 
 	// GetObjectWithResponse performs a GET /api/v1/catalog/objects/{id} (the `GetObject` operationId) request.
 	//
-	// Requires current content admission in the served school: valid campus eligibility or verified teacher status. Missing admission returns 403; unavailable required facts return 503. No preview, content, counts or statistics are returned on rejection. 教师公开查询由服务端目录标记过滤：有授课记录或已匹配官网名单即可保留。列表、详情、批量查询、筛选选项及计数使用相同依据。未标记的教师详情返回 not_found。 Courses outside the current visible directory projection return not_found, including direct links. 普通目录仅提供学校、院系、分类、性质、学期、课程和教师；term_course、class、assignment、schedule 仅供管理端或受信服务使用。 教师详情可选择附带当前匹配官网资料。教师院系与职称仍取目录字段。
+	// Requires current content admission in the served school: valid campus eligibility or verified teacher status. Missing admission returns 403; unavailable required facts return 503. No preview, content, counts or statistics are returned on rejection. 教师公开查询由服务端目录标记过滤：具有有效授课、官网匹配或经核实的独立主页资料任一依据即可保留。列表、详情、批量查询、筛选选项及计数使用相同依据。未标记的教师详情返回 not_found。 Courses outside the current visible directory projection return not_found, including direct links. 普通目录仅提供学校、院系、分类、性质、学期、课程和教师；term_course、class、assignment、schedule 仅供管理端或受信服务使用。 教师详情可选择附带可展示的主页资料。教师院系与职称仍取目录字段。
 	//
 	// Returns a wrapper object for the known response body format(s).
 	GetObjectWithResponse(ctx context.Context, id string, params *GetObjectParams, reqEditors ...RequestEditorFn) (*GetObjectResponse, error)
@@ -6057,7 +7947,7 @@ type ClientWithResponsesInterface interface {
 
 	// ResolveObjectWithResponse performs a GET /api/v1/catalog/objects/{id}/resolution (the `ResolveObject` operationId) request.
 	//
-	// Requires current content admission in the served school: valid campus eligibility or verified teacher status. Missing admission returns 403; unavailable required facts return 503. No preview, content, counts or statistics are returned on rejection. 教师公开查询由服务端目录标记过滤：有授课记录或已匹配官网名单即可保留。列表、详情、批量查询、筛选选项及计数使用相同依据。未标记的教师详情返回 not_found。 普通目录仅提供学校、院系、分类、性质、学期、课程和教师；term_course、class、assignment、schedule 仅供管理端或受信服务使用。
+	// Requires current content admission in the served school: valid campus eligibility or verified teacher status. Missing admission returns 403; unavailable required facts return 503. No preview, content, counts or statistics are returned on rejection. 教师公开查询由服务端目录标记过滤：具有有效授课、官网匹配或经核实的独立主页资料任一依据即可保留。列表、详情、批量查询、筛选选项及计数使用相同依据。未标记的教师详情返回 not_found。 普通目录仅提供学校、院系、分类、性质、学期、课程和教师；term_course、class、assignment、schedule 仅供管理端或受信服务使用。
 	//
 	// Returns a wrapper object for the known response body format(s).
 	ResolveObjectWithResponse(ctx context.Context, id string, reqEditors ...RequestEditorFn) (*ResolveObjectResponse, error)
@@ -6074,10 +7964,17 @@ type ClientWithResponsesInterface interface {
 
 	// GetObjectSummaryWithResponse performs a GET /api/v1/catalog/objects/{id}/summary (the `GetObjectSummary` operationId) request.
 	//
-	// Requires current content admission in the served school: valid campus eligibility or verified teacher status. Missing admission returns 403; unavailable required facts return 503. No preview, content, counts or statistics are returned on rejection. 教师公开查询由服务端目录标记过滤：有授课记录或已匹配官网名单即可保留。列表、详情、批量查询、筛选选项及计数使用相同依据。未标记的教师详情返回 not_found。 Courses outside the current visible directory projection return not_found, including direct links. 普通目录仅提供学校、院系、分类、性质、学期、课程和教师；term_course、class、assignment、schedule 仅供管理端或受信服务使用。 include_teacher_homepage 参数仅作用于摘要主对象 object。
+	// Requires current content admission in the served school: valid campus eligibility or verified teacher status. Missing admission returns 403; unavailable required facts return 503. No preview, content, counts or statistics are returned on rejection. 教师公开查询由服务端目录标记过滤：具有有效授课、官网匹配或经核实的独立主页资料任一依据即可保留。列表、详情、批量查询、筛选选项及计数使用相同依据。未标记的教师详情返回 not_found。 Courses outside the current visible directory projection return not_found, including direct links. 普通目录仅提供学校、院系、分类、性质、学期、课程和教师；term_course、class、assignment、schedule 仅供管理端或受信服务使用。 include_teacher_homepage 参数仅作用于摘要主对象 object。
 	//
 	// Returns a wrapper object for the known response body format(s).
 	GetObjectSummaryWithResponse(ctx context.Context, id string, params *GetObjectSummaryParams, reqEditors ...RequestEditorFn) (*GetObjectSummaryResponse, error)
+
+	// GetTeacherHomepageWithResponse performs a GET /api/v1/catalog/objects/{id}/teacher-homepage (the `GetTeacherHomepage` operationId) request.
+	//
+	// 沿用教师目录的当前内容准入和学校范围。profile 为应用字段白名单、人工覆盖与隐藏设置后的纯文本投影。当前公开教师可展示已审批的独立资料。无可展示资料、整页隐藏或已停止展示时返回空对象。禁止缓存。.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	GetTeacherHomepageWithResponse(ctx context.Context, id string, reqEditors ...RequestEditorFn) (*GetTeacherHomepageResponse, error)
 
 	// GetTeacherHomepagePhotoWithResponse performs a GET /api/v1/catalog/objects/{id}/teacher-homepage/photos/{photo_id} (the `GetTeacherHomepagePhoto` operationId) request.
 	//
@@ -6085,6 +7982,27 @@ type ClientWithResponsesInterface interface {
 	//
 	// Returns a wrapper object for the known response body format(s).
 	GetTeacherHomepagePhotoWithResponse(ctx context.Context, id string, photoId string, reqEditors ...RequestEditorFn) (*GetTeacherHomepagePhotoResponse, error)
+
+	// ListMyTeacherHomepageRequestsWithResponse performs a GET /api/v1/catalog/objects/{id}/teacher-homepage/requests (the `ListMyTeacherHomepageRequests` operationId) request.
+	//
+	// 按提交账号读取该目录教师的申请，同时复核当前有效教师认证和教师目录关联。查询范围与本人可访问的教师目录对象一致。禁止缓存。.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	ListMyTeacherHomepageRequestsWithResponse(ctx context.Context, id string, params *ListMyTeacherHomepageRequestsParams, reqEditors ...RequestEditorFn) (*ListMyTeacherHomepageRequestsResponse, error)
+
+	// SubmitTeacherHomepageRequestWithBodyWithResponse performs a POST /api/v1/catalog/objects/{id}/teacher-homepage/requests (the `SubmitTeacherHomepageRequest` operationId) request,
+	// with any type of body and a specified content type.
+	//
+	// 仅当前通过教师认证、并已关联该学校和目录教师的账号可提交。提交后进入管理员队列，处理结果通过站内通知告知本人。不含头像字节的申请正文最多 1 MiB。同一账号每分钟最多提交十条新申请。相同账号、教师、幂等键和请求重放返回原结果。.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	SubmitTeacherHomepageRequestWithBodyWithResponse(ctx context.Context, id string, params *SubmitTeacherHomepageRequestParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*SubmitTeacherHomepageRequestResponse, error)
+
+	// SubmitTeacherHomepageRequestWithResponse performs a POST /api/v1/catalog/objects/{id}/teacher-homepage/requests (the `SubmitTeacherHomepageRequest` operationId) request.
+	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+	//
+	// 仅当前通过教师认证、并已关联该学校和目录教师的账号可提交。提交后进入管理员队列，处理结果通过站内通知告知本人。不含头像字节的申请正文最多 1 MiB。同一账号每分钟最多提交十条新申请。相同账号、教师、幂等键和请求重放返回原结果。.
+	SubmitTeacherHomepageRequestWithResponse(ctx context.Context, id string, params *SubmitTeacherHomepageRequestParams, body SubmitTeacherHomepageRequestJSONRequestBody, reqEditors ...RequestEditorFn) (*SubmitTeacherHomepageRequestResponse, error)
 }
 
 type AdminListObjectsResponse struct {
@@ -6661,6 +8579,241 @@ func (r StartDirectoryProjectionRebuildResponse) ContentType() string {
 	return ""
 }
 
+type GetTeacherHomepageAllowlistResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *TeacherHomepageAllowlist
+	// JSON400 the response for an HTTP 400 `application/json` response
+	JSON400 *Error
+	// JSON401 the response for an HTTP 401 `application/json` response
+	JSON401 *Error
+	// JSON403 the response for an HTTP 403 `application/json` response
+	JSON403 *Error
+	// JSON404 the response for an HTTP 404 `application/json` response
+	JSON404 *Error
+	// JSON503 the response for an HTTP 503 `application/json` response
+	JSON503 *Error
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r GetTeacherHomepageAllowlistResponse) GetJSON200() *TeacherHomepageAllowlist {
+	return r.JSON200
+}
+
+// GetJSON400 returns the response for an HTTP 400 `application/json` response
+func (r GetTeacherHomepageAllowlistResponse) GetJSON400() *Error {
+	return r.JSON400
+}
+
+// GetJSON401 returns the response for an HTTP 401 `application/json` response
+func (r GetTeacherHomepageAllowlistResponse) GetJSON401() *Error {
+	return r.JSON401
+}
+
+// GetJSON403 returns the response for an HTTP 403 `application/json` response
+func (r GetTeacherHomepageAllowlistResponse) GetJSON403() *Error {
+	return r.JSON403
+}
+
+// GetJSON404 returns the response for an HTTP 404 `application/json` response
+func (r GetTeacherHomepageAllowlistResponse) GetJSON404() *Error {
+	return r.JSON404
+}
+
+// GetJSON503 returns the response for an HTTP 503 `application/json` response
+func (r GetTeacherHomepageAllowlistResponse) GetJSON503() *Error {
+	return r.JSON503
+}
+
+// GetBody returns the raw response body bytes
+func (r GetTeacherHomepageAllowlistResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r GetTeacherHomepageAllowlistResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetTeacherHomepageAllowlistResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r GetTeacherHomepageAllowlistResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type SetTeacherHomepageAllowlistResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *TeacherHomepageAllowlist
+	// JSON400 the response for an HTTP 400 `application/json` response
+	JSON400 *Error
+	// JSON401 the response for an HTTP 401 `application/json` response
+	JSON401 *Error
+	// JSON403 the response for an HTTP 403 `application/json` response
+	JSON403 *Error
+	// JSON404 the response for an HTTP 404 `application/json` response
+	JSON404 *Error
+	// JSON409 the response for an HTTP 409 `application/json` response
+	JSON409 *Error
+	// JSON503 the response for an HTTP 503 `application/json` response
+	JSON503 *Error
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r SetTeacherHomepageAllowlistResponse) GetJSON200() *TeacherHomepageAllowlist {
+	return r.JSON200
+}
+
+// GetJSON400 returns the response for an HTTP 400 `application/json` response
+func (r SetTeacherHomepageAllowlistResponse) GetJSON400() *Error {
+	return r.JSON400
+}
+
+// GetJSON401 returns the response for an HTTP 401 `application/json` response
+func (r SetTeacherHomepageAllowlistResponse) GetJSON401() *Error {
+	return r.JSON401
+}
+
+// GetJSON403 returns the response for an HTTP 403 `application/json` response
+func (r SetTeacherHomepageAllowlistResponse) GetJSON403() *Error {
+	return r.JSON403
+}
+
+// GetJSON404 returns the response for an HTTP 404 `application/json` response
+func (r SetTeacherHomepageAllowlistResponse) GetJSON404() *Error {
+	return r.JSON404
+}
+
+// GetJSON409 returns the response for an HTTP 409 `application/json` response
+func (r SetTeacherHomepageAllowlistResponse) GetJSON409() *Error {
+	return r.JSON409
+}
+
+// GetJSON503 returns the response for an HTTP 503 `application/json` response
+func (r SetTeacherHomepageAllowlistResponse) GetJSON503() *Error {
+	return r.JSON503
+}
+
+// GetBody returns the raw response body bytes
+func (r SetTeacherHomepageAllowlistResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r SetTeacherHomepageAllowlistResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r SetTeacherHomepageAllowlistResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r SetTeacherHomepageAllowlistResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type GetTeacherHomepageCountsResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *TeacherHomepageCounts
+	// JSON400 the response for an HTTP 400 `application/json` response
+	JSON400 *Error
+	// JSON401 the response for an HTTP 401 `application/json` response
+	JSON401 *Error
+	// JSON403 the response for an HTTP 403 `application/json` response
+	JSON403 *Error
+	// JSON404 the response for an HTTP 404 `application/json` response
+	JSON404 *Error
+	// JSON503 the response for an HTTP 503 `application/json` response
+	JSON503 *Error
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r GetTeacherHomepageCountsResponse) GetJSON200() *TeacherHomepageCounts {
+	return r.JSON200
+}
+
+// GetJSON400 returns the response for an HTTP 400 `application/json` response
+func (r GetTeacherHomepageCountsResponse) GetJSON400() *Error {
+	return r.JSON400
+}
+
+// GetJSON401 returns the response for an HTTP 401 `application/json` response
+func (r GetTeacherHomepageCountsResponse) GetJSON401() *Error {
+	return r.JSON401
+}
+
+// GetJSON403 returns the response for an HTTP 403 `application/json` response
+func (r GetTeacherHomepageCountsResponse) GetJSON403() *Error {
+	return r.JSON403
+}
+
+// GetJSON404 returns the response for an HTTP 404 `application/json` response
+func (r GetTeacherHomepageCountsResponse) GetJSON404() *Error {
+	return r.JSON404
+}
+
+// GetJSON503 returns the response for an HTTP 503 `application/json` response
+func (r GetTeacherHomepageCountsResponse) GetJSON503() *Error {
+	return r.JSON503
+}
+
+// GetBody returns the raw response body bytes
+func (r GetTeacherHomepageCountsResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r GetTeacherHomepageCountsResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetTeacherHomepageCountsResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r GetTeacherHomepageCountsResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
 type GetTeacherRefreshStatusResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -6821,6 +8974,318 @@ func (r StartTeacherRefreshResponse) StatusCode() int {
 
 // ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
 func (r StartTeacherRefreshResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type ListTeacherHomepageRequestsResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *TeacherHomepageRequestPage
+	// JSON400 the response for an HTTP 400 `application/json` response
+	JSON400 *Error
+	// JSON401 the response for an HTTP 401 `application/json` response
+	JSON401 *Error
+	// JSON403 the response for an HTTP 403 `application/json` response
+	JSON403 *Error
+	// JSON404 the response for an HTTP 404 `application/json` response
+	JSON404 *Error
+	// JSON503 the response for an HTTP 503 `application/json` response
+	JSON503 *Error
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r ListTeacherHomepageRequestsResponse) GetJSON200() *TeacherHomepageRequestPage {
+	return r.JSON200
+}
+
+// GetJSON400 returns the response for an HTTP 400 `application/json` response
+func (r ListTeacherHomepageRequestsResponse) GetJSON400() *Error {
+	return r.JSON400
+}
+
+// GetJSON401 returns the response for an HTTP 401 `application/json` response
+func (r ListTeacherHomepageRequestsResponse) GetJSON401() *Error {
+	return r.JSON401
+}
+
+// GetJSON403 returns the response for an HTTP 403 `application/json` response
+func (r ListTeacherHomepageRequestsResponse) GetJSON403() *Error {
+	return r.JSON403
+}
+
+// GetJSON404 returns the response for an HTTP 404 `application/json` response
+func (r ListTeacherHomepageRequestsResponse) GetJSON404() *Error {
+	return r.JSON404
+}
+
+// GetJSON503 returns the response for an HTTP 503 `application/json` response
+func (r ListTeacherHomepageRequestsResponse) GetJSON503() *Error {
+	return r.JSON503
+}
+
+// GetBody returns the raw response body bytes
+func (r ListTeacherHomepageRequestsResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r ListTeacherHomepageRequestsResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r ListTeacherHomepageRequestsResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r ListTeacherHomepageRequestsResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type GetTeacherHomepageRequestResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *TeacherHomepageRequest
+	// JSON400 the response for an HTTP 400 `application/json` response
+	JSON400 *Error
+	// JSON401 the response for an HTTP 401 `application/json` response
+	JSON401 *Error
+	// JSON403 the response for an HTTP 403 `application/json` response
+	JSON403 *Error
+	// JSON404 the response for an HTTP 404 `application/json` response
+	JSON404 *Error
+	// JSON503 the response for an HTTP 503 `application/json` response
+	JSON503 *Error
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r GetTeacherHomepageRequestResponse) GetJSON200() *TeacherHomepageRequest {
+	return r.JSON200
+}
+
+// GetJSON400 returns the response for an HTTP 400 `application/json` response
+func (r GetTeacherHomepageRequestResponse) GetJSON400() *Error {
+	return r.JSON400
+}
+
+// GetJSON401 returns the response for an HTTP 401 `application/json` response
+func (r GetTeacherHomepageRequestResponse) GetJSON401() *Error {
+	return r.JSON401
+}
+
+// GetJSON403 returns the response for an HTTP 403 `application/json` response
+func (r GetTeacherHomepageRequestResponse) GetJSON403() *Error {
+	return r.JSON403
+}
+
+// GetJSON404 returns the response for an HTTP 404 `application/json` response
+func (r GetTeacherHomepageRequestResponse) GetJSON404() *Error {
+	return r.JSON404
+}
+
+// GetJSON503 returns the response for an HTTP 503 `application/json` response
+func (r GetTeacherHomepageRequestResponse) GetJSON503() *Error {
+	return r.JSON503
+}
+
+// GetBody returns the raw response body bytes
+func (r GetTeacherHomepageRequestResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r GetTeacherHomepageRequestResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetTeacherHomepageRequestResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r GetTeacherHomepageRequestResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type ResolveTeacherHomepageRequestResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *TeacherHomepageRequest
+	// JSON400 the response for an HTTP 400 `application/json` response
+	JSON400 *Error
+	// JSON401 the response for an HTTP 401 `application/json` response
+	JSON401 *Error
+	// JSON403 the response for an HTTP 403 `application/json` response
+	JSON403 *Error
+	// JSON404 the response for an HTTP 404 `application/json` response
+	JSON404 *Error
+	// JSON409 the response for an HTTP 409 `application/json` response
+	JSON409 *Error
+	// JSON503 the response for an HTTP 503 `application/json` response
+	JSON503 *Error
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r ResolveTeacherHomepageRequestResponse) GetJSON200() *TeacherHomepageRequest {
+	return r.JSON200
+}
+
+// GetJSON400 returns the response for an HTTP 400 `application/json` response
+func (r ResolveTeacherHomepageRequestResponse) GetJSON400() *Error {
+	return r.JSON400
+}
+
+// GetJSON401 returns the response for an HTTP 401 `application/json` response
+func (r ResolveTeacherHomepageRequestResponse) GetJSON401() *Error {
+	return r.JSON401
+}
+
+// GetJSON403 returns the response for an HTTP 403 `application/json` response
+func (r ResolveTeacherHomepageRequestResponse) GetJSON403() *Error {
+	return r.JSON403
+}
+
+// GetJSON404 returns the response for an HTTP 404 `application/json` response
+func (r ResolveTeacherHomepageRequestResponse) GetJSON404() *Error {
+	return r.JSON404
+}
+
+// GetJSON409 returns the response for an HTTP 409 `application/json` response
+func (r ResolveTeacherHomepageRequestResponse) GetJSON409() *Error {
+	return r.JSON409
+}
+
+// GetJSON503 returns the response for an HTTP 503 `application/json` response
+func (r ResolveTeacherHomepageRequestResponse) GetJSON503() *Error {
+	return r.JSON503
+}
+
+// GetBody returns the raw response body bytes
+func (r ResolveTeacherHomepageRequestResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r ResolveTeacherHomepageRequestResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r ResolveTeacherHomepageRequestResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r ResolveTeacherHomepageRequestResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+// GetTeacherHomepageRequestPhotoResponse200Headers the declared response headers of an HTTP 200 response for GetTeacherHomepageRequestPhoto
+type GetTeacherHomepageRequestPhotoResponse200Headers struct {
+	CacheControl  *string
+	ContentLength *int
+}
+
+type GetTeacherHomepageRequestPhotoResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON400 the response for an HTTP 400 `application/json` response
+	JSON400 *Error
+	// JSON401 the response for an HTTP 401 `application/json` response
+	JSON401 *Error
+	// JSON403 the response for an HTTP 403 `application/json` response
+	JSON403 *Error
+	// JSON404 the response for an HTTP 404 `application/json` response
+	JSON404 *Error
+	// JSON503 the response for an HTTP 503 `application/json` response
+	JSON503 *Error
+	// Headers200 the parsed response headers for an HTTP 200 response
+	Headers200 *GetTeacherHomepageRequestPhotoResponse200Headers
+}
+
+// GetJSON400 returns the response for an HTTP 400 `application/json` response
+func (r GetTeacherHomepageRequestPhotoResponse) GetJSON400() *Error {
+	return r.JSON400
+}
+
+// GetJSON401 returns the response for an HTTP 401 `application/json` response
+func (r GetTeacherHomepageRequestPhotoResponse) GetJSON401() *Error {
+	return r.JSON401
+}
+
+// GetJSON403 returns the response for an HTTP 403 `application/json` response
+func (r GetTeacherHomepageRequestPhotoResponse) GetJSON403() *Error {
+	return r.JSON403
+}
+
+// GetJSON404 returns the response for an HTTP 404 `application/json` response
+func (r GetTeacherHomepageRequestPhotoResponse) GetJSON404() *Error {
+	return r.JSON404
+}
+
+// GetJSON503 returns the response for an HTTP 503 `application/json` response
+func (r GetTeacherHomepageRequestPhotoResponse) GetJSON503() *Error {
+	return r.JSON503
+}
+
+// GetBody returns the raw response body bytes
+func (r GetTeacherHomepageRequestPhotoResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r GetTeacherHomepageRequestPhotoResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetTeacherHomepageRequestPhotoResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r GetTeacherHomepageRequestPhotoResponse) ContentType() string {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.Header.Get("Content-Type")
 	}
@@ -7070,6 +9535,165 @@ func (r ListTeacherHomepageReviewTeachersResponse) StatusCode() int {
 
 // ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
 func (r ListTeacherHomepageReviewTeachersResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type GetTeacherHomepageControlsResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *TeacherHomepageControlsView
+	// JSON400 the response for an HTTP 400 `application/json` response
+	JSON400 *Error
+	// JSON401 the response for an HTTP 401 `application/json` response
+	JSON401 *Error
+	// JSON403 the response for an HTTP 403 `application/json` response
+	JSON403 *Error
+	// JSON404 the response for an HTTP 404 `application/json` response
+	JSON404 *Error
+	// JSON503 the response for an HTTP 503 `application/json` response
+	JSON503 *Error
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r GetTeacherHomepageControlsResponse) GetJSON200() *TeacherHomepageControlsView {
+	return r.JSON200
+}
+
+// GetJSON400 returns the response for an HTTP 400 `application/json` response
+func (r GetTeacherHomepageControlsResponse) GetJSON400() *Error {
+	return r.JSON400
+}
+
+// GetJSON401 returns the response for an HTTP 401 `application/json` response
+func (r GetTeacherHomepageControlsResponse) GetJSON401() *Error {
+	return r.JSON401
+}
+
+// GetJSON403 returns the response for an HTTP 403 `application/json` response
+func (r GetTeacherHomepageControlsResponse) GetJSON403() *Error {
+	return r.JSON403
+}
+
+// GetJSON404 returns the response for an HTTP 404 `application/json` response
+func (r GetTeacherHomepageControlsResponse) GetJSON404() *Error {
+	return r.JSON404
+}
+
+// GetJSON503 returns the response for an HTTP 503 `application/json` response
+func (r GetTeacherHomepageControlsResponse) GetJSON503() *Error {
+	return r.JSON503
+}
+
+// GetBody returns the raw response body bytes
+func (r GetTeacherHomepageControlsResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r GetTeacherHomepageControlsResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetTeacherHomepageControlsResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r GetTeacherHomepageControlsResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type SetTeacherHomepageControlsResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *TeacherHomepageControls
+	// JSON400 the response for an HTTP 400 `application/json` response
+	JSON400 *Error
+	// JSON401 the response for an HTTP 401 `application/json` response
+	JSON401 *Error
+	// JSON403 the response for an HTTP 403 `application/json` response
+	JSON403 *Error
+	// JSON404 the response for an HTTP 404 `application/json` response
+	JSON404 *Error
+	// JSON409 the response for an HTTP 409 `application/json` response
+	JSON409 *Error
+	// JSON503 the response for an HTTP 503 `application/json` response
+	JSON503 *Error
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r SetTeacherHomepageControlsResponse) GetJSON200() *TeacherHomepageControls {
+	return r.JSON200
+}
+
+// GetJSON400 returns the response for an HTTP 400 `application/json` response
+func (r SetTeacherHomepageControlsResponse) GetJSON400() *Error {
+	return r.JSON400
+}
+
+// GetJSON401 returns the response for an HTTP 401 `application/json` response
+func (r SetTeacherHomepageControlsResponse) GetJSON401() *Error {
+	return r.JSON401
+}
+
+// GetJSON403 returns the response for an HTTP 403 `application/json` response
+func (r SetTeacherHomepageControlsResponse) GetJSON403() *Error {
+	return r.JSON403
+}
+
+// GetJSON404 returns the response for an HTTP 404 `application/json` response
+func (r SetTeacherHomepageControlsResponse) GetJSON404() *Error {
+	return r.JSON404
+}
+
+// GetJSON409 returns the response for an HTTP 409 `application/json` response
+func (r SetTeacherHomepageControlsResponse) GetJSON409() *Error {
+	return r.JSON409
+}
+
+// GetJSON503 returns the response for an HTTP 503 `application/json` response
+func (r SetTeacherHomepageControlsResponse) GetJSON503() *Error {
+	return r.JSON503
+}
+
+// GetBody returns the raw response body bytes
+func (r SetTeacherHomepageControlsResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r SetTeacherHomepageControlsResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r SetTeacherHomepageControlsResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r SetTeacherHomepageControlsResponse) ContentType() string {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.Header.Get("Content-Type")
 	}
@@ -8487,6 +11111,82 @@ func (r MyCalendarResponse) ContentType() string {
 	return ""
 }
 
+type GetMyTeacherHomepageRequestResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *TeacherHomepageRequest
+	// JSON400 the response for an HTTP 400 `application/json` response
+	JSON400 *Error
+	// JSON401 the response for an HTTP 401 `application/json` response
+	JSON401 *Error
+	// JSON403 the response for an HTTP 403 `application/json` response
+	JSON403 *Error
+	// JSON404 the response for an HTTP 404 `application/json` response
+	JSON404 *Error
+	// JSON503 the response for an HTTP 503 `application/json` response
+	JSON503 *Error
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r GetMyTeacherHomepageRequestResponse) GetJSON200() *TeacherHomepageRequest {
+	return r.JSON200
+}
+
+// GetJSON400 returns the response for an HTTP 400 `application/json` response
+func (r GetMyTeacherHomepageRequestResponse) GetJSON400() *Error {
+	return r.JSON400
+}
+
+// GetJSON401 returns the response for an HTTP 401 `application/json` response
+func (r GetMyTeacherHomepageRequestResponse) GetJSON401() *Error {
+	return r.JSON401
+}
+
+// GetJSON403 returns the response for an HTTP 403 `application/json` response
+func (r GetMyTeacherHomepageRequestResponse) GetJSON403() *Error {
+	return r.JSON403
+}
+
+// GetJSON404 returns the response for an HTTP 404 `application/json` response
+func (r GetMyTeacherHomepageRequestResponse) GetJSON404() *Error {
+	return r.JSON404
+}
+
+// GetJSON503 returns the response for an HTTP 503 `application/json` response
+func (r GetMyTeacherHomepageRequestResponse) GetJSON503() *Error {
+	return r.JSON503
+}
+
+// GetBody returns the raw response body bytes
+func (r GetMyTeacherHomepageRequestResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r GetMyTeacherHomepageRequestResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetMyTeacherHomepageRequestResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r GetMyTeacherHomepageRequestResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
 type ListObjectsResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -9234,6 +11934,82 @@ func (r GetObjectSummaryResponse) ContentType() string {
 	return ""
 }
 
+type GetTeacherHomepageResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *TeacherHomepagePublicView
+	// JSON400 the response for an HTTP 400 `application/json` response
+	JSON400 *Error
+	// JSON401 the response for an HTTP 401 `application/json` response
+	JSON401 *Error
+	// JSON403 the response for an HTTP 403 `application/json` response
+	JSON403 *Error
+	// JSON404 the response for an HTTP 404 `application/json` response
+	JSON404 *Error
+	// JSON503 the response for an HTTP 503 `application/json` response
+	JSON503 *Error
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r GetTeacherHomepageResponse) GetJSON200() *TeacherHomepagePublicView {
+	return r.JSON200
+}
+
+// GetJSON400 returns the response for an HTTP 400 `application/json` response
+func (r GetTeacherHomepageResponse) GetJSON400() *Error {
+	return r.JSON400
+}
+
+// GetJSON401 returns the response for an HTTP 401 `application/json` response
+func (r GetTeacherHomepageResponse) GetJSON401() *Error {
+	return r.JSON401
+}
+
+// GetJSON403 returns the response for an HTTP 403 `application/json` response
+func (r GetTeacherHomepageResponse) GetJSON403() *Error {
+	return r.JSON403
+}
+
+// GetJSON404 returns the response for an HTTP 404 `application/json` response
+func (r GetTeacherHomepageResponse) GetJSON404() *Error {
+	return r.JSON404
+}
+
+// GetJSON503 returns the response for an HTTP 503 `application/json` response
+func (r GetTeacherHomepageResponse) GetJSON503() *Error {
+	return r.JSON503
+}
+
+// GetBody returns the raw response body bytes
+func (r GetTeacherHomepageResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r GetTeacherHomepageResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetTeacherHomepageResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r GetTeacherHomepageResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
 // GetTeacherHomepagePhotoResponse200Headers the declared response headers of an HTTP 200 response for GetTeacherHomepagePhoto
 type GetTeacherHomepagePhotoResponse200Headers struct {
 	CacheControl        *string
@@ -9305,6 +12081,172 @@ func (r GetTeacherHomepagePhotoResponse) StatusCode() int {
 
 // ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
 func (r GetTeacherHomepagePhotoResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type ListMyTeacherHomepageRequestsResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *TeacherHomepageRequestPage
+	// JSON400 the response for an HTTP 400 `application/json` response
+	JSON400 *Error
+	// JSON401 the response for an HTTP 401 `application/json` response
+	JSON401 *Error
+	// JSON403 the response for an HTTP 403 `application/json` response
+	JSON403 *Error
+	// JSON404 the response for an HTTP 404 `application/json` response
+	JSON404 *Error
+	// JSON503 the response for an HTTP 503 `application/json` response
+	JSON503 *Error
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r ListMyTeacherHomepageRequestsResponse) GetJSON200() *TeacherHomepageRequestPage {
+	return r.JSON200
+}
+
+// GetJSON400 returns the response for an HTTP 400 `application/json` response
+func (r ListMyTeacherHomepageRequestsResponse) GetJSON400() *Error {
+	return r.JSON400
+}
+
+// GetJSON401 returns the response for an HTTP 401 `application/json` response
+func (r ListMyTeacherHomepageRequestsResponse) GetJSON401() *Error {
+	return r.JSON401
+}
+
+// GetJSON403 returns the response for an HTTP 403 `application/json` response
+func (r ListMyTeacherHomepageRequestsResponse) GetJSON403() *Error {
+	return r.JSON403
+}
+
+// GetJSON404 returns the response for an HTTP 404 `application/json` response
+func (r ListMyTeacherHomepageRequestsResponse) GetJSON404() *Error {
+	return r.JSON404
+}
+
+// GetJSON503 returns the response for an HTTP 503 `application/json` response
+func (r ListMyTeacherHomepageRequestsResponse) GetJSON503() *Error {
+	return r.JSON503
+}
+
+// GetBody returns the raw response body bytes
+func (r ListMyTeacherHomepageRequestsResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r ListMyTeacherHomepageRequestsResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r ListMyTeacherHomepageRequestsResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r ListMyTeacherHomepageRequestsResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type SubmitTeacherHomepageRequestResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *TeacherHomepageRequest
+	// JSON400 the response for an HTTP 400 `application/json` response
+	JSON400 *Error
+	// JSON401 the response for an HTTP 401 `application/json` response
+	JSON401 *Error
+	// JSON403 the response for an HTTP 403 `application/json` response
+	JSON403 *Error
+	// JSON404 the response for an HTTP 404 `application/json` response
+	JSON404 *Error
+	// JSON409 the response for an HTTP 409 `application/json` response
+	JSON409 *Error
+	// JSON429 the response for an HTTP 429 `application/json` response
+	JSON429 *Error
+	// JSON503 the response for an HTTP 503 `application/json` response
+	JSON503 *Error
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r SubmitTeacherHomepageRequestResponse) GetJSON200() *TeacherHomepageRequest {
+	return r.JSON200
+}
+
+// GetJSON400 returns the response for an HTTP 400 `application/json` response
+func (r SubmitTeacherHomepageRequestResponse) GetJSON400() *Error {
+	return r.JSON400
+}
+
+// GetJSON401 returns the response for an HTTP 401 `application/json` response
+func (r SubmitTeacherHomepageRequestResponse) GetJSON401() *Error {
+	return r.JSON401
+}
+
+// GetJSON403 returns the response for an HTTP 403 `application/json` response
+func (r SubmitTeacherHomepageRequestResponse) GetJSON403() *Error {
+	return r.JSON403
+}
+
+// GetJSON404 returns the response for an HTTP 404 `application/json` response
+func (r SubmitTeacherHomepageRequestResponse) GetJSON404() *Error {
+	return r.JSON404
+}
+
+// GetJSON409 returns the response for an HTTP 409 `application/json` response
+func (r SubmitTeacherHomepageRequestResponse) GetJSON409() *Error {
+	return r.JSON409
+}
+
+// GetJSON429 returns the response for an HTTP 429 `application/json` response
+func (r SubmitTeacherHomepageRequestResponse) GetJSON429() *Error {
+	return r.JSON429
+}
+
+// GetJSON503 returns the response for an HTTP 503 `application/json` response
+func (r SubmitTeacherHomepageRequestResponse) GetJSON503() *Error {
+	return r.JSON503
+}
+
+// GetBody returns the raw response body bytes
+func (r SubmitTeacherHomepageRequestResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r SubmitTeacherHomepageRequestResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r SubmitTeacherHomepageRequestResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r SubmitTeacherHomepageRequestResponse) ContentType() string {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.Header.Get("Content-Type")
 	}
@@ -9415,6 +12357,58 @@ func (c *ClientWithResponses) StartDirectoryProjectionRebuildWithResponse(ctx co
 	return ParseStartDirectoryProjectionRebuildResponse(rsp)
 }
 
+// GetTeacherHomepageAllowlistWithResponse performs a GET /api/v1/catalog/admin/schools/{school_id}/teacher-sites/allowlist (the `GetTeacherHomepageAllowlist` operationId) request.
+//
+// 要求 catalog.maintain 和当前学校管理范围。读取该校教师主页的采集字段白名单。禁止缓存。
+//
+// Returns a wrapper object for the known response body format(s).
+func (c *ClientWithResponses) GetTeacherHomepageAllowlistWithResponse(ctx context.Context, schoolId string, reqEditors ...RequestEditorFn) (*GetTeacherHomepageAllowlistResponse, error) {
+	rsp, err := c.GetTeacherHomepageAllowlist(ctx, schoolId, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetTeacherHomepageAllowlistResponse(rsp)
+}
+
+// SetTeacherHomepageAllowlistWithBodyWithResponse performs a PUT /api/v1/catalog/admin/schools/{school_id}/teacher-sites/allowlist (the `SetTeacherHomepageAllowlist` operationId) request,
+// with any type of body and a specified content type.
+//
+// 要求 catalog.maintain 和当前学校管理范围。替换完整采集字段白名单，并在同一事务保存修订、审计及幂等回执。管理员明确保存的覆盖值拥有独立的展示权限。隐藏与停止展示优先。
+//
+// Returns a wrapper object for the known response body format(s).
+func (c *ClientWithResponses) SetTeacherHomepageAllowlistWithBodyWithResponse(ctx context.Context, schoolId string, params *SetTeacherHomepageAllowlistParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*SetTeacherHomepageAllowlistResponse, error) {
+	rsp, err := c.SetTeacherHomepageAllowlistWithBody(ctx, schoolId, params, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseSetTeacherHomepageAllowlistResponse(rsp)
+}
+
+// SetTeacherHomepageAllowlistWithResponse performs a PUT /api/v1/catalog/admin/schools/{school_id}/teacher-sites/allowlist (the `SetTeacherHomepageAllowlist` operationId) request.
+// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+//
+// 要求 catalog.maintain 和当前学校管理范围。替换完整采集字段白名单，并在同一事务保存修订、审计及幂等回执。管理员明确保存的覆盖值拥有独立的展示权限。隐藏与停止展示优先。
+func (c *ClientWithResponses) SetTeacherHomepageAllowlistWithResponse(ctx context.Context, schoolId string, params *SetTeacherHomepageAllowlistParams, body SetTeacherHomepageAllowlistJSONRequestBody, reqEditors ...RequestEditorFn) (*SetTeacherHomepageAllowlistResponse, error) {
+	rsp, err := c.SetTeacherHomepageAllowlist(ctx, schoolId, params, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseSetTeacherHomepageAllowlistResponse(rsp)
+}
+
+// GetTeacherHomepageCountsWithResponse performs a GET /api/v1/catalog/admin/schools/{school_id}/teacher-sites/homepage-counts (the `GetTeacherHomepageCounts` operationId) request.
+//
+// 要求 catalog.maintain 和当前学校管理范围。已核实人工资料单列统计，不计为官网匹配。三种依据可重叠，eligible 为并集。统计读取当前资料和已选定的授课截止条件，批准引入的新教师在下一代目录投影发布后进入公开列表。禁止缓存。
+//
+// Returns a wrapper object for the known response body format(s).
+func (c *ClientWithResponses) GetTeacherHomepageCountsWithResponse(ctx context.Context, schoolId string, reqEditors ...RequestEditorFn) (*GetTeacherHomepageCountsResponse, error) {
+	rsp, err := c.GetTeacherHomepageCounts(ctx, schoolId, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetTeacherHomepageCountsResponse(rsp)
+}
+
 // GetTeacherRefreshStatusWithResponse performs a GET /api/v1/catalog/admin/schools/{school_id}/teacher-sites/refresh (the `GetTeacherRefreshStatus` operationId) request.
 //
 // Requires catalog.teacher-sites.read and current school management scope. Every view is audited. Latest run includes safe failure code and observed request/site counts; unknown measurements are null. Counts reflect current visible teacher marks.
@@ -9452,6 +12446,71 @@ func (c *ClientWithResponses) StartTeacherRefreshWithResponse(ctx context.Contex
 		return nil, err
 	}
 	return ParseStartTeacherRefreshResponse(rsp)
+}
+
+// ListTeacherHomepageRequestsWithResponse performs a GET /api/v1/catalog/admin/schools/{school_id}/teacher-sites/requests (the `ListTeacherHomepageRequests` operationId) request.
+//
+// 要求 catalog.maintain 和当前学校管理范围。按学校、状态和可选教师筛选，使用稳定顺序和游标分页。禁止缓存。
+//
+// Returns a wrapper object for the known response body format(s).
+func (c *ClientWithResponses) ListTeacherHomepageRequestsWithResponse(ctx context.Context, schoolId string, params *ListTeacherHomepageRequestsParams, reqEditors ...RequestEditorFn) (*ListTeacherHomepageRequestsResponse, error) {
+	rsp, err := c.ListTeacherHomepageRequests(ctx, schoolId, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseListTeacherHomepageRequestsResponse(rsp)
+}
+
+// GetTeacherHomepageRequestWithResponse performs a GET /api/v1/catalog/admin/schools/{school_id}/teacher-sites/requests/{request_id} (the `GetTeacherHomepageRequest` operationId) request.
+//
+// 要求 catalog.maintain 和当前学校管理范围。读取本校申请的原始提案和处理结果。禁止缓存。
+//
+// Returns a wrapper object for the known response body format(s).
+func (c *ClientWithResponses) GetTeacherHomepageRequestWithResponse(ctx context.Context, schoolId string, requestId string, reqEditors ...RequestEditorFn) (*GetTeacherHomepageRequestResponse, error) {
+	rsp, err := c.GetTeacherHomepageRequest(ctx, schoolId, requestId, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetTeacherHomepageRequestResponse(rsp)
+}
+
+// ResolveTeacherHomepageRequestWithBodyWithResponse performs a PUT /api/v1/catalog/admin/schools/{school_id}/teacher-sites/requests/{request_id}/decision (the `ResolveTeacherHomepageRequest` operationId) request,
+// with any type of body and a specified content type.
+//
+// 要求 catalog.maintain 和当前学校管理范围。批准时应用申请对应字段修改或隐藏。发布新值前重新核对申请人的有效教师归属。状态、显示规则、审计、通知事件和幂等回执在同一事务提交。相同操作者、学校、幂等键和请求重放返回原结果。
+//
+// Returns a wrapper object for the known response body format(s).
+func (c *ClientWithResponses) ResolveTeacherHomepageRequestWithBodyWithResponse(ctx context.Context, schoolId string, requestId string, params *ResolveTeacherHomepageRequestParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*ResolveTeacherHomepageRequestResponse, error) {
+	rsp, err := c.ResolveTeacherHomepageRequestWithBody(ctx, schoolId, requestId, params, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseResolveTeacherHomepageRequestResponse(rsp)
+}
+
+// ResolveTeacherHomepageRequestWithResponse performs a PUT /api/v1/catalog/admin/schools/{school_id}/teacher-sites/requests/{request_id}/decision (the `ResolveTeacherHomepageRequest` operationId) request.
+// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+//
+// 要求 catalog.maintain 和当前学校管理范围。批准时应用申请对应字段修改或隐藏。发布新值前重新核对申请人的有效教师归属。状态、显示规则、审计、通知事件和幂等回执在同一事务提交。相同操作者、学校、幂等键和请求重放返回原结果。
+func (c *ClientWithResponses) ResolveTeacherHomepageRequestWithResponse(ctx context.Context, schoolId string, requestId string, params *ResolveTeacherHomepageRequestParams, body ResolveTeacherHomepageRequestJSONRequestBody, reqEditors ...RequestEditorFn) (*ResolveTeacherHomepageRequestResponse, error) {
+	rsp, err := c.ResolveTeacherHomepageRequest(ctx, schoolId, requestId, params, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseResolveTeacherHomepageRequestResponse(rsp)
+}
+
+// GetTeacherHomepageRequestPhotoWithResponse performs a GET /api/v1/catalog/admin/schools/{school_id}/teacher-sites/requests/{request_id}/photo (the `GetTeacherHomepageRequestPhoto` operationId) request.
+//
+// 要求 catalog.maintain 和当前学校管理范围。管理员在审核时仅可读取该校申请携带的已验证头像。禁止缓存。
+//
+// Returns a wrapper object for the known response body format(s).
+func (c *ClientWithResponses) GetTeacherHomepageRequestPhotoWithResponse(ctx context.Context, schoolId string, requestId string, reqEditors ...RequestEditorFn) (*GetTeacherHomepageRequestPhotoResponse, error) {
+	rsp, err := c.GetTeacherHomepageRequestPhoto(ctx, schoolId, requestId, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetTeacherHomepageRequestPhotoResponse(rsp)
 }
 
 // ListTeacherHomepageReviewSitesWithResponse performs a GET /api/v1/catalog/admin/schools/{school_id}/teacher-sites/review/sites (the `ListTeacherHomepageReviewSites` operationId) request.
@@ -9504,6 +12563,45 @@ func (c *ClientWithResponses) ListTeacherHomepageReviewTeachersWithResponse(ctx 
 		return nil, err
 	}
 	return ParseListTeacherHomepageReviewTeachersResponse(rsp)
+}
+
+// GetTeacherHomepageControlsWithResponse performs a GET /api/v1/catalog/admin/schools/{school_id}/teacher-sites/teachers/{teacher_id}/homepage (the `GetTeacherHomepageControls` operationId) request.
+//
+// 要求 catalog.maintain 和当前学校管理范围。返回当前采集资料及人工控制，供管理员分别核对来源与显示设置。未匹配或当前来源不可用时省略 source。禁止缓存。
+//
+// Returns a wrapper object for the known response body format(s).
+func (c *ClientWithResponses) GetTeacherHomepageControlsWithResponse(ctx context.Context, schoolId string, teacherId string, reqEditors ...RequestEditorFn) (*GetTeacherHomepageControlsResponse, error) {
+	rsp, err := c.GetTeacherHomepageControls(ctx, schoolId, teacherId, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetTeacherHomepageControlsResponse(rsp)
+}
+
+// SetTeacherHomepageControlsWithBodyWithResponse performs a PUT /api/v1/catalog/admin/schools/{school_id}/teacher-sites/teachers/{teacher_id}/homepage (the `SetTeacherHomepageControls` operationId) request,
+// with any type of body and a specified content type.
+//
+// 要求 catalog.maintain 和当前学校管理范围。以请求中完整的人工设置替换旧设置。剔除头像字节后的设置最多 1 MiB。控制、审计和幂等回执同一事务提交。首次修改时使用修订 0。相同操作者、学校、幂等键和请求重放返回原结果。
+//
+// Returns a wrapper object for the known response body format(s).
+func (c *ClientWithResponses) SetTeacherHomepageControlsWithBodyWithResponse(ctx context.Context, schoolId string, teacherId string, params *SetTeacherHomepageControlsParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*SetTeacherHomepageControlsResponse, error) {
+	rsp, err := c.SetTeacherHomepageControlsWithBody(ctx, schoolId, teacherId, params, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseSetTeacherHomepageControlsResponse(rsp)
+}
+
+// SetTeacherHomepageControlsWithResponse performs a PUT /api/v1/catalog/admin/schools/{school_id}/teacher-sites/teachers/{teacher_id}/homepage (the `SetTeacherHomepageControls` operationId) request.
+// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+//
+// 要求 catalog.maintain 和当前学校管理范围。以请求中完整的人工设置替换旧设置。剔除头像字节后的设置最多 1 MiB。控制、审计和幂等回执同一事务提交。首次修改时使用修订 0。相同操作者、学校、幂等键和请求重放返回原结果。
+func (c *ClientWithResponses) SetTeacherHomepageControlsWithResponse(ctx context.Context, schoolId string, teacherId string, params *SetTeacherHomepageControlsParams, body SetTeacherHomepageControlsJSONRequestBody, reqEditors ...RequestEditorFn) (*SetTeacherHomepageControlsResponse, error) {
+	rsp, err := c.SetTeacherHomepageControls(ctx, schoolId, teacherId, params, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseSetTeacherHomepageControlsResponse(rsp)
 }
 
 // ListUnmatchedTeacherSitesWithResponse performs a GET /api/v1/catalog/admin/schools/{school_id}/teacher-sites/unmatched (the `ListUnmatchedTeacherSites` operationId) request.
@@ -9784,6 +12882,19 @@ func (c *ClientWithResponses) MyCalendarWithResponse(ctx context.Context, params
 	return ParseMyCalendarResponse(rsp)
 }
 
+// GetMyTeacherHomepageRequestWithResponse performs a GET /api/v1/catalog/me/teacher-homepage/requests/{request_id} (the `GetMyTeacherHomepageRequest` operationId) request.
+//
+// 按提交账号读取申请详情，并复核有效教师认证与目录教师关联。供站内通知直达。其他账号请求同一标识时返回 404。禁止缓存。.
+//
+// Returns a wrapper object for the known response body format(s).
+func (c *ClientWithResponses) GetMyTeacherHomepageRequestWithResponse(ctx context.Context, requestId string, reqEditors ...RequestEditorFn) (*GetMyTeacherHomepageRequestResponse, error) {
+	rsp, err := c.GetMyTeacherHomepageRequest(ctx, requestId, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetMyTeacherHomepageRequestResponse(rsp)
+}
+
 // ListObjectsWithResponse performs a GET /api/v1/catalog/objects (the `ListObjects` operationId) request.
 //
 // 读取当前学校的可展示目录投影，当前内容权限在每次请求时检查。课程须在服务端截止学期（默认 2023 秋）及以后有开课记录。kind=term 仅返回截止学期及以后且有可见课程的学期，按 term_order_key 降序、ID 升序分页；前端保持返回顺序。其他类型按 ID 升序。 体育项目作为 kind=course 条目返回 course_type=sports_project。按项目 course_id 查询教师，筛选计数按项目去重。 普通目录仅提供学校、院系、分类、性质、学期、课程和教师；term_course、class、assignment、schedule 仅供管理端或受信服务使用。 kind=teacher&course_id=…、kind=course&teacher_id=… 和 kind=term 保持可用；授课事实只用于计算关联，不返回教学班。.
@@ -9799,7 +12910,7 @@ func (c *ClientWithResponses) ListObjectsWithResponse(ctx context.Context, param
 
 // LookupObjectsWithResponse performs a GET /api/v1/catalog/objects/lookup (the `LookupObjects` operationId) request.
 //
-// Requires current content admission in the served school: valid campus eligibility or verified teacher status. Missing admission returns 403; unavailable required facts return 503. No preview, content, counts or statistics are returned on rejection. 教师公开查询由服务端目录标记过滤：有授课记录或已匹配官网名单即可保留。列表、详情、批量查询、筛选选项及计数使用相同依据。未标记的教师详情返回 not_found。 普通目录仅提供学校、院系、分类、性质、学期、课程和教师；term_course、class、assignment、schedule 仅供管理端或受信服务使用。 教学班相关 ID 与未知 ID 一样列入 missing_ids，不返回其对象。混合查询仍返回其余可见课程和教师。
+// Requires current content admission in the served school: valid campus eligibility or verified teacher status. Missing admission returns 403; unavailable required facts return 503. No preview, content, counts or statistics are returned on rejection. 教师公开查询由服务端目录标记过滤：具有有效授课、官网匹配或经核实的独立主页资料任一依据即可保留。列表、详情、批量查询、筛选选项及计数使用相同依据。未标记的教师详情返回 not_found。 普通目录仅提供学校、院系、分类、性质、学期、课程和教师；term_course、class、assignment、schedule 仅供管理端或受信服务使用。 教学班相关 ID 与未知 ID 一样列入 missing_ids，不返回其对象。混合查询仍返回其余可见课程和教师。
 //
 // Returns a wrapper object for the known response body format(s).
 func (c *ClientWithResponses) LookupObjectsWithResponse(ctx context.Context, params *LookupObjectsParams, reqEditors ...RequestEditorFn) (*LookupObjectsResponse, error) {
@@ -9812,7 +12923,7 @@ func (c *ClientWithResponses) LookupObjectsWithResponse(ctx context.Context, par
 
 // GetObjectWithResponse performs a GET /api/v1/catalog/objects/{id} (the `GetObject` operationId) request.
 //
-// Requires current content admission in the served school: valid campus eligibility or verified teacher status. Missing admission returns 403; unavailable required facts return 503. No preview, content, counts or statistics are returned on rejection. 教师公开查询由服务端目录标记过滤：有授课记录或已匹配官网名单即可保留。列表、详情、批量查询、筛选选项及计数使用相同依据。未标记的教师详情返回 not_found。 Courses outside the current visible directory projection return not_found, including direct links. 普通目录仅提供学校、院系、分类、性质、学期、课程和教师；term_course、class、assignment、schedule 仅供管理端或受信服务使用。 教师详情可选择附带当前匹配官网资料。教师院系与职称仍取目录字段。
+// Requires current content admission in the served school: valid campus eligibility or verified teacher status. Missing admission returns 403; unavailable required facts return 503. No preview, content, counts or statistics are returned on rejection. 教师公开查询由服务端目录标记过滤：具有有效授课、官网匹配或经核实的独立主页资料任一依据即可保留。列表、详情、批量查询、筛选选项及计数使用相同依据。未标记的教师详情返回 not_found。 Courses outside the current visible directory projection return not_found, including direct links. 普通目录仅提供学校、院系、分类、性质、学期、课程和教师；term_course、class、assignment、schedule 仅供管理端或受信服务使用。 教师详情可选择附带可展示的主页资料。教师院系与职称仍取目录字段。
 //
 // Returns a wrapper object for the known response body format(s).
 func (c *ClientWithResponses) GetObjectWithResponse(ctx context.Context, id string, params *GetObjectParams, reqEditors ...RequestEditorFn) (*GetObjectResponse, error) {
@@ -9891,7 +13002,7 @@ func (c *ClientWithResponses) PreviewMergeWithResponse(ctx context.Context, id s
 
 // ResolveObjectWithResponse performs a GET /api/v1/catalog/objects/{id}/resolution (the `ResolveObject` operationId) request.
 //
-// Requires current content admission in the served school: valid campus eligibility or verified teacher status. Missing admission returns 403; unavailable required facts return 503. No preview, content, counts or statistics are returned on rejection. 教师公开查询由服务端目录标记过滤：有授课记录或已匹配官网名单即可保留。列表、详情、批量查询、筛选选项及计数使用相同依据。未标记的教师详情返回 not_found。 普通目录仅提供学校、院系、分类、性质、学期、课程和教师；term_course、class、assignment、schedule 仅供管理端或受信服务使用。
+// Requires current content admission in the served school: valid campus eligibility or verified teacher status. Missing admission returns 403; unavailable required facts return 503. No preview, content, counts or statistics are returned on rejection. 教师公开查询由服务端目录标记过滤：具有有效授课、官网匹配或经核实的独立主页资料任一依据即可保留。列表、详情、批量查询、筛选选项及计数使用相同依据。未标记的教师详情返回 not_found。 普通目录仅提供学校、院系、分类、性质、学期、课程和教师；term_course、class、assignment、schedule 仅供管理端或受信服务使用。
 //
 // Returns a wrapper object for the known response body format(s).
 func (c *ClientWithResponses) ResolveObjectWithResponse(ctx context.Context, id string, reqEditors ...RequestEditorFn) (*ResolveObjectResponse, error) {
@@ -9926,7 +13037,7 @@ func (c *ClientWithResponses) SetObjectStateWithResponse(ctx context.Context, id
 
 // GetObjectSummaryWithResponse performs a GET /api/v1/catalog/objects/{id}/summary (the `GetObjectSummary` operationId) request.
 //
-// Requires current content admission in the served school: valid campus eligibility or verified teacher status. Missing admission returns 403; unavailable required facts return 503. No preview, content, counts or statistics are returned on rejection. 教师公开查询由服务端目录标记过滤：有授课记录或已匹配官网名单即可保留。列表、详情、批量查询、筛选选项及计数使用相同依据。未标记的教师详情返回 not_found。 Courses outside the current visible directory projection return not_found, including direct links. 普通目录仅提供学校、院系、分类、性质、学期、课程和教师；term_course、class、assignment、schedule 仅供管理端或受信服务使用。 include_teacher_homepage 参数仅作用于摘要主对象 object。
+// Requires current content admission in the served school: valid campus eligibility or verified teacher status. Missing admission returns 403; unavailable required facts return 503. No preview, content, counts or statistics are returned on rejection. 教师公开查询由服务端目录标记过滤：具有有效授课、官网匹配或经核实的独立主页资料任一依据即可保留。列表、详情、批量查询、筛选选项及计数使用相同依据。未标记的教师详情返回 not_found。 Courses outside the current visible directory projection return not_found, including direct links. 普通目录仅提供学校、院系、分类、性质、学期、课程和教师；term_course、class、assignment、schedule 仅供管理端或受信服务使用。 include_teacher_homepage 参数仅作用于摘要主对象 object。
 //
 // Returns a wrapper object for the known response body format(s).
 func (c *ClientWithResponses) GetObjectSummaryWithResponse(ctx context.Context, id string, params *GetObjectSummaryParams, reqEditors ...RequestEditorFn) (*GetObjectSummaryResponse, error) {
@@ -9935,6 +13046,19 @@ func (c *ClientWithResponses) GetObjectSummaryWithResponse(ctx context.Context, 
 		return nil, err
 	}
 	return ParseGetObjectSummaryResponse(rsp)
+}
+
+// GetTeacherHomepageWithResponse performs a GET /api/v1/catalog/objects/{id}/teacher-homepage (the `GetTeacherHomepage` operationId) request.
+//
+// 沿用教师目录的当前内容准入和学校范围。profile 为应用字段白名单、人工覆盖与隐藏设置后的纯文本投影。当前公开教师可展示已审批的独立资料。无可展示资料、整页隐藏或已停止展示时返回空对象。禁止缓存。.
+//
+// Returns a wrapper object for the known response body format(s).
+func (c *ClientWithResponses) GetTeacherHomepageWithResponse(ctx context.Context, id string, reqEditors ...RequestEditorFn) (*GetTeacherHomepageResponse, error) {
+	rsp, err := c.GetTeacherHomepage(ctx, id, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetTeacherHomepageResponse(rsp)
 }
 
 // GetTeacherHomepagePhotoWithResponse performs a GET /api/v1/catalog/objects/{id}/teacher-homepage/photos/{photo_id} (the `GetTeacherHomepagePhoto` operationId) request.
@@ -9948,6 +13072,45 @@ func (c *ClientWithResponses) GetTeacherHomepagePhotoWithResponse(ctx context.Co
 		return nil, err
 	}
 	return ParseGetTeacherHomepagePhotoResponse(rsp)
+}
+
+// ListMyTeacherHomepageRequestsWithResponse performs a GET /api/v1/catalog/objects/{id}/teacher-homepage/requests (the `ListMyTeacherHomepageRequests` operationId) request.
+//
+// 按提交账号读取该目录教师的申请，同时复核当前有效教师认证和教师目录关联。查询范围与本人可访问的教师目录对象一致。禁止缓存。.
+//
+// Returns a wrapper object for the known response body format(s).
+func (c *ClientWithResponses) ListMyTeacherHomepageRequestsWithResponse(ctx context.Context, id string, params *ListMyTeacherHomepageRequestsParams, reqEditors ...RequestEditorFn) (*ListMyTeacherHomepageRequestsResponse, error) {
+	rsp, err := c.ListMyTeacherHomepageRequests(ctx, id, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseListMyTeacherHomepageRequestsResponse(rsp)
+}
+
+// SubmitTeacherHomepageRequestWithBodyWithResponse performs a POST /api/v1/catalog/objects/{id}/teacher-homepage/requests (the `SubmitTeacherHomepageRequest` operationId) request,
+// with any type of body and a specified content type.
+//
+// 仅当前通过教师认证、并已关联该学校和目录教师的账号可提交。提交后进入管理员队列，处理结果通过站内通知告知本人。不含头像字节的申请正文最多 1 MiB。同一账号每分钟最多提交十条新申请。相同账号、教师、幂等键和请求重放返回原结果。.
+//
+// Returns a wrapper object for the known response body format(s).
+func (c *ClientWithResponses) SubmitTeacherHomepageRequestWithBodyWithResponse(ctx context.Context, id string, params *SubmitTeacherHomepageRequestParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*SubmitTeacherHomepageRequestResponse, error) {
+	rsp, err := c.SubmitTeacherHomepageRequestWithBody(ctx, id, params, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseSubmitTeacherHomepageRequestResponse(rsp)
+}
+
+// SubmitTeacherHomepageRequestWithResponse performs a POST /api/v1/catalog/objects/{id}/teacher-homepage/requests (the `SubmitTeacherHomepageRequest` operationId) request.
+// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+//
+// 仅当前通过教师认证、并已关联该学校和目录教师的账号可提交。提交后进入管理员队列，处理结果通过站内通知告知本人。不含头像字节的申请正文最多 1 MiB。同一账号每分钟最多提交十条新申请。相同账号、教师、幂等键和请求重放返回原结果。.
+func (c *ClientWithResponses) SubmitTeacherHomepageRequestWithResponse(ctx context.Context, id string, params *SubmitTeacherHomepageRequestParams, body SubmitTeacherHomepageRequestJSONRequestBody, reqEditors ...RequestEditorFn) (*SubmitTeacherHomepageRequestResponse, error) {
+	rsp, err := c.SubmitTeacherHomepageRequest(ctx, id, params, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseSubmitTeacherHomepageRequestResponse(rsp)
 }
 
 // ParseAdminListObjectsResponse parses an HTTP response from a AdminListObjectsWithResponse call
@@ -10419,6 +13582,196 @@ func ParseStartDirectoryProjectionRebuildResponse(rsp *http.Response) (*StartDir
 	return response, nil
 }
 
+// ParseGetTeacherHomepageAllowlistResponse parses an HTTP response from a GetTeacherHomepageAllowlistWithResponse call
+func ParseGetTeacherHomepageAllowlistResponse(rsp *http.Response) (*GetTeacherHomepageAllowlistResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetTeacherHomepageAllowlistResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest TeacherHomepageAllowlist
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON503 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseSetTeacherHomepageAllowlistResponse parses an HTTP response from a SetTeacherHomepageAllowlistWithResponse call
+func ParseSetTeacherHomepageAllowlistResponse(rsp *http.Response) (*SetTeacherHomepageAllowlistResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &SetTeacherHomepageAllowlistResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest TeacherHomepageAllowlist
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 409:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON409 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON503 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseGetTeacherHomepageCountsResponse parses an HTTP response from a GetTeacherHomepageCountsWithResponse call
+func ParseGetTeacherHomepageCountsResponse(rsp *http.Response) (*GetTeacherHomepageCountsResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetTeacherHomepageCountsResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest TeacherHomepageCounts
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON503 = &dest
+
+	}
+
+	return response, nil
+}
+
 // ParseGetTeacherRefreshStatusResponse parses an HTTP response from a GetTeacherRefreshStatusWithResponse call
 func ParseGetTeacherRefreshStatusResponse(rsp *http.Response) (*GetTeacherRefreshStatusResponse, error) {
 	bodyBytes, err := io.ReadAll(rsp.Body)
@@ -10550,6 +13903,270 @@ func ParseStartTeacherRefreshResponse(rsp *http.Response) (*StartTeacherRefreshR
 		}
 		response.JSON503 = &dest
 
+	}
+
+	return response, nil
+}
+
+// ParseListTeacherHomepageRequestsResponse parses an HTTP response from a ListTeacherHomepageRequestsWithResponse call
+func ParseListTeacherHomepageRequestsResponse(rsp *http.Response) (*ListTeacherHomepageRequestsResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &ListTeacherHomepageRequestsResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest TeacherHomepageRequestPage
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON503 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseGetTeacherHomepageRequestResponse parses an HTTP response from a GetTeacherHomepageRequestWithResponse call
+func ParseGetTeacherHomepageRequestResponse(rsp *http.Response) (*GetTeacherHomepageRequestResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetTeacherHomepageRequestResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest TeacherHomepageRequest
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON503 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseResolveTeacherHomepageRequestResponse parses an HTTP response from a ResolveTeacherHomepageRequestWithResponse call
+func ParseResolveTeacherHomepageRequestResponse(rsp *http.Response) (*ResolveTeacherHomepageRequestResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &ResolveTeacherHomepageRequestResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest TeacherHomepageRequest
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 409:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON409 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON503 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseGetTeacherHomepageRequestPhotoResponse parses an HTTP response from a GetTeacherHomepageRequestPhotoWithResponse call
+func ParseGetTeacherHomepageRequestPhotoResponse(rsp *http.Response) (*GetTeacherHomepageRequestPhotoResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetTeacherHomepageRequestPhotoResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON503 = &dest
+
+	}
+
+	switch {
+	case rsp.StatusCode == 200:
+		var headers GetTeacherHomepageRequestPhotoResponse200Headers
+		if values := rsp.Header.Values("Cache-Control"); len(values) > 0 {
+			var value string
+			if err := runtime.BindStyledParameterWithOptions("simple", "Cache-Control", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.CacheControl = &value
+		}
+		if values := rsp.Header.Values("Content-Length"); len(values) > 0 {
+			var value int
+			if err := runtime.BindStyledParameterWithOptions("simple", "Content-Length", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.ContentLength = &value
+		}
+		response.Headers200 = &headers
 	}
 
 	return response, nil
@@ -10707,6 +14324,135 @@ func ParseListTeacherHomepageReviewTeachersResponse(rsp *http.Response) (*ListTe
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
 		var dest TeacherHomepageReviewTeacherPage
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 409:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON409 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON503 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseGetTeacherHomepageControlsResponse parses an HTTP response from a GetTeacherHomepageControlsWithResponse call
+func ParseGetTeacherHomepageControlsResponse(rsp *http.Response) (*GetTeacherHomepageControlsResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetTeacherHomepageControlsResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest TeacherHomepageControlsView
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON503 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseSetTeacherHomepageControlsResponse parses an HTTP response from a SetTeacherHomepageControlsWithResponse call
+func ParseSetTeacherHomepageControlsResponse(rsp *http.Response) (*SetTeacherHomepageControlsResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &SetTeacherHomepageControlsResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest TeacherHomepageControls
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -11915,6 +15661,67 @@ func ParseMyCalendarResponse(rsp *http.Response) (*MyCalendarResponse, error) {
 	return response, nil
 }
 
+// ParseGetMyTeacherHomepageRequestResponse parses an HTTP response from a GetMyTeacherHomepageRequestWithResponse call
+func ParseGetMyTeacherHomepageRequestResponse(rsp *http.Response) (*GetMyTeacherHomepageRequestResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetMyTeacherHomepageRequestResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest TeacherHomepageRequest
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON503 = &dest
+
+	}
+
+	return response, nil
+}
+
 // ParseListObjectsResponse parses an HTTP response from a ListObjectsWithResponse call
 func ParseListObjectsResponse(rsp *http.Response) (*ListObjectsResponse, error) {
 	bodyBytes, err := io.ReadAll(rsp.Body)
@@ -12527,6 +16334,67 @@ func ParseGetObjectSummaryResponse(rsp *http.Response) (*GetObjectSummaryRespons
 	return response, nil
 }
 
+// ParseGetTeacherHomepageResponse parses an HTTP response from a GetTeacherHomepageWithResponse call
+func ParseGetTeacherHomepageResponse(rsp *http.Response) (*GetTeacherHomepageResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetTeacherHomepageResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest TeacherHomepagePublicView
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON503 = &dest
+
+	}
+
+	return response, nil
+}
+
 // ParseGetTeacherHomepagePhotoResponse parses an HTTP response from a GetTeacherHomepagePhotoWithResponse call
 func ParseGetTeacherHomepagePhotoResponse(rsp *http.Response) (*GetTeacherHomepagePhotoResponse, error) {
 	bodyBytes, err := io.ReadAll(rsp.Body)
@@ -12596,6 +16464,142 @@ func ParseGetTeacherHomepagePhotoResponse(rsp *http.Response) (*GetTeacherHomepa
 			headers.XContentTypeOptions = &value
 		}
 		response.Headers200 = &headers
+	}
+
+	return response, nil
+}
+
+// ParseListMyTeacherHomepageRequestsResponse parses an HTTP response from a ListMyTeacherHomepageRequestsWithResponse call
+func ParseListMyTeacherHomepageRequestsResponse(rsp *http.Response) (*ListMyTeacherHomepageRequestsResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &ListMyTeacherHomepageRequestsResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest TeacherHomepageRequestPage
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON503 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseSubmitTeacherHomepageRequestResponse parses an HTTP response from a SubmitTeacherHomepageRequestWithResponse call
+func ParseSubmitTeacherHomepageRequestResponse(rsp *http.Response) (*SubmitTeacherHomepageRequestResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &SubmitTeacherHomepageRequestResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest TeacherHomepageRequest
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 409:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON409 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 429:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON429 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON503 = &dest
+
 	}
 
 	return response, nil
