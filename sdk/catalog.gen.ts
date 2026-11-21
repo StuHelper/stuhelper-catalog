@@ -590,7 +590,7 @@ export interface paths {
         };
         /** @description 要求 catalog.maintain 和当前学校管理范围。返回当前采集资料及人工控制，供管理员分别核对来源与显示设置。未匹配或当前来源不可用时省略 source。禁止缓存。 */
         get: operations["getTeacherHomepageControls"];
-        /** @description 要求 catalog.maintain 和当前学校管理范围。以请求中完整的人工设置替换旧设置。剔除头像字节后的设置最多 1 MiB。控制、审计和幂等回执同一事务提交。首次修改时使用修订 0。相同操作者、学校、幂等键和请求重放返回原结果。 */
+        /** @description 要求 catalog.maintain 和当前学校管理范围。以请求中完整的人工设置替换旧设置。剔除头像字节后的设置最多 1 MiB。控制、审计和幂等回执同一事务提交。首次修改时使用修订 0。相同操作者、学校、幂等键和请求重放返回原教师标识和写入修订。使用 GET 读取当前完整设置。 */
         put: operations["setTeacherHomepageControls"];
         post?: never;
         delete?: never;
@@ -728,7 +728,7 @@ export interface paths {
             cookie?: never;
         };
         get?: never;
-        /** @description 要求 catalog.maintain 和当前学校管理范围。批准时应用申请对应字段修改或隐藏。发布新值前重新核对申请人的有效教师归属。状态、显示规则、审计、通知事件和幂等回执在同一事务提交。相同操作者、学校、幂等键和请求重放返回原结果。 */
+        /** @description 要求 catalog.maintain 和当前学校管理范围。批准时应用申请对应字段修改或隐藏。发布新值前重新核对申请人的有效教师归属。获批的非空文字、非空列表或替代头像可形成独立公开依据。状态、显示规则、审计、通知事件和幂等回执在同一事务提交。相同操作者、学校、幂等键和请求重放返回原结果。 */
         put: operations["resolveTeacherHomepageRequest"];
         post?: never;
         delete?: never;
@@ -1638,6 +1638,15 @@ export interface components {
             readonly independent: boolean;
             /** @description 当前人工字段规则。无规则返回空数组。 */
             rules: components["schemas"]["TeacherHomepageFieldRule"][];
+        };
+        TeacherHomepageControlsReceipt: {
+            /** @description 本次写入的标准目录教师标识。 */
+            teacher_id: string;
+            /**
+             * Format: int64
+             * @description 本次写入产生的人工控制修订。重复提交原请求时返回同一值。
+             */
+            revision: number;
         };
         TeacherHomepageControlsView: {
             source?: components["schemas"]["TeacherHomepage"];
@@ -5018,10 +5027,10 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["TeacherHomepageControls"];
+                    "application/json": components["schemas"]["TeacherHomepageControlsReceipt"];
                 };
             };
-            /** @description invalid_input。字段、内容、分页参数或幂等键不符合约定。 */
+            /** @description invalid_input。字段或请求内容不符合约定，或头像实际格式与声明不符、超过图片字节或像素限制、无法解码。 */
             400: {
                 headers: {
                     [name: string]: unknown;
@@ -5059,6 +5068,15 @@ export interface operations {
             };
             /** @description conflict。修订已变化、申请已处理或幂等键对应的内容不同。 */
             409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description payload_too_large。JSON 请求体超过 4 MiB 时由应用返回。入口代理按自身限制也可返回 413，响应格式取决于代理。 */
+            413: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -5467,7 +5485,7 @@ export interface operations {
                     "application/json": components["schemas"]["TeacherHomepageRequest"];
                 };
             };
-            /** @description invalid_input。字段、内容、分页参数或幂等键不符合约定。 */
+            /** @description invalid_input。字段或请求内容不符合约定，或头像实际格式与声明不符、超过图片字节或像素限制、无法解码。 */
             400: {
                 headers: {
                     [name: string]: unknown;
@@ -5505,6 +5523,15 @@ export interface operations {
             };
             /** @description conflict。修订已变化、申请已处理或幂等键对应的内容不同。 */
             409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description payload_too_large。JSON 请求体超过 4 MiB 时由应用返回。入口代理按自身限制也可返回 413，响应格式取决于代理。 */
+            413: {
                 headers: {
                     [name: string]: unknown;
                 };

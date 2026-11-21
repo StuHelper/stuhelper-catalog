@@ -1792,6 +1792,15 @@ type TeacherHomepageControlsInput struct {
 // TeacherHomepageControlsInputPageVisibility visible 允许按字段展示。hidden 隐藏整组教师主页资料。stopped 标记停止展示。隐藏与停止展示时均收回资料和照片访问，并持久保留字段设置。
 type TeacherHomepageControlsInputPageVisibility string
 
+// TeacherHomepageControlsReceipt defines model for TeacherHomepageControlsReceipt.
+type TeacherHomepageControlsReceipt struct {
+	// Revision 本次写入产生的人工控制修订。重复提交原请求时返回同一值。
+	Revision int64 `json:"revision"`
+
+	// TeacherId 本次写入的标准目录教师标识。
+	TeacherId string `json:"teacher_id"`
+}
+
 // TeacherHomepageControlsView defines model for TeacherHomepageControlsView.
 type TeacherHomepageControlsView struct {
 	Controls TeacherHomepageControls `json:"controls"`
@@ -2935,13 +2944,13 @@ type ClientInterface interface {
 	// ResolveTeacherHomepageRequestWithBody performs a PUT /api/v1/catalog/admin/schools/{school_id}/teacher-sites/requests/{request_id}/decision (the `ResolveTeacherHomepageRequest` operationId) request,
 	// with any type of body and a specified content type.
 	//
-	// 要求 catalog.maintain 和当前学校管理范围。批准时应用申请对应字段修改或隐藏。发布新值前重新核对申请人的有效教师归属。状态、显示规则、审计、通知事件和幂等回执在同一事务提交。相同操作者、学校、幂等键和请求重放返回原结果。
+	// 要求 catalog.maintain 和当前学校管理范围。批准时应用申请对应字段修改或隐藏。发布新值前重新核对申请人的有效教师归属。获批的非空文字、非空列表或替代头像可形成独立公开依据。状态、显示规则、审计、通知事件和幂等回执在同一事务提交。相同操作者、学校、幂等键和请求重放返回原结果。
 	ResolveTeacherHomepageRequestWithBody(ctx context.Context, schoolId string, requestId string, params *ResolveTeacherHomepageRequestParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// ResolveTeacherHomepageRequest performs a PUT /api/v1/catalog/admin/schools/{school_id}/teacher-sites/requests/{request_id}/decision (the `ResolveTeacherHomepageRequest` operationId) request.
 	// Takes a body of the `application/json` content type.
 	//
-	// 要求 catalog.maintain 和当前学校管理范围。批准时应用申请对应字段修改或隐藏。发布新值前重新核对申请人的有效教师归属。状态、显示规则、审计、通知事件和幂等回执在同一事务提交。相同操作者、学校、幂等键和请求重放返回原结果。
+	// 要求 catalog.maintain 和当前学校管理范围。批准时应用申请对应字段修改或隐藏。发布新值前重新核对申请人的有效教师归属。获批的非空文字、非空列表或替代头像可形成独立公开依据。状态、显示规则、审计、通知事件和幂等回执在同一事务提交。相同操作者、学校、幂等键和请求重放返回原结果。
 	ResolveTeacherHomepageRequest(ctx context.Context, schoolId string, requestId string, params *ResolveTeacherHomepageRequestParams, body ResolveTeacherHomepageRequestJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// GetTeacherHomepageRequestPhoto performs a GET /api/v1/catalog/admin/schools/{school_id}/teacher-sites/requests/{request_id}/photo (the `GetTeacherHomepageRequestPhoto` operationId) request.
@@ -2979,13 +2988,13 @@ type ClientInterface interface {
 	// SetTeacherHomepageControlsWithBody performs a PUT /api/v1/catalog/admin/schools/{school_id}/teacher-sites/teachers/{teacher_id}/homepage (the `SetTeacherHomepageControls` operationId) request,
 	// with any type of body and a specified content type.
 	//
-	// 要求 catalog.maintain 和当前学校管理范围。以请求中完整的人工设置替换旧设置。剔除头像字节后的设置最多 1 MiB。控制、审计和幂等回执同一事务提交。首次修改时使用修订 0。相同操作者、学校、幂等键和请求重放返回原结果。
+	// 要求 catalog.maintain 和当前学校管理范围。以请求中完整的人工设置替换旧设置。剔除头像字节后的设置最多 1 MiB。控制、审计和幂等回执同一事务提交。首次修改时使用修订 0。相同操作者、学校、幂等键和请求重放返回原教师标识和写入修订。使用 GET 读取当前完整设置。
 	SetTeacherHomepageControlsWithBody(ctx context.Context, schoolId string, teacherId string, params *SetTeacherHomepageControlsParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// SetTeacherHomepageControls performs a PUT /api/v1/catalog/admin/schools/{school_id}/teacher-sites/teachers/{teacher_id}/homepage (the `SetTeacherHomepageControls` operationId) request.
 	// Takes a body of the `application/json` content type.
 	//
-	// 要求 catalog.maintain 和当前学校管理范围。以请求中完整的人工设置替换旧设置。剔除头像字节后的设置最多 1 MiB。控制、审计和幂等回执同一事务提交。首次修改时使用修订 0。相同操作者、学校、幂等键和请求重放返回原结果。
+	// 要求 catalog.maintain 和当前学校管理范围。以请求中完整的人工设置替换旧设置。剔除头像字节后的设置最多 1 MiB。控制、审计和幂等回执同一事务提交。首次修改时使用修订 0。相同操作者、学校、幂等键和请求重放返回原教师标识和写入修订。使用 GET 读取当前完整设置。
 	SetTeacherHomepageControls(ctx context.Context, schoolId string, teacherId string, params *SetTeacherHomepageControlsParams, body SetTeacherHomepageControlsJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// ListUnmatchedTeacherSites performs a GET /api/v1/catalog/admin/schools/{school_id}/teacher-sites/unmatched (the `ListUnmatchedTeacherSites` operationId) request.
@@ -3454,7 +3463,7 @@ func (c *Client) GetTeacherHomepageRequest(ctx context.Context, schoolId string,
 // ResolveTeacherHomepageRequestWithBody performs a PUT /api/v1/catalog/admin/schools/{school_id}/teacher-sites/requests/{request_id}/decision (the `ResolveTeacherHomepageRequest` operationId) request,
 // with any type of body and a specified content type.
 //
-// 要求 catalog.maintain 和当前学校管理范围。批准时应用申请对应字段修改或隐藏。发布新值前重新核对申请人的有效教师归属。状态、显示规则、审计、通知事件和幂等回执在同一事务提交。相同操作者、学校、幂等键和请求重放返回原结果。
+// 要求 catalog.maintain 和当前学校管理范围。批准时应用申请对应字段修改或隐藏。发布新值前重新核对申请人的有效教师归属。获批的非空文字、非空列表或替代头像可形成独立公开依据。状态、显示规则、审计、通知事件和幂等回执在同一事务提交。相同操作者、学校、幂等键和请求重放返回原结果。
 func (c *Client) ResolveTeacherHomepageRequestWithBody(ctx context.Context, schoolId string, requestId string, params *ResolveTeacherHomepageRequestParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewResolveTeacherHomepageRequestRequestWithBody(c.Server, schoolId, requestId, params, contentType, body)
 	if err != nil {
@@ -3470,7 +3479,7 @@ func (c *Client) ResolveTeacherHomepageRequestWithBody(ctx context.Context, scho
 // ResolveTeacherHomepageRequest performs a PUT /api/v1/catalog/admin/schools/{school_id}/teacher-sites/requests/{request_id}/decision (the `ResolveTeacherHomepageRequest` operationId) request.
 // Takes a body of the `application/json` content type.
 //
-// 要求 catalog.maintain 和当前学校管理范围。批准时应用申请对应字段修改或隐藏。发布新值前重新核对申请人的有效教师归属。状态、显示规则、审计、通知事件和幂等回执在同一事务提交。相同操作者、学校、幂等键和请求重放返回原结果。
+// 要求 catalog.maintain 和当前学校管理范围。批准时应用申请对应字段修改或隐藏。发布新值前重新核对申请人的有效教师归属。获批的非空文字、非空列表或替代头像可形成独立公开依据。状态、显示规则、审计、通知事件和幂等回执在同一事务提交。相同操作者、学校、幂等键和请求重放返回原结果。
 func (c *Client) ResolveTeacherHomepageRequest(ctx context.Context, schoolId string, requestId string, params *ResolveTeacherHomepageRequestParams, body ResolveTeacherHomepageRequestJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewResolveTeacherHomepageRequestRequest(c.Server, schoolId, requestId, params, body)
 	if err != nil {
@@ -3578,7 +3587,7 @@ func (c *Client) GetTeacherHomepageControls(ctx context.Context, schoolId string
 // SetTeacherHomepageControlsWithBody performs a PUT /api/v1/catalog/admin/schools/{school_id}/teacher-sites/teachers/{teacher_id}/homepage (the `SetTeacherHomepageControls` operationId) request,
 // with any type of body and a specified content type.
 //
-// 要求 catalog.maintain 和当前学校管理范围。以请求中完整的人工设置替换旧设置。剔除头像字节后的设置最多 1 MiB。控制、审计和幂等回执同一事务提交。首次修改时使用修订 0。相同操作者、学校、幂等键和请求重放返回原结果。
+// 要求 catalog.maintain 和当前学校管理范围。以请求中完整的人工设置替换旧设置。剔除头像字节后的设置最多 1 MiB。控制、审计和幂等回执同一事务提交。首次修改时使用修订 0。相同操作者、学校、幂等键和请求重放返回原教师标识和写入修订。使用 GET 读取当前完整设置。
 func (c *Client) SetTeacherHomepageControlsWithBody(ctx context.Context, schoolId string, teacherId string, params *SetTeacherHomepageControlsParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewSetTeacherHomepageControlsRequestWithBody(c.Server, schoolId, teacherId, params, contentType, body)
 	if err != nil {
@@ -3594,7 +3603,7 @@ func (c *Client) SetTeacherHomepageControlsWithBody(ctx context.Context, schoolI
 // SetTeacherHomepageControls performs a PUT /api/v1/catalog/admin/schools/{school_id}/teacher-sites/teachers/{teacher_id}/homepage (the `SetTeacherHomepageControls` operationId) request.
 // Takes a body of the `application/json` content type.
 //
-// 要求 catalog.maintain 和当前学校管理范围。以请求中完整的人工设置替换旧设置。剔除头像字节后的设置最多 1 MiB。控制、审计和幂等回执同一事务提交。首次修改时使用修订 0。相同操作者、学校、幂等键和请求重放返回原结果。
+// 要求 catalog.maintain 和当前学校管理范围。以请求中完整的人工设置替换旧设置。剔除头像字节后的设置最多 1 MiB。控制、审计和幂等回执同一事务提交。首次修改时使用修订 0。相同操作者、学校、幂等键和请求重放返回原教师标识和写入修订。使用 GET 读取当前完整设置。
 func (c *Client) SetTeacherHomepageControls(ctx context.Context, schoolId string, teacherId string, params *SetTeacherHomepageControlsParams, body SetTeacherHomepageControlsJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewSetTeacherHomepageControlsRequest(c.Server, schoolId, teacherId, params, body)
 	if err != nil {
@@ -7674,7 +7683,7 @@ type ClientWithResponsesInterface interface {
 	// ResolveTeacherHomepageRequestWithBodyWithResponse performs a PUT /api/v1/catalog/admin/schools/{school_id}/teacher-sites/requests/{request_id}/decision (the `ResolveTeacherHomepageRequest` operationId) request,
 	// with any type of body and a specified content type.
 	//
-	// 要求 catalog.maintain 和当前学校管理范围。批准时应用申请对应字段修改或隐藏。发布新值前重新核对申请人的有效教师归属。状态、显示规则、审计、通知事件和幂等回执在同一事务提交。相同操作者、学校、幂等键和请求重放返回原结果。
+	// 要求 catalog.maintain 和当前学校管理范围。批准时应用申请对应字段修改或隐藏。发布新值前重新核对申请人的有效教师归属。获批的非空文字、非空列表或替代头像可形成独立公开依据。状态、显示规则、审计、通知事件和幂等回执在同一事务提交。相同操作者、学校、幂等键和请求重放返回原结果。
 	//
 	// Returns a wrapper object for the known response body format(s).
 	ResolveTeacherHomepageRequestWithBodyWithResponse(ctx context.Context, schoolId string, requestId string, params *ResolveTeacherHomepageRequestParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*ResolveTeacherHomepageRequestResponse, error)
@@ -7682,7 +7691,7 @@ type ClientWithResponsesInterface interface {
 	// ResolveTeacherHomepageRequestWithResponse performs a PUT /api/v1/catalog/admin/schools/{school_id}/teacher-sites/requests/{request_id}/decision (the `ResolveTeacherHomepageRequest` operationId) request.
 	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
 	//
-	// 要求 catalog.maintain 和当前学校管理范围。批准时应用申请对应字段修改或隐藏。发布新值前重新核对申请人的有效教师归属。状态、显示规则、审计、通知事件和幂等回执在同一事务提交。相同操作者、学校、幂等键和请求重放返回原结果。
+	// 要求 catalog.maintain 和当前学校管理范围。批准时应用申请对应字段修改或隐藏。发布新值前重新核对申请人的有效教师归属。获批的非空文字、非空列表或替代头像可形成独立公开依据。状态、显示规则、审计、通知事件和幂等回执在同一事务提交。相同操作者、学校、幂等键和请求重放返回原结果。
 	ResolveTeacherHomepageRequestWithResponse(ctx context.Context, schoolId string, requestId string, params *ResolveTeacherHomepageRequestParams, body ResolveTeacherHomepageRequestJSONRequestBody, reqEditors ...RequestEditorFn) (*ResolveTeacherHomepageRequestResponse, error)
 
 	// GetTeacherHomepageRequestPhotoWithResponse performs a GET /api/v1/catalog/admin/schools/{school_id}/teacher-sites/requests/{request_id}/photo (the `GetTeacherHomepageRequestPhoto` operationId) request.
@@ -7730,7 +7739,7 @@ type ClientWithResponsesInterface interface {
 	// SetTeacherHomepageControlsWithBodyWithResponse performs a PUT /api/v1/catalog/admin/schools/{school_id}/teacher-sites/teachers/{teacher_id}/homepage (the `SetTeacherHomepageControls` operationId) request,
 	// with any type of body and a specified content type.
 	//
-	// 要求 catalog.maintain 和当前学校管理范围。以请求中完整的人工设置替换旧设置。剔除头像字节后的设置最多 1 MiB。控制、审计和幂等回执同一事务提交。首次修改时使用修订 0。相同操作者、学校、幂等键和请求重放返回原结果。
+	// 要求 catalog.maintain 和当前学校管理范围。以请求中完整的人工设置替换旧设置。剔除头像字节后的设置最多 1 MiB。控制、审计和幂等回执同一事务提交。首次修改时使用修订 0。相同操作者、学校、幂等键和请求重放返回原教师标识和写入修订。使用 GET 读取当前完整设置。
 	//
 	// Returns a wrapper object for the known response body format(s).
 	SetTeacherHomepageControlsWithBodyWithResponse(ctx context.Context, schoolId string, teacherId string, params *SetTeacherHomepageControlsParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*SetTeacherHomepageControlsResponse, error)
@@ -7738,7 +7747,7 @@ type ClientWithResponsesInterface interface {
 	// SetTeacherHomepageControlsWithResponse performs a PUT /api/v1/catalog/admin/schools/{school_id}/teacher-sites/teachers/{teacher_id}/homepage (the `SetTeacherHomepageControls` operationId) request.
 	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
 	//
-	// 要求 catalog.maintain 和当前学校管理范围。以请求中完整的人工设置替换旧设置。剔除头像字节后的设置最多 1 MiB。控制、审计和幂等回执同一事务提交。首次修改时使用修订 0。相同操作者、学校、幂等键和请求重放返回原结果。
+	// 要求 catalog.maintain 和当前学校管理范围。以请求中完整的人工设置替换旧设置。剔除头像字节后的设置最多 1 MiB。控制、审计和幂等回执同一事务提交。首次修改时使用修订 0。相同操作者、学校、幂等键和请求重放返回原教师标识和写入修订。使用 GET 读取当前完整设置。
 	SetTeacherHomepageControlsWithResponse(ctx context.Context, schoolId string, teacherId string, params *SetTeacherHomepageControlsParams, body SetTeacherHomepageControlsJSONRequestBody, reqEditors ...RequestEditorFn) (*SetTeacherHomepageControlsResponse, error)
 
 	// ListUnmatchedTeacherSitesWithResponse performs a GET /api/v1/catalog/admin/schools/{school_id}/teacher-sites/unmatched (the `ListUnmatchedTeacherSites` operationId) request.
@@ -9621,7 +9630,7 @@ type SetTeacherHomepageControlsResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
 	// JSON200 the response for an HTTP 200 `application/json` response
-	JSON200 *TeacherHomepageControls
+	JSON200 *TeacherHomepageControlsReceipt
 	// JSON400 the response for an HTTP 400 `application/json` response
 	JSON400 *Error
 	// JSON401 the response for an HTTP 401 `application/json` response
@@ -9632,12 +9641,14 @@ type SetTeacherHomepageControlsResponse struct {
 	JSON404 *Error
 	// JSON409 the response for an HTTP 409 `application/json` response
 	JSON409 *Error
+	// JSON413 the response for an HTTP 413 `application/json` response
+	JSON413 *Error
 	// JSON503 the response for an HTTP 503 `application/json` response
 	JSON503 *Error
 }
 
 // GetJSON200 returns the response for an HTTP 200 `application/json` response
-func (r SetTeacherHomepageControlsResponse) GetJSON200() *TeacherHomepageControls {
+func (r SetTeacherHomepageControlsResponse) GetJSON200() *TeacherHomepageControlsReceipt {
 	return r.JSON200
 }
 
@@ -9664,6 +9675,11 @@ func (r SetTeacherHomepageControlsResponse) GetJSON404() *Error {
 // GetJSON409 returns the response for an HTTP 409 `application/json` response
 func (r SetTeacherHomepageControlsResponse) GetJSON409() *Error {
 	return r.JSON409
+}
+
+// GetJSON413 returns the response for an HTTP 413 `application/json` response
+func (r SetTeacherHomepageControlsResponse) GetJSON413() *Error {
+	return r.JSON413
 }
 
 // GetJSON503 returns the response for an HTTP 503 `application/json` response
@@ -12178,6 +12194,8 @@ type SubmitTeacherHomepageRequestResponse struct {
 	JSON404 *Error
 	// JSON409 the response for an HTTP 409 `application/json` response
 	JSON409 *Error
+	// JSON413 the response for an HTTP 413 `application/json` response
+	JSON413 *Error
 	// JSON429 the response for an HTTP 429 `application/json` response
 	JSON429 *Error
 	// JSON503 the response for an HTTP 503 `application/json` response
@@ -12212,6 +12230,11 @@ func (r SubmitTeacherHomepageRequestResponse) GetJSON404() *Error {
 // GetJSON409 returns the response for an HTTP 409 `application/json` response
 func (r SubmitTeacherHomepageRequestResponse) GetJSON409() *Error {
 	return r.JSON409
+}
+
+// GetJSON413 returns the response for an HTTP 413 `application/json` response
+func (r SubmitTeacherHomepageRequestResponse) GetJSON413() *Error {
+	return r.JSON413
 }
 
 // GetJSON429 returns the response for an HTTP 429 `application/json` response
@@ -12477,7 +12500,7 @@ func (c *ClientWithResponses) GetTeacherHomepageRequestWithResponse(ctx context.
 // ResolveTeacherHomepageRequestWithBodyWithResponse performs a PUT /api/v1/catalog/admin/schools/{school_id}/teacher-sites/requests/{request_id}/decision (the `ResolveTeacherHomepageRequest` operationId) request,
 // with any type of body and a specified content type.
 //
-// 要求 catalog.maintain 和当前学校管理范围。批准时应用申请对应字段修改或隐藏。发布新值前重新核对申请人的有效教师归属。状态、显示规则、审计、通知事件和幂等回执在同一事务提交。相同操作者、学校、幂等键和请求重放返回原结果。
+// 要求 catalog.maintain 和当前学校管理范围。批准时应用申请对应字段修改或隐藏。发布新值前重新核对申请人的有效教师归属。获批的非空文字、非空列表或替代头像可形成独立公开依据。状态、显示规则、审计、通知事件和幂等回执在同一事务提交。相同操作者、学校、幂等键和请求重放返回原结果。
 //
 // Returns a wrapper object for the known response body format(s).
 func (c *ClientWithResponses) ResolveTeacherHomepageRequestWithBodyWithResponse(ctx context.Context, schoolId string, requestId string, params *ResolveTeacherHomepageRequestParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*ResolveTeacherHomepageRequestResponse, error) {
@@ -12491,7 +12514,7 @@ func (c *ClientWithResponses) ResolveTeacherHomepageRequestWithBodyWithResponse(
 // ResolveTeacherHomepageRequestWithResponse performs a PUT /api/v1/catalog/admin/schools/{school_id}/teacher-sites/requests/{request_id}/decision (the `ResolveTeacherHomepageRequest` operationId) request.
 // Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
 //
-// 要求 catalog.maintain 和当前学校管理范围。批准时应用申请对应字段修改或隐藏。发布新值前重新核对申请人的有效教师归属。状态、显示规则、审计、通知事件和幂等回执在同一事务提交。相同操作者、学校、幂等键和请求重放返回原结果。
+// 要求 catalog.maintain 和当前学校管理范围。批准时应用申请对应字段修改或隐藏。发布新值前重新核对申请人的有效教师归属。获批的非空文字、非空列表或替代头像可形成独立公开依据。状态、显示规则、审计、通知事件和幂等回执在同一事务提交。相同操作者、学校、幂等键和请求重放返回原结果。
 func (c *ClientWithResponses) ResolveTeacherHomepageRequestWithResponse(ctx context.Context, schoolId string, requestId string, params *ResolveTeacherHomepageRequestParams, body ResolveTeacherHomepageRequestJSONRequestBody, reqEditors ...RequestEditorFn) (*ResolveTeacherHomepageRequestResponse, error) {
 	rsp, err := c.ResolveTeacherHomepageRequest(ctx, schoolId, requestId, params, body, reqEditors...)
 	if err != nil {
@@ -12581,7 +12604,7 @@ func (c *ClientWithResponses) GetTeacherHomepageControlsWithResponse(ctx context
 // SetTeacherHomepageControlsWithBodyWithResponse performs a PUT /api/v1/catalog/admin/schools/{school_id}/teacher-sites/teachers/{teacher_id}/homepage (the `SetTeacherHomepageControls` operationId) request,
 // with any type of body and a specified content type.
 //
-// 要求 catalog.maintain 和当前学校管理范围。以请求中完整的人工设置替换旧设置。剔除头像字节后的设置最多 1 MiB。控制、审计和幂等回执同一事务提交。首次修改时使用修订 0。相同操作者、学校、幂等键和请求重放返回原结果。
+// 要求 catalog.maintain 和当前学校管理范围。以请求中完整的人工设置替换旧设置。剔除头像字节后的设置最多 1 MiB。控制、审计和幂等回执同一事务提交。首次修改时使用修订 0。相同操作者、学校、幂等键和请求重放返回原教师标识和写入修订。使用 GET 读取当前完整设置。
 //
 // Returns a wrapper object for the known response body format(s).
 func (c *ClientWithResponses) SetTeacherHomepageControlsWithBodyWithResponse(ctx context.Context, schoolId string, teacherId string, params *SetTeacherHomepageControlsParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*SetTeacherHomepageControlsResponse, error) {
@@ -12595,7 +12618,7 @@ func (c *ClientWithResponses) SetTeacherHomepageControlsWithBodyWithResponse(ctx
 // SetTeacherHomepageControlsWithResponse performs a PUT /api/v1/catalog/admin/schools/{school_id}/teacher-sites/teachers/{teacher_id}/homepage (the `SetTeacherHomepageControls` operationId) request.
 // Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
 //
-// 要求 catalog.maintain 和当前学校管理范围。以请求中完整的人工设置替换旧设置。剔除头像字节后的设置最多 1 MiB。控制、审计和幂等回执同一事务提交。首次修改时使用修订 0。相同操作者、学校、幂等键和请求重放返回原结果。
+// 要求 catalog.maintain 和当前学校管理范围。以请求中完整的人工设置替换旧设置。剔除头像字节后的设置最多 1 MiB。控制、审计和幂等回执同一事务提交。首次修改时使用修订 0。相同操作者、学校、幂等键和请求重放返回原教师标识和写入修订。使用 GET 读取当前完整设置。
 func (c *ClientWithResponses) SetTeacherHomepageControlsWithResponse(ctx context.Context, schoolId string, teacherId string, params *SetTeacherHomepageControlsParams, body SetTeacherHomepageControlsJSONRequestBody, reqEditors ...RequestEditorFn) (*SetTeacherHomepageControlsResponse, error) {
 	rsp, err := c.SetTeacherHomepageControls(ctx, schoolId, teacherId, params, body, reqEditors...)
 	if err != nil {
@@ -14452,7 +14475,7 @@ func ParseSetTeacherHomepageControlsResponse(rsp *http.Response) (*SetTeacherHom
 
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest TeacherHomepageControls
+		var dest TeacherHomepageControlsReceipt
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -14492,6 +14515,13 @@ func ParseSetTeacherHomepageControlsResponse(rsp *http.Response) (*SetTeacherHom
 			return nil, err
 		}
 		response.JSON409 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 413:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON413 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
 		var dest Error
@@ -16585,6 +16615,13 @@ func ParseSubmitTeacherHomepageRequestResponse(rsp *http.Response) (*SubmitTeach
 			return nil, err
 		}
 		response.JSON409 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 413:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON413 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 429:
 		var dest Error
