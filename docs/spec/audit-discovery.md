@@ -1,7 +1,7 @@
 ---
 type: spec
 status: Accepted
-updated: 2026-11-18
+updated: 2026-11-21
 ---
 
 # 审计查询与搜索来源
@@ -20,7 +20,7 @@ Snapshot 使用 PostgreSQL 事务可见性和审计保留修订。后插入的�
 
 Reason 使用 catalog.merge 或 catalog.state_change 操作分类码，其余返回空字符串。管理员自由文本原因继续保留在原有私有业务记录中，不进入公开摘要。业务成功事务明确写入 success；未声明结果时保存并返回 unknown，不根据事件类型推测成功。
 
-审计表直接定义最终字段，新增写入同事务保存原因、结果、操作者、对象、操作、学校和时间。本轮不提供旧表兼容或历史回填。部署使用最终 Schema 的新环境，已有数据库的升级由负责人另行安排。
+业务写入与审计在同一事务提交。审计查询读取结构化审计列，无法证明原因或结果的旧记录分别使用空原因与 `unknown`。
 
 ## 搜索来源事件
 
@@ -54,11 +54,11 @@ PendingOutbox 的 limit 为 1 至 100，excludeSubjects 最多 1000 项，超限
 
 查询仅读取 sent_at IS NULL 的部分索引，按 source、subject、数值 revision、ID 升序排列，字符串按字节比较。同主题的剩余事件保持原有顺序。读取不锁定或确认事件，排除主题保留待发送状态，空队列返回空列表。
 
-ConfirmOutbox 在消费者持久提交后调用，设置首次 sent_at。重复或并发确认保留该时间，不存在的 ID 返回 not_found。sent_at 是唯一投递状态；数据表直接定义最终结构，不提供旧投递状态的兼容或转换路径。
+ConfirmOutbox 在消费者持久提交后调用，设置首次 sent_at。重复或并发确认保留该时间，不存在的 ID 返回 not_found。待投递事件的 `sent_at` 为空。
 
 relay 按 (source, subject) 串行消费，前一事件失败时不能越过它投递同组后续事件。多个 relay 的协调由 backend 承担。消费成功但确认失败时允许重投，消费者须按事件 ID 实现 inbox 去重。
 
-relay 收到 LISTEN 通知立即调用 PendingOutbox，传入处于退避或人工处理的主题。启动及重连时补读，每 60 秒兜底读取。失败退避和 24 小时待处理队列由 backend 按 EVENT-DELIVERY.md 装配。业务表不作为增量轮询来源。
+relay 收到 LISTEN 通知立即调用 PendingOutbox，传入处于退避或人工处理的主题。启动及重连时补读，每 60 秒兜底读取。失败退避和 24 小时待处理队列由 backend 装配。协议见[模块通信与一致性](https://github.com/StuHelper/stuhelper/blob/develop/docs/spec/module-protocol.md)。
 
 | 场景 | 验收结果 |
 | --- | --- |
@@ -69,7 +69,7 @@ relay 收到 LISTEN 通知立即调用 PendingOutbox，传入处于退避或人�
 | CAT-OUTBOX-02 | discovery 和作息载荷完整保留，墓碑字段不丢失，消费后确认 |
 | CAT-OUTBOX-03 | 排除阻塞主题后返回其他主题，顺序不变，空列表及容量边界正确，实际查询使用部分索引 |
 
-本地隔离 PostgreSQL 18.6 的完整 make check 通过，包含 go vet、竞态测试、SDK 一致性、边界检查、构建及文档检查。backend 的隔离组合测试直接比较增量消费与全量重建后的搜索可见文档，并与目录课程 ID 逐项核对。
+模块清单登记目录审计、搜索及 outbox 验证。正式后端源码包含隔离组合测试，对比增量消费、全量重建和目录可见课程 ID。
 
 查询计划测试使用生产 SQL，在 20000 条已确认和 200 条待发送事件上运行 EXPLAIN ANALYZE。nil、空列表、部分排除、全部排除及 1000 项排除均使用 catalog_outbox_pending，未出现 Seq Scan。测试使用默认优化器，不关闭顺序扫描。
 

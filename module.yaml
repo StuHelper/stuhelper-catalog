@@ -59,6 +59,9 @@ specifications:
   - docs/spec/teacher-directory.md
   - docs/spec/enrollment-source.md
   - docs/spec/activity.md
+  - docs/spec/audit-discovery.md
+  - docs/spec/directory-performance.md
+  - docs/spec/my-courses.md
   - docs/spec/ui-data.md
 scenario_tests:
   CAT-IDENTITY-01:
@@ -175,6 +178,7 @@ scenario_tests:
     - content_test.go#TestContentReadAdmissionCoversEveryHTTPReadAndPreservesOwnEnrollment
   MC-01:
     - timetable_test.go#TestStructuredImportPreviewCalendarAndOwnership
+    - schedule_test.go#TestOwnedScheduleReadsOnlyCurrentEnrollmentMeetings
   MC-02:
     - timetable_test.go#TestStructuredImportPreviewCalendarAndOwnership
   MC-03:
