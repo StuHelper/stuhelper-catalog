@@ -1,7 +1,7 @@
 ---
 type: spec
 status: Accepted
-updated: 2026-11-18
+updated: 2026-11-21
 ---
 
 # 结构化课表与日历
@@ -30,7 +30,7 @@ GET 和 PUT /api/v1/catalog/admin/schools/{school_id}/terms/{term_id}/timetable 
 
 作息写入、审计与 CloudEvents outbox 在同一事务提交，并通知 catalog_outbox。审计记录操作者、学校、对象和修订。作息事件通过 PendingOutbox 读取，消费成功后调用 ConfirmOutbox。sent_at 为空表示待发送，确认后保留首次确认时间。
 
-## 验收与后续接入
+## 验收场景
 
 | 场景 | 结果 |
 | --- | --- |
@@ -40,11 +40,11 @@ GET 和 PUT /api/v1/catalog/admin/schools/{school_id}/terms/{term_id}/timetable 
 | MC-05：单双周与时区转换 | 展开正确日期，保持稳定 UID，正确转义和折行 |
 | MC-06：管理作息 | 校验范围及修订，重复和并发写入不重复产生审计，事务失败回滚 |
 
-已通过本地隔离 PostgreSQL 18.6 的生成一致性、仓库检查、文档检查、go vet、竞态测试、构建与工作流检查。运行身份只访问 catalog 数据，迁移身份单独执行 Schema。
+`module.yaml` 登记隔离 PostgreSQL 用例。运行身份访问 catalog 数据，迁移身份单独执行 Schema。
 
-上课提醒尚未接入通知模块。backend 可从 MySchedule 和 ExpandSchedule 获取确定的 UID、Start 与 End，结合用户提醒偏好生成通知任务。catalog.timetable.updated.v1 及 catalog.imported.v1 由 LISTEN/outbox relay 投递，通知模块以 inbox 去重后更新任务，撤销旧时间任务。
+## 上课提醒接入
 
-通知模块仍需处理提前量、渠道、用户退订及选课变化。relay 的重连补读、60 秒兜底、退避和待处理队列由 backend 按 EVENT-DELIVERY.md 装配。个人日程编辑与真实学校数据验收继续由对应任务处理。
+`MySchedule` 和 `ExpandSchedule` 供宿主读取本人课表及稳定 UID。作息更新与导入事件通过 catalog outbox 提供。上课提醒消费者、提醒偏好及实际通知投递仍待接入验收。
 
 ## 学期顺序
 

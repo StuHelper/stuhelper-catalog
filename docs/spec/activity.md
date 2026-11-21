@@ -1,7 +1,7 @@
 ---
 type: spec
 status: Accepted
-updated: 2026-11-19
+updated: 2026-11-21
 ---
 
 # 热门活动来源
@@ -48,13 +48,13 @@ OutboxChannel 为 catalog_outbox。PendingOutbox(ctx, limit, excludeSubjects) �
 
 ## 清理、权限与验证
 
-PruneActivityHistory(ctx, beforeDay, limit) 每次最多删除 1000 条旧修订，保留每个对象日的最新修订和墓碑。清理在同一事务提高保留修订号，已有分页游标失效，调用方须中止重建。PruneSentOutbox 与 PruneReplays 每次最多删除 1000 条已确认事件或已到期维护幂等记录，保留未发送事件与长期来源标记。
+PruneActivityHistory(ctx, beforeDay, limit) 每次最多删除 1000 条旧修订，保留每个对象日的最新修订和墓碑。清理在同一事务提高保留修订号，已有分页游标失效，调用方须中止重建。
 
-PruneSentOutbox(ctx, before, limit) 每次最多删除 1000 条已确认且早于 before 的 outbox 记录，保留待投递记录。PruneReplays(ctx, before, limit) 每次最多删除 1000 条已到期的维护幂等回执，保留导入、选课刷新与课程身份合并的持久回执。
+服务端口 `PruneSentOutbox(ctx, maxAge, limit)` 删除超过指定时间且已确认的事件，`PruneReplays(ctx, limit)` 删除已到期维护回执。每次最多 1000 条，保留待投递事件及导入、选课刷新和课程身份合并的持久回执。
 
 运行身份需要 activity_buckets 的读写、activity_history 的读取和追加、activity_retention 的读取，以及 outbox 的读写确认权限。历史删除权限只授予负责清理的身份。当前日快照和最新墓碑不自动删除。
 
-接口均为公开 Go 端口，OpenAPI 路径和生成客户端没有变化。GOWORK=off 的隔离 PostgreSQL 检查覆盖修订单调、事务回滚无通知、Schema、固定快照、墓碑、并发和有界清理。backend 装配及实际热门页面组合另行验证。
+活动快照和当前权限检查使用可信 Go 端口。backend 将 catalog 的活动快照适配为 search 来源，连同目录事件交给统一 relay。CAT-ACTIVITY-01 的隔离 PostgreSQL 用例登记在模块清单。
 
 | 场景 | 验证条件 |
 | --- | --- |
