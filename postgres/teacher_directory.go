@@ -17,11 +17,16 @@ func officialTeacherCondition(directory, object string) string {
 		directory + `.matched_name=` + object + `.name AND ` + directory + `.matched_department_id=` + object + `.department_id))`
 }
 
+func homepageTeacherEvidence(directory, object string) string {
+	return directory + `.verified_homepage OR (` + officialTeacherCondition(directory, object) + `)`
+}
+
 // Automatic matches retain their source identity guard; a manual match uses
 // the catalog identity selected by the school administrator.
 func markedTeacherSQL(alias string) string {
 	return `EXISTS(SELECT 1 FROM catalog.teacher_directory td WHERE td.teacher_id=` + alias + `.id
- AND (td.teaching OR (` + officialTeacherCondition("td", alias) + `)))`
+ AND td.school_id=` + alias + `.school_id
+ AND (td.teaching OR ` + homepageTeacherEvidence("td", alias) + `))`
 }
 
 func (t *transaction) teacherVisibility(alias string) string {
@@ -29,6 +34,34 @@ func (t *transaction) teacherVisibility(alias string) string {
 		return ""
 	}
 	return " AND (" + alias + ".kind<>'teacher' OR " + markedTeacherSQL(alias) + ")"
+}
+
+var _ c.TeacherHomepagePublicationTransaction = (*transaction)(nil)
+
+func (t *transaction) GrantVerifiedTeacherHomepage(school, teacherID string, at time.Time) error {
+	if err := t.requireActiveHomepageTeacher(school, teacherID); err != nil {
+		return err
+	}
+	result, err := t.tx.ExecContext(t.ctx, `INSERT INTO catalog.teacher_directory AS td
+ (teacher_id,school_id,verified_homepage,verified_homepage_at,updated_at)
+ VALUES($1,$2,true,$3,$3)
+ ON CONFLICT(teacher_id) DO UPDATE SET verified_homepage=true,
+ verified_homepage_at=excluded.verified_homepage_at,updated_at=excluded.updated_at
+ WHERE td.school_id=excluded.school_id AND NOT td.verified_homepage`, teacherID, school, at)
+	if err != nil {
+		return safe(err)
+	}
+	written, err := result.RowsAffected()
+	if err != nil || written == 0 {
+		return safe(err)
+	}
+	changed := []string{teacherID}
+	if err := t.syncTeacherDiscoveryAndActivity(school, changed, at); err != nil {
+		return err
+	}
+	// Publish through the projection worker. A school can continue reviewing
+	// requests while an existing generation is being built.
+	return t.markHomepageProjectionPending(school, changed)
 }
 
 const taughtTeachersSQL = `SELECT DISTINCT catalog.canonical(a.teacher_id) AS id
@@ -67,19 +100,38 @@ func (t *transaction) flushTeachingDirectory() error {
 	if err != nil {
 		return safe(err)
 	}
-	if t.repoTeacherDirectory && len(t.pendingTeacherSchools) > 0 {
+	deferred := c.MaintenanceRebuildDeferred(t.ctx)
+	if (t.repoTeacherDirectory || deferred) && len(t.pendingTeacherSchools) > 0 {
 		schools := make([]string, 0, len(t.pendingTeacherSchools))
 		for school := range t.pendingTeacherSchools {
 			schools = append(schools, school)
 		}
 		slices.Sort(schools)
 		for _, school := range schools {
-			if err := t.syncTeacherDiscoveryAndActivity(school, ids, t.teachingTime); err != nil {
-				return err
+			if t.repoTeacherDirectory {
+				if err := t.syncTeacherDiscoveryAndActivity(school, ids, t.teachingTime); err != nil {
+					return err
+				}
+			}
+			if deferred {
+				if err := t.markDeferredVerifiedHomepageChanges(school, ids); err != nil {
+					return err
+				}
 			}
 		}
 	}
 	return nil
+}
+
+// An asynchronous directory maintenance write can deactivate or merge an
+// approved teacher before the next generation sees that change.
+func (t *transaction) markDeferredVerifiedHomepageChanges(school string, ids []string) error {
+	changed, err := list[string](t, `SELECT to_jsonb(teacher_id) FROM catalog.teacher_directory
+ WHERE school_id=$1 AND verified_homepage AND teacher_id=ANY($2::text[])`, school, ids)
+	if err != nil || len(changed) == 0 {
+		return err
+	}
+	return t.markHomepageProjectionPending(school, changed)
 }
 
 func (t *transaction) TeacherCandidates(school, after string, limit int) ([]c.TeacherCandidate, error) {
@@ -109,6 +161,25 @@ func (t *transaction) directoryCounts(school string) (c.TeacherDirectoryResult, 
  FROM catalog.objects o JOIN catalog.teacher_directory td ON td.teacher_id=o.id
  WHERE o.school_id=$1 AND o.kind='teacher' AND NOT EXISTS(SELECT 1 FROM catalog.redirects r WHERE r.alias_id=o.id)
  AND NOT COALESCE((o.data->'object'->>'inactive')::boolean,false) AND `+markedTeacherSQL("o"), school).Scan(&out.Teaching, &out.Official, &out.Both, &out.Eligible)
+	return out, safe(err)
+}
+
+func (t *transaction) TeacherHomepageCounts(school string) (c.TeacherHomepageCounts, error) {
+	var out c.TeacherHomepageCounts
+	err := t.tx.QueryRowContext(t.ctx, `WITH evidence AS (
+ SELECT COALESCE(CASE WHEN h.version IS NULL THEN td.teaching ELSE p.teaching END,false) AS teaching,
+ COALESCE((`+officialTeacherCondition("td", "o")+`),false) AS official,
+ COALESCE(td.verified_homepage,false) AS verified_homepage
+ FROM catalog.objects o
+ LEFT JOIN catalog.teacher_directory td ON td.teacher_id=o.id AND td.school_id=o.school_id
+ LEFT JOIN catalog.projection_heads h ON h.school_id=o.school_id
+ LEFT JOIN catalog.projection_objects p ON p.version=h.version AND p.id=o.id
+ WHERE o.school_id=$1 AND o.kind='teacher' AND NOT COALESCE((o.data->'object'->>'inactive')::boolean,false)
+ AND NOT EXISTS(SELECT 1 FROM catalog.redirects r WHERE r.alias_id=o.id)
+ )
+ SELECT count(*) FILTER(WHERE teaching),count(*) FILTER(WHERE official),count(*) FILTER(WHERE teaching AND official),
+ count(*) FILTER(WHERE teaching OR official OR verified_homepage),count(*) FILTER(WHERE verified_homepage)
+ FROM evidence`, school).Scan(&out.Teaching, &out.Official, &out.Both, &out.Eligible, &out.VerifiedHomepage)
 	return out, safe(err)
 }
 
@@ -299,7 +370,7 @@ func (t *transaction) publishTeacherSiteMarks(school string, at time.Time) error
 	}
 	// This complete generation now reflects every decision under the school
 	// lock. Its teacher snapshot replaces the temporary read overlay.
-	_, err = t.tx.ExecContext(t.ctx, `UPDATE catalog.projection_pending SET homepage_revoked_ids='{}'
- WHERE school_id=$1 AND cardinality(homepage_revoked_ids)>0`, school)
+	_, err = t.tx.ExecContext(t.ctx, `UPDATE catalog.projection_pending SET homepage_revoked_ids='{}',verified_teachers_unavailable_ids='{}'
+ WHERE school_id=$1 AND cardinality(homepage_revoked_ids)+cardinality(verified_teachers_unavailable_ids)>0`, school)
 	return safe(err)
 }

@@ -44,7 +44,7 @@ func TestTeacherHomepageDetailsAndPhotoRequireCurrentAdmission(t *testing.T) {
 				Name: match.Name, Email: "teacher@example.org", Phone: "123-4567",
 				OfficeLocation: "Synthetic Room", HireDate: "2020",
 				Fields:   []c.TeacherHomepageField{{Label: "学术兼职", Value: "合成资料"}},
-				Sections: []c.TeacherHomepageSection{{Title: "研究成果", Text: "<script>纯文本</script>"}},
+				Sections: []c.TeacherHomepageSection{{Title: "科研成果", Text: "<script>纯文本</script>"}},
 			},
 			Photo: &c.TeacherHomepageImage{ID: photoID, MediaType: "image/png", Width: 2, Height: 3, Bytes: encoded.Bytes()},
 		},

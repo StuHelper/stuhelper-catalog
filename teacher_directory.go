@@ -74,6 +74,13 @@ type TeacherDirectoryTransaction interface {
 	ReplaceTeacherSites(TeacherSiteSnapshot, string, time.Time) (TeacherDirectoryResult, error)
 }
 
+// TeacherHomepagePublicationTransaction records approval of verified teacher
+// material in the same transaction as the request decision and audit entry.
+// The caller holds the school lock and has checked the submitter's ownership.
+type TeacherHomepagePublicationTransaction interface {
+	GrantVerifiedTeacherHomepage(school, teacherID string, at time.Time) error
+}
+
 // TeacherCandidateFingerprint binds matching decisions to all candidate names
 // and units, including competing homonyms. Titles and teaching changes do not
 // affect this identity check. Repository recomputes it while holding the school

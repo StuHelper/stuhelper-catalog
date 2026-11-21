@@ -16,20 +16,21 @@ import (
 )
 
 type Service struct {
-	DirectoryMetrics        DirectoryMetricProvider
-	DirectoryConfig         DirectoryConfig
-	RecentResources         RecentResourceCounts
-	OwnSummaryAccess        OwnSummaryAccess
-	EnrollmentSource        EnrollmentSource
-	TeacherSiteHosts        map[string][]string
-	ActivityLogger          *slog.Logger
-	OwnLogger               *slog.Logger
-	DirectoryLogger         *slog.Logger
-	AsyncMaintenanceRebuild bool
-	viewStats               viewCounters
-	ReadAccess              ContentAccess
-	Repo                    Repository
-	Clock                   func() time.Time
+	DirectoryMetrics         DirectoryMetricProvider
+	DirectoryConfig          DirectoryConfig
+	RecentResources          RecentResourceCounts
+	OwnSummaryAccess         OwnSummaryAccess
+	EnrollmentSource         EnrollmentSource
+	TeacherHomepageOwnership TeacherHomepageOwnership
+	TeacherSiteHosts         map[string][]string
+	ActivityLogger           *slog.Logger
+	OwnLogger                *slog.Logger
+	DirectoryLogger          *slog.Logger
+	AsyncMaintenanceRebuild  bool
+	viewStats                viewCounters
+	ReadAccess               ContentAccess
+	Repo                     Repository
+	Clock                    func() time.Time
 }
 
 func (s *Service) now() time.Time {

@@ -4,10 +4,12 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
-	a "github.com/StuHelper/stuhelper-catalog/auditquery"
 	"strconv"
 	"strings"
 	"unicode"
+
+	c "github.com/StuHelper/stuhelper-catalog"
+	a "github.com/StuHelper/stuhelper-catalog/auditquery"
 )
 
 var _ a.Reader = (*Repository)(nil)
@@ -104,7 +106,7 @@ func (r *Repository) ReadAudit(ctx context.Context, q a.Request) (out a.Batch, e
 			return out, err
 		}
 		// Public reasons are bounded operation codes; administrator free text stays private.
-		if v.Reason != "catalog.merge" && v.Reason != "catalog.state_change" {
+		if v.Reason != "catalog.merge" && v.Reason != "catalog.state_change" && !c.ValidTeacherHomepageAuditReason(v.Action, v.Reason) {
 			v.Reason = ""
 		}
 		out.Records = append(out.Records, v)

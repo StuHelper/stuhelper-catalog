@@ -9,7 +9,6 @@ import (
 	"image"
 	_ "image/jpeg"
 	_ "image/png"
-	"net/url"
 	"slices"
 	"strings"
 )
@@ -108,8 +107,7 @@ func validTeacherSiteID(id string) bool {
 func validTeacherHomepagePhotoMetadata(photo TeacherHomepageImage) bool {
 	return validTeacherHomepageHash(photo.ID) &&
 		(photo.MediaType == "image/jpeg" || photo.MediaType == "image/png") &&
-		photo.Width >= 1 && photo.Width <= 4096 && photo.Height >= 1 && photo.Height <= 4096 &&
-		photo.Width*photo.Height <= 8_388_608
+		validTeacherHomepagePhotoDimensions(photo.Width, photo.Height)
 }
 
 // ValidateTeacherHomepageImage checks the actual encoded bytes before the
@@ -305,18 +303,11 @@ func teacherHomepageID(teacher Object) string {
 }
 
 func attachTeacherHomepage(t Transaction, teacher *Object) error {
-	port, ok := t.(TeacherHomepageTransaction)
-	if !ok || teacher.Kind != "teacher" {
-		return nil
-	}
-	id := teacherHomepageID(*teacher)
-	profile, err := port.TeacherHomepage(teacher.SchoolID, id)
-	if err != nil || profile == nil {
+	profile, err := publishedTeacherHomepage(t, *teacher)
+	// Legacy clients require the name when the old optional extension exists.
+	// The dedicated profile route can return the remaining visible fields.
+	if err != nil || profile == nil || profile.Name == "" {
 		return err
-	}
-	normalizeTeacherHomepage(profile)
-	if photo := profile.Photo; photo != nil {
-		photo.URL = "/api/v1/catalog/objects/" + url.PathEscape(id) + "/teacher-homepage/photos/" + photo.ID
 	}
 	teacher.TeacherHomepage = profile
 	return nil
@@ -332,8 +323,36 @@ func (s *Service) ReadTeacherHomepagePhoto(ctx context.Context, p Principal, id,
 		if !ok || teacher.Kind != "teacher" {
 			return ErrNotFound
 		}
-		var err error
-		out, err = port.TeacherHomepagePhoto(teacher.SchoolID, teacherHomepageID(teacher), photoID)
+		presentation, err := readTeacherHomepagePresentation(t, teacher)
+		if err != nil {
+			return err
+		}
+		show, override := presentation.photo()
+		if !show {
+			return ErrNotFound
+		}
+		canonical := teacherHomepageID(teacher)
+		if override != nil {
+			if override.ID != photoID {
+				return ErrNotFound
+			}
+			if !presentation.controls.Independent {
+				source, err := port.TeacherHomepage(teacher.SchoolID, canonical)
+				if err != nil {
+					return err
+				}
+				if source == nil {
+					return ErrNotFound
+				}
+			}
+			pictures, ok := t.(TeacherHomepageOverridePhotoTransaction)
+			if !ok {
+				return ErrUnavailable
+			}
+			out, err = pictures.TeacherHomepageOverridePhoto(teacher.SchoolID, canonical, photoID)
+			return err
+		}
+		out, err = port.TeacherHomepagePhoto(teacher.SchoolID, canonical, photoID)
 		return err
 	})
 	return out, err
