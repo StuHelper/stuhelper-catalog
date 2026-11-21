@@ -11,7 +11,10 @@ import (
 	"time"
 )
 
-const TeacherRefreshTimeout = 45 * time.Minute
+const (
+	TeacherRefreshTimeout     = 45 * time.Minute
+	teacherFullRefreshTimeout = 4 * time.Hour
+)
 
 var TeacherUnmatchedReasons = []string{"catalog_name_absent", "catalog_unit_missing", "site_unit_missing", "unit_mismatch", "ambiguous_catalog", "ambiguous_site"}
 
@@ -246,7 +249,11 @@ func (s *Service) QueueTeacherRefresh(ctx context.Context, p Principal, school, 
 				return ErrInput
 			}
 			now := s.now()
-			out = TeacherRefreshRun{ID: id, SchoolID: school, Mode: mode, Trigger: trigger, Status: "queued", RequestedAt: now, DeadlineAt: now.Add(TeacherRefreshTimeout)}
+			timeout := TeacherRefreshTimeout
+			if mode == "full" {
+				timeout = teacherFullRefreshTimeout
+			}
+			out = TeacherRefreshRun{ID: id, SchoolID: school, Mode: mode, Trigger: trigger, Status: "queued", RequestedAt: now, DeadlineAt: now.Add(timeout)}
 			if err = port.SaveTeacherRefresh(out); err != nil {
 				return err
 			}
@@ -316,7 +323,7 @@ func normalizedUnmatched(in TeacherUnmatchedSnapshot) TeacherUnmatchedSnapshot {
 	for i := range in.Items {
 		// Website slugs sometimes resemble staff identifiers. The management API
 		// needs only a stable row key, so persist a one-way school-scoped digest.
-		in.Items[i].SiteID = "site-" + digest([]string{in.SchoolID, in.Items[i].SiteID})
+		in.Items[i].SiteID = TeacherSiteID(in.SchoolID, in.Items[i].SiteID)
 	}
 	slices.SortFunc(in.Items, func(a, b UnmatchedTeacherSite) int { return strings.Compare(a.SiteID, b.SiteID) })
 	return in
@@ -364,7 +371,7 @@ func (s *Service) CompleteTeacherRefresh(ctx context.Context, p Principal, id st
 		return out, ErrInput
 	}
 	if in.FailureReason == "" {
-		if in.Snapshot == nil || in.Requests == nil || in.SiteCount == nil || int64(len(in.Snapshot.Matches)+len(in.Unmatched)) != *in.SiteCount {
+		if in.Snapshot == nil || in.Requests == nil || in.SiteCount == nil {
 			return out, ErrInput
 		}
 		snapshot := *in.Snapshot
@@ -372,8 +379,17 @@ func (s *Service) CompleteTeacherRefresh(ctx context.Context, p Principal, id st
 		if err := s.validateTeacherSites(in.Snapshot); err != nil {
 			return out, err
 		}
-		if err := validateUnmatched(TeacherUnmatchedSnapshot{SchoolID: in.Snapshot.SchoolID, Revision: in.Snapshot.Revision, ObservedAt: in.Snapshot.ObservedAt, Items: in.Unmatched}, s.now()); err != nil {
-			return out, err
+		if in.Snapshot.Sites != nil {
+			if int64(len(in.Snapshot.Sites)) != *in.SiteCount || len(in.Unmatched) != 0 {
+				return out, ErrInput
+			}
+		} else {
+			if int64(len(in.Snapshot.Matches)+len(in.Unmatched)) != *in.SiteCount {
+				return out, ErrInput
+			}
+			if err := validateUnmatched(TeacherUnmatchedSnapshot{SchoolID: in.Snapshot.SchoolID, Revision: in.Snapshot.Revision, ObservedAt: in.Snapshot.ObservedAt, Items: in.Unmatched}, s.now()); err != nil {
+				return out, err
+			}
 		}
 	}
 	err := s.Repo.Transaction(ctx, func(t Transaction) error {
@@ -412,9 +428,11 @@ func (s *Service) CompleteTeacherRefresh(ctx context.Context, p Principal, id st
 			if e != nil {
 				return e
 			}
-			review := normalizedUnmatched(TeacherUnmatchedSnapshot{SchoolID: out.SchoolID, Revision: in.Snapshot.Revision, ObservedAt: in.Snapshot.ObservedAt, Items: in.Unmatched})
-			if err = port.ReplaceTeacherUnmatched(review); err != nil {
-				return err
+			if in.Snapshot.Sites == nil {
+				review := normalizedUnmatched(TeacherUnmatchedSnapshot{SchoolID: out.SchoolID, Revision: in.Snapshot.Revision, ObservedAt: in.Snapshot.ObservedAt, Items: in.Unmatched})
+				if err = port.ReplaceTeacherUnmatched(review); err != nil {
+					return err
+				}
 			}
 			out.Counts = &counts
 		}

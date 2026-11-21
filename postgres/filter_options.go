@@ -14,7 +14,7 @@ func (t *transaction) FilterOptions(kind, school string) (c.FilterOptions, error
 	if _, err := t.tx.ExecContext(t.ctx, "SET LOCAL jit=off"); err != nil {
 		return out, safe(err)
 	}
-	if t.projectionRead {
+	if t.projectionRead && kind != "teacher" {
 		return t.projectedFilterOptions(kind, school)
 	}
 	selection, err := t.directorySelection(c.DirectoryQuery{Filter: c.Filter{Kind: kind, SchoolID: school}})

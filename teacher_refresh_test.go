@@ -58,6 +58,9 @@ func TestTeacherRefreshDurableConcurrencyIdempotencyAndTimeout(t *testing.T) {
 		t.Fatal("multiple active jobs", accepted)
 	}
 	run := accepted[0]
+	if run.DeadlineAt.Sub(run.RequestedAt) != 45*time.Minute {
+		t.Fatal("unexpected incremental refresh deadline", run.DeadlineAt)
+	}
 	var active int
 	if e := repo.DB.QueryRow(`SELECT count(*) FROM catalog.teacher_refresh_runs WHERE status IN ('queued','running')`).Scan(&active); e != nil || active != 1 {
 		t.Fatal(active, e)
@@ -79,6 +82,9 @@ func TestTeacherRefreshDurableConcurrencyIdempotencyAndTimeout(t *testing.T) {
 	if e != nil {
 		t.Fatal(e)
 	}
+	if next.DeadlineAt.Sub(next.RequestedAt) != 4*time.Hour {
+		t.Fatal("unexpected full refresh deadline", next.DeadlineAt)
+	}
 	replay, e := s.QueueTeacherRefresh(ctx, p, "school", "full", "manual", "stable")
 	if e != nil || replay.ID != next.ID {
 		t.Fatal("idempotency", replay, e)
@@ -89,7 +95,7 @@ func TestTeacherRefreshDurableConcurrencyIdempotencyAndTimeout(t *testing.T) {
 	if _, e = s.ClaimTeacherRefresh(ctx, p, "school"); e != nil {
 		t.Fatal(e)
 	}
-	now = now.Add(c.TeacherRefreshTimeout + time.Second)
+	now = next.DeadlineAt.Add(time.Second)
 	status, e := s.TeacherRefreshStatus(ctx, p, "school")
 	if e != nil || status.Latest.Status != "timed_out" || status.Latest.FailureReason != "timeout" {
 		t.Fatal(status, e)

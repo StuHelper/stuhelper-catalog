@@ -18,6 +18,9 @@ func projectedSelectionQuery(q c.DirectoryQuery, version int64) (string, []any, 
 		return `ARRAY(SELECT DISTINCT COALESCE(a.canonical_id,u.id) FROM unnest(` + p + `::text[]) u(id) LEFT JOIN catalog.projection_aliases a ON a.version=$1 AND a.alias_id=u.id)`
 	}
 	baseWhere := []string{"o.version=$1", "o.kind=$2", "o.visible"}
+	if q.Kind == "teacher" {
+		baseWhere[2] = projectedVisible("o")
+	}
 	if q.Query != "" {
 		p := bind(q.Query)
 		baseWhere = append(baseWhere, `catalog.matches_query(o.data,`+p+`)`)

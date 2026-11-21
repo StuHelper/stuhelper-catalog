@@ -26,6 +26,9 @@ CREATE TABLE IF NOT EXISTS catalog.teacher_directory (
  teaching_updated_at timestamptz, official_updated_at timestamptz, updated_at timestamptz NOT NULL
 );
 CREATE INDEX IF NOT EXISTS catalog_teacher_directory_school ON catalog.teacher_directory(school_id,teacher_id) WHERE teaching OR official;
+ALTER TABLE catalog.teacher_directory ADD COLUMN IF NOT EXISTS homepage_site_id text NOT NULL DEFAULT '';
+ALTER TABLE catalog.teacher_directory ADD COLUMN IF NOT EXISTS homepage_manual boolean NOT NULL DEFAULT false;
+CREATE INDEX IF NOT EXISTS catalog_teacher_directory_homepage ON catalog.teacher_directory(school_id,homepage_site_id) WHERE homepage_site_id<>'' AND official;
 CREATE TABLE IF NOT EXISTS catalog.teacher_site_sources (
  school_id text PRIMARY KEY REFERENCES catalog.objects(id), source_id text NOT NULL,
  revision bigint NOT NULL CHECK(revision>0), digest text NOT NULL, observed_at timestamptz NOT NULL, updated_at timestamptz NOT NULL
@@ -193,6 +196,43 @@ CREATE TABLE IF NOT EXISTS catalog.teacher_unmatched_sites (
  PRIMARY KEY(school_id,site_id)
 );
 CREATE INDEX IF NOT EXISTS catalog_teacher_unmatched_reason ON catalog.teacher_unmatched_sites(school_id,reason,site_id);
+-- Current site contents are replaced by complete snapshots. Decisions survive site
+-- removal and hold only the stable key, the action and a short last-seen summary.
+CREATE TABLE IF NOT EXISTS catalog.teacher_homepage_sites (
+ school_id text NOT NULL REFERENCES catalog.objects(id), site_id text NOT NULL, revision bigint NOT NULL CHECK(revision>0),
+ name text NOT NULL, unit text NOT NULL, url text NOT NULL, reason text NOT NULL,
+ candidate_ids text[] NOT NULL, candidate_count bigint NOT NULL CHECK(candidate_count>=cardinality(candidate_ids)),
+ profile jsonb NOT NULL, photo_id text NOT NULL DEFAULT '',
+ auto_teacher_id text NOT NULL DEFAULT '', auto_name text NOT NULL DEFAULT '', auto_department_id text NOT NULL DEFAULT '',
+ PRIMARY KEY(school_id,site_id), UNIQUE(school_id,url) DEFERRABLE INITIALLY DEFERRED
+);
+CREATE TABLE IF NOT EXISTS catalog.teacher_homepage_photos (
+ school_id text NOT NULL, site_id text NOT NULL, photo_id text NOT NULL,
+ media_type text NOT NULL CHECK(media_type IN ('image/jpeg','image/png')),
+ width integer NOT NULL CHECK(width>0), height integer NOT NULL CHECK(height>0),
+ data bytea NOT NULL CHECK(octet_length(data) BETWEEN 1 AND 2097152),
+ PRIMARY KEY(school_id,site_id,photo_id),
+ FOREIGN KEY(school_id,site_id) REFERENCES catalog.teacher_homepage_sites(school_id,site_id) ON DELETE CASCADE
+);
+CREATE TABLE IF NOT EXISTS catalog.teacher_homepage_teachers (
+ school_id text NOT NULL REFERENCES catalog.objects(id), teacher_id text NOT NULL REFERENCES catalog.objects(id),
+ reason text NOT NULL, candidate_ids text[] NOT NULL,
+ candidate_count bigint NOT NULL CHECK(candidate_count>=cardinality(candidate_ids)),
+ PRIMARY KEY(school_id,teacher_id)
+);
+CREATE TABLE IF NOT EXISTS catalog.teacher_homepage_decisions (
+ school_id text NOT NULL REFERENCES catalog.objects(id), site_id text NOT NULL,
+ revision bigint NOT NULL CHECK(revision>0), action text NOT NULL CHECK(action IN ('bind','reject','revoke')),
+ teacher_id text NOT NULL DEFAULT '', name text NOT NULL, unit text NOT NULL, updated_at timestamptz NOT NULL,
+ PRIMARY KEY(school_id,site_id), CHECK((action='bind')=(teacher_id<>''))
+);
+CREATE UNIQUE INDEX IF NOT EXISTS catalog_teacher_homepage_decision_teacher
+ ON catalog.teacher_homepage_decisions(school_id,teacher_id) WHERE action='bind';
+CREATE TABLE IF NOT EXISTS catalog.teacher_homepage_review_state (
+ school_id text PRIMARY KEY REFERENCES catalog.objects(id), revision bigint NOT NULL CHECK(revision>0)
+);
+REVOKE ALL ON TABLE catalog.teacher_homepage_sites,catalog.teacher_homepage_photos,catalog.teacher_homepage_teachers,
+ catalog.teacher_homepage_decisions,catalog.teacher_homepage_review_state FROM PUBLIC;
 -- Versioned public directory. Source objects and private enrollments remain owned
 -- by their existing tables. A head is published only after every projection passes.
 CREATE TABLE IF NOT EXISTS catalog.term_orders (

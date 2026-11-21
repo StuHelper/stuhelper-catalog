@@ -58,6 +58,8 @@ type Object struct {
 	Aliases           []string      `json:"aliases"`
 	Revision          int64         `json:"revision"`
 	UpdatedAt         time.Time     `json:"updated_at"`
+
+	TeacherHomepage *TeacherHomepage `json:"teacher_homepage,omitempty"`
 }
 
 // Record retains provenance separately from the public directory projection.
