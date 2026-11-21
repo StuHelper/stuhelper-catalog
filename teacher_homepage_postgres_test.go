@@ -424,6 +424,19 @@ func TestTeacherHomepagePostgresRefreshPreservesDecisions(t *testing.T) {
 	if _, err := s.ReadTeacherHomepagePhoto(ctx, p, "teacher", photoID); !errors.Is(err, c.ErrNotFound) {
 		t.Fatalf("automatic match displaced the manual owner: %v", err)
 	}
+	rankedQuery := c.DirectoryQuery{Filter: c.Filter{Kind: "teacher", Limit: 20}}
+	assertRankedCount := func(expected int64) {
+		t.Helper()
+		ranked, err := s.ReadDirectory(ctx, p, rankedQuery)
+		if err != nil || ranked.Total != expected || int64(len(ranked.Items)) != expected {
+			t.Fatalf("ranked teachers: %+v %v", ranked, err)
+		}
+		options, err := s.ReadFilterOptions(ctx, p, "teacher", "")
+		if err != nil || options.Total != expected {
+			t.Fatalf("teacher filter options: %+v %v", options, err)
+		}
+	}
+	assertRankedCount(3) // Populate the current generation's selection cache.
 
 	revoked, err := s.SetTeacherSiteDecision(ctx, p, "school", boundSite.SiteID, "manual-revoke",
 		teacherHomepageDecision("revoke", "", binding.DecisionRevision))
@@ -443,6 +456,7 @@ func TestTeacherHomepagePostgresRefreshPreservesDecisions(t *testing.T) {
 	if err != nil || len(list.Items) != 2 {
 		t.Fatalf("stale generation lists the revoked teacher: %+v %v", list, err)
 	}
+	assertRankedCount(2)
 	lookup, err := s.ReadLookup(ctx, p, []string{"legacy", "teacher"})
 	if err != nil || len(lookup.Items) != 1 || len(lookup.MissingIDs) != 1 || lookup.MissingIDs[0] != "legacy" {
 		t.Fatalf("stale generation can resolve the revoked teacher: %+v %v", lookup, err)
@@ -482,4 +496,12 @@ func TestTeacherHomepagePostgresRefreshPreservesDecisions(t *testing.T) {
 	if _, err := s.ReadTeacherHomepagePhoto(ctx, p, "teacher", badID); !errors.Is(err, c.ErrNotFound) {
 		t.Fatalf("invalid portrait became visible: %v", err)
 	}
+	if _, err := s.SetTeacherSiteDecision(ctx, p, "school", boundSite.SiteID, "manual-rebind",
+		teacherHomepageDecision("bind", "legacy", revoked.DecisionRevision)); err != nil {
+		t.Fatalf("restore a just-revoked match: %v", err)
+	}
+	if _, err := s.ReadTeacherHomepagePhoto(ctx, p, "legacy", photoID); err != nil {
+		t.Fatalf("pending revocation hid the restored portrait: %v", err)
+	}
+	assertRankedCount(3)
 }
