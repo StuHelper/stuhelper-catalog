@@ -846,6 +846,9 @@ type DirectoryPage struct {
 	NatureFacets []DirectoryFacet `json:"nature_facets"`
 	Next         string           `json:"next"`
 	Total        int              `json:"total"`
+
+	// WindowDays Number of Beijing calendar dates in the heat window (Asia/Shanghai, UTC+8), including today up to the time of the request. The default is 30.
+	WindowDays *int `json:"window_days,omitempty"`
 }
 
 // DirectoryPolicy defines model for DirectoryPolicy.
@@ -2207,7 +2210,7 @@ type ClientInterface interface {
 
 	// ListDirectory performs a GET /api/v1/catalog/directory (the `ListDirectory` operationId) request.
 	//
-	// Current visible course/teacher directory, stable sort with ID tie-break and filter-bound cursor. Categories count distinct courses after all filters except category_id. Department groups respect all current filters. Classification filters apply to the same offering/class. Teacher rows and counts require T2 persisted marking; absent marker enforcement returns 503. Scores are read in bounded batches from owning modules, without per-row queries. Catalog membership is cached with transactional revision invalidation; ratings and heat are always current. 目录成员和分面来自同一持久投影版本，实时评分与热度按 ID 关联。游标绑定投影版本，重建后使用旧游标返回 409，应从第一页重新读取。 普通目录仅提供学校、院系、分类、性质、学期、课程和教师；term_course、class、assignment、schedule 仅供管理端或受信服务使用。
+	// Current visible course/teacher directory, stable sort with ID tie-break and filter-bound cursor. Categories count distinct courses after all filters except category_id. Department groups respect all current filters. Classification filters apply to the same offering/class. Teacher rows and counts require T2 persisted marking; absent marker enforcement returns 503. Scores are read in bounded batches from owning modules, without per-row queries. Catalog membership is cached with transactional revision invalidation; ratings and heat are always current. 目录成员和分面来自同一持久投影版本，实时评分与热度按 ID 关联。游标绑定投影版本，目录重建或热门等含热度排序的窗口换日后，旧游标返回 409，应从第一页重新读取。 普通目录仅提供学校、院系、分类、性质、学期、课程和教师；term_course、class、assignment、schedule 仅供管理端或受信服务使用。
 	ListDirectory(ctx context.Context, params *ListDirectoryParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// GetFilterOptions performs a GET /api/v1/catalog/filter-options (the `GetFilterOptions` operationId) request.
@@ -2673,7 +2676,7 @@ func (c *Client) ApplyCourseIdentities(ctx context.Context, params *ApplyCourseI
 
 // ListDirectory performs a GET /api/v1/catalog/directory (the `ListDirectory` operationId) request.
 //
-// Current visible course/teacher directory, stable sort with ID tie-break and filter-bound cursor. Categories count distinct courses after all filters except category_id. Department groups respect all current filters. Classification filters apply to the same offering/class. Teacher rows and counts require T2 persisted marking; absent marker enforcement returns 503. Scores are read in bounded batches from owning modules, without per-row queries. Catalog membership is cached with transactional revision invalidation; ratings and heat are always current. 目录成员和分面来自同一持久投影版本，实时评分与热度按 ID 关联。游标绑定投影版本，重建后使用旧游标返回 409，应从第一页重新读取。 普通目录仅提供学校、院系、分类、性质、学期、课程和教师；term_course、class、assignment、schedule 仅供管理端或受信服务使用。
+// Current visible course/teacher directory, stable sort with ID tie-break and filter-bound cursor. Categories count distinct courses after all filters except category_id. Department groups respect all current filters. Classification filters apply to the same offering/class. Teacher rows and counts require T2 persisted marking; absent marker enforcement returns 503. Scores are read in bounded batches from owning modules, without per-row queries. Catalog membership is cached with transactional revision invalidation; ratings and heat are always current. 目录成员和分面来自同一持久投影版本，实时评分与热度按 ID 关联。游标绑定投影版本，目录重建或热门等含热度排序的窗口换日后，旧游标返回 409，应从第一页重新读取。 普通目录仅提供学校、院系、分类、性质、学期、课程和教师；term_course、class、assignment、schedule 仅供管理端或受信服务使用。
 func (c *Client) ListDirectory(ctx context.Context, params *ListDirectoryParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewListDirectoryRequest(c.Server, params)
 	if err != nil {
@@ -5899,7 +5902,7 @@ type ClientWithResponsesInterface interface {
 
 	// ListDirectoryWithResponse performs a GET /api/v1/catalog/directory (the `ListDirectory` operationId) request.
 	//
-	// Current visible course/teacher directory, stable sort with ID tie-break and filter-bound cursor. Categories count distinct courses after all filters except category_id. Department groups respect all current filters. Classification filters apply to the same offering/class. Teacher rows and counts require T2 persisted marking; absent marker enforcement returns 503. Scores are read in bounded batches from owning modules, without per-row queries. Catalog membership is cached with transactional revision invalidation; ratings and heat are always current. 目录成员和分面来自同一持久投影版本，实时评分与热度按 ID 关联。游标绑定投影版本，重建后使用旧游标返回 409，应从第一页重新读取。 普通目录仅提供学校、院系、分类、性质、学期、课程和教师；term_course、class、assignment、schedule 仅供管理端或受信服务使用。
+	// Current visible course/teacher directory, stable sort with ID tie-break and filter-bound cursor. Categories count distinct courses after all filters except category_id. Department groups respect all current filters. Classification filters apply to the same offering/class. Teacher rows and counts require T2 persisted marking; absent marker enforcement returns 503. Scores are read in bounded batches from owning modules, without per-row queries. Catalog membership is cached with transactional revision invalidation; ratings and heat are always current. 目录成员和分面来自同一持久投影版本，实时评分与热度按 ID 关联。游标绑定投影版本，目录重建或热门等含热度排序的窗口换日后，旧游标返回 409，应从第一页重新读取。 普通目录仅提供学校、院系、分类、性质、学期、课程和教师；term_course、class、assignment、schedule 仅供管理端或受信服务使用。
 	//
 	// Returns a wrapper object for the known response body format(s).
 	ListDirectoryWithResponse(ctx context.Context, params *ListDirectoryParams, reqEditors ...RequestEditorFn) (*ListDirectoryResponse, error)
@@ -9583,7 +9586,7 @@ func (c *ClientWithResponses) ApplyCourseIdentitiesWithResponse(ctx context.Cont
 
 // ListDirectoryWithResponse performs a GET /api/v1/catalog/directory (the `ListDirectory` operationId) request.
 //
-// Current visible course/teacher directory, stable sort with ID tie-break and filter-bound cursor. Categories count distinct courses after all filters except category_id. Department groups respect all current filters. Classification filters apply to the same offering/class. Teacher rows and counts require T2 persisted marking; absent marker enforcement returns 503. Scores are read in bounded batches from owning modules, without per-row queries. Catalog membership is cached with transactional revision invalidation; ratings and heat are always current. 目录成员和分面来自同一持久投影版本，实时评分与热度按 ID 关联。游标绑定投影版本，重建后使用旧游标返回 409，应从第一页重新读取。 普通目录仅提供学校、院系、分类、性质、学期、课程和教师；term_course、class、assignment、schedule 仅供管理端或受信服务使用。
+// Current visible course/teacher directory, stable sort with ID tie-break and filter-bound cursor. Categories count distinct courses after all filters except category_id. Department groups respect all current filters. Classification filters apply to the same offering/class. Teacher rows and counts require T2 persisted marking; absent marker enforcement returns 503. Scores are read in bounded batches from owning modules, without per-row queries. Catalog membership is cached with transactional revision invalidation; ratings and heat are always current. 目录成员和分面来自同一持久投影版本，实时评分与热度按 ID 关联。游标绑定投影版本，目录重建或热门等含热度排序的窗口换日后，旧游标返回 409，应从第一页重新读取。 普通目录仅提供学校、院系、分类、性质、学期、课程和教师；term_course、class、assignment、schedule 仅供管理端或受信服务使用。
 //
 // Returns a wrapper object for the known response body format(s).
 func (c *ClientWithResponses) ListDirectoryWithResponse(ctx context.Context, params *ListDirectoryParams, reqEditors ...RequestEditorFn) (*ListDirectoryResponse, error) {

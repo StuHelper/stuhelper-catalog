@@ -128,6 +128,12 @@ scenario_tests:
     - activity_test.go#TestActivityViewFailureTelemetryAndBoundedDedupRetention
     - activity_test.go#TestActivityViewAliasesShareCanonicalDeduplication
     - outbox_delivery_test.go#TestBoundedPruningHostAllowlistAndOperationalMetrics
+  CAT-ACTIVITY-02:
+    - activity_window_test.go#TestActivityWindowBeijingCalendar
+    - activity_window_test.go#TestDirectoryHeatAndViewsRollOverAtBeijingMidnight
+  CAT-ACTIVITY-03:
+    - postgres/activity_calendar_test.go#TestActivityCalendarMigrationRebinsViewsAndPreservesWritesAcrossRollback
+    - postgres/activity_calendar_test.go#TestActivityCalendarPartialUTCDateUsesElapsedTime
   CO-02:
     - integration_test.go#TestImportRelationsClassificationAndMissingCredits
   CO-04:
