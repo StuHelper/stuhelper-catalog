@@ -5066,7 +5066,7 @@ export interface operations {
                     "application/json": components["schemas"]["Error"];
                 };
             };
-            /** @description conflict。修订已变化、申请已处理或幂等键对应的内容不同。 */
+            /** @description conflict 表示修订已变化或幂等键对应的内容不同。teacher_homepage_capacity_exceeded 表示合并整组和逐标签规则后，有效人工通用字段超过 128 项或人工栏目超过 64 项。减少或合并人工项后再重试。 */
             409: {
                 headers: {
                     [name: string]: unknown;
@@ -5839,7 +5839,7 @@ export interface operations {
                     "application/json": components["schemas"]["Error"];
                 };
             };
-            /** @description conflict。修订已变化、申请已处理或幂等键对应的内容不同。 */
+            /** @description conflict 表示修订已变化、申请已处理或幂等键对应的内容不同。teacher_homepage_capacity_exceeded 表示批准后有效人工通用字段超过 128 项或人工栏目超过 64 项。申请保持待处理。减少或合并人工项后，使用当前修订重新审批。 */
             409: {
                 headers: {
                     [name: string]: unknown;

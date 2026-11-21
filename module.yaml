@@ -118,18 +118,21 @@ scenario_tests:
   CAT-TEACHER-07:
     - teacher_homepage_postgres_test.go#TestTeacherHomepagePostgresRefreshPreservesDecisions
   CAT-TEACHER-08:
+    - teacher_homepage_render_test.go#TestTeacherHomepagePresentationSuppressesMultilineContactCopies
     - teacher_homepage_controls_postgres_test.go#TestTeacherHomepageControlsPostgresVisibilityAndRefresh
     - teacher_homepage_controls_postgres_test.go#TestTeacherHomepageControlsPostgresSchoolAllowlistAndReplacementPhoto
     - teacher_homepage_photo_upload_test.go#TestValidateTeacherHomepagePhotoUpload
     - httpapi/teacher_homepage_photo_test.go#TestWriteTeacherHomepagePhotoUsesPrivateSameOriginResponse
     - teacher_homepage_complaint_test.go#TestTeacherHomepageComplaintHideRevisionAndReplay
   CAT-TEACHER-09:
+    - teacher_homepage_capacity_postgres_test.go#TestTeacherHomepageControlsPostgresRejectsOverrideCapacity
     - teacher_homepage_controls_postgres_test.go#TestTeacherHomepageControlsPostgresAuditAndReplay
     - teacher_homepage_controls_storage_test.go#TestTeacherHomepageControlsPostgresPersistence
     - teacher_homepage_change_audit_test.go#TestTeacherHomepageAuditRecordsChangesWithoutProfileData
     - teacher_homepage_change_audit_test.go#TestTeacherHomepageAuditDistinguishesPageAndAllowlistChanges
     - httpapi/teacher_homepage_body_test.go#TestTeacherHomepageInputSizeAndJSONErrors
   CAT-TEACHER-10:
+    - teacher_homepage_capacity_postgres_test.go#TestTeacherHomepageRequestsPostgresRejectsApprovalBeyondOverrideCapacity
     - teacher_homepage_requests_postgres_test.go#TestTeacherHomepageRequestsPostgresAuthorizationAndReview
     - teacher_homepage_requests_postgres_test.go#TestTeacherHomepageRequestsPostgresSubmissionQuota
     - teacher_homepage_request_repository_test.go#TestTeacherHomepageRequestRepositoryScopeAndKeyset

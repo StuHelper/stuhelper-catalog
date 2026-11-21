@@ -15,6 +15,11 @@ import (
 
 const TeacherHomepageMaxPhotoBytes = 2 << 20
 
+const (
+	teacherHomepageFieldLimit   = 128
+	teacherHomepageSectionLimit = 64
+)
+
 type TeacherHomepageField struct {
 	Label string `json:"label"`
 	Value string `json:"value"`
@@ -145,7 +150,7 @@ func validateTeacherHomepage(profile TeacherHomepage) bool {
 			return false
 		}
 	}
-	if len(profile.Supervisors) > 2 || len(profile.Fields) > 128 || len(profile.Sections) > 64 {
+	if len(profile.Supervisors) > 2 || len(profile.Fields) > teacherHomepageFieldLimit || len(profile.Sections) > teacherHomepageSectionLimit {
 		return false
 	}
 	for i, supervisor := range profile.Supervisors {

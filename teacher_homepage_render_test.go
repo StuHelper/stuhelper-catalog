@@ -103,3 +103,28 @@ func TestTeacherHomepagePresentationRetainsAcademicNumbersAndApprovedText(t *tes
 		t.Fatalf("unexpected published profile: %+v", profile)
 	}
 }
+
+func TestTeacherHomepagePresentationSuppressesMultilineContactCopies(t *testing.T) {
+	hiddenOverride := "　后勤楼 302 室。\n West Campus: "
+	explicit := "办公室在 西区后勤楼：３０２室。\n联系电话见 West-Campus\n论文编号 101"
+	source := &TeacherHomepage{
+		Name: "测试合成姓名", OfficeLocation: " Room 101；\r\n 合成主楼。 \n2026\n101",
+		Biography: "合成主楼\n保留教学简介",
+		Sections: []TeacherHomepageSection{{
+			Title: "论文", Text: "Ｒｏｏｍ：１０１！\n后勤楼302室\nWest Campus.\n2026\n101\n保留发表记录",
+		}},
+	}
+	p := newHomepagePresentation(TeacherHomepageControls{
+		PageVisibility: TeacherHomepageVisible,
+		Rules: []TeacherHomepageFieldRule{
+			{Field: TeacherHomepageFieldSelector{Field: "office_location"}, Hidden: true, Override: &TeacherHomepageFieldValue{Text: &hiddenOverride}},
+			{Field: TeacherHomepageFieldSelector{Field: "research"}, Override: &TeacherHomepageFieldValue{Text: &explicit}},
+		},
+	}, TeacherHomepageAllowlist{Fields: defaultTeacherHomepageAllowlist()})
+	profile := p.profile(source, "teacher")
+	if profile == nil || profile.OfficeLocation != "" || profile.Biography != "保留教学简介" ||
+		profile.Research != "论文编号 101" || len(profile.Sections) != 1 ||
+		profile.Sections[0].Text != "2026\n101\n保留发表记录" {
+		t.Fatalf("unexpected published multiline profile: %+v", profile)
+	}
+}

@@ -6,6 +6,7 @@ import (
 	"regexp"
 	"slices"
 	"strings"
+	"unicode"
 	"unicode/utf8"
 )
 
@@ -132,6 +133,7 @@ var homepageEmail = regexp.MustCompile(`(?i)[a-z0-9.!#$%&'*+/=?^_\x60{|}~-]+@[a-
 var homepagePhone = regexp.MustCompile(`\+?[0-9][0-9 ().-]{5,}[0-9]`)
 var homepageLabelPrefix = regexp.MustCompile(`^[ \t]*([^\n:：]{1,160})[：:]`)
 var homepageNumericValue = regexp.MustCompile(`^[0-9][0-9 ./:\-年月日]*$`)
+var homepageLineBreaks = strings.NewReplacer("\r\n", "\n", "\r", "\n", "\u0085", "\n", "\u2028", "\n", "\u2029", "\n")
 
 type homepageCopy struct {
 	value, field string
@@ -141,10 +143,12 @@ type homepageCopy struct {
 type homepageRedaction struct {
 	excluded, hidden map[string]bool
 	copies           map[homepageCopy]bool
+	contactLines     map[string]bool
+	contactMatcher   *strings.Replacer
 }
 
 func (p homepagePresentation) redaction(source TeacherHomepage) homepageRedaction {
-	r := homepageRedaction{excluded: map[string]bool{}, hidden: p.hidden, copies: map[homepageCopy]bool{}}
+	r := homepageRedaction{excluded: map[string]bool{}, hidden: p.hidden, copies: map[homepageCopy]bool{}, contactLines: map[string]bool{}}
 	for _, field := range teacherHomepageScalarFields {
 		key := TeacherHomepageFieldSelector{Field: field}
 		r.excluded[field] = p.hidden[field] || !p.allowed[key]
@@ -169,6 +173,15 @@ func (p homepagePresentation) redaction(source TeacherHomepage) homepageRedactio
 		if rule.Override != nil {
 			r.suppressHiddenOverride(p, rule)
 		}
+	}
+	var contactPatterns []string
+	for key := range r.contactLines {
+		if utf8.RuneCountInString(key) >= 4 {
+			contactPatterns = append(contactPatterns, key, "")
+		}
+	}
+	if len(contactPatterns) > 0 {
+		r.contactMatcher = strings.NewReplacer(contactPatterns...)
 	}
 	return r
 }
@@ -232,20 +245,55 @@ func (r homepageRedaction) suppressOverrideItem(p homepagePresentation, group, l
 }
 
 func (r homepageRedaction) add(field, value string, hard bool) {
-	if key := teacherHomepageLabelKey(value); key != "" {
-		if field == "phone" {
-			for _, item := range homepagePhone.FindAllString(key, -1) {
-				r.copies[homepageCopy{value: homepageDigits(item), field: field, hard: hard}] = true
+	value = homepageLineBreaks.Replace(value)
+	key := teacherHomepageLabelKey(value)
+	if key == "" {
+		return
+	}
+	hiddenContact := hard && (field == "office_location" || field == "phone" || field == "email")
+	if field == "phone" || hiddenContact && strings.Contains(value, "\n") {
+		for line := range strings.SplitSeq(value, "\n") {
+			r.addContactLine(field, line, hard)
+		}
+	}
+	r.copies[homepageCopy{value: key, field: field, hard: hard}] = true
+}
+
+func (r homepageRedaction) addContactLine(field, line string, hard bool) {
+	key := teacherHomepageLabelKey(line)
+	if field == "phone" {
+		for _, item := range homepagePhone.FindAllString(key, -1) {
+			if digits := homepageDigits(item); len(digits) >= 7 {
+				r.copies[homepageCopy{value: digits, field: field, hard: hard}] = true
 			}
 		}
-		r.copies[homepageCopy{value: key, field: field, hard: hard}] = true
 	}
+	if !hard || key == "" || homepageNumericValue.MatchString(key) || teacherHomepageAliases[key] != "" {
+		return
+	}
+	if label := homepageLabelPrefix.FindStringSubmatchIndex(key); label != nil && teacherHomepageAliases[teacherHomepageLabelKey(key[label[2]:label[3]])] == field {
+		key = teacherHomepageLabelKey(key[label[1]:])
+	}
+	// An isolated room number or year can also occur in scholarly prose.
+	if compact := homepageContactKey(key); strings.ContainsFunc(compact, unicode.IsLetter) {
+		r.contactLines[compact] = true
+	}
+}
+
+func homepageContactKey(value string) string {
+	return strings.Map(func(r rune) rune {
+		if unicode.IsLetter(r) || unicode.IsNumber(r) {
+			return r
+		}
+		return -1
+	}, value)
 }
 
 func (r homepageRedaction) clean(value string, explicit bool) string {
 	if value == "" {
 		return ""
 	}
+	value = homepageLineBreaks.Replace(value)
 	lines := make([]string, 0, 1+strings.Count(value, "\n"))
 	for line := range strings.SplitSeq(value, "\n") {
 		if originalTeacherHomepageURL.MatchString(line) {
@@ -274,6 +322,12 @@ func (r homepageRedaction) clean(value string, explicit bool) string {
 }
 
 func (r homepageRedaction) contains(text string, explicit bool) bool {
+	if len(r.contactLines) > 0 {
+		compact := homepageContactKey(text)
+		if r.contactLines[compact] || r.contactMatcher != nil && r.contactMatcher.Replace(compact) != compact {
+			return true
+		}
+	}
 	for copy := range r.copies {
 		if explicit && !copy.hard {
 			continue
@@ -307,12 +361,12 @@ type homepageTextItem struct {
 	overridden  bool
 }
 
-func (p homepagePresentation) dynamicItems(group string, values []homepageTextItem, redaction homepageRedaction, limit int) []homepageTextItem {
+func (p homepagePresentation) dynamicItems(group string, values []homepageTextItem, redaction *homepageRedaction) []homepageTextItem {
 	if p.hidden[group] {
 		return nil
 	}
 	groupOverride := p.rules[TeacherHomepageFieldSelector{Field: group}].Override != nil
-	out := make([]homepageTextItem, 0, min(len(values), limit))
+	out := make([]homepageTextItem, 0, len(values))
 	seen := map[TeacherHomepageFieldSelector]bool{}
 	for _, item := range values {
 		key := teacherHomepageSelectorKey(TeacherHomepageFieldSelector{Field: group, Label: item.label})
@@ -341,6 +395,10 @@ func (p homepagePresentation) dynamicItems(group string, values []homepageTextIt
 			out = append(out, item)
 		}
 	}
+	return out
+}
+
+func boundHomepageItems(out []homepageTextItem, limit int) []homepageTextItem {
 	for len(out) > limit {
 		i := slices.IndexFunc(out, func(item homepageTextItem) bool { return !item.overridden })
 		if i < 0 {
@@ -351,7 +409,40 @@ func (p homepagePresentation) dynamicItems(group string, values []homepageTextIt
 	return out
 }
 
-func (p homepagePresentation) dynamicItem(key TeacherHomepageFieldSelector, item homepageTextItem, rule TeacherHomepageFieldRule, groupOverride bool, redaction homepageRedaction) (homepageTextItem, bool) {
+func (p homepagePresentation) fieldItems(fields []TeacherHomepageField, redaction *homepageRedaction) []homepageTextItem {
+	if rule := p.rules[TeacherHomepageFieldSelector{Field: "fields"}]; rule.Override != nil {
+		fields = *rule.Override.Fields
+	}
+	items := make([]homepageTextItem, 0, len(fields))
+	for _, field := range fields {
+		items = append(items, homepageTextItem{label: field.Label, text: field.Value})
+	}
+	return p.dynamicItems("fields", items, redaction)
+}
+
+func (p homepagePresentation) sectionItems(sections []TeacherHomepageSection, redaction *homepageRedaction) []homepageTextItem {
+	if rule := p.rules[TeacherHomepageFieldSelector{Field: "sections"}]; rule.Override != nil {
+		sections = *rule.Override.Sections
+	}
+	items := make([]homepageTextItem, 0, len(sections))
+	for _, section := range sections {
+		items = append(items, homepageTextItem{label: section.Title, text: section.Text})
+	}
+	return p.dynamicItems("sections", items, redaction)
+}
+
+func validateTeacherHomepageOverrideCapacity(controls TeacherHomepageControls) error {
+	p := newHomepagePresentation(controls, TeacherHomepageAllowlist{})
+	// Reserve manual items independently of source labels and contact copies.
+	// The display rules still exclude explicitly hidden items and groups.
+	if len(p.fieldItems(nil, nil)) > teacherHomepageFieldLimit ||
+		len(p.sectionItems(nil, nil)) > teacherHomepageSectionLimit {
+		return ErrTeacherHomepageCapacity
+	}
+	return nil
+}
+
+func (p homepagePresentation) dynamicItem(key TeacherHomepageFieldSelector, item homepageTextItem, rule TeacherHomepageFieldRule, groupOverride bool, redaction *homepageRedaction) (homepageTextItem, bool) {
 	alias := teacherHomepageAliases[key.Label]
 	if key.Label == "" || teacherHomepageRecordLabels[key.Label] || rule.Hidden || p.hidden[alias] {
 		return item, false
@@ -361,8 +452,10 @@ func (p homepagePresentation) dynamicItem(key TeacherHomepageFieldSelector, item
 		p.rules[TeacherHomepageFieldSelector{Field: alias}].Override != nil)) {
 		return item, false
 	}
-	item.text = redaction.clean(item.text, explicit)
-	item.label = redaction.clean(item.label, explicit)
+	if redaction != nil {
+		item.text = redaction.clean(item.text, explicit)
+		item.label = redaction.clean(item.label, explicit)
+	}
 	item.overridden = explicit
 	return item, item.text != "" && item.label != ""
 }
@@ -395,26 +488,10 @@ func (p homepagePresentation) profile(source *TeacherHomepage, teacher string) *
 			out.Supervisors = slices.Clone(source.Supervisors)
 		}
 	}
-	fields := source.Fields
-	if rule := p.rules[TeacherHomepageFieldSelector{Field: "fields"}]; rule.Override != nil {
-		fields = *rule.Override.Fields
-	}
-	extra := make([]homepageTextItem, 0, len(fields))
-	for _, field := range fields {
-		extra = append(extra, homepageTextItem{label: field.Label, text: field.Value})
-	}
-	for _, item := range p.dynamicItems("fields", extra, redaction, 128) {
+	for _, item := range boundHomepageItems(p.fieldItems(source.Fields, &redaction), teacherHomepageFieldLimit) {
 		out.Fields = append(out.Fields, TeacherHomepageField{Label: item.label, Value: item.text})
 	}
-	sections := source.Sections
-	if rule := p.rules[TeacherHomepageFieldSelector{Field: "sections"}]; rule.Override != nil {
-		sections = *rule.Override.Sections
-	}
-	tabs := make([]homepageTextItem, 0, len(sections))
-	for _, section := range sections {
-		tabs = append(tabs, homepageTextItem{label: section.Title, text: section.Text})
-	}
-	for _, item := range p.dynamicItems("sections", tabs, redaction, 64) {
+	for _, item := range boundHomepageItems(p.sectionItems(source.Sections, &redaction), teacherHomepageSectionLimit) {
 		out.Sections = append(out.Sections, TeacherHomepageSection{Title: item.label, Text: item.text})
 	}
 	if allowed, override := p.photo(); allowed {

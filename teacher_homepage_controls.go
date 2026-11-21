@@ -20,6 +20,8 @@ const (
 	TeacherHomepageStopped = "stopped"
 )
 
+var ErrTeacherHomepageCapacity = errors.New("teacher_homepage_capacity_exceeded")
+
 type TeacherHomepageFieldSelector struct {
 	Field string `json:"field"`
 	Label string `json:"label,omitempty"`
@@ -105,12 +107,12 @@ func teacherHomepageValueType(field TeacherHomepageFieldSelector) (string, int) 
 		if field.Label != "" {
 			return "text", 1024
 		}
-		return "fields", 128
+		return "fields", teacherHomepageFieldLimit
 	case "sections":
 		if field.Label != "" {
 			return "text", 16000
 		}
-		return "sections", 64
+		return "sections", teacherHomepageSectionLimit
 	case "photo":
 		return "photo", 0
 	default:
@@ -356,6 +358,9 @@ func (s *Service) applyTeacherHomepageControlsWithPhoto(t Transaction, p Princip
 	}
 	if current.Revision != expectedRevision || expectedRevision == math.MaxInt64 {
 		return result, ErrConflict
+	}
+	if err := validateTeacherHomepageOverrideCapacity(result); err != nil {
+		return result, err
 	}
 	result.Revision = current.Revision + 1
 	result.Independent = current.Independent
