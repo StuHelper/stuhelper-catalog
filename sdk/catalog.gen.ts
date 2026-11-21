@@ -537,7 +537,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** @description 要求 catalog.teacher-sites.read 和当前学校管理范围。按 ID 升序分页，服务端记录查看审计。 包含站点摘要、原因、目录候选和当前决定。 */
+        /** @description 要求 catalog.teacher-sites.read 和当前学校管理范围。按 ID 升序分页，服务端记录查看审计。每页列表正文达到 3 MiB 前提前分页，继续使用 next 读取后续记录。 包含站点摘要、原因、目录候选和当前决定。 */
         get: operations["listTeacherHomepageReviewSites"];
         put?: never;
         post?: never;
@@ -554,7 +554,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** @description 要求 catalog.teacher-sites.read 和当前学校管理范围。按 ID 升序分页，服务端记录查看审计。 包含目录教师、原因和同名站点候选摘要。 */
+        /** @description 要求 catalog.teacher-sites.read 和当前学校管理范围。按 ID 升序分页，服务端记录查看审计。每页列表正文达到 3 MiB 前提前分页，继续使用 next 读取后续记录。 包含目录教师、原因和同名站点候选摘要。 */
         get: operations["listTeacherHomepageReviewTeachers"];
         put?: never;
         post?: never;
@@ -634,7 +634,8 @@ export interface components {
             former_names?: string[];
             /** @description 当前课程主档的学时；未知时省略或为 null，0 表示已确认的零学时。 */
             hours?: number | null;
-            teacher_homepage?: components["schemas"]["TeacherHomepage"];
+            /** @description 派生的响应字段。教师详情和摘要主对象在请求 include_teacher_homepage=true 且存在当前有效匹配资料时返回。 */
+            readonly teacher_homepage?: components["schemas"]["TeacherHomepage"];
         } | null;
         Object: {
             id: string;
@@ -682,7 +683,8 @@ export interface components {
             former_names?: string[];
             /** @description 当前课程主档的学时；未知时省略或为 null，0 表示已确认的零学时。 */
             hours?: number | null;
-            teacher_homepage?: components["schemas"]["TeacherHomepage"];
+            /** @description 派生的响应字段。教师详情和摘要主对象在请求 include_teacher_homepage=true 且存在当前有效匹配资料时返回。 */
+            readonly teacher_homepage?: components["schemas"]["TeacherHomepage"];
         };
         Page: {
             items: components["schemas"]["Object"][];
@@ -1286,7 +1288,7 @@ export interface components {
             name: string;
             /** @description 官网显示的单位。来源缺失时为空字符串。 */
             unit: string;
-            /** @description 站点存在于最新成功发布的官网快照。 */
+            /** @description 最新成功发布的快照含该站点的可用详情；站点消失或详情不可用时为 false。 */
             present: boolean;
         };
         TeacherHomepageReviewTeacherSummary: {
@@ -1310,7 +1312,7 @@ export interface components {
             unit: string;
             /** @description 最新成功发布的快照含该站点的可用详情；站点消失或详情不可用时为 false。 */
             present: boolean;
-            /** @description 处理原因代码。包括姓名不存在、单位缺失或不一致、目录或官网存在多候选、等待快照、快照后目录已变化、受人工决定影响、站点详情不可用。无处理原因时省略。 */
+            /** @description 处理原因代码。常见值为 catalog_name_absent、catalog_name_missing、name_absent、catalog_unit_missing、site_unit_missing、unit_mismatch、ambiguous_catalog、ambiguous_site、awaiting_snapshot、snapshot_changed、manual_conflict、site_unavailable。无处理原因时省略。 */
             reason?: string;
             /** @description 官网个人简介短摘。 */
             biography_excerpt?: string;
@@ -1320,7 +1322,7 @@ export interface components {
             matched_teacher_id?: string;
             /**
              * Format: int64
-             * @description 候选总数，可大于 candidates 返回的数量。
+             * @description 快照候选总数，可大于 candidates 返回的数量。已停用或合并的目录候选不再返回。
              */
             candidate_count: number;
             /** @description 最新完整匹配快照中仍有效的同名目录候选，按 ID 升序。 */
@@ -1343,13 +1345,13 @@ export interface components {
             department?: string;
             /** @description 教务目录职称。 */
             title?: string;
-            /** @description 处理原因代码。包括姓名不存在、单位缺失或不一致、目录或官网存在多候选、等待快照、快照后目录已变化、受人工决定影响、站点详情不可用。无处理原因时省略。 */
+            /** @description 处理原因代码。常见值为 catalog_name_absent、catalog_name_missing、name_absent、catalog_unit_missing、site_unit_missing、unit_mismatch、ambiguous_catalog、ambiguous_site、awaiting_snapshot、snapshot_changed、manual_conflict、site_unavailable。无处理原因时省略。 */
             reason?: string;
             /** @description 当前有效匹配的站点标识摘要。 */
             matched_site_id?: string;
             /**
              * Format: int64
-             * @description 候选总数，可大于 candidates 返回的数量。
+             * @description 快照候选总数，可大于 candidates 返回的数量。已停用或合并的目录候选不再返回。
              */
             candidate_count: number;
             /** @description 同名官网候选，按站点 ID 升序。 */
@@ -4191,7 +4193,7 @@ export interface operations {
             /** @description 当前已验证的本地照片。总大小最多 2 MiB，每边最多 4096 像素，面积最多 8,388,608 像素。 */
             200: {
                 headers: {
-                    "Cache-Control"?: "no-store";
+                    "Cache-Control"?: "private, no-store";
                     "X-Content-Type-Options"?: "nosniff";
                     [name: string]: unknown;
                 };

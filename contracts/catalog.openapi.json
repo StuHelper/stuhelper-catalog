@@ -3948,7 +3948,7 @@
                 "schema": {
                   "type": "string",
                   "enum": [
-                    "no-store"
+                    "private, no-store"
                   ]
                 }
               },
@@ -4032,7 +4032,7 @@
     "/api/v1/catalog/admin/schools/{school_id}/teacher-sites/review/sites": {
       "get": {
         "operationId": "listTeacherHomepageReviewSites",
-        "description": "要求 catalog.teacher-sites.read 和当前学校管理范围。按 ID 升序分页，服务端记录查看审计。 包含站点摘要、原因、目录候选和当前决定。",
+        "description": "要求 catalog.teacher-sites.read 和当前学校管理范围。按 ID 升序分页，服务端记录查看审计。每页列表正文达到 3 MiB 前提前分页，继续使用 next 读取后续记录。 包含站点摘要、原因、目录候选和当前决定。",
         "security": [
           {
             "bearerAuth": []
@@ -4176,7 +4176,7 @@
     "/api/v1/catalog/admin/schools/{school_id}/teacher-sites/review/teachers": {
       "get": {
         "operationId": "listTeacherHomepageReviewTeachers",
-        "description": "要求 catalog.teacher-sites.read 和当前学校管理范围。按 ID 升序分页，服务端记录查看审计。 包含目录教师、原因和同名站点候选摘要。",
+        "description": "要求 catalog.teacher-sites.read 和当前学校管理范围。按 ID 升序分页，服务端记录查看审计。每页列表正文达到 3 MiB 前提前分页，继续使用 next 读取后续记录。 包含目录教师、原因和同名站点候选摘要。",
         "security": [
           {
             "bearerAuth": []
@@ -4616,7 +4616,13 @@
             "description": "当前课程主档的学时；未知时省略或为 null，0 表示已确认的零学时。"
           },
           "teacher_homepage": {
-            "$ref": "#/components/schemas/TeacherHomepage"
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/TeacherHomepage"
+              }
+            ],
+            "readOnly": true,
+            "description": "派生的响应字段。教师详情和摘要主对象在请求 include_teacher_homepage=true 且存在当前有效匹配资料时返回。"
           }
         },
         "required": [
@@ -4780,7 +4786,13 @@
             "description": "当前课程主档的学时；未知时省略或为 null，0 表示已确认的零学时。"
           },
           "teacher_homepage": {
-            "$ref": "#/components/schemas/TeacherHomepage"
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/TeacherHomepage"
+              }
+            ],
+            "readOnly": true,
+            "description": "派生的响应字段。教师详情和摘要主对象在请求 include_teacher_homepage=true 且存在当前有效匹配资料时返回。"
           }
         },
         "required": [
@@ -6904,7 +6916,7 @@
           },
           "present": {
             "type": "boolean",
-            "description": "站点存在于最新成功发布的官网快照。"
+            "description": "最新成功发布的快照含该站点的可用详情；站点消失或详情不可用时为 false。"
           }
         }
       },
@@ -6989,7 +7001,7 @@
             "type": "string",
             "maxLength": 64,
             "minLength": 1,
-            "description": "处理原因代码。包括姓名不存在、单位缺失或不一致、目录或官网存在多候选、等待快照、快照后目录已变化、受人工决定影响、站点详情不可用。无处理原因时省略。"
+            "description": "处理原因代码。常见值为 catalog_name_absent、catalog_name_missing、name_absent、catalog_unit_missing、site_unit_missing、unit_mismatch、ambiguous_catalog、ambiguous_site、awaiting_snapshot、snapshot_changed、manual_conflict、site_unavailable。无处理原因时省略。"
           },
           "biography_excerpt": {
             "type": "string",
@@ -7014,7 +7026,7 @@
             "type": "integer",
             "format": "int64",
             "minimum": 0,
-            "description": "候选总数，可大于 candidates 返回的数量。"
+            "description": "快照候选总数，可大于 candidates 返回的数量。已停用或合并的目录候选不再返回。"
           },
           "candidates": {
             "type": "array",
@@ -7081,7 +7093,7 @@
             "type": "string",
             "maxLength": 64,
             "minLength": 1,
-            "description": "处理原因代码。包括姓名不存在、单位缺失或不一致、目录或官网存在多候选、等待快照、快照后目录已变化、受人工决定影响、站点详情不可用。无处理原因时省略。"
+            "description": "处理原因代码。常见值为 catalog_name_absent、catalog_name_missing、name_absent、catalog_unit_missing、site_unit_missing、unit_mismatch、ambiguous_catalog、ambiguous_site、awaiting_snapshot、snapshot_changed、manual_conflict、site_unavailable。无处理原因时省略。"
           },
           "matched_site_id": {
             "type": "string",
@@ -7094,7 +7106,7 @@
             "type": "integer",
             "format": "int64",
             "minimum": 0,
-            "description": "候选总数，可大于 candidates 返回的数量。"
+            "description": "快照候选总数，可大于 candidates 返回的数量。已停用或合并的目录候选不再返回。"
           },
           "candidates": {
             "type": "array",

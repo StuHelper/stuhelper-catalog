@@ -1053,7 +1053,7 @@ type NullableObject struct {
 	// SportsProjectCode 仅教学班导入使用的来源体育项目代码。由学校适配器读取明确字段，目录规则通过配置将代码映射到项目；不从场地或教师推断。
 	SportsProjectCode *string `json:"sports_project_code,omitempty"`
 
-	// TeacherHomepage 当前已匹配的官网资料。未提供的可选字段省略，数组空时返回 []。资料 UTF-8 JSON 大小不超过 1 MiB。
+	// TeacherHomepage 派生的响应字段。教师详情和摘要主对象在请求 include_teacher_homepage=true 且存在当前有效匹配资料时返回。
 	TeacherHomepage *TeacherHomepage `json:"teacher_homepage,omitempty"`
 	TeacherId       *string          `json:"teacher_id,omitempty"`
 	TermCourseId    *string          `json:"term_course_id,omitempty"`
@@ -1154,7 +1154,7 @@ type Object struct {
 	// SportsProjectCode 仅教学班导入使用的来源体育项目代码。由学校适配器读取明确字段，目录规则通过配置将代码映射到项目；不从场地或教师推断。
 	SportsProjectCode *string `json:"sports_project_code,omitempty"`
 
-	// TeacherHomepage 当前已匹配的官网资料。未提供的可选字段省略，数组空时返回 []。资料 UTF-8 JSON 大小不超过 1 MiB。
+	// TeacherHomepage 派生的响应字段。教师详情和摘要主对象在请求 include_teacher_homepage=true 且存在当前有效匹配资料时返回。
 	TeacherHomepage *TeacherHomepage `json:"teacher_homepage,omitempty"`
 	TeacherId       *string          `json:"teacher_id,omitempty"`
 	TermCourseId    *string          `json:"term_course_id,omitempty"`
@@ -1509,7 +1509,7 @@ type TeacherHomepageReviewSite struct {
 	// BiographyExcerpt 官网个人简介短摘。
 	BiographyExcerpt *string `json:"biography_excerpt,omitempty"`
 
-	// CandidateCount 候选总数，可大于 candidates 返回的数量。
+	// CandidateCount 快照候选总数，可大于 candidates 返回的数量。已停用或合并的目录候选不再返回。
 	CandidateCount int64 `json:"candidate_count"`
 
 	// Candidates 最新完整匹配快照中仍有效的同名目录候选，按 ID 升序。
@@ -1531,7 +1531,7 @@ type TeacherHomepageReviewSite struct {
 	// Present 最新成功发布的快照含该站点的可用详情；站点消失或详情不可用时为 false。
 	Present bool `json:"present"`
 
-	// Reason 处理原因代码。包括姓名不存在、单位缺失或不一致、目录或官网存在多候选、等待快照、快照后目录已变化、受人工决定影响、站点详情不可用。无处理原因时省略。
+	// Reason 处理原因代码。常见值为 catalog_name_absent、catalog_name_missing、name_absent、catalog_unit_missing、site_unit_missing、unit_mismatch、ambiguous_catalog、ambiguous_site、awaiting_snapshot、snapshot_changed、manual_conflict、site_unavailable。无处理原因时省略。
 	Reason *string `json:"reason,omitempty"`
 
 	// SiteId 按学校隔离的站点标识摘要。
@@ -1558,7 +1558,7 @@ type TeacherHomepageReviewSiteSummary struct {
 	// Name 官网显示的姓名。
 	Name string `json:"name"`
 
-	// Present 站点存在于最新成功发布的官网快照。
+	// Present 最新成功发布的快照含该站点的可用详情；站点消失或详情不可用时为 false。
 	Present bool `json:"present"`
 
 	// SiteId 按学校隔离的站点标识摘要。
@@ -1570,7 +1570,7 @@ type TeacherHomepageReviewSiteSummary struct {
 
 // TeacherHomepageReviewTeacher defines model for TeacherHomepageReviewTeacher.
 type TeacherHomepageReviewTeacher struct {
-	// CandidateCount 候选总数，可大于 candidates 返回的数量。
+	// CandidateCount 快照候选总数，可大于 candidates 返回的数量。已停用或合并的目录候选不再返回。
 	CandidateCount int64 `json:"candidate_count"`
 
 	// Candidates 同名官网候选，按站点 ID 升序。
@@ -1588,7 +1588,7 @@ type TeacherHomepageReviewTeacher struct {
 	// Name 目录教师姓名。
 	Name string `json:"name"`
 
-	// Reason 处理原因代码。包括姓名不存在、单位缺失或不一致、目录或官网存在多候选、等待快照、快照后目录已变化、受人工决定影响、站点详情不可用。无处理原因时省略。
+	// Reason 处理原因代码。常见值为 catalog_name_absent、catalog_name_missing、name_absent、catalog_unit_missing、site_unit_missing、unit_mismatch、ambiguous_catalog、ambiguous_site、awaiting_snapshot、snapshot_changed、manual_conflict、site_unavailable。无处理原因时省略。
 	Reason *string `json:"reason,omitempty"`
 
 	// TeacherId 同一学校的稳定目录教师 ID。
@@ -2147,7 +2147,7 @@ type ClientInterface interface {
 
 	// ListTeacherHomepageReviewSites performs a GET /api/v1/catalog/admin/schools/{school_id}/teacher-sites/review/sites (the `ListTeacherHomepageReviewSites` operationId) request.
 	//
-	// 要求 catalog.teacher-sites.read 和当前学校管理范围。按 ID 升序分页，服务端记录查看审计。 包含站点摘要、原因、目录候选和当前决定。
+	// 要求 catalog.teacher-sites.read 和当前学校管理范围。按 ID 升序分页，服务端记录查看审计。每页列表正文达到 3 MiB 前提前分页，继续使用 next 读取后续记录。 包含站点摘要、原因、目录候选和当前决定。
 	ListTeacherHomepageReviewSites(ctx context.Context, schoolId string, params *ListTeacherHomepageReviewSitesParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// SetTeacherHomepageDecisionWithBody performs a PUT /api/v1/catalog/admin/schools/{school_id}/teacher-sites/review/sites/{site_id}/decision (the `SetTeacherHomepageDecision` operationId) request,
@@ -2164,7 +2164,7 @@ type ClientInterface interface {
 
 	// ListTeacherHomepageReviewTeachers performs a GET /api/v1/catalog/admin/schools/{school_id}/teacher-sites/review/teachers (the `ListTeacherHomepageReviewTeachers` operationId) request.
 	//
-	// 要求 catalog.teacher-sites.read 和当前学校管理范围。按 ID 升序分页，服务端记录查看审计。 包含目录教师、原因和同名站点候选摘要。
+	// 要求 catalog.teacher-sites.read 和当前学校管理范围。按 ID 升序分页，服务端记录查看审计。每页列表正文达到 3 MiB 前提前分页，继续使用 next 读取后续记录。 包含目录教师、原因和同名站点候选摘要。
 	ListTeacherHomepageReviewTeachers(ctx context.Context, schoolId string, params *ListTeacherHomepageReviewTeachersParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// ListUnmatchedTeacherSites performs a GET /api/v1/catalog/admin/schools/{school_id}/teacher-sites/unmatched (the `ListUnmatchedTeacherSites` operationId) request.
@@ -2513,7 +2513,7 @@ func (c *Client) StartTeacherRefresh(ctx context.Context, schoolId string, param
 
 // ListTeacherHomepageReviewSites performs a GET /api/v1/catalog/admin/schools/{school_id}/teacher-sites/review/sites (the `ListTeacherHomepageReviewSites` operationId) request.
 //
-// 要求 catalog.teacher-sites.read 和当前学校管理范围。按 ID 升序分页，服务端记录查看审计。 包含站点摘要、原因、目录候选和当前决定。
+// 要求 catalog.teacher-sites.read 和当前学校管理范围。按 ID 升序分页，服务端记录查看审计。每页列表正文达到 3 MiB 前提前分页，继续使用 next 读取后续记录。 包含站点摘要、原因、目录候选和当前决定。
 func (c *Client) ListTeacherHomepageReviewSites(ctx context.Context, schoolId string, params *ListTeacherHomepageReviewSitesParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewListTeacherHomepageReviewSitesRequest(c.Server, schoolId, params)
 	if err != nil {
@@ -2560,7 +2560,7 @@ func (c *Client) SetTeacherHomepageDecision(ctx context.Context, schoolId string
 
 // ListTeacherHomepageReviewTeachers performs a GET /api/v1/catalog/admin/schools/{school_id}/teacher-sites/review/teachers (the `ListTeacherHomepageReviewTeachers` operationId) request.
 //
-// 要求 catalog.teacher-sites.read 和当前学校管理范围。按 ID 升序分页，服务端记录查看审计。 包含目录教师、原因和同名站点候选摘要。
+// 要求 catalog.teacher-sites.read 和当前学校管理范围。按 ID 升序分页，服务端记录查看审计。每页列表正文达到 3 MiB 前提前分页，继续使用 next 读取后续记录。 包含目录教师、原因和同名站点候选摘要。
 func (c *Client) ListTeacherHomepageReviewTeachers(ctx context.Context, schoolId string, params *ListTeacherHomepageReviewTeachersParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewListTeacherHomepageReviewTeachersRequest(c.Server, schoolId, params)
 	if err != nil {
@@ -5825,7 +5825,7 @@ type ClientWithResponsesInterface interface {
 
 	// ListTeacherHomepageReviewSitesWithResponse performs a GET /api/v1/catalog/admin/schools/{school_id}/teacher-sites/review/sites (the `ListTeacherHomepageReviewSites` operationId) request.
 	//
-	// 要求 catalog.teacher-sites.read 和当前学校管理范围。按 ID 升序分页，服务端记录查看审计。 包含站点摘要、原因、目录候选和当前决定。
+	// 要求 catalog.teacher-sites.read 和当前学校管理范围。按 ID 升序分页，服务端记录查看审计。每页列表正文达到 3 MiB 前提前分页，继续使用 next 读取后续记录。 包含站点摘要、原因、目录候选和当前决定。
 	//
 	// Returns a wrapper object for the known response body format(s).
 	ListTeacherHomepageReviewSitesWithResponse(ctx context.Context, schoolId string, params *ListTeacherHomepageReviewSitesParams, reqEditors ...RequestEditorFn) (*ListTeacherHomepageReviewSitesResponse, error)
@@ -5846,7 +5846,7 @@ type ClientWithResponsesInterface interface {
 
 	// ListTeacherHomepageReviewTeachersWithResponse performs a GET /api/v1/catalog/admin/schools/{school_id}/teacher-sites/review/teachers (the `ListTeacherHomepageReviewTeachers` operationId) request.
 	//
-	// 要求 catalog.teacher-sites.read 和当前学校管理范围。按 ID 升序分页，服务端记录查看审计。 包含目录教师、原因和同名站点候选摘要。
+	// 要求 catalog.teacher-sites.read 和当前学校管理范围。按 ID 升序分页，服务端记录查看审计。每页列表正文达到 3 MiB 前提前分页，继续使用 next 读取后续记录。 包含目录教师、原因和同名站点候选摘要。
 	//
 	// Returns a wrapper object for the known response body format(s).
 	ListTeacherHomepageReviewTeachersWithResponse(ctx context.Context, schoolId string, params *ListTeacherHomepageReviewTeachersParams, reqEditors ...RequestEditorFn) (*ListTeacherHomepageReviewTeachersResponse, error)
@@ -9449,7 +9449,7 @@ func (c *ClientWithResponses) StartTeacherRefreshWithResponse(ctx context.Contex
 
 // ListTeacherHomepageReviewSitesWithResponse performs a GET /api/v1/catalog/admin/schools/{school_id}/teacher-sites/review/sites (the `ListTeacherHomepageReviewSites` operationId) request.
 //
-// 要求 catalog.teacher-sites.read 和当前学校管理范围。按 ID 升序分页，服务端记录查看审计。 包含站点摘要、原因、目录候选和当前决定。
+// 要求 catalog.teacher-sites.read 和当前学校管理范围。按 ID 升序分页，服务端记录查看审计。每页列表正文达到 3 MiB 前提前分页，继续使用 next 读取后续记录。 包含站点摘要、原因、目录候选和当前决定。
 //
 // Returns a wrapper object for the known response body format(s).
 func (c *ClientWithResponses) ListTeacherHomepageReviewSitesWithResponse(ctx context.Context, schoolId string, params *ListTeacherHomepageReviewSitesParams, reqEditors ...RequestEditorFn) (*ListTeacherHomepageReviewSitesResponse, error) {
@@ -9488,7 +9488,7 @@ func (c *ClientWithResponses) SetTeacherHomepageDecisionWithResponse(ctx context
 
 // ListTeacherHomepageReviewTeachersWithResponse performs a GET /api/v1/catalog/admin/schools/{school_id}/teacher-sites/review/teachers (the `ListTeacherHomepageReviewTeachers` operationId) request.
 //
-// 要求 catalog.teacher-sites.read 和当前学校管理范围。按 ID 升序分页，服务端记录查看审计。 包含目录教师、原因和同名站点候选摘要。
+// 要求 catalog.teacher-sites.read 和当前学校管理范围。按 ID 升序分页，服务端记录查看审计。每页列表正文达到 3 MiB 前提前分页，继续使用 next 读取后续记录。 包含目录教师、原因和同名站点候选摘要。
 //
 // Returns a wrapper object for the known response body format(s).
 func (c *ClientWithResponses) ListTeacherHomepageReviewTeachersWithResponse(ctx context.Context, schoolId string, params *ListTeacherHomepageReviewTeachersParams, reqEditors ...RequestEditorFn) (*ListTeacherHomepageReviewTeachersResponse, error) {
