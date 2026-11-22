@@ -433,7 +433,7 @@ CREATE TABLE IF NOT EXISTS catalog.teacher_image_publications (
 CREATE INDEX IF NOT EXISTS teacher_image_publications_check ON catalog.teacher_image_publications(next_check);
 CREATE TABLE IF NOT EXISTS catalog.teacher_image_purges (
  class text NOT NULL CHECK(class IN ('avatars','body')), digest text NOT NULL CHECK(digest ~ '^[a-f0-9]{64}$'),
- queued_at timestamptz NOT NULL DEFAULT now(), PRIMARY KEY(class,digest)
+ queued_at timestamptz NOT NULL DEFAULT now(), job_id text NOT NULL DEFAULT '', PRIMARY KEY(class,digest)
 );
 REVOKE ALL ON catalog.teacher_image_objects,catalog.teacher_image_publications,catalog.teacher_image_purges FROM PUBLIC;
 CREATE INDEX IF NOT EXISTS teacher_image_source_digest ON catalog.teacher_homepage_photos(photo_id) WHERE data IS NULL;

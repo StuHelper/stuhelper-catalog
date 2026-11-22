@@ -90,17 +90,18 @@ func TestTeacherImageMigrationAndRevokedDelivery(t *testing.T) {
 	if store.serving[digest] || len(store.originals[digest]) == 0 {
 		t.Fatal("hidden delivery or retained original incorrect")
 	}
-	if _, err = repo.FlushTeacherImagePurges(ctx, 5, func(context.Context, []string) error { return c.ErrUnavailable }); err == nil {
-		t.Fatal("failed purge acknowledged")
+	purger := &testImagePurger{path: "avatars/" + digest}
+	if _, err = repo.FlushTeacherImagePurges(ctx, 5, purger); err != nil {
+		t.Fatal(err)
 	}
-	n, err := repo.FlushTeacherImagePurges(ctx, 5, func(_ context.Context, paths []string) error {
-		if len(paths) != 1 || paths[0] != "avatars/"+digest {
-			t.Fatal("wrong purge target")
-		}
-		return nil
-	})
-	if n != 1 || err != nil {
-		t.Fatalf("purge retry %d: %v", n, err)
+	purger.fail = true
+	if _, err = repo.FlushTeacherImagePurges(ctx, 5, purger); err == nil {
+		t.Fatal("failed provider status acknowledged")
+	}
+	purger.fail = false
+	n, err := repo.FlushTeacherImagePurges(ctx, 5, purger)
+	if n != 1 || err != nil || purger.submitted != 1 {
+		t.Fatalf("purge resume count %d: %v", n, err)
 	}
 	for _, want := range []int{1, 1, 0} {
 		n, err = migration.MigrateTeacherImages(ctx, store, true, 1)
@@ -139,4 +140,24 @@ func TestTeacherImageIssuanceLimits(t *testing.T) {
 			t.Fatal("rejected request changed counters")
 		}
 	}
+}
+
+type testImagePurger struct {
+	path      string
+	submitted int
+	fail      bool
+}
+
+func (p *testImagePurger) Submit(_ context.Context, paths []string) (string, error) {
+	if len(paths) != 1 || paths[0] != p.path {
+		return "", c.ErrInput
+	}
+	p.submitted++
+	return "test-job", nil
+}
+func (p *testImagePurger) Status(_ context.Context, job string, paths []string) (bool, bool, error) {
+	if p.fail || job != "test-job" || len(paths) != 1 || paths[0] != p.path {
+		return false, false, c.ErrUnavailable
+	}
+	return true, false, nil
 }

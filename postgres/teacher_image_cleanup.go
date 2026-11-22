@@ -111,7 +111,7 @@ func (t *transaction) checkImageObject(store c.TeacherImageObjects) (bool, error
 		if err = store.RemoveObject(t.ctx, k, false); err != nil {
 			return false, err
 		}
-		_, err = t.tx.ExecContext(t.ctx, `INSERT INTO catalog.teacher_image_purges(class,digest) VALUES($1,$2) ON CONFLICT DO NOTHING`, args...)
+		_, err = t.tx.ExecContext(t.ctx, `INSERT INTO catalog.teacher_image_purges(class,digest) VALUES($1,$2) ON CONFLICT (class,digest) DO UPDATE SET queued_at=now(),job_id=''`, args...)
 		if err != nil {
 			return false, safe(err)
 		}
@@ -128,10 +128,18 @@ func (t *transaction) checkImageObject(store c.TeacherImageObjects) (bool, error
 	return true, safe(err)
 }
 
-// FlushTeacherImagePurges acknowledges only successful purges. The callback
-// must wait for the provider task to finish. An interrupted batch is replayable.
-func (r *Repository) FlushTeacherImagePurges(ctx context.Context, limit int, purge func(context.Context, []string) error) (int, error) {
-	if limit < 1 || limit > 100 || purge == nil {
+// TeacherImagePurger reports completion separately from submission so a process
+// restart or temporary provider outage can continue polling the original job.
+type TeacherImagePurger interface {
+	Submit(context.Context, []string) (string, error)
+	Status(ctx context.Context, job string, paths []string) (complete, failed bool, err error)
+}
+
+// FlushTeacherImagePurges performs one bounded remote call. A transient
+// status error leaves the saved job ID intact. Re-invalidating a republished
+// object queues a fresh task even if an older task is still processing.
+func (r *Repository) FlushTeacherImagePurges(ctx context.Context, limit int, purger TeacherImagePurger) (int, error) {
+	if limit < 1 || limit > 100 || purger == nil {
 		return 0, c.ErrInput
 	}
 	tx, err := r.DB.BeginTx(ctx, nil)
@@ -139,7 +147,15 @@ func (r *Repository) FlushTeacherImagePurges(ctx context.Context, limit int, pur
 		return 0, safe(err)
 	}
 	defer tx.Rollback()
-	rows, err := tx.QueryContext(ctx, `SELECT class||'/'||digest FROM catalog.teacher_image_purges ORDER BY queued_at LIMIT $1 FOR UPDATE SKIP LOCKED`, limit)
+	var job string
+	err = tx.QueryRowContext(ctx, `SELECT job_id FROM catalog.teacher_image_purges ORDER BY queued_at LIMIT 1`).Scan(&job)
+	if errors.Is(err, sql.ErrNoRows) {
+		return 0, nil
+	}
+	if err != nil {
+		return 0, safe(err)
+	}
+	rows, err := tx.QueryContext(ctx, `SELECT class||'/'||digest FROM catalog.teacher_image_purges WHERE job_id=$1 ORDER BY queued_at,class,digest LIMIT $2 FOR UPDATE SKIP LOCKED`, job, limit)
 	if err != nil {
 		return 0, safe(err)
 	}
@@ -159,11 +175,34 @@ func (r *Repository) FlushTeacherImagePurges(ctx context.Context, limit int, pur
 	if len(names) == 0 {
 		return 0, nil
 	}
-	if err = purge(ctx, names); err != nil {
+	var complete, failed bool
+	if job == "" {
+		job, err = purger.Submit(ctx, names)
+		if err == nil && job == "" {
+			return 0, c.ErrUnavailable
+		}
+	} else {
+		complete, failed, err = purger.Status(ctx, job, names)
+	}
+	if err != nil {
 		return 0, err
 	}
-	if _, err = tx.ExecContext(ctx, `DELETE FROM catalog.teacher_image_purges WHERE class||'/'||digest=ANY($1)`, names); err != nil {
+	if complete {
+		_, err = tx.ExecContext(ctx, `DELETE FROM catalog.teacher_image_purges WHERE class||'/'||digest=ANY($1)`, names)
+	} else {
+		if failed {
+			job = ""
+		}
+		_, err = tx.ExecContext(ctx, `UPDATE catalog.teacher_image_purges SET job_id=$2,queued_at=now() WHERE class||'/'||digest=ANY($1)`, names, job)
+	}
+	if err != nil {
 		return 0, safe(err)
 	}
-	return len(names), safe(tx.Commit())
+	if err = tx.Commit(); err != nil {
+		return 0, safe(err)
+	}
+	if failed {
+		return 0, c.ErrUnavailable
+	}
+	return len(names), nil
 }
