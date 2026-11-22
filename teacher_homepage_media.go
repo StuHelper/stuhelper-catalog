@@ -66,7 +66,7 @@ type TeacherHomepageMediaView struct {
 }
 
 func validTeacherHomepageBodyImage(image TeacherHomepageBodyImage) bool {
-	return validTeacherHomepageHash(image.ID) && (image.MediaType == "image/jpeg" || image.MediaType == "image/png") &&
+	return validTeacherHomepageHash(image.ID) && (image.MediaType == "image/jpeg" || image.MediaType == "image/png" || image.MediaType == "image/gif") &&
 		image.SizeBytes > 0 && image.SizeBytes <= TeacherHomepageMaxBodyImageBytes &&
 		image.Width > 0 && image.Width <= teacherHomepageBodyImageEdge && image.Height > 0 && image.Height <= teacherHomepageBodyImageEdge &&
 		image.Width*image.Height <= teacherHomepageBodyImagePixels
@@ -76,6 +76,9 @@ func validTeacherHomepageBodyImage(image TeacherHomepageBodyImage) bool {
 func ValidateTeacherHomepageBodyImage(image TeacherHomepageBodyImage, data []byte) error {
 	if !validTeacherHomepageBodyImage(image) || int64(len(data)) != image.SizeBytes {
 		return ErrInput
+	}
+	if image.MediaType == "image/gif" {
+		return validateBodyGIF(image, data)
 	}
 	return validateTeacherHomepageImageBytes(data, image.ID, image.MediaType, image.Width, image.Height)
 }

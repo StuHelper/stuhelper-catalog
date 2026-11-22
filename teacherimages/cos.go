@@ -63,7 +63,7 @@ func (s *Store) Write(ctx context.Context, k c.TeacherImageKey, data []byte, pub
 		return c.ErrInput
 	}
 	mime := http.DetectContentType(data)
-	if mime != "image/jpeg" && mime != "image/png" {
+	if mime != "image/jpeg" && mime != "image/png" && !(k.Kind == c.BodyImageObject && mime == "image/gif") {
 		return c.ErrInput
 	}
 	checksum := md5.Sum(data) // Content-MD5 makes COS verify the upload in transit.

@@ -25,7 +25,7 @@ import (
 
 func TestCOSAdapterContentIntegrity(t *testing.T) {
 	ctx := context.Background()
-	data := append([]byte("\x89PNG\r\n\x1a\n"), bytes.Repeat([]byte{0}, 32)...)
+	data := append([]byte("GIF89a"), bytes.Repeat([]byte{0}, 32)...)
 	digest := fmt.Sprintf("%x", sha256.Sum256(data))
 	key := c.TeacherImageKey{Kind: c.BodyImageObject, Digest: digest}
 	var stored []byte
@@ -37,6 +37,9 @@ func TestCOSAdapterContentIntegrity(t *testing.T) {
 		}
 		switch r.Method {
 		case "PUT":
+			if r.Header.Get("Content-Type") != "image/gif" {
+				t.Error("wrong GIF content type on upload")
+			}
 			stored, _ = io.ReadAll(r.Body)
 			w.Header().Set("x-cos-hash-crc64ecma", strconv.FormatUint(crc64.Checksum(stored, crc64.MakeTable(crc64.ECMA)), 10))
 			w.WriteHeader(200)
@@ -62,6 +65,10 @@ func TestCOSAdapterContentIntegrity(t *testing.T) {
 	}
 	if err = store.Write(ctx, key, data, publish); err != nil || n != 1 {
 		t.Fatal("COS PUT did not publish")
+	}
+	avatar := c.TeacherImageKey{Kind: c.SitePortrait, School: "school", OwnerID: "site", Digest: digest}
+	if err = store.Write(ctx, avatar, data, publish); err == nil || n != 1 {
+		t.Fatal("accepted GIF as portrait")
 	}
 	if err = store.Write(ctx, key, []byte("different"), publish); err == nil || n != 1 {
 		t.Fatal("wrong digest published")

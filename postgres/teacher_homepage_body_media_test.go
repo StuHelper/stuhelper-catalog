@@ -351,3 +351,29 @@ func TestTeacherHomepageBodyImageQuotaWarningPersistsOutsidePublicJSON(t *testin
 		t.Fatalf("ordinary school principal accessed private recovery state: %v", err)
 	}
 }
+
+func TestBodyImageMediaTypeMigration(t *testing.T) {
+	_, db := activityDatabase(t)
+	ctx := context.Background()
+	// Recreate the previous JPEG/PNG constraint with an existing referenced-format row.
+	if _, err := db.ExecContext(ctx, `ALTER TABLE catalog.teacher_homepage_body_images DROP CONSTRAINT teacher_body_image_allowed_type,
+ ADD CONSTRAINT teacher_homepage_body_images_media_type_check CHECK(media_type IN ('image/jpeg','image/png'));
+ INSERT INTO catalog.teacher_homepage_body_images(image_id,media_type,width,height,size_bytes,data)
+ VALUES(repeat('a',64),'image/png',1,1,1,decode('01','hex'))`); err != nil {
+		t.Fatal(err)
+	}
+	for i := 0; i < 2; i++ {
+		if err := Migrate(ctx, db); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if _, err := db.ExecContext(ctx, `INSERT INTO catalog.teacher_homepage_body_images(image_id,media_type,width,height,size_bytes,data)
+ VALUES(repeat('b',64),'image/gif',1,1,1,decode('02','hex'))`); err != nil {
+		t.Fatal(err)
+	}
+	var count int
+	if err := db.QueryRowContext(ctx, `SELECT count(*) FROM catalog.teacher_homepage_body_images
+ WHERE (image_id=repeat('a',64) AND data=decode('01','hex')) OR (image_id=repeat('b',64) AND media_type='image/gif')`).Scan(&count); err != nil || count != 2 {
+		t.Fatalf("migration rows %d: %v", count, err)
+	}
+}

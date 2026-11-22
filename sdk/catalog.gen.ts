@@ -1789,7 +1789,7 @@ export interface components {
         };
         TeacherHomepageBodyImage: {
             /** @enum {string} */
-            content_type: "image/jpeg" | "image/png";
+            content_type: "image/jpeg" | "image/png" | "image/gif";
             width: number;
             height: number;
             /** Format: int64 */
@@ -5287,6 +5287,7 @@ export interface operations {
                 content: {
                     "image/jpeg": string;
                     "image/png": string;
+                    "image/gif": string;
                 };
             };
             /** @description Authorized private media redirect valid for 60 seconds */
@@ -5372,7 +5373,7 @@ export interface operations {
                     "Cache-Control"?: "private, no-store";
                     "X-Content-Type-Options"?: "nosniff";
                     "Content-Length"?: number;
-                    "Content-Type"?: "image/jpeg" | "image/png";
+                    "Content-Type"?: "image/jpeg" | "image/png" | "image/gif";
                     "X-Accel-Buffering"?: "no";
                     [name: string]: unknown;
                 };

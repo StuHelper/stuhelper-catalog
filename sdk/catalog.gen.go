@@ -422,6 +422,7 @@ func (e TeacherHomepageSupervisors) Valid() bool {
 
 // Defines values for TeacherHomepageBodyImageContentType.
 const (
+	TeacherHomepageBodyImageContentTypeImagegif  TeacherHomepageBodyImageContentType = "image/gif"
 	TeacherHomepageBodyImageContentTypeImagejpeg TeacherHomepageBodyImageContentType = "image/jpeg"
 	TeacherHomepageBodyImageContentTypeImagepng  TeacherHomepageBodyImageContentType = "image/png"
 )
@@ -429,6 +430,8 @@ const (
 // Valid indicates whether the value is a known member of the TeacherHomepageBodyImageContentType enum.
 func (e TeacherHomepageBodyImageContentType) Valid() bool {
 	switch e {
+	case TeacherHomepageBodyImageContentTypeImagegif:
+		return true
 	case TeacherHomepageBodyImageContentTypeImagejpeg:
 		return true
 	case TeacherHomepageBodyImageContentTypeImagepng:

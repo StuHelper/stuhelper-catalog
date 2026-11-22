@@ -6,6 +6,9 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
+	"image"
+	"image/color"
+	"image/gif"
 	"net/http"
 	"strconv"
 	"strings"
@@ -33,10 +36,18 @@ func checkBodyMediaStorage(t *testing.T, store c.TeacherImageStorage) {
 	access := &bodyMediaReadAccess{}
 	s.ReadAccess = access
 	h := homepageHandler(s)
-	data := homepagePortrait(t)
+	var encoded bytes.Buffer
+	palette := color.Palette{color.Black, color.White}
+	first := image.NewPaletted(image.Rect(0, 0, 3, 1), palette)
+	second := image.NewPaletted(first.Bounds(), palette)
+	second.SetColorIndex(1, 0, 1)
+	if err := gif.EncodeAll(&encoded, &gif.GIF{Image: []*image.Paletted{first, second}, Delay: []int{7, 18}}); err != nil {
+		t.Fatal(err)
+	}
+	data := encoded.Bytes()
 	sha := sha256.Sum256(data)
 	imageID := hex.EncodeToString(sha[:])
-	image := &c.TeacherHomepageBodyImage{ID: imageID, MediaType: "image/png", Width: 3, Height: 1, SizeBytes: int64(len(data))}
+	image := &c.TeacherHomepageBodyImage{ID: imageID, MediaType: "image/gif", Width: 3, Height: 1, SizeBytes: int64(len(data))}
 	const mediaURL = homepagePublic + "/media"
 	const originalArticle = "https://shi.buaa.edu.cn/auto/en/publications/200.htm"
 	const fallbackPage = "https://shi.buaa.edu.cn/auto/en/index.htm"
@@ -73,7 +84,7 @@ func checkBodyMediaStorage(t *testing.T, store c.TeacherImageStorage) {
 			if status != http.StatusOK {
 				continue
 			}
-			if r.Header().Get("Content-Type") != "image/png" || r.Header().Get("Content-Length") != strconv.Itoa(len(data)) ||
+			if r.Header().Get("Content-Type") != "image/gif" || r.Header().Get("Content-Length") != strconv.Itoa(len(data)) ||
 				r.Header().Get("X-Content-Type-Options") != "nosniff" || r.Header().Get("X-Accel-Buffering") != "no" {
 				t.Fatalf("invalid image headers: %v", r.Header())
 			}
@@ -84,7 +95,7 @@ func checkBodyMediaStorage(t *testing.T, store c.TeacherImageStorage) {
 	}
 	items := readMedia()
 	if len(items) != 5 || items[0].URL != fallbackPage || items[0].Image != nil || items[1].URL != imageURL || items[1].Image == nil ||
-		items[1].Image.SizeBytes != int64(len(data)) || items[2].Section != "Teaching" || items[2].URL != videoURL || items[2].Image != nil ||
+		items[1].Image.MediaType != "image/gif" || items[1].Image.SizeBytes != int64(len(data)) || items[2].Section != "Teaching" || items[2].URL != videoURL || items[2].Image != nil ||
 		items[3].Kind != "attachment" || items[3].URL != paperURL || items[3].Image != nil || items[4].URL != privateURL {
 		t.Fatalf("wrong ordered media and fallback view: %+v", items)
 	}
