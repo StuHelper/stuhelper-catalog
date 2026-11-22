@@ -8,11 +8,13 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
+	"hash/crc64"
 	"io"
 	"net/http"
 	"net/http/httptest"
 	"net/netip"
 	"net/url"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -36,6 +38,7 @@ func TestCOSAdapterContentIntegrity(t *testing.T) {
 		switch r.Method {
 		case "PUT":
 			stored, _ = io.ReadAll(r.Body)
+			w.Header().Set("x-cos-hash-crc64ecma", strconv.FormatUint(crc64.Checksum(stored, crc64.MakeTable(crc64.ECMA)), 10))
 			w.WriteHeader(200)
 		case "GET":
 			_, _ = w.Write(stored)
