@@ -183,7 +183,12 @@ func TestTeacherHomepageRequestsPostgresAuthorizationAndReview(t *testing.T) {
 }
 
 func TestTeacherHomepageRequestsPostgresIndependentPortrait(t *testing.T) {
-	s, p, _, _ := homepageFixture(t)
+	checkRequestPortraitStorage(t, nil)
+}
+
+func checkRequestPortraitStorage(t *testing.T, store c.TeacherImageStorage) {
+	t.Helper()
+	s, p, _, _ := homepageFixtureWithImages(t, store)
 	s.TeacherHomepageOwnership = &homepageOwnershipFixture{teacher: "legacy"}
 	h := homepageHandler(s)
 	const objectPath = "/api/v1/catalog/objects/legacy"

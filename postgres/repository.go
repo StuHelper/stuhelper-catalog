@@ -32,7 +32,9 @@ var teacherHomepageRequestSchema string
 var Schema = baseSchema + "\n" + courseSearchSchema + "\n" + activityCalendarSchema + "\n" + teacherHomepageRequestSchema
 
 type Repository struct {
-	DB *sql.DB
+	// TeacherImageStorage overrides byte storage; nil uses the existing PostgreSQL rows.
+	TeacherImageStorage catalog.TeacherImageStorage
+	DB                  *sql.DB
 	// Enable in product composition. Maintenance candidate enumeration has its
 	// own authorized port and does not disable this public read filter.
 	RequireTeacherDirectory    bool
@@ -41,6 +43,7 @@ type Repository struct {
 	directoryData              *directoryCache
 }
 type transaction struct {
+	teacherImageStorage     catalog.TeacherImageStorage
 	projectionRead          bool
 	repoDirectoryProjection bool
 	projectionSchools       map[string]bool
@@ -106,6 +109,7 @@ func (r *Repository) Transaction(ctx context.Context, run func(catalog.Transacti
 	}
 	defer tx.Rollback()
 	t := &transaction{
+		teacherImageStorage:     r.TeacherImageStorage,
 		tx:                      tx,
 		ctx:                     ctx,
 		objects:                 map[string]catalog.Record{},

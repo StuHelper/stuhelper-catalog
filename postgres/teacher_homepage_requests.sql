@@ -47,10 +47,11 @@ CREATE TABLE IF NOT EXISTS catalog.teacher_homepage_request_photos (
  media_type text NOT NULL CHECK(media_type IN ('image/jpeg','image/png')),
  width integer NOT NULL CHECK(width BETWEEN 1 AND 4096),
  height integer NOT NULL CHECK(height BETWEEN 1 AND 4096),
- data bytea NOT NULL CHECK(octet_length(data) BETWEEN 1 AND 2097152),
+ data bytea CHECK(octet_length(data) BETWEEN 1 AND 2097152),
  CHECK(width::bigint * height <= 8388608),
  CHECK(photo_id = encode(sha256(data),'hex'))
 );
+ALTER TABLE catalog.teacher_homepage_request_photos ALTER COLUMN data DROP NOT NULL;
 
 CREATE TABLE IF NOT EXISTS catalog.teacher_homepage_request_replays (
  key text PRIMARY KEY REFERENCES catalog.replays(key) ON DELETE CASCADE

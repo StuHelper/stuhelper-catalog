@@ -101,21 +101,26 @@ func (t *transaction) SaveTeacherHomepageAllowlist(school string, in c.TeacherHo
 
 func (t *transaction) TeacherHomepageOverridePhoto(school, teacherID, photoID string) (c.TeacherHomepageImage, error) {
 	var out c.TeacherHomepageImage
-	err := t.tx.QueryRowContext(t.ctx, `SELECT p.photo_id,p.media_type,p.width,p.height,p.data
+	err := t.tx.QueryRowContext(t.ctx, `SELECT p.photo_id,p.media_type,p.width,p.height
  FROM catalog.objects o JOIN catalog.teacher_homepage_override_photos p ON p.school_id=o.school_id AND p.teacher_id=o.id
  WHERE `+activeHomepageControlsTeacher+` AND p.photo_id=$3`, school, teacherID, photoID).
-		Scan(&out.ID, &out.MediaType, &out.Width, &out.Height, &out.Bytes)
-	return out, safe(err)
+		Scan(&out.ID, &out.MediaType, &out.Width, &out.Height)
+	if err != nil {
+		return out, safe(err)
+	}
+	return t.readImage(c.TeacherImageKey{Kind: c.OverridePortrait, School: school, OwnerID: teacherID, Digest: out.ID}, out)
 }
 
 func (t *transaction) SaveTeacherHomepageOverridePhoto(school, teacherID string, photo c.TeacherHomepageImage) error {
-	res, err := t.tx.ExecContext(t.ctx, `INSERT INTO catalog.teacher_homepage_override_photos
+	return t.imageStore().Write(t.ctx, c.TeacherImageKey{Kind: c.OverridePortrait, School: school, OwnerID: teacherID, Digest: photo.ID}, photo.Bytes, func(inline []byte) error {
+		res, err := t.tx.ExecContext(t.ctx, `INSERT INTO catalog.teacher_homepage_override_photos
  (school_id,teacher_id,photo_id,media_type,width,height,data) SELECT o.school_id,o.id,$3,$4,$5,$6,$7
  FROM catalog.objects o WHERE `+activeHomepageControlsTeacher+`
  ON CONFLICT(school_id,teacher_id) DO UPDATE SET
  photo_id=excluded.photo_id,media_type=excluded.media_type,width=excluded.width,height=excluded.height,data=excluded.data`,
-		school, teacherID, photo.ID, photo.MediaType, photo.Width, photo.Height, photo.Bytes)
-	return teacherHomepageWriteResult(res, err)
+			school, teacherID, photo.ID, photo.MediaType, photo.Width, photo.Height, inline)
+		return teacherHomepageWriteResult(res, err)
+	})
 }
 
 func (t *transaction) DeleteTeacherHomepageOverridePhoto(school, teacherID string) error {

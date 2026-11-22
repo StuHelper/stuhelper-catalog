@@ -147,6 +147,7 @@ scenario_tests:
   CAT-TEACHER-14:
     - teacher_homepage_media_postgres_test.go#TestTeacherHomepageBodyMediaPostgresAuthorizationAndRevocation
   CAT-TEACHER-15:
+    - teacher_image_storage_test.go#TestTeacherImageStorageKeepsAuthorizationAndPrivateNamespaces
     - teacher_homepage_media_test.go#TestTeacherHomepageBodyMediaSnapshotValidation
     - teacher_homepage_media_test.go#TestTeacherHomepageBodyImageValidatesBytes
     - postgres/teacher_homepage_body_media_test.go#TestTeacherHomepageBodyImagesQuotaFallbackAndReplacement

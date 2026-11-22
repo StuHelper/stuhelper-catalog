@@ -215,11 +215,15 @@ func (t *transaction) saveTeacherHomepagePhotos(in c.TeacherSiteSnapshot) error 
 		if err := c.ValidateTeacherHomepageImage(image); err != nil {
 			return err
 		}
-		if _, err := t.tx.ExecContext(t.ctx, `INSERT INTO catalog.teacher_homepage_photos(school_id,site_id,photo_id,media_type,width,height,data)
+		key := c.TeacherImageKey{Kind: c.SitePortrait, School: in.SchoolID, OwnerID: site.SiteID, Digest: image.ID}
+		if err := t.imageStore().Write(t.ctx, key, image.Bytes, func(inline []byte) error {
+			_, err := t.tx.ExecContext(t.ctx, `INSERT INTO catalog.teacher_homepage_photos(school_id,site_id,photo_id,media_type,width,height,data)
  VALUES($1,$2,$3,$4,$5,$6,$7)
  ON CONFLICT(school_id,site_id,photo_id) DO UPDATE SET media_type=excluded.media_type,width=excluded.width,height=excluded.height,data=excluded.data`,
-			in.SchoolID, site.SiteID, image.ID, image.MediaType, image.Width, image.Height, image.Bytes); err != nil {
+				in.SchoolID, site.SiteID, image.ID, image.MediaType, image.Width, image.Height, inline)
 			return safe(err)
+		}); err != nil {
+			return err
 		}
 	}
 	_, err = t.tx.ExecContext(t.ctx, `DELETE FROM catalog.teacher_homepage_photos p USING catalog.teacher_homepage_sites s
