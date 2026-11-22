@@ -34,7 +34,7 @@ func (h Handler) teacherHomepageBodyImage(downloads chan struct{}) http.HandlerF
 		if !ok {
 			return
 		}
-		loadBytes := r.Method != http.MethodHead
+		loadBytes := r.Method != http.MethodHead && h.ImageRedirect == nil
 		if loadBytes {
 			// A slow download holds at most one bounded image until the
 			// server write deadline. HEAD never reads the stored bytes.
@@ -49,6 +49,10 @@ func (h Handler) teacherHomepageBodyImage(downloads chan struct{}) http.HandlerF
 		image, err := h.Service.ReadTeacherHomepageBodyImage(r.Context(), p, r.PathValue("id"), r.PathValue("image_id"), loadBytes)
 		if err != nil {
 			respond(w, nil, err)
+			return
+		}
+		if h.ImageRedirect != nil {
+			h.redirectTeacherImage(w, r, p, catalog.TeacherImageKey{Kind: catalog.BodyImageObject, Digest: image.ID, School: image.DeliverySchool, OwnerID: r.PathValue("id")})
 			return
 		}
 		w.Header().Set("Content-Type", image.MediaType)

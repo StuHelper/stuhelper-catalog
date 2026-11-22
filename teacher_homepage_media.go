@@ -305,6 +305,7 @@ func (s *Service) ReadTeacherHomepageBodyImage(ctx context.Context, p Principal,
 		// The approved-media read above used this same transaction and repository.
 		port := t.(TeacherHomepageBodyMediaTransaction)
 		out, err = port.TeacherHomepageBodyImage(teacher.SchoolID, teacherHomepageID(teacher), imageID, loadBytes)
+		out.DeliverySchool = teacher.SchoolID
 		if err != nil {
 			return err
 		}

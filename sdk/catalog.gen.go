@@ -9651,6 +9651,16 @@ type GetTeacherHomepageRequestPhotoResponse200Headers struct {
 	ContentLength *int
 }
 
+// GetTeacherHomepageRequestPhotoResponse302Headers the declared response headers of an HTTP 302 response for GetTeacherHomepageRequestPhoto
+type GetTeacherHomepageRequestPhotoResponse302Headers struct {
+	Location string
+}
+
+// GetTeacherHomepageRequestPhotoResponse429Headers the declared response headers of an HTTP 429 response for GetTeacherHomepageRequestPhoto
+type GetTeacherHomepageRequestPhotoResponse429Headers struct {
+	RetryAfter int
+}
+
 type GetTeacherHomepageRequestPhotoResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -9666,6 +9676,10 @@ type GetTeacherHomepageRequestPhotoResponse struct {
 	JSON503 *Error
 	// Headers200 the parsed response headers for an HTTP 200 response
 	Headers200 *GetTeacherHomepageRequestPhotoResponse200Headers
+	// Headers302 the parsed response headers for an HTTP 302 response
+	Headers302 *GetTeacherHomepageRequestPhotoResponse302Headers
+	// Headers429 the parsed response headers for an HTTP 429 response
+	Headers429 *GetTeacherHomepageRequestPhotoResponse429Headers
 }
 
 // GetJSON400 returns the response for an HTTP 400 `application/json` response
@@ -12455,6 +12469,16 @@ type GetTeacherHomepageBodyImageResponse200Headers struct {
 	XContentTypeOptions *string
 }
 
+// GetTeacherHomepageBodyImageResponse302Headers the declared response headers of an HTTP 302 response for GetTeacherHomepageBodyImage
+type GetTeacherHomepageBodyImageResponse302Headers struct {
+	Location string
+}
+
+// GetTeacherHomepageBodyImageResponse429Headers the declared response headers of an HTTP 429 response for GetTeacherHomepageBodyImage
+type GetTeacherHomepageBodyImageResponse429Headers struct {
+	RetryAfter int
+}
+
 type GetTeacherHomepageBodyImageResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -12470,6 +12494,10 @@ type GetTeacherHomepageBodyImageResponse struct {
 	JSON503 *Error
 	// Headers200 the parsed response headers for an HTTP 200 response
 	Headers200 *GetTeacherHomepageBodyImageResponse200Headers
+	// Headers302 the parsed response headers for an HTTP 302 response
+	Headers302 *GetTeacherHomepageBodyImageResponse302Headers
+	// Headers429 the parsed response headers for an HTTP 429 response
+	Headers429 *GetTeacherHomepageBodyImageResponse429Headers
 }
 
 // GetJSON400 returns the response for an HTTP 400 `application/json` response
@@ -12535,11 +12563,25 @@ type HeadTeacherHomepageBodyImageResponse200Headers struct {
 	XContentTypeOptions *string
 }
 
+// HeadTeacherHomepageBodyImageResponse302Headers the declared response headers of an HTTP 302 response for HeadTeacherHomepageBodyImage
+type HeadTeacherHomepageBodyImageResponse302Headers struct {
+	Location string
+}
+
+// HeadTeacherHomepageBodyImageResponse429Headers the declared response headers of an HTTP 429 response for HeadTeacherHomepageBodyImage
+type HeadTeacherHomepageBodyImageResponse429Headers struct {
+	RetryAfter int
+}
+
 type HeadTeacherHomepageBodyImageResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
 	// Headers200 the parsed response headers for an HTTP 200 response
 	Headers200 *HeadTeacherHomepageBodyImageResponse200Headers
+	// Headers302 the parsed response headers for an HTTP 302 response
+	Headers302 *HeadTeacherHomepageBodyImageResponse302Headers
+	// Headers429 the parsed response headers for an HTTP 429 response
+	Headers429 *HeadTeacherHomepageBodyImageResponse429Headers
 }
 
 // GetBody returns the raw response body bytes
@@ -12660,6 +12702,16 @@ type GetTeacherHomepagePhotoResponse200Headers struct {
 	XContentTypeOptions *string
 }
 
+// GetTeacherHomepagePhotoResponse302Headers the declared response headers of an HTTP 302 response for GetTeacherHomepagePhoto
+type GetTeacherHomepagePhotoResponse302Headers struct {
+	Location string
+}
+
+// GetTeacherHomepagePhotoResponse429Headers the declared response headers of an HTTP 429 response for GetTeacherHomepagePhoto
+type GetTeacherHomepagePhotoResponse429Headers struct {
+	RetryAfter int
+}
+
 type GetTeacherHomepagePhotoResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -12675,6 +12727,10 @@ type GetTeacherHomepagePhotoResponse struct {
 	JSON503 *Error
 	// Headers200 the parsed response headers for an HTTP 200 response
 	Headers200 *GetTeacherHomepagePhotoResponse200Headers
+	// Headers302 the parsed response headers for an HTTP 302 response
+	Headers302 *GetTeacherHomepagePhotoResponse302Headers
+	// Headers429 the parsed response headers for an HTTP 429 response
+	Headers429 *GetTeacherHomepagePhotoResponse429Headers
 }
 
 // GetJSON400 returns the response for an HTTP 400 `application/json` response
@@ -14802,6 +14858,9 @@ func ParseGetTeacherHomepageRequestPhotoResponse(rsp *http.Response) (*GetTeache
 	}
 
 	switch {
+	case rsp.StatusCode == 302:
+		break // No content-type
+
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
 		var dest Error
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
@@ -14830,6 +14889,9 @@ func ParseGetTeacherHomepageRequestPhotoResponse(rsp *http.Response) (*GetTeache
 		}
 		response.JSON404 = &dest
 
+	case rsp.StatusCode == 429:
+		break // No content-type
+
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
 		var dest Error
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
@@ -14857,6 +14919,26 @@ func ParseGetTeacherHomepageRequestPhotoResponse(rsp *http.Response) (*GetTeache
 			headers.ContentLength = &value
 		}
 		response.Headers200 = &headers
+	case rsp.StatusCode == 302:
+		var headers GetTeacherHomepageRequestPhotoResponse302Headers
+		if values := rsp.Header.Values("Location"); len(values) > 0 {
+			var value string
+			if err := runtime.BindStyledParameterWithOptions("simple", "Location", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: true, Type: "string", Format: "uri"}); err != nil {
+				return nil, err
+			}
+			headers.Location = value
+		}
+		response.Headers302 = &headers
+	case rsp.StatusCode == 429:
+		var headers GetTeacherHomepageRequestPhotoResponse429Headers
+		if values := rsp.Header.Values("Retry-After"); len(values) > 0 {
+			var value int
+			if err := runtime.BindStyledParameterWithOptions("simple", "Retry-After", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: true, Type: "integer", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.RetryAfter = value
+		}
+		response.Headers429 = &headers
 	}
 
 	return response, nil
@@ -17106,6 +17188,9 @@ func ParseGetTeacherHomepageBodyImageResponse(rsp *http.Response) (*GetTeacherHo
 	}
 
 	switch {
+	case rsp.StatusCode == 302:
+		break // No content-type
+
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
 		var dest Error
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
@@ -17133,6 +17218,9 @@ func ParseGetTeacherHomepageBodyImageResponse(rsp *http.Response) (*GetTeacherHo
 			return nil, err
 		}
 		response.JSON404 = &dest
+
+	case rsp.StatusCode == 429:
+		break // No content-type
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
 		var dest Error
@@ -17175,6 +17263,26 @@ func ParseGetTeacherHomepageBodyImageResponse(rsp *http.Response) (*GetTeacherHo
 			headers.XContentTypeOptions = &value
 		}
 		response.Headers200 = &headers
+	case rsp.StatusCode == 302:
+		var headers GetTeacherHomepageBodyImageResponse302Headers
+		if values := rsp.Header.Values("Location"); len(values) > 0 {
+			var value string
+			if err := runtime.BindStyledParameterWithOptions("simple", "Location", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: true, Type: "string", Format: "uri"}); err != nil {
+				return nil, err
+			}
+			headers.Location = value
+		}
+		response.Headers302 = &headers
+	case rsp.StatusCode == 429:
+		var headers GetTeacherHomepageBodyImageResponse429Headers
+		if values := rsp.Header.Values("Retry-After"); len(values) > 0 {
+			var value int
+			if err := runtime.BindStyledParameterWithOptions("simple", "Retry-After", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: true, Type: "integer", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.RetryAfter = value
+		}
+		response.Headers429 = &headers
 	}
 
 	return response, nil
@@ -17232,6 +17340,26 @@ func ParseHeadTeacherHomepageBodyImageResponse(rsp *http.Response) (*HeadTeacher
 			headers.XContentTypeOptions = &value
 		}
 		response.Headers200 = &headers
+	case rsp.StatusCode == 302:
+		var headers HeadTeacherHomepageBodyImageResponse302Headers
+		if values := rsp.Header.Values("Location"); len(values) > 0 {
+			var value string
+			if err := runtime.BindStyledParameterWithOptions("simple", "Location", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: true, Type: "string", Format: "uri"}); err != nil {
+				return nil, err
+			}
+			headers.Location = value
+		}
+		response.Headers302 = &headers
+	case rsp.StatusCode == 429:
+		var headers HeadTeacherHomepageBodyImageResponse429Headers
+		if values := rsp.Header.Values("Retry-After"); len(values) > 0 {
+			var value int
+			if err := runtime.BindStyledParameterWithOptions("simple", "Retry-After", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: true, Type: "integer", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.RetryAfter = value
+		}
+		response.Headers429 = &headers
 	}
 
 	return response, nil
@@ -17325,6 +17453,9 @@ func ParseGetTeacherHomepagePhotoResponse(rsp *http.Response) (*GetTeacherHomepa
 	}
 
 	switch {
+	case rsp.StatusCode == 302:
+		break // No content-type
+
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
 		var dest Error
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
@@ -17353,6 +17484,9 @@ func ParseGetTeacherHomepagePhotoResponse(rsp *http.Response) (*GetTeacherHomepa
 		}
 		response.JSON404 = &dest
 
+	case rsp.StatusCode == 429:
+		break // No content-type
+
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
 		var dest Error
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
@@ -17380,6 +17514,26 @@ func ParseGetTeacherHomepagePhotoResponse(rsp *http.Response) (*GetTeacherHomepa
 			headers.XContentTypeOptions = &value
 		}
 		response.Headers200 = &headers
+	case rsp.StatusCode == 302:
+		var headers GetTeacherHomepagePhotoResponse302Headers
+		if values := rsp.Header.Values("Location"); len(values) > 0 {
+			var value string
+			if err := runtime.BindStyledParameterWithOptions("simple", "Location", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: true, Type: "string", Format: "uri"}); err != nil {
+				return nil, err
+			}
+			headers.Location = value
+		}
+		response.Headers302 = &headers
+	case rsp.StatusCode == 429:
+		var headers GetTeacherHomepagePhotoResponse429Headers
+		if values := rsp.Header.Values("Retry-After"); len(values) > 0 {
+			var value int
+			if err := runtime.BindStyledParameterWithOptions("simple", "Retry-After", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: true, Type: "integer", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.RetryAfter = value
+		}
+		response.Headers429 = &headers
 	}
 
 	return response, nil

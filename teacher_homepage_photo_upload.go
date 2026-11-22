@@ -71,6 +71,15 @@ func (output *boundedTeacherHomepageImage) Write(data []byte) (int, error) {
 }
 
 func (s *Service) ReadTeacherHomepageRequestPhoto(ctx context.Context, p Principal, school, id string) (TeacherHomepageImage, error) {
+	return s.readRequestPhoto(ctx, p, school, id, true)
+}
+
+func (s *Service) TeacherRequestPhotoForDelivery(ctx context.Context, p Principal, school, id string) (TeacherImageKey, error) {
+	img, err := s.readRequestPhoto(ctx, p, school, id, false)
+	return TeacherImageKey{Kind: RequestPortrait, School: school, OwnerID: id, Digest: img.ID}, err
+}
+
+func (s *Service) readRequestPhoto(ctx context.Context, p Principal, school, id string, load bool) (TeacherHomepageImage, error) {
 	const action = "request-photo-viewed"
 	if err := s.teacherRefreshAccess(ctx, p, school, action, p.CanMaintain); err != nil {
 		return TeacherHomepageImage{}, err
@@ -84,16 +93,31 @@ func (s *Service) ReadTeacherHomepageRequestPhoto(ctx context.Context, p Princip
 		if err != nil {
 			return err
 		}
-		photo, err = port.ReadTeacherHomepageRequestPhoto(school, id)
+		if load {
+			photo, err = port.ReadTeacherHomepageRequestPhoto(school, id)
+		} else {
+			meta, ok := t.(interface {
+				TeacherHomepageRequestPhotoMetadata(string, string) (TeacherHomepageImage, error)
+			})
+			if !ok {
+				return ErrUnavailable
+			}
+			photo, err = meta.TeacherHomepageRequestPhotoMetadata(school, id)
+		}
 		if err != nil {
 			return err
 		}
-		if !validTeacherHomepagePhotoMetadata(photo) || len(photo.Bytes) == 0 || len(photo.Bytes) > TeacherHomepageMaxPhotoBytes {
+		if !validTeacherHomepagePhotoMetadata(photo) {
 			return ErrUnavailable
 		}
-		sum := sha256.Sum256(photo.Bytes)
-		if hex.EncodeToString(sum[:]) != photo.ID {
-			return ErrUnavailable
+		if load {
+			if len(photo.Bytes) == 0 || len(photo.Bytes) > TeacherHomepageMaxPhotoBytes {
+				return ErrUnavailable
+			}
+			sum := sha256.Sum256(photo.Bytes)
+			if hex.EncodeToString(sum[:]) != photo.ID {
+				return ErrUnavailable
+			}
 		}
 		return s.teacherRefreshAudit(t, p, school, action, "teacher-homepage-request/"+id, "success")
 	})

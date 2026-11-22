@@ -179,3 +179,7 @@ PUT 需要 `Idempotency-Key`、`action` 和 `expected_revision`。人工绑定�
 `TeacherImageStorage` 位于 `teacher_image_storage.go`，装配入口是 `postgres.Repository.TeacherImageStorage`。默认适配器 `postgres.InlineTeacherImages` 继续使用现有事务和 PostgreSQL 字节列。正文按摘要去重，官网头像、人工头像及申请头像以各自的学校、归属和摘要区分。
 
 读取先核对可见性与当前归属，再调用适配器。写入先验证图片，再由适配器发布元数据。外部实现须幂等写入并调用 `publish(nil)`，使事务仅保存引用；回滚后按已提交引用回收孤立对象。已有内联数据可由 `readInline` 读取。签名、边缘撤权和对象迁移由分发模块负责。
+
+启用 COS 时，四类图片的私有原图按用途与 SHA-256 存储。完成当前权限和展示规则检查后，GET、HEAD 返回 302。首次签发为该摘要建立分发副本。客户端立即使用 Location，已签发链接在 60 秒内可能被转发。
+
+限流使用数据库自然分钟，用户每分钟 120 次、IP 240 次、全站 1,200 次。任一超限返回 429，Retry-After 为距下个签发窗口的秒数（1 至 60）。核对任务检查现有展示引用，在最后一个展示引用失效后移除分发副本，并将刷新路径写入可重试队列。最后一个存储引用消失后删除私有原图。

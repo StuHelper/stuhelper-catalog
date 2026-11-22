@@ -57,7 +57,10 @@ func (t *transaction) SaveTeacherHomepageControls(school, teacherID string, in c
  rules=excluded.rules,updated_at=excluded.updated_at
  WHERE publication.revision=excluded.revision-1`,
 		school, teacherID, in.Revision, in.PageVisibility, string(raw), at)
-	return teacherHomepageWriteResult(res, err)
+	if err = teacherHomepageWriteResult(res, err); err != nil {
+		return err
+	}
+	return t.recheckTeacherImagePublications(school, teacherID)
 }
 
 const homepageControlsSchool = ` FROM catalog.objects o
@@ -96,23 +99,30 @@ func (t *transaction) SaveTeacherHomepageAllowlist(school string, in c.TeacherHo
  AND COALESCE(saved.revision,0)=$2::bigint-1
  ON CONFLICT(school_id) DO UPDATE SET revision=excluded.revision,fields=excluded.fields,updated_at=excluded.updated_at
  WHERE allowlist.revision=excluded.revision-1`, school, in.Revision, string(raw), at)
-	return teacherHomepageWriteResult(res, err)
+	if err = teacherHomepageWriteResult(res, err); err != nil {
+		return err
+	}
+	return t.recheckTeacherImagePublications(school, "")
 }
 
 func (t *transaction) TeacherHomepageOverridePhoto(school, teacherID, photoID string) (c.TeacherHomepageImage, error) {
+	return t.overridePhoto(school, teacherID, photoID, true)
+}
+
+func (t *transaction) overridePhoto(school, teacherID, photoID string, loadBytes bool) (c.TeacherHomepageImage, error) {
 	var out c.TeacherHomepageImage
 	err := t.tx.QueryRowContext(t.ctx, `SELECT p.photo_id,p.media_type,p.width,p.height
  FROM catalog.objects o JOIN catalog.teacher_homepage_override_photos p ON p.school_id=o.school_id AND p.teacher_id=o.id
  WHERE `+activeHomepageControlsTeacher+` AND p.photo_id=$3`, school, teacherID, photoID).
 		Scan(&out.ID, &out.MediaType, &out.Width, &out.Height)
-	if err != nil {
+	if err != nil || !loadBytes {
 		return out, safe(err)
 	}
 	return t.readImage(c.TeacherImageKey{Kind: c.OverridePortrait, School: school, OwnerID: teacherID, Digest: out.ID}, out)
 }
 
 func (t *transaction) SaveTeacherHomepageOverridePhoto(school, teacherID string, photo c.TeacherHomepageImage) error {
-	return t.imageStore().Write(t.ctx, c.TeacherImageKey{Kind: c.OverridePortrait, School: school, OwnerID: teacherID, Digest: photo.ID}, photo.Bytes, func(inline []byte) error {
+	return t.writeTeacherImage(c.TeacherImageKey{Kind: c.OverridePortrait, School: school, OwnerID: teacherID, Digest: photo.ID}, photo.Bytes, func(inline []byte) error {
 		res, err := t.tx.ExecContext(t.ctx, `INSERT INTO catalog.teacher_homepage_override_photos
  (school_id,teacher_id,photo_id,media_type,width,height,data) SELECT o.school_id,o.id,$3,$4,$5,$6,$7
  FROM catalog.objects o WHERE `+activeHomepageControlsTeacher+`

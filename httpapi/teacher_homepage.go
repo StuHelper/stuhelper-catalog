@@ -41,6 +41,15 @@ func (h Handler) teacherHomepagePhoto(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
+	if h.ImageRedirect != nil {
+		key, err := h.Service.TeacherPhotoForDelivery(r.Context(), p, r.PathValue("id"), r.PathValue("photo_id"))
+		if err != nil {
+			respond(w, nil, err)
+			return
+		}
+		h.redirectTeacherImage(w, r, p, key)
+		return
+	}
 	photo, err := h.Service.ReadTeacherHomepagePhoto(r.Context(), p, r.PathValue("id"), r.PathValue("photo_id"))
 	if err != nil {
 		respond(w, nil, err)

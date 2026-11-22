@@ -17,8 +17,9 @@ import (
 
 type Authenticate func(*http.Request) (catalog.Principal, error)
 type Handler struct {
-	Service      *catalog.Service
-	Authenticate Authenticate
+	Service       *catalog.Service
+	Authenticate  Authenticate
+	ImageRedirect TeacherImageRedirect
 }
 
 func (h Handler) Routes() http.Handler {
