@@ -53,6 +53,7 @@ type transaction struct {
 	pendingTeacherSchools   map[string]bool
 	teachingTime            time.Time
 	mutationTime            time.Time
+	bodyImageQuotaExceeded  bool
 	tx                      *sql.Tx
 	ctx                     context.Context
 	objects                 map[string]catalog.Record

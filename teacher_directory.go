@@ -57,13 +57,15 @@ type TeacherSiteSnapshot struct {
 	Sites                []TeacherSite                                 `json:"sites,omitempty"`
 	Teachers             []TeacherSiteTeacher                          `json:"teachers,omitempty"`
 	ReadPhoto            func(context.Context, string) ([]byte, error) `json:"-"`
+	ReadBodyImage        func(context.Context, string) ([]byte, error) `json:"-"`
 }
 
 type TeacherDirectoryResult struct {
-	Teaching int `json:"teaching"`
-	Official int `json:"official"`
-	Both     int `json:"both"`
-	Eligible int `json:"eligible"`
+	Teaching               int  `json:"teaching"`
+	Official               int  `json:"official"`
+	Both                   int  `json:"both"`
+	Eligible               int  `json:"eligible"`
+	BodyImageQuotaExceeded bool `json:"-"`
 }
 
 // TeacherDirectoryTransaction is implemented by the owning repository. It is
@@ -180,6 +182,7 @@ func (s *Service) ImportTeacherSites(ctx context.Context, p Principal, in Teache
 		}
 		var err error
 		out, err = port.ReplaceTeacherSites(in, p.Subject, now)
+		out.BodyImageQuotaExceeded = err == nil && teacherHomepageBodyImageQuota(t)
 		return err
 	})
 	return out, err

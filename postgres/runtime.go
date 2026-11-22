@@ -38,6 +38,9 @@ func (r *Repository) CheckRuntime(ctx context.Context) error {
  FROM unnest(ARRAY['teacher_homepage_sites','teacher_homepage_photos','teacher_homepage_teachers','teacher_homepage_override_photos']) name)
  AND has_table_privilege(current_user,'catalog.teacher_homepage_request_photos','SELECT')
  AND has_table_privilege(current_user,'catalog.teacher_homepage_request_photos','INSERT')
+ AND (SELECT bool_and(has_table_privilege(current_user,'catalog.'||name,verb))
+ FROM unnest(ARRAY['teacher_homepage_body_images','teacher_homepage_body_refs']) name
+ CROSS JOIN unnest(ARRAY['SELECT','INSERT','DELETE']) verb)
  AND has_table_privilege(current_user,'catalog.teacher_homepage_request_replays','INSERT')
  AND has_sequence_privilege(current_user,pg_get_serial_sequence('catalog.teacher_refresh_runs','position'),'USAGE')`).Scan(&ready)
 		if err != nil || !ready {
