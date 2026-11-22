@@ -147,6 +147,10 @@ scenario_tests:
   CAT-TEACHER-14:
     - teacher_homepage_media_postgres_test.go#TestTeacherHomepageBodyMediaPostgresAuthorizationAndRevocation
   CAT-TEACHER-15:
+    - teacherimages/cos_test.go#TestCOSAdapterContentIntegrity
+    - teacherimages/cos_test.go#TestTypeDMatchesEdgeRule
+    - teacher_image_cos_test.go#TestTeacherImageMigrationAndRevokedDelivery
+    - teacher_image_cos_test.go#TestTeacherImageIssuanceLimits
     - teacher_image_storage_test.go#TestTeacherImageStorageKeepsAuthorizationAndPrivateNamespaces
     - teacher_homepage_media_test.go#TestTeacherHomepageBodyMediaSnapshotValidation
     - teacher_homepage_media_test.go#TestTeacherHomepageBodyImageValidatesBytes

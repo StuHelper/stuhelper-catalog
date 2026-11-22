@@ -7,6 +7,19 @@ import (
 	"github.com/StuHelper/stuhelper-catalog"
 )
 
+// TeacherImageRedirect signs only after the service authorizes the current request.
+type TeacherImageRedirect func(*http.Request, catalog.Principal, catalog.TeacherImageKey) (string, error)
+
+func (h Handler) redirectTeacherImage(w http.ResponseWriter, r *http.Request, p catalog.Principal, key catalog.TeacherImageKey) {
+	location, err := h.ImageRedirect(r, p, key)
+	if err != nil {
+		respond(w, nil, err)
+		return
+	}
+	w.Header().Set("Location", location)
+	w.WriteHeader(http.StatusFound)
+}
+
 func writeTeacherHomepagePhoto(w http.ResponseWriter, r *http.Request, photo catalog.TeacherHomepageImage) {
 	w.Header().Set("Cache-Control", "private, no-store")
 	w.Header().Set("X-Content-Type-Options", "nosniff")
@@ -32,6 +45,10 @@ func (h Handler) teacherHomepageRequestPhoto(w http.ResponseWriter, r *http.Requ
 	photo, err := h.Service.ReadTeacherHomepageRequestPhoto(r.Context(), p, r.PathValue("school_id"), r.PathValue("request_id"))
 	if err != nil {
 		respond(w, nil, err)
+		return
+	}
+	if h.ImageRedirect != nil {
+		h.redirectTeacherImage(w, r, p, catalog.TeacherImageKey{Kind: catalog.RequestPortrait, Digest: photo.ID, School: r.PathValue("school_id"), OwnerID: r.PathValue("request_id")})
 		return
 	}
 	writeTeacherHomepagePhoto(w, r, photo)

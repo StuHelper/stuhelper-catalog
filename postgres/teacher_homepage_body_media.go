@@ -239,7 +239,7 @@ func (t *transaction) readVerifiedBodyImage(in c.TeacherSiteSnapshot, img c.Teac
 }
 
 func (t *transaction) insertBodyImage(img c.TeacherHomepageBodyImage, data []byte) error {
-	return t.imageStore().Write(t.ctx, c.TeacherImageKey{Kind: c.BodyImageObject, Digest: img.ID}, data, func(inline []byte) error {
+	return t.writeTeacherImage(c.TeacherImageKey{Kind: c.BodyImageObject, Digest: img.ID}, data, func(inline []byte) error {
 		_, err := t.tx.ExecContext(t.ctx, `INSERT INTO catalog.teacher_homepage_body_images
  (image_id,media_type,width,height,size_bytes,data) VALUES($1,$2,$3,$4,$5,$6)`,
 			img.ID, img.MediaType, img.Width, img.Height, img.SizeBytes, inline)

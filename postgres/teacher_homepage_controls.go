@@ -57,7 +57,10 @@ func (t *transaction) SaveTeacherHomepageControls(school, teacherID string, in c
  rules=excluded.rules,updated_at=excluded.updated_at
  WHERE publication.revision=excluded.revision-1`,
 		school, teacherID, in.Revision, in.PageVisibility, string(raw), at)
-	return teacherHomepageWriteResult(res, err)
+	if err = teacherHomepageWriteResult(res, err); err != nil {
+		return err
+	}
+	return t.recheckTeacherImagePublications(school, teacherID)
 }
 
 const homepageControlsSchool = ` FROM catalog.objects o
@@ -96,7 +99,10 @@ func (t *transaction) SaveTeacherHomepageAllowlist(school string, in c.TeacherHo
  AND COALESCE(saved.revision,0)=$2::bigint-1
  ON CONFLICT(school_id) DO UPDATE SET revision=excluded.revision,fields=excluded.fields,updated_at=excluded.updated_at
  WHERE allowlist.revision=excluded.revision-1`, school, in.Revision, string(raw), at)
-	return teacherHomepageWriteResult(res, err)
+	if err = teacherHomepageWriteResult(res, err); err != nil {
+		return err
+	}
+	return t.recheckTeacherImagePublications(school, "")
 }
 
 func (t *transaction) TeacherHomepageOverridePhoto(school, teacherID, photoID string) (c.TeacherHomepageImage, error) {
@@ -112,7 +118,7 @@ func (t *transaction) TeacherHomepageOverridePhoto(school, teacherID, photoID st
 }
 
 func (t *transaction) SaveTeacherHomepageOverridePhoto(school, teacherID string, photo c.TeacherHomepageImage) error {
-	return t.imageStore().Write(t.ctx, c.TeacherImageKey{Kind: c.OverridePortrait, School: school, OwnerID: teacherID, Digest: photo.ID}, photo.Bytes, func(inline []byte) error {
+	return t.writeTeacherImage(c.TeacherImageKey{Kind: c.OverridePortrait, School: school, OwnerID: teacherID, Digest: photo.ID}, photo.Bytes, func(inline []byte) error {
 		res, err := t.tx.ExecContext(t.ctx, `INSERT INTO catalog.teacher_homepage_override_photos
  (school_id,teacher_id,photo_id,media_type,width,height,data) SELECT o.school_id,o.id,$3,$4,$5,$6,$7
  FROM catalog.objects o WHERE `+activeHomepageControlsTeacher+`

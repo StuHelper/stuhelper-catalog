@@ -43,6 +43,7 @@ type Repository struct {
 	directoryData              *directoryCache
 }
 type transaction struct {
+	imageRegistryDB         *sql.DB
 	teacherImageStorage     catalog.TeacherImageStorage
 	projectionRead          bool
 	repoDirectoryProjection bool
@@ -109,6 +110,7 @@ func (r *Repository) Transaction(ctx context.Context, run func(catalog.Transacti
 	}
 	defer tx.Rollback()
 	t := &transaction{
+		imageRegistryDB:         r.DB,
 		teacherImageStorage:     r.TeacherImageStorage,
 		tx:                      tx,
 		ctx:                     ctx,

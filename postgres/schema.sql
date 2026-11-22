@@ -409,3 +409,33 @@ LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog AS $$ BEGIN
  ANALYZE catalog.projection_teaching_history;
 END $$;
 REVOKE ALL ON FUNCTION catalog.analyze_directory_projection() FROM PUBLIC;
+
+CREATE TABLE IF NOT EXISTS catalog.teacher_image_signature_limits (
+ scope text NOT NULL CHECK(scope IN ('global','user','ip')),
+ identity_hash bytea NOT NULL, window_start timestamptz NOT NULL, issued integer NOT NULL CHECK(issued>0),
+ PRIMARY KEY(scope,identity_hash)
+);
+CREATE INDEX IF NOT EXISTS teacher_image_signature_expiry ON catalog.teacher_image_signature_limits(window_start);
+REVOKE ALL ON catalog.teacher_image_signature_limits FROM PUBLIC;
+
+CREATE TABLE IF NOT EXISTS catalog.teacher_image_objects (
+ class text NOT NULL CHECK(class IN ('avatars','body')), digest text NOT NULL CHECK(digest ~ '^[a-f0-9]{64}$'),
+ has_delivery boolean NOT NULL DEFAULT false, copy_pending boolean NOT NULL DEFAULT false, next_check timestamptz NOT NULL DEFAULT now(),
+ PRIMARY KEY(class,digest)
+);
+CREATE INDEX IF NOT EXISTS teacher_image_objects_check ON catalog.teacher_image_objects(next_check);
+CREATE TABLE IF NOT EXISTS catalog.teacher_image_publications (
+ class text NOT NULL, digest text NOT NULL, kind text NOT NULL, school text NOT NULL, owner_id text NOT NULL,
+ next_check timestamptz NOT NULL DEFAULT now(),
+ PRIMARY KEY(class,digest,kind,school,owner_id),
+ FOREIGN KEY (class,digest) REFERENCES catalog.teacher_image_objects ON DELETE CASCADE
+);
+CREATE INDEX IF NOT EXISTS teacher_image_publications_check ON catalog.teacher_image_publications(next_check);
+CREATE TABLE IF NOT EXISTS catalog.teacher_image_purges (
+ class text NOT NULL CHECK(class IN ('avatars','body')), digest text NOT NULL CHECK(digest ~ '^[a-f0-9]{64}$'),
+ queued_at timestamptz NOT NULL DEFAULT now(), PRIMARY KEY(class,digest)
+);
+REVOKE ALL ON catalog.teacher_image_objects,catalog.teacher_image_publications,catalog.teacher_image_purges FROM PUBLIC;
+CREATE INDEX IF NOT EXISTS teacher_image_source_digest ON catalog.teacher_homepage_photos(photo_id) WHERE data IS NULL;
+CREATE INDEX IF NOT EXISTS teacher_image_override_digest ON catalog.teacher_homepage_override_photos(photo_id) WHERE data IS NULL;
+CREATE INDEX IF NOT EXISTS teacher_image_publication_owner ON catalog.teacher_image_publications(school,owner_id);

@@ -2,7 +2,7 @@
   "openapi": "3.0.3",
   "info": {
     "title": "StuHelper Catalog",
-    "version": "0.13.0"
+    "version": "0.14.0"
   },
   "servers": [
     {
@@ -3941,6 +3941,8 @@
           }
         ],
         "responses": {
+          "302": {"description": "Authorized private media redirect valid for 60 seconds", "headers": {"Location": {"required": true, "schema": {"type": "string", "format": "uri"}}}},
+          "429": {"description": "Teacher image signature issuance limit exceeded"},
           "200": {
             "description": "当前已验证的本地照片。总大小最多 2 MiB，每边最多 4096 像素，面积最多 8,388,608 像素。",
             "headers": {
@@ -4813,6 +4815,8 @@
           }
         ],
         "responses": {
+          "302": {"description": "Authorized private media redirect valid for 60 seconds", "headers": {"Location": {"required": true, "schema": {"type": "string", "format": "uri"}}}},
+          "429": {"description": "Teacher image signature issuance limit exceeded"},
           "200": {
             "description": "当前已验证的正文图片。最多 20 MiB，每边最多 8192 像素，总面积最多 16,777,216 像素。",
             "headers": {
@@ -4949,6 +4953,8 @@
           }
         ],
         "responses": {
+          "302": {"description": "Authorized private media redirect valid for 60 seconds", "headers": {"Location": {"required": true, "schema": {"type": "string", "format": "uri"}}}},
+          "429": {"description": "Teacher image signature issuance limit exceeded"},
           "200": {
             "description": "当前已验证的正文图片。最多 20 MiB，每边最多 8192 像素，总面积最多 16,777,216 像素。",
             "headers": {
@@ -6137,6 +6143,8 @@
           }
         ],
         "responses": {
+          "302": {"description": "Authorized private media redirect valid for 60 seconds", "headers": {"Location": {"required": true, "schema": {"type": "string", "format": "uri"}}}},
+          "429": {"description": "Teacher image signature issuance limit exceeded"},
           "200": {
             "description": "重新编码并去除来源元数据的申请头像。",
             "headers": {

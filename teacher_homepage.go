@@ -62,12 +62,13 @@ type TeacherHomepage struct {
 // TeacherHomepageImage identifies a verified blob by its lowercase SHA-256.
 // Inline bytes are optional for imports supplying a lazy ReadPhoto callback.
 type TeacherHomepageImage struct {
-	ID        string `json:"id"`
-	MediaType string `json:"content_type"`
-	Width     int    `json:"width"`
-	Height    int    `json:"height"`
-	SizeBytes int64  `json:"-"`
-	Bytes     []byte `json:"-"`
+	DeliverySchool string `json:"-"`
+	ID             string `json:"id"`
+	MediaType      string `json:"content_type"`
+	Width          int    `json:"width"`
+	Height         int    `json:"height"`
+	SizeBytes      int64  `json:"-"`
+	Bytes          []byte `json:"-"`
 }
 
 type TeacherSite struct {
@@ -375,4 +376,24 @@ func (s *Service) ReadTeacherHomepagePhoto(ctx context.Context, p Principal, id,
 		return err
 	})
 	return out, err
+}
+
+// TeacherPhotoForDelivery checks the live publication without reading the COS payload.
+func (s *Service) TeacherPhotoForDelivery(ctx context.Context, p Principal, id, digest string) (TeacherImageKey, error) {
+	var key TeacherImageKey
+	if !validTeacherHomepageHash(digest) {
+		return key, ErrInput
+	}
+	err := s.readPublicObject(ctx, p, id, true, func(t Transaction, teacher Object) error {
+		key = TeacherImageKey{Kind: SitePortrait, School: teacher.SchoolID, OwnerID: teacherHomepageID(teacher), Digest: digest}
+		visible, err := TeacherImageIsPublished(t, teacher, key)
+		if err != nil {
+			return err
+		}
+		if !visible {
+			return ErrNotFound
+		}
+		return nil
+	})
+	return key, err
 }

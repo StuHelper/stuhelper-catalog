@@ -1,0 +1,142 @@
+package catalog_test
+
+import (
+	"bytes"
+	"context"
+	"errors"
+	"net/http"
+	"net/netip"
+	"strings"
+	"testing"
+
+	c "github.com/StuHelper/stuhelper-catalog"
+	"github.com/StuHelper/stuhelper-catalog/httpapi"
+	"github.com/StuHelper/stuhelper-catalog/postgres"
+	"github.com/StuHelper/stuhelper-catalog/teacherimages"
+)
+
+type testCOS struct {
+	originals map[string][]byte
+	serving   map[string]bool
+	failRead  bool
+}
+
+func (m *testCOS) Write(_ context.Context, k c.TeacherImageKey, b []byte, save func([]byte) error) error {
+	m.originals[k.Digest] = bytes.Clone(b)
+	return save(nil)
+}
+func (m *testCOS) Read(_ context.Context, k c.TeacherImageKey, _ func() ([]byte, error)) ([]byte, error) {
+	if m.failRead || len(m.originals[k.Digest]) == 0 {
+		return nil, c.ErrUnavailable
+	}
+	return m.originals[k.Digest], nil
+}
+func (m *testCOS) PublishCopy(_ context.Context, k c.TeacherImageKey) error {
+	if len(m.originals[k.Digest]) == 0 {
+		return c.ErrUnavailable
+	}
+	m.serving[k.Digest] = true
+	return nil
+}
+func (m *testCOS) RemoveObject(_ context.Context, k c.TeacherImageKey, original bool) error {
+	if original {
+		delete(m.originals, k.Digest)
+	} else {
+		delete(m.serving, k.Digest)
+	}
+	return nil
+}
+
+func TestTeacherImageMigrationAndRevokedDelivery(t *testing.T) {
+	ctx := context.Background()
+	s, _, db, snapshot := homepageFixture(t)
+	s.ReadAccess = &bodyMediaReadAccess{}
+	repo := s.Repo.(*postgres.Repository)
+	migration := &postgres.Repository{DB: db}
+	store := &testCOS{originals: map[string][]byte{}, serving: map[string]bool{}, failRead: true}
+	if _, err := migration.MigrateTeacherImages(ctx, store, false, 1); err == nil {
+		t.Fatal("unverified copy cleared inline bytes")
+	}
+	store.failRead = false
+	for _, want := range []int{1, 1, 0} {
+		n, err := migration.MigrateTeacherImages(ctx, store, false, 1)
+		if err != nil || n != want {
+			t.Fatalf("migration count %d, want %d: %v", n, want, err)
+		}
+	}
+	repo.TeacherImageStorage = store
+	ip := netip.MustParseAddr("127.0.0.1")
+	delivery, err := teacherimages.NewDelivery("media.example.test", strings.Repeat("x", 32), repo)
+	if err != nil {
+		t.Fatal(err)
+	}
+	h := httpapi.Handler{Service: s, Authenticate: func(r *http.Request) (c.Principal, error) {
+		return c.Principal{Subject: r.Header.Get("Authorization")}, nil
+	}, ImageRedirect: func(r *http.Request, p c.Principal, k c.TeacherImageKey) (string, error) {
+		return delivery.Issue(r.Context(), p.Subject, ip, k)
+	}}.Routes()
+	digest := snapshot.Sites[0].Photo.ID
+	url := homepagePublic + "/photos/" + digest
+	homepageCall(t, h, "GET", url, "issuer:verified-other", "", "", 403)
+	res := homepageCall(t, h, "GET", url, homepageReader, "", "", 302)
+	if !strings.HasPrefix(res.Header().Get("Location"), "https://media.example.test/avatars/"+digest+"?token=") || !store.serving[digest] {
+		t.Fatal("missing signed delivery")
+	}
+	homepageSet(t, homepageHandler(s), 0, "hidden", "[]", "hide-live-picture")
+	homepageCall(t, h, "HEAD", url, homepageReader, "", "", 404)
+	if _, err = repo.ReconcileTeacherImages(ctx, 10); err != nil {
+		t.Fatal(err)
+	}
+	if store.serving[digest] || len(store.originals[digest]) == 0 {
+		t.Fatal("hidden delivery or retained original incorrect")
+	}
+	if _, err = repo.FlushTeacherImagePurges(ctx, 5, func(context.Context, []string) error { return c.ErrUnavailable }); err == nil {
+		t.Fatal("failed purge acknowledged")
+	}
+	n, err := repo.FlushTeacherImagePurges(ctx, 5, func(_ context.Context, paths []string) error {
+		if len(paths) != 1 || paths[0] != "avatars/"+digest {
+			t.Fatal("wrong purge target")
+		}
+		return nil
+	})
+	if n != 1 || err != nil {
+		t.Fatalf("purge retry %d: %v", n, err)
+	}
+	for _, want := range []int{1, 1, 0} {
+		n, err = migration.MigrateTeacherImages(ctx, store, true, 1)
+		if n != want || err != nil {
+			t.Fatalf("restore count %d want %d: %v", n, want, err)
+		}
+	}
+	var data []byte
+	if err = db.QueryRow("SELECT data FROM catalog.teacher_homepage_photos LIMIT 1").Scan(&data); err != nil || !bytes.Equal(data, snapshot.Sites[0].Photo.Bytes) {
+		t.Fatal("restored data mismatch")
+	}
+}
+
+func TestTeacherImageIssuanceLimits(t *testing.T) {
+	repo, db := database(t)
+	ctx := context.Background()
+	ip := netip.MustParseAddr("127.0.0.1")
+	for _, v := range []struct {
+		scope string
+		limit int
+	}{{"user", 60}, {"ip", 240}, {"global", 1200}} {
+		if _, err := db.Exec("DELETE FROM catalog.teacher_image_signature_limits"); err != nil {
+			t.Fatal(err)
+		}
+		if err := repo.TakeTeacherImageSignature(ctx, "u", ip); err != nil {
+			t.Fatal(err)
+		}
+		if _, err := db.Exec("UPDATE catalog.teacher_image_signature_limits SET issued=$1 WHERE scope=$2", v.limit, v.scope); err != nil {
+			t.Fatal(err)
+		}
+		if err := repo.TakeTeacherImageSignature(ctx, "u", ip); !errors.Is(err, c.ErrRateLimited) {
+			t.Fatalf("%s allowed: %v", v.scope, err)
+		}
+		var sum int
+		if err := db.QueryRow("SELECT SUM(issued) FROM catalog.teacher_image_signature_limits").Scan(&sum); err != nil || sum != v.limit+2 {
+			t.Fatal("rejected request changed counters")
+		}
+	}
+}

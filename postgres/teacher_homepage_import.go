@@ -216,7 +216,7 @@ func (t *transaction) saveTeacherHomepagePhotos(in c.TeacherSiteSnapshot) error 
 			return err
 		}
 		key := c.TeacherImageKey{Kind: c.SitePortrait, School: in.SchoolID, OwnerID: site.SiteID, Digest: image.ID}
-		if err := t.imageStore().Write(t.ctx, key, image.Bytes, func(inline []byte) error {
+		if err := t.writeTeacherImage(key, image.Bytes, func(inline []byte) error {
 			_, err := t.tx.ExecContext(t.ctx, `INSERT INTO catalog.teacher_homepage_photos(school_id,site_id,photo_id,media_type,width,height,data)
  VALUES($1,$2,$3,$4,$5,$6,$7)
  ON CONFLICT(school_id,site_id,photo_id) DO UPDATE SET media_type=excluded.media_type,width=excluded.width,height=excluded.height,data=excluded.data`,

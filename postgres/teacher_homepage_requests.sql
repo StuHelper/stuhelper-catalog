@@ -178,3 +178,4 @@ BEGIN
  RETURN removed_requests+removed_audit;
 END $$;
 REVOKE ALL ON FUNCTION catalog.cleanup_teacher_homepage_requests() FROM PUBLIC;
+CREATE INDEX IF NOT EXISTS teacher_image_request_digest ON catalog.teacher_homepage_request_photos(photo_id) WHERE data IS NULL;
