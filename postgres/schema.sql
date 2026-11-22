@@ -223,13 +223,21 @@ ALTER TABLE catalog.teacher_homepage_sites ADD COLUMN IF NOT EXISTS body_media j
 -- references select which of these private blobs may be served for a teacher.
 CREATE TABLE IF NOT EXISTS catalog.teacher_homepage_body_images (
  image_id text PRIMARY KEY CHECK(image_id ~ '^[0-9a-f]{64}$'),
- media_type text NOT NULL CHECK(media_type IN ('image/jpeg','image/png')),
+ media_type text NOT NULL CONSTRAINT teacher_body_image_allowed_type CHECK(media_type IN ('image/jpeg','image/png','image/gif')),
  width integer NOT NULL CHECK(width BETWEEN 1 AND 8192), height integer NOT NULL CHECK(height BETWEEN 1 AND 8192),
  size_bytes integer NOT NULL CHECK(size_bytes BETWEEN 1 AND 20971520),
  data bytea CHECK(octet_length(data)=size_bytes),
  CHECK(width::bigint*height<=16777216)
 );
 ALTER TABLE catalog.teacher_homepage_body_images ALTER COLUMN data DROP NOT NULL;
+-- Upgrade the original two-type constraint once, including populated tables.
+DO $$ BEGIN
+ IF EXISTS (SELECT FROM pg_constraint WHERE conrelid='catalog.teacher_homepage_body_images'::regclass
+            AND conname='teacher_homepage_body_images_media_type_check') THEN
+  ALTER TABLE catalog.teacher_homepage_body_images DROP CONSTRAINT teacher_homepage_body_images_media_type_check,
+   ADD CONSTRAINT teacher_body_image_allowed_type CHECK(media_type IN ('image/jpeg','image/png','image/gif'));
+ END IF;
+END $$;
 CREATE TABLE IF NOT EXISTS catalog.teacher_homepage_body_refs (
  school_id text NOT NULL, site_id text NOT NULL,
  image_id text NOT NULL REFERENCES catalog.teacher_homepage_body_images(image_id),

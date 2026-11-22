@@ -2,7 +2,7 @@
   "openapi": "3.0.3",
   "info": {
     "title": "StuHelper Catalog",
-    "version": "0.14.0"
+    "version": "0.15.0"
   },
   "servers": [
     {
@@ -4864,6 +4864,12 @@
                   "type": "string",
                   "format": "binary"
                 }
+              },
+              "image/gif": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
               }
             }
           },
@@ -4986,7 +4992,8 @@
                   "type": "string",
                   "enum": [
                     "image/jpeg",
-                    "image/png"
+                    "image/png",
+                    "image/gif"
                   ]
                 }
               },
@@ -9568,7 +9575,8 @@
             "type": "string",
             "enum": [
               "image/jpeg",
-              "image/png"
+              "image/png",
+              "image/gif"
             ]
           },
           "width": {
