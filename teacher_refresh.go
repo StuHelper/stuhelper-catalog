@@ -22,20 +22,22 @@ const (
 var TeacherUnmatchedReasons = []string{"catalog_name_absent", "catalog_unit_missing", "site_unit_missing", "unit_mismatch", "ambiguous_catalog", "ambiguous_site"}
 
 type TeacherRefreshRun struct {
-	ID            string                  `json:"id"`
-	SchoolID      string                  `json:"school_id"`
-	Mode          string                  `json:"mode"`
-	Trigger       string                  `json:"trigger"`
-	Status        string                  `json:"status"`
-	RequestedAt   time.Time               `json:"requested_at"`
-	StartedAt     *time.Time              `json:"started_at"`
-	FinishedAt    *time.Time              `json:"finished_at"`
-	DeadlineAt    time.Time               `json:"deadline_at"`
-	DurationMS    int64                   `json:"duration_ms"`
-	Requests      *int64                  `json:"requests"`
-	SiteCount     *int64                  `json:"site_count"`
-	Counts        *TeacherDirectoryResult `json:"counts"`
-	FailureReason string                  `json:"failure_reason"`
+	ID                     string                  `json:"id"`
+	SchoolID               string                  `json:"school_id"`
+	Mode                   string                  `json:"mode"`
+	Trigger                string                  `json:"trigger"`
+	Status                 string                  `json:"status"`
+	RequestedAt            time.Time               `json:"requested_at"`
+	StartedAt              *time.Time              `json:"started_at"`
+	FinishedAt             *time.Time              `json:"finished_at"`
+	DeadlineAt             time.Time               `json:"deadline_at"`
+	DurationMS             int64                   `json:"duration_ms"`
+	Requests               *int64                  `json:"requests"`
+	SiteCount              *int64                  `json:"site_count"`
+	Counts                 *TeacherDirectoryResult `json:"counts"`
+	FailureReason          string                  `json:"failure_reason"`
+	BodyImageQuotaExceeded bool                    `json:"-"`
+	BodyImageQuotaKnown    bool                    `json:"-"`
 }
 
 type TeacherRefreshStatus struct {
@@ -358,11 +360,50 @@ func (s *Service) ImportTeacherUnmatched(ctx context.Context, p Principal, in Te
 }
 
 type TeacherRefreshCompletion struct {
-	Snapshot      *TeacherSiteSnapshot
-	Unmatched     []UnmatchedTeacherSite
-	Requests      *int64
-	SiteCount     *int64
-	FailureReason string
+	Snapshot               *TeacherSiteSnapshot
+	Unmatched              []UnmatchedTeacherSite
+	Requests               *int64
+	SiteCount              *int64
+	FailureReason          string
+	BodyImageQuotaExceeded bool
+	BodyImageQuotaKnown    bool
+}
+
+// The owning repository may additionally reach the live storage limit while
+// replacing the current snapshot.
+type teacherHomepageBodyImageQuotaTransaction interface {
+	TeacherHomepageBodyImageQuotaExceeded() bool
+}
+
+func teacherHomepageBodyImageQuota(t Transaction) bool {
+	quota, ok := t.(teacherHomepageBodyImageQuotaTransaction)
+	return ok && quota.TeacherHomepageBodyImageQuotaExceeded()
+}
+
+type teacherHomepageBodyImageQuotaHistory interface {
+	LastTeacherRefreshBodyImageQuota(school string) (*TeacherRefreshRun, error)
+}
+
+// LastTeacherRefreshBodyImageQuota restores the last committed warning state to
+// a refresh worker after interruption. It is a maintenance-only operation.
+func (s *Service) LastTeacherRefreshBodyImageQuota(ctx context.Context, p Principal, school string) (*TeacherRefreshRun, error) {
+	if !p.CanImport || p.Subject == "" || !allowed(p, school) {
+		return nil, ErrForbidden
+	}
+	if !ValidID(school) {
+		return nil, ErrInput
+	}
+	var out *TeacherRefreshRun
+	err := s.Repo.Transaction(ctx, func(t Transaction) error {
+		port, ok := t.(teacherHomepageBodyImageQuotaHistory)
+		if !ok {
+			return ErrUnavailable
+		}
+		var e error
+		out, e = port.LastTeacherRefreshBodyImageQuota(school)
+		return e
+	})
+	return out, err
 }
 
 func (s *Service) CompleteTeacherRefresh(ctx context.Context, p Principal, id string, in TeacherRefreshCompletion) (TeacherRefreshRun, error) {
@@ -438,6 +479,8 @@ func (s *Service) CompleteTeacherRefresh(ctx context.Context, p Principal, id st
 				}
 			}
 			out.Counts = &counts
+			out.BodyImageQuotaExceeded = in.BodyImageQuotaExceeded || teacherHomepageBodyImageQuota(t)
+			out.BodyImageQuotaKnown = in.BodyImageQuotaKnown || out.BodyImageQuotaExceeded
 		}
 		now := s.now()
 		if !now.Before(out.DeadlineAt) {

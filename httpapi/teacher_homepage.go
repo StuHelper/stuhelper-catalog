@@ -25,8 +25,11 @@ func teacherHomepageRequested(r *http.Request) (bool, error) {
 
 func (h Handler) teacherHomepageRoutes(m *http.ServeMux) {
 	const root = "/api/v1/catalog/admin/schools/{school_id}/teacher-sites/review"
+	const media = "/api/v1/catalog/objects/{id}/teacher-homepage"
 	h.teacherHomepageControlRoutes(m)
-	m.HandleFunc("GET /api/v1/catalog/objects/{id}/teacher-homepage/photos/{photo_id}", h.teacherHomepagePhoto)
+	m.HandleFunc("GET "+media+"/photos/{photo_id}", h.teacherHomepagePhoto)
+	m.HandleFunc("GET "+media+"/media", h.readTeacherHomepageMedia)
+	m.HandleFunc("GET "+media+"/images/{image_id}", h.teacherHomepageBodyImage(make(chan struct{}, 4)))
 	m.HandleFunc("GET "+root+"/sites", h.teacherHomepageReviewSites)
 	m.HandleFunc("GET "+root+"/teachers", h.teacherHomepageReviewTeachers)
 	m.HandleFunc("PUT "+root+"/sites/{site_id}/decision", h.teacherHomepageDecision)

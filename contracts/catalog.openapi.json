@@ -2,7 +2,7 @@
   "openapi": "3.0.3",
   "info": {
     "title": "StuHelper Catalog",
-    "version": "0.12.0"
+    "version": "0.13.0"
   },
   "servers": [
     {
@@ -4681,6 +4681,337 @@
         }
       }
     },
+    "/api/v1/catalog/objects/{id}/teacher-homepage/media": {
+      "get": {
+        "operationId": "listTeacherHomepageMedia",
+        "description": "沿用教师主页的当前登录、学校内容准入和目录可见性。按官网正文顺序返回通过白名单和人工展示设置的媒体。整页隐藏、停止展示或没有可见媒体时返回空列表。响应禁止缓存。",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128,
+              "pattern": "^[A-Za-z0-9_.:-]+$"
+            },
+            "description": "目录教师对象标识。"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "已校验的本地图片和可点击原站链接。按所在栏目分组时可使用 field 和 section。",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "enum": [
+                    "private, no-store"
+                  ]
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TeacherHomepageMediaView"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "invalid_input。教师对象标识不符合约定。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "unauthenticated。需要登录。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "forbidden。当前账号不具备相应的学校内容准入。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "not_found。目标教师不在当前可读目录中。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "unavailable。必要的认证或目录依赖暂不可用。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/catalog/objects/{id}/teacher-homepage/images/{image_id}": {
+      "get": {
+        "operationId": "getTeacherHomepageBodyImage",
+        "description": "沿用教师主页的当前登录、学校内容准入和目录可见性。摘要必须仍出现在该教师当前可见的正文媒体中。客户端用登录凭证读取二进制，可将 Blob 转为图片地址。响应禁止缓存。",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128,
+              "pattern": "^[A-Za-z0-9_.:-]+$"
+            }
+          },
+          {
+            "name": "image_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 64,
+              "maxLength": 64,
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "description": "正文图片内容的 SHA-256。"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "当前已验证的正文图片。最多 20 MiB，每边最多 8192 像素，总面积最多 16,777,216 像素。",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "enum": [
+                    "private, no-store"
+                  ]
+                }
+              },
+              "X-Content-Type-Options": {
+                "schema": {
+                  "type": "string",
+                  "enum": [
+                    "nosniff"
+                  ]
+                }
+              },
+              "Content-Length": {
+                "schema": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 20971520
+                }
+              },
+              "X-Accel-Buffering": {
+                "schema": {
+                  "type": "string",
+                  "enum": [
+                    "no"
+                  ]
+                }
+              }
+            },
+            "content": {
+              "image/jpeg": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              },
+              "image/png": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not permitted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "教师或正文图片已不可见，或图片摘要不在当前可见正文中。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "必要依赖暂不可用，或正文图片下载没有在请求期限内取得处理名额。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "head": {
+        "operationId": "headTeacherHomepageBodyImage",
+        "description": "以与 GET 相同的登录与正文展示检查返回当前图片的响应头。",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128,
+              "pattern": "^[A-Za-z0-9_.:-]+$"
+            }
+          },
+          {
+            "name": "image_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 64,
+              "maxLength": 64,
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "description": "正文图片内容的 SHA-256。"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "当前已验证的正文图片。最多 20 MiB，每边最多 8192 像素，总面积最多 16,777,216 像素。",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "enum": [
+                    "private, no-store"
+                  ]
+                }
+              },
+              "X-Content-Type-Options": {
+                "schema": {
+                  "type": "string",
+                  "enum": [
+                    "nosniff"
+                  ]
+                }
+              },
+              "Content-Length": {
+                "schema": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 20971520
+                }
+              },
+              "Content-Type": {
+                "schema": {
+                  "type": "string",
+                  "enum": [
+                    "image/jpeg",
+                    "image/png"
+                  ]
+                }
+              },
+              "X-Accel-Buffering": {
+                "schema": {
+                  "type": "string",
+                  "enum": [
+                    "no"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input"
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "403": {
+            "description": "Not permitted"
+          },
+          "404": {
+            "description": "教师或正文图片已不可见，或图片摘要不在当前可见正文中。"
+          },
+          "503": {
+            "description": "Required dependency unavailable"
+          }
+        }
+      }
+    },
     "/api/v1/catalog/objects/{id}/teacher-homepage": {
       "get": {
         "operationId": "getTeacherHomepage",
@@ -9212,6 +9543,166 @@
           },
           "photo": {
             "$ref": "#/components/schemas/TeacherHomepagePhoto"
+          }
+        }
+      },
+      "TeacherHomepageBodyImage": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "content_type",
+          "width",
+          "height",
+          "size_bytes"
+        ],
+        "properties": {
+          "content_type": {
+            "type": "string",
+            "enum": [
+              "image/jpeg",
+              "image/png"
+            ]
+          },
+          "width": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 8192
+          },
+          "height": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 8192
+          },
+          "size_bytes": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1,
+            "maximum": 20971520
+          }
+        }
+      },
+      "TeacherHomepageCopiedImage": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "kind",
+          "field",
+          "url",
+          "image"
+        ],
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "image"
+            ]
+          },
+          "field": {
+            "type": "string",
+            "enum": [
+              "biography",
+              "research",
+              "sections"
+            ],
+            "description": "在资料页内的归属。"
+          },
+          "section": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 160,
+            "description": "field 为 sections 时的栏目标题。纯媒体栏目也可出现。"
+          },
+          "title": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 160,
+            "description": "可访问的来源标题或图片说明。显示为纯文本。"
+          },
+          "url": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 2048,
+            "pattern": "^/api/v1/catalog/objects/[^/?#]+/teacher-homepage/images/[0-9a-f]{64}$",
+            "description": "StuHelper 同源图片地址。客户端以当前凭证读取后可用 Blob 展示图片。"
+          },
+          "image": {
+            "$ref": "#/components/schemas/TeacherHomepageBodyImage",
+            "description": "仅复制成功的正文图片含此项。客户端可据此读取并展示本地图片。"
+          }
+        },
+        "description": "已复制并通过校验的正文图片。"
+      },
+      "TeacherHomepageSourceLink": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "kind",
+          "field",
+          "url"
+        ],
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "image",
+              "video",
+              "attachment"
+            ]
+          },
+          "field": {
+            "type": "string",
+            "enum": [
+              "biography",
+              "research",
+              "sections"
+            ],
+            "description": "在资料页内的归属。"
+          },
+          "section": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 160,
+            "description": "field 为 sections 时的栏目标题。纯媒体栏目也可出现。"
+          },
+          "title": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 160,
+            "description": "可访问的来源标题或图片说明。显示为纯文本。"
+          },
+          "url": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 2048,
+            "pattern": "^https?://",
+            "description": "供主动点击的原站链接。图片回退指向该教师的学校原内容页。"
+          }
+        },
+        "description": "图片的原内容页回退，或者视频及附件原站链接。"
+      },
+      "TeacherHomepageMedium": {
+        "oneOf": [
+          {
+            "$ref": "#/components/schemas/TeacherHomepageCopiedImage"
+          },
+          {
+            "$ref": "#/components/schemas/TeacherHomepageSourceLink"
+          }
+        ]
+      },
+      "TeacherHomepageMediaView": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "items"
+        ],
+        "properties": {
+          "items": {
+            "type": "array",
+            "maxItems": 1000,
+            "items": {
+              "$ref": "#/components/schemas/TeacherHomepageMedium"
+            }
           }
         }
       },

@@ -10,22 +10,23 @@ import (
 )
 
 type homepageSiteRow struct {
-	SiteID       string            `json:"site_id"`
-	Name         string            `json:"name"`
-	Unit         string            `json:"unit"`
-	URL          string            `json:"url"`
-	Reason       string            `json:"reason"`
-	CandidateIDs []string          `json:"candidate_ids"`
-	Count        int64             `json:"candidate_count"`
-	Profile      c.TeacherHomepage `json:"profile"`
-	PhotoID      string            `json:"photo_id"`
-	AutoTeacher  string            `json:"auto_teacher_id"`
-	AutoName     string            `json:"auto_name"`
-	AutoDept     string            `json:"auto_department_id"`
+	SiteID       string                       `json:"site_id"`
+	Name         string                       `json:"name"`
+	Unit         string                       `json:"unit"`
+	URL          string                       `json:"url"`
+	Reason       string                       `json:"reason"`
+	CandidateIDs []string                     `json:"candidate_ids"`
+	Count        int64                        `json:"candidate_count"`
+	Profile      c.TeacherHomepage            `json:"profile"`
+	BodyMedia    []c.TeacherHomepageBodyMedia `json:"body_media"`
+	PhotoID      string                       `json:"photo_id"`
+	AutoTeacher  string                       `json:"auto_teacher_id"`
+	AutoName     string                       `json:"auto_name"`
+	AutoDept     string                       `json:"auto_department_id"`
 }
 
 func (t *transaction) replaceTeacherHomepageSnapshot(in c.TeacherSiteSnapshot, at time.Time) error {
-	if err := t.saveTeacherHomepageSites(in); err != nil {
+	if err := t.saveTeacherHomepageSites(in, teacherHomepageBodyImageBudget); err != nil {
 		return err
 	}
 	if err := t.saveTeacherHomepageTeachers(in); err != nil {
@@ -56,7 +57,10 @@ func (t *transaction) replaceTeacherHomepageSnapshot(in c.TeacherSiteSnapshot, a
 	return t.ReplaceTeacherUnmatched(legacy)
 }
 
-func (t *transaction) saveTeacherHomepageSites(in c.TeacherSiteSnapshot) error {
+func (t *transaction) saveTeacherHomepageSites(in c.TeacherSiteSnapshot, bodyImageBudget int64) error {
+	if err := t.Lock("teacher-homepage-body-images"); err != nil {
+		return err
+	}
 	matches := make(map[string]c.TeacherSiteMatch, len(in.Matches))
 	for _, match := range in.Matches {
 		matches[match.URL] = match
@@ -87,6 +91,10 @@ func (t *transaction) saveTeacherHomepageSites(in c.TeacherSiteSnapshot) error {
 			CandidateIDs: site.CandidateTeacherIDs, Count: site.CandidateCount, Profile: site.Profile,
 			AutoTeacher: match.TeacherID, AutoName: match.Name, AutoDept: match.DepartmentID,
 		}
+		row.BodyMedia = site.BodyMedia
+		if row.BodyMedia == nil {
+			row.BodyMedia = []c.TeacherHomepageBodyMedia{}
+		}
 		if site.Photo != nil {
 			row.PhotoID = site.Photo.ID
 		}
@@ -110,18 +118,21 @@ func (t *transaction) saveTeacherHomepageSites(in c.TeacherSiteSnapshot) error {
 	if _, err := t.tx.ExecContext(t.ctx, `DELETE FROM catalog.teacher_homepage_sites WHERE school_id=$1 AND revision<>$2`, in.SchoolID, in.Revision); err != nil {
 		return safe(err)
 	}
+	if err := t.replaceTeacherHomepageBodyMedia(in, bodyImageBudget); err != nil {
+		return err
+	}
 	return t.saveTeacherHomepagePhotos(in)
 }
 
 func (t *transaction) upsertHomepageSites(school string, revision int64, raw string) error {
 	_, err := t.tx.ExecContext(t.ctx, `INSERT INTO catalog.teacher_homepage_sites(
- school_id,site_id,revision,name,unit,url,reason,candidate_ids,candidate_count,profile,photo_id,auto_teacher_id,auto_name,auto_department_id)
+ school_id,site_id,revision,name,unit,url,reason,candidate_ids,candidate_count,profile,body_media,photo_id,auto_teacher_id,auto_name,auto_department_id)
  SELECT $1,r.site_id,$2,r.name,r.unit,r.url,r.reason,COALESCE(r.candidate_ids,ARRAY[]::text[]),r.candidate_count,
- r.profile,r.photo_id,r.auto_teacher_id,r.auto_name,r.auto_department_id
+ r.profile,r.body_media,r.photo_id,r.auto_teacher_id,r.auto_name,r.auto_department_id
  FROM jsonb_to_recordset($3::jsonb) AS r(site_id text,name text,unit text,url text,reason text,
- candidate_ids text[],candidate_count bigint,profile jsonb,photo_id text,auto_teacher_id text,auto_name text,auto_department_id text)
+ candidate_ids text[],candidate_count bigint,profile jsonb,body_media jsonb,photo_id text,auto_teacher_id text,auto_name text,auto_department_id text)
  ON CONFLICT(school_id,site_id) DO UPDATE SET revision=excluded.revision,name=excluded.name,unit=excluded.unit,
- url=excluded.url,reason=excluded.reason,candidate_ids=excluded.candidate_ids,candidate_count=excluded.candidate_count,profile=excluded.profile,
+ url=excluded.url,reason=excluded.reason,candidate_ids=excluded.candidate_ids,candidate_count=excluded.candidate_count,profile=excluded.profile,body_media=excluded.body_media,
  photo_id=excluded.photo_id,auto_teacher_id=excluded.auto_teacher_id,auto_name=excluded.auto_name,auto_department_id=excluded.auto_department_id`,
 		school, revision, raw)
 	return safe(err)
