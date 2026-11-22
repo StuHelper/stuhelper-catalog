@@ -69,3 +69,9 @@ func TeacherImageIsPublished(t Transaction, teacher Object, k TeacherImageKey) (
 	}
 	return img.ID == k.Digest, err
 }
+
+// TeacherImageRateLimit tells clients when the database issuance window resets.
+type TeacherImageRateLimit struct{ RetryAfter int }
+
+func (e TeacherImageRateLimit) Error() string { return ErrRateLimited.Error() }
+func (e TeacherImageRateLimit) Unwrap() error { return ErrRateLimited }

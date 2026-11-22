@@ -28,22 +28,28 @@ func (r *Repository) TakeTeacherImageSignature(ctx context.Context, user string,
 	counters := []struct {
 		scope, identity string
 		limit           int
-	}{{"global", "", 1200}, {"user", user, 60}, {"ip", ip.Unmap().String(), 240}}
+	}{{"global", "", 1200}, {"user", user, 120}, {"ip", ip.Unmap().String(), 240}}
 	for _, counter := range counters {
 		hash := sha256.Sum256([]byte(counter.identity))
 		var n int
 		err = tx.QueryRowContext(ctx, take, counter.scope, hash[:], counter.limit).Scan(&n)
 		if err == sql.ErrNoRows {
-			return c.ErrRateLimited
+			var seconds int
+			if err = tx.QueryRowContext(ctx, `SELECT LEAST(60,GREATEST(1,CEIL(EXTRACT(EPOCH FROM date_trunc('minute',now())+interval '1 minute'-clock_timestamp()))))::int`).Scan(&seconds); err != nil {
+				return safe(err)
+			}
+			return c.TeacherImageRateLimit{RetryAfter: seconds}
 		}
 		if err != nil {
 			return safe(err)
 		}
 	}
-	_, err = tx.ExecContext(ctx, `DELETE FROM catalog.teacher_image_signature_limits WHERE ctid IN
- (SELECT ctid FROM catalog.teacher_image_signature_limits WHERE window_start < now()-interval '1 minute' ORDER BY window_start LIMIT 8)`)
+	_, err = tx.ExecContext(ctx, pruneImageCounters, 8)
 	if err != nil {
 		return safe(err)
 	}
 	return safe(tx.Commit())
 }
+
+const pruneImageCounters = `DELETE FROM catalog.teacher_image_signature_limits WHERE ctid IN
+ (SELECT ctid FROM catalog.teacher_image_signature_limits WHERE window_start<now()-interval '1 minute' ORDER BY window_start LIMIT $1 FOR UPDATE SKIP LOCKED)`

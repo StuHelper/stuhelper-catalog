@@ -15,6 +15,9 @@ func (r *Repository) ReconcileTeacherImages(ctx context.Context, limit int) (int
 	if !ok || limit < 1 || limit > 1000 {
 		return 0, c.ErrInput
 	}
+	if _, err := r.DB.ExecContext(ctx, pruneImageCounters, 2*limit); err != nil {
+		return 0, safe(err)
+	}
 	done := 0
 	for i := 0; i < limit; i++ {
 		links, objects := false, false

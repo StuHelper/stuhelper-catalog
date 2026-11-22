@@ -1,6 +1,7 @@
 package httpapi
 
 import (
+	"errors"
 	"net/http"
 	"strconv"
 
@@ -13,6 +14,10 @@ type TeacherImageRedirect func(*http.Request, catalog.Principal, catalog.Teacher
 func (h Handler) redirectTeacherImage(w http.ResponseWriter, r *http.Request, p catalog.Principal, key catalog.TeacherImageKey) {
 	location, err := h.ImageRedirect(r, p, key)
 	if err != nil {
+		var limited catalog.TeacherImageRateLimit
+		if errors.As(err, &limited) {
+			w.Header().Set("Retry-After", strconv.Itoa(limited.RetryAfter))
+		}
 		respond(w, nil, err)
 		return
 	}

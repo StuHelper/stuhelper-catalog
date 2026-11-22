@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/netip"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -84,6 +85,14 @@ func TestTeacherImageMigrationAndRevokedDelivery(t *testing.T) {
 	if !strings.HasPrefix(res.Header().Get("Location"), "https://media.example.test/avatars/"+digest+"?token=") || !store.serving[digest] {
 		t.Fatal("missing signed delivery")
 	}
+	if _, err := db.Exec(`UPDATE catalog.teacher_image_signature_limits SET issued=120 WHERE scope='user'`); err != nil {
+		t.Fatal(err)
+	}
+	limited := homepageCall(t, h, "GET", url, homepageReader, "", "", 429)
+	retry, err := strconv.Atoi(limited.Header().Get("Retry-After"))
+	if err != nil || retry < 1 || retry > 60 {
+		t.Fatal("missing retry delay on 429")
+	}
 	homepageSet(t, homepageHandler(s), 0, "hidden", "[]", "hide-live-picture")
 	homepageCall(t, h, "HEAD", url, homepageReader, "", "", 404)
 	if _, err = repo.ReconcileTeacherImages(ctx, 10); err != nil {
@@ -124,7 +133,7 @@ func TestTeacherImageIssuanceLimits(t *testing.T) {
 	for _, v := range []struct {
 		scope string
 		limit int
-	}{{"user", 60}, {"ip", 240}, {"global", 1200}} {
+	}{{"user", 120}, {"ip", 240}, {"global", 1200}} {
 		if _, err := db.Exec("DELETE FROM catalog.teacher_image_signature_limits"); err != nil {
 			t.Fatal(err)
 		}

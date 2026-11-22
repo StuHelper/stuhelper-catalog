@@ -4759,6 +4759,8 @@ export interface operations {
             /** @description Teacher image signature issuance limit exceeded */
             429: {
                 headers: {
+                    /** @description Seconds until the next issuance window */
+                    "Retry-After": number;
                     [name: string]: unknown;
                 };
                 content?: never;
@@ -5334,6 +5336,8 @@ export interface operations {
             /** @description Teacher image signature issuance limit exceeded */
             429: {
                 headers: {
+                    /** @description Seconds until the next issuance window */
+                    "Retry-After": number;
                     [name: string]: unknown;
                 };
                 content?: never;
@@ -5413,6 +5417,8 @@ export interface operations {
             /** @description Teacher image signature issuance limit exceeded */
             429: {
                 headers: {
+                    /** @description Seconds until the next issuance window */
+                    "Retry-After": number;
                     [name: string]: unknown;
                 };
                 content?: never;
@@ -6263,6 +6269,8 @@ export interface operations {
             /** @description Teacher image signature issuance limit exceeded */
             429: {
                 headers: {
+                    /** @description Seconds until the next issuance window */
+                    "Retry-After": number;
                     [name: string]: unknown;
                 };
                 content?: never;

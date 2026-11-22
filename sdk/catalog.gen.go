@@ -9656,6 +9656,11 @@ type GetTeacherHomepageRequestPhotoResponse302Headers struct {
 	Location string
 }
 
+// GetTeacherHomepageRequestPhotoResponse429Headers the declared response headers of an HTTP 429 response for GetTeacherHomepageRequestPhoto
+type GetTeacherHomepageRequestPhotoResponse429Headers struct {
+	RetryAfter int
+}
+
 type GetTeacherHomepageRequestPhotoResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -9673,6 +9678,8 @@ type GetTeacherHomepageRequestPhotoResponse struct {
 	Headers200 *GetTeacherHomepageRequestPhotoResponse200Headers
 	// Headers302 the parsed response headers for an HTTP 302 response
 	Headers302 *GetTeacherHomepageRequestPhotoResponse302Headers
+	// Headers429 the parsed response headers for an HTTP 429 response
+	Headers429 *GetTeacherHomepageRequestPhotoResponse429Headers
 }
 
 // GetJSON400 returns the response for an HTTP 400 `application/json` response
@@ -12467,6 +12474,11 @@ type GetTeacherHomepageBodyImageResponse302Headers struct {
 	Location string
 }
 
+// GetTeacherHomepageBodyImageResponse429Headers the declared response headers of an HTTP 429 response for GetTeacherHomepageBodyImage
+type GetTeacherHomepageBodyImageResponse429Headers struct {
+	RetryAfter int
+}
+
 type GetTeacherHomepageBodyImageResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -12484,6 +12496,8 @@ type GetTeacherHomepageBodyImageResponse struct {
 	Headers200 *GetTeacherHomepageBodyImageResponse200Headers
 	// Headers302 the parsed response headers for an HTTP 302 response
 	Headers302 *GetTeacherHomepageBodyImageResponse302Headers
+	// Headers429 the parsed response headers for an HTTP 429 response
+	Headers429 *GetTeacherHomepageBodyImageResponse429Headers
 }
 
 // GetJSON400 returns the response for an HTTP 400 `application/json` response
@@ -12554,6 +12568,11 @@ type HeadTeacherHomepageBodyImageResponse302Headers struct {
 	Location string
 }
 
+// HeadTeacherHomepageBodyImageResponse429Headers the declared response headers of an HTTP 429 response for HeadTeacherHomepageBodyImage
+type HeadTeacherHomepageBodyImageResponse429Headers struct {
+	RetryAfter int
+}
+
 type HeadTeacherHomepageBodyImageResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -12561,6 +12580,8 @@ type HeadTeacherHomepageBodyImageResponse struct {
 	Headers200 *HeadTeacherHomepageBodyImageResponse200Headers
 	// Headers302 the parsed response headers for an HTTP 302 response
 	Headers302 *HeadTeacherHomepageBodyImageResponse302Headers
+	// Headers429 the parsed response headers for an HTTP 429 response
+	Headers429 *HeadTeacherHomepageBodyImageResponse429Headers
 }
 
 // GetBody returns the raw response body bytes
@@ -12686,6 +12707,11 @@ type GetTeacherHomepagePhotoResponse302Headers struct {
 	Location string
 }
 
+// GetTeacherHomepagePhotoResponse429Headers the declared response headers of an HTTP 429 response for GetTeacherHomepagePhoto
+type GetTeacherHomepagePhotoResponse429Headers struct {
+	RetryAfter int
+}
+
 type GetTeacherHomepagePhotoResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -12703,6 +12729,8 @@ type GetTeacherHomepagePhotoResponse struct {
 	Headers200 *GetTeacherHomepagePhotoResponse200Headers
 	// Headers302 the parsed response headers for an HTTP 302 response
 	Headers302 *GetTeacherHomepagePhotoResponse302Headers
+	// Headers429 the parsed response headers for an HTTP 429 response
+	Headers429 *GetTeacherHomepagePhotoResponse429Headers
 }
 
 // GetJSON400 returns the response for an HTTP 400 `application/json` response
@@ -14901,6 +14929,16 @@ func ParseGetTeacherHomepageRequestPhotoResponse(rsp *http.Response) (*GetTeache
 			headers.Location = value
 		}
 		response.Headers302 = &headers
+	case rsp.StatusCode == 429:
+		var headers GetTeacherHomepageRequestPhotoResponse429Headers
+		if values := rsp.Header.Values("Retry-After"); len(values) > 0 {
+			var value int
+			if err := runtime.BindStyledParameterWithOptions("simple", "Retry-After", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: true, Type: "integer", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.RetryAfter = value
+		}
+		response.Headers429 = &headers
 	}
 
 	return response, nil
@@ -17235,6 +17273,16 @@ func ParseGetTeacherHomepageBodyImageResponse(rsp *http.Response) (*GetTeacherHo
 			headers.Location = value
 		}
 		response.Headers302 = &headers
+	case rsp.StatusCode == 429:
+		var headers GetTeacherHomepageBodyImageResponse429Headers
+		if values := rsp.Header.Values("Retry-After"); len(values) > 0 {
+			var value int
+			if err := runtime.BindStyledParameterWithOptions("simple", "Retry-After", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: true, Type: "integer", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.RetryAfter = value
+		}
+		response.Headers429 = &headers
 	}
 
 	return response, nil
@@ -17302,6 +17350,16 @@ func ParseHeadTeacherHomepageBodyImageResponse(rsp *http.Response) (*HeadTeacher
 			headers.Location = value
 		}
 		response.Headers302 = &headers
+	case rsp.StatusCode == 429:
+		var headers HeadTeacherHomepageBodyImageResponse429Headers
+		if values := rsp.Header.Values("Retry-After"); len(values) > 0 {
+			var value int
+			if err := runtime.BindStyledParameterWithOptions("simple", "Retry-After", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: true, Type: "integer", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.RetryAfter = value
+		}
+		response.Headers429 = &headers
 	}
 
 	return response, nil
@@ -17466,6 +17524,16 @@ func ParseGetTeacherHomepagePhotoResponse(rsp *http.Response) (*GetTeacherHomepa
 			headers.Location = value
 		}
 		response.Headers302 = &headers
+	case rsp.StatusCode == 429:
+		var headers GetTeacherHomepagePhotoResponse429Headers
+		if values := rsp.Header.Values("Retry-After"); len(values) > 0 {
+			var value int
+			if err := runtime.BindStyledParameterWithOptions("simple", "Retry-After", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: true, Type: "integer", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.RetryAfter = value
+		}
+		response.Headers429 = &headers
 	}
 
 	return response, nil
