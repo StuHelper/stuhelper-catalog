@@ -339,40 +339,8 @@ func (s *Service) ReadTeacherHomepagePhoto(ctx context.Context, p Principal, id,
 		return out, ErrInput
 	}
 	err := s.readPublicObject(ctx, p, id, true, func(t Transaction, teacher Object) error {
-		port, ok := t.(TeacherHomepageTransaction)
-		if !ok || teacher.Kind != "teacher" {
-			return ErrNotFound
-		}
-		presentation, err := readTeacherHomepagePresentation(t, teacher)
-		if err != nil {
-			return err
-		}
-		show, override := presentation.photo()
-		if !show {
-			return ErrNotFound
-		}
-		canonical := teacherHomepageID(teacher)
-		if override != nil {
-			if override.ID != photoID {
-				return ErrNotFound
-			}
-			if !presentation.controls.Independent {
-				source, err := port.TeacherHomepage(teacher.SchoolID, canonical)
-				if err != nil {
-					return err
-				}
-				if source == nil {
-					return ErrNotFound
-				}
-			}
-			pictures, ok := t.(TeacherHomepageOverridePhotoTransaction)
-			if !ok {
-				return ErrUnavailable
-			}
-			out, err = pictures.TeacherHomepageOverridePhoto(teacher.SchoolID, canonical, photoID)
-			return err
-		}
-		out, err = port.TeacherHomepagePhoto(teacher.SchoolID, canonical, photoID)
+		var err error
+		out, err = currentTeacherPhoto(t, teacher, photoID, true)
 		return err
 	})
 	return out, err
@@ -396,4 +364,56 @@ func (s *Service) TeacherPhotoForDelivery(ctx context.Context, p Principal, id, 
 		return nil
 	})
 	return key, err
+}
+
+func currentTeacherPhoto(t Transaction, teacher Object, photoID string, loadBytes bool) (TeacherHomepageImage, error) {
+	port, ok := t.(TeacherHomepageTransaction)
+	if !ok || teacher.Kind != "teacher" {
+		return TeacherHomepageImage{}, ErrNotFound
+	}
+	presentation, err := readTeacherHomepagePresentation(t, teacher)
+	if err != nil {
+		return TeacherHomepageImage{}, err
+	}
+	show, override := presentation.photo()
+	if !show {
+		return TeacherHomepageImage{}, ErrNotFound
+	}
+	canonical := teacherHomepageID(teacher)
+	if override != nil {
+		if override.ID != photoID {
+			return TeacherHomepageImage{}, ErrNotFound
+		}
+		if !presentation.controls.Independent {
+			source, err := port.TeacherHomepage(teacher.SchoolID, canonical)
+			if err != nil {
+				return TeacherHomepageImage{}, err
+			}
+			if source == nil {
+				return TeacherHomepageImage{}, ErrNotFound
+			}
+		}
+		pictures, ok := t.(TeacherHomepageOverridePhotoTransaction)
+		if !ok {
+			return TeacherHomepageImage{}, ErrUnavailable
+		}
+		if !loadBytes {
+			return photoMetadata(t, teacher.SchoolID, canonical, photoID, true)
+		}
+		return pictures.TeacherHomepageOverridePhoto(teacher.SchoolID, canonical, photoID)
+	}
+	if !loadBytes {
+		return photoMetadata(t, teacher.SchoolID, canonical, photoID, false)
+	}
+	return port.TeacherHomepagePhoto(teacher.SchoolID, canonical, photoID)
+}
+
+func photoMetadata(t Transaction, school, teacher, digest string, override bool) (TeacherHomepageImage, error) {
+	p, ok := t.(interface {
+		TeacherHomepagePhotoMetadata(string, string, string, bool) (TeacherHomepageImage, error)
+	})
+	if !ok {
+		return TeacherHomepageImage{}, ErrUnavailable
+	}
+	return p.TeacherHomepagePhotoMetadata(school, teacher, digest, override)
 }

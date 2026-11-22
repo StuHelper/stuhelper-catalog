@@ -3,7 +3,9 @@ package catalog_test
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"net/netip"
 	"strings"
@@ -160,4 +162,33 @@ func (p *testImagePurger) Status(_ context.Context, job string, paths []string) 
 		return false, false, c.ErrUnavailable
 	}
 	return true, false, nil
+}
+
+func TestTeacherImageDeliveryRequiresCurrentOverrideRow(t *testing.T) {
+	s, _, db, _ := homepageFixture(t)
+	s.ReadAccess = &bodyMediaReadAccess{}
+	h := homepageHandler(s)
+	uploaded, err := json.Marshal(c.TeacherHomepageFieldPhoto{ContentType: "image/png", Data: homepagePortrait(t)})
+	if err != nil {
+		t.Fatal(err)
+	}
+	homepageSet(t, h, 0, "visible", fmt.Sprintf(`[{"field":{"field":"photo"},"hidden":false,"override":{"photo":%s}}]`, uploaded), "manual-photo")
+	profile := homepagePublicProfile(t, h, homepagePublic)
+	if profile == nil || profile.Photo == nil {
+		t.Fatal("missing manual portrait")
+	}
+	_, digest, ok := strings.Cut(profile.Photo.URL, "/photos/")
+	if !ok {
+		t.Fatal("missing photo URL")
+	}
+	p := c.Principal{Subject: homepageReader}
+	if _, err = s.TeacherPhotoForDelivery(context.Background(), p, "official", digest); err != nil {
+		t.Fatal(err)
+	}
+	if _, err = db.Exec("DELETE FROM catalog.teacher_homepage_override_photos WHERE school_id='school' AND teacher_id='official'"); err != nil {
+		t.Fatal(err)
+	}
+	if _, err = s.TeacherPhotoForDelivery(context.Background(), p, "official", digest); !errors.Is(err, c.ErrNotFound) {
+		t.Fatal("orphaned override metadata authorized a delivery")
+	}
 }

@@ -51,12 +51,16 @@ func (t *transaction) TeacherHomepage(school, teacherID string) (*c.TeacherHomep
 }
 
 func (t *transaction) TeacherHomepagePhoto(school, teacherID, photoID string) (c.TeacherHomepageImage, error) {
+	return t.sitePhoto(school, teacherID, photoID, true)
+}
+
+func (t *transaction) sitePhoto(school, teacherID, photoID string, loadBytes bool) (c.TeacherHomepageImage, error) {
 	var out c.TeacherHomepageImage
 	var site string
 	err := t.tx.QueryRowContext(t.ctx, `SELECT p.photo_id,p.media_type,p.width,p.height,p.site_id`+
 		homepageTeacherFrom()+` JOIN `+homepagePhotoJoin+homepageTeacherWhere()+` AND p.photo_id=$3`, school, teacherID, photoID).
 		Scan(&out.ID, &out.MediaType, &out.Width, &out.Height, &site)
-	if err != nil {
+	if err != nil || !loadBytes {
 		return out, safe(err)
 	}
 	return t.readImage(c.TeacherImageKey{Kind: c.SitePortrait, School: school, OwnerID: site, Digest: out.ID}, out)

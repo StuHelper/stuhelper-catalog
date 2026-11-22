@@ -42,13 +42,18 @@ func (h Handler) teacherHomepageRequestPhoto(w http.ResponseWriter, r *http.Requ
 	if !ok {
 		return
 	}
+	if h.ImageRedirect != nil {
+		key, err := h.Service.TeacherRequestPhotoForDelivery(r.Context(), p, r.PathValue("school_id"), r.PathValue("request_id"))
+		if err != nil {
+			respond(w, nil, err)
+			return
+		}
+		h.redirectTeacherImage(w, r, p, key)
+		return
+	}
 	photo, err := h.Service.ReadTeacherHomepageRequestPhoto(r.Context(), p, r.PathValue("school_id"), r.PathValue("request_id"))
 	if err != nil {
 		respond(w, nil, err)
-		return
-	}
-	if h.ImageRedirect != nil {
-		h.redirectTeacherImage(w, r, p, catalog.TeacherImageKey{Kind: catalog.RequestPortrait, Digest: photo.ID, School: r.PathValue("school_id"), OwnerID: r.PathValue("request_id")})
 		return
 	}
 	writeTeacherHomepagePhoto(w, r, photo)

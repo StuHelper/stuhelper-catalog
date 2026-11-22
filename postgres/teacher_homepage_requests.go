@@ -144,6 +144,14 @@ func (t *transaction) SaveTeacherHomepageRequestPhoto(school, requestID string, 
 }
 
 func (t *transaction) ReadTeacherHomepageRequestPhoto(school, requestID string) (c.TeacherHomepageImage, error) {
+	out, err := t.TeacherHomepageRequestPhotoMetadata(school, requestID)
+	if err != nil {
+		return out, err
+	}
+	return t.readImage(c.TeacherImageKey{Kind: c.RequestPortrait, School: school, OwnerID: requestID, Digest: out.ID}, out)
+}
+
+func (t *transaction) TeacherHomepageRequestPhotoMetadata(school, requestID string) (c.TeacherHomepageImage, error) {
 	var out c.TeacherHomepageImage
 	err := t.tx.QueryRowContext(t.ctx, `SELECT p.photo_id,p.media_type,p.width,p.height
  FROM catalog.teacher_homepage_request_photos p JOIN catalog.teacher_homepage_requests r ON r.id=p.request_id
@@ -152,7 +160,7 @@ func (t *transaction) ReadTeacherHomepageRequestPhoto(school, requestID string) 
 	if err != nil {
 		return out, safe(err)
 	}
-	return t.readImage(c.TeacherImageKey{Kind: c.RequestPortrait, School: school, OwnerID: requestID, Digest: out.ID}, out)
+	return out, nil
 }
 
 func (t *transaction) LinkTeacherHomepageRequestReplay(requestID, replayKey string) error {

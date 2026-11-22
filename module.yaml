@@ -147,6 +147,7 @@ scenario_tests:
   CAT-TEACHER-14:
     - teacher_homepage_media_postgres_test.go#TestTeacherHomepageBodyMediaPostgresAuthorizationAndRevocation
   CAT-TEACHER-15:
+    - teacher_image_cos_test.go#TestTeacherImageDeliveryRequiresCurrentOverrideRow
     - teacherimages/cos_test.go#TestCOSAdapterContentIntegrity
     - teacherimages/cos_test.go#TestTypeDMatchesEdgeRule
     - teacher_image_cos_test.go#TestTeacherImageMigrationAndRevokedDelivery

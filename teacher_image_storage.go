@@ -1,6 +1,9 @@
 package catalog
 
-import "context"
+import (
+	"context"
+	"errors"
+)
 
 // TeacherImageKey identifies immutable bytes. A body digest is shared across
 // schools; official, approved and pending portraits have separate owners.
@@ -45,9 +48,24 @@ type TeacherImageObjects interface {
 // student-facing read. Maintenance uses it only to revoke old delivery copies.
 func TeacherImageIsPublished(t Transaction, teacher Object, k TeacherImageKey) (bool, error) {
 	if k.Kind == BodyImageObject {
-		media, err := publishedTeacherHomepageMedia(t, teacher, k.Digest)
-		return len(media) > 0, err
+		items, err := publishedTeacherHomepageMedia(t, teacher, k.Digest)
+		if err != nil || len(items) == 0 || items[0].Image == nil {
+			return false, err
+		}
+		port, ok := t.(TeacherHomepageBodyMediaTransaction)
+		if !ok {
+			return false, ErrUnavailable
+		}
+		img, err := port.TeacherHomepageBodyImage(k.School, teacherHomepageID(teacher), k.Digest, false)
+		if errors.Is(err, ErrNotFound) {
+			return false, nil
+		}
+		meta := items[0].Image
+		return img.ID == k.Digest && img.MediaType == meta.MediaType && img.SizeBytes == meta.SizeBytes && img.Width == meta.Width && img.Height == meta.Height, err
 	}
-	profile, err := publishedTeacherHomepage(t, teacher)
-	return profile != nil && profile.Photo != nil && profile.Photo.ID == k.Digest, err
+	img, err := currentTeacherPhoto(t, teacher, k.Digest, false)
+	if errors.Is(err, ErrNotFound) {
+		return false, nil
+	}
+	return img.ID == k.Digest, err
 }

@@ -110,3 +110,10 @@ func (t *transaction) recheckTeacherImagePublications(school, owner string) erro
  WHERE school=$1 AND ($2='' OR owner_id=$2) AND kind<>'request-portrait'`, school, owner)
 	return safe(err)
 }
+
+func (t *transaction) TeacherHomepagePhotoMetadata(school, teacher, digest string, override bool) (c.TeacherHomepageImage, error) {
+	if override {
+		return t.overridePhoto(school, teacher, digest, false)
+	}
+	return t.sitePhoto(school, teacher, digest, false)
+}
