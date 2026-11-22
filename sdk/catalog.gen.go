@@ -420,6 +420,24 @@ func (e TeacherHomepageSupervisors) Valid() bool {
 	}
 }
 
+// Defines values for TeacherHomepageBodyImageContentType.
+const (
+	TeacherHomepageBodyImageContentTypeImagejpeg TeacherHomepageBodyImageContentType = "image/jpeg"
+	TeacherHomepageBodyImageContentTypeImagepng  TeacherHomepageBodyImageContentType = "image/png"
+)
+
+// Valid indicates whether the value is a known member of the TeacherHomepageBodyImageContentType enum.
+func (e TeacherHomepageBodyImageContentType) Valid() bool {
+	switch e {
+	case TeacherHomepageBodyImageContentTypeImagejpeg:
+		return true
+	case TeacherHomepageBodyImageContentTypeImagepng:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for TeacherHomepageControlsPageVisibility.
 const (
 	TeacherHomepageControlsPageVisibilityHidden  TeacherHomepageControlsPageVisibility = "hidden"
@@ -456,6 +474,42 @@ func (e TeacherHomepageControlsInputPageVisibility) Valid() bool {
 	case TeacherHomepageControlsInputPageVisibilityStopped:
 		return true
 	case TeacherHomepageControlsInputPageVisibilityVisible:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for TeacherHomepageCopiedImageField.
+const (
+	TeacherHomepageCopiedImageFieldBiography TeacherHomepageCopiedImageField = "biography"
+	TeacherHomepageCopiedImageFieldResearch  TeacherHomepageCopiedImageField = "research"
+	TeacherHomepageCopiedImageFieldSections  TeacherHomepageCopiedImageField = "sections"
+)
+
+// Valid indicates whether the value is a known member of the TeacherHomepageCopiedImageField enum.
+func (e TeacherHomepageCopiedImageField) Valid() bool {
+	switch e {
+	case TeacherHomepageCopiedImageFieldBiography:
+		return true
+	case TeacherHomepageCopiedImageFieldResearch:
+		return true
+	case TeacherHomepageCopiedImageFieldSections:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for TeacherHomepageCopiedImageKind.
+const (
+	TeacherHomepageCopiedImageKindImage TeacherHomepageCopiedImageKind = "image"
+)
+
+// Valid indicates whether the value is a known member of the TeacherHomepageCopiedImageKind enum.
+func (e TeacherHomepageCopiedImageKind) Valid() bool {
+	switch e {
+	case TeacherHomepageCopiedImageKindImage:
 		return true
 	default:
 		return false
@@ -708,6 +762,48 @@ func (e TeacherHomepageRequestInputKind) Valid() bool {
 	case TeacherHomepageRequestInputKindHide:
 		return true
 	case TeacherHomepageRequestInputKindSupplement:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for TeacherHomepageSourceLinkField.
+const (
+	TeacherHomepageSourceLinkFieldBiography TeacherHomepageSourceLinkField = "biography"
+	TeacherHomepageSourceLinkFieldResearch  TeacherHomepageSourceLinkField = "research"
+	TeacherHomepageSourceLinkFieldSections  TeacherHomepageSourceLinkField = "sections"
+)
+
+// Valid indicates whether the value is a known member of the TeacherHomepageSourceLinkField enum.
+func (e TeacherHomepageSourceLinkField) Valid() bool {
+	switch e {
+	case TeacherHomepageSourceLinkFieldBiography:
+		return true
+	case TeacherHomepageSourceLinkFieldResearch:
+		return true
+	case TeacherHomepageSourceLinkFieldSections:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for TeacherHomepageSourceLinkKind.
+const (
+	TeacherHomepageSourceLinkKindAttachment TeacherHomepageSourceLinkKind = "attachment"
+	TeacherHomepageSourceLinkKindImage      TeacherHomepageSourceLinkKind = "image"
+	TeacherHomepageSourceLinkKindVideo      TeacherHomepageSourceLinkKind = "video"
+)
+
+// Valid indicates whether the value is a known member of the TeacherHomepageSourceLinkKind enum.
+func (e TeacherHomepageSourceLinkKind) Valid() bool {
+	switch e {
+	case TeacherHomepageSourceLinkKindAttachment:
+		return true
+	case TeacherHomepageSourceLinkKindImage:
+		return true
+	case TeacherHomepageSourceLinkKindVideo:
 		return true
 	default:
 		return false
@@ -1762,6 +1858,17 @@ type TeacherHomepageAllowlistInput struct {
 	Fields []TeacherHomepageFieldSelector `json:"fields"`
 }
 
+// TeacherHomepageBodyImage defines model for TeacherHomepageBodyImage.
+type TeacherHomepageBodyImage struct {
+	ContentType TeacherHomepageBodyImageContentType `json:"content_type"`
+	Height      int                                 `json:"height"`
+	SizeBytes   int64                               `json:"size_bytes"`
+	Width       int                                 `json:"width"`
+}
+
+// TeacherHomepageBodyImageContentType defines model for TeacherHomepageBodyImage.ContentType.
+type TeacherHomepageBodyImageContentType string
+
 // TeacherHomepageControls defines model for TeacherHomepageControls.
 type TeacherHomepageControls struct {
 	// Independent 当前教师存在经本人申请及管理员批准的独立主页资料。
@@ -1808,6 +1915,29 @@ type TeacherHomepageControlsView struct {
 	// Source 当前已匹配的官网资料。未提供的可选字段省略，数组空时返回 []。资料 UTF-8 JSON 大小不超过 1 MiB。
 	Source *TeacherHomepage `json:"source,omitempty"`
 }
+
+// TeacherHomepageCopiedImage 已复制并通过校验的正文图片。
+type TeacherHomepageCopiedImage struct {
+	// Field 在资料页内的归属。
+	Field TeacherHomepageCopiedImageField `json:"field"`
+	Image TeacherHomepageBodyImage        `json:"image"`
+	Kind  TeacherHomepageCopiedImageKind  `json:"kind"`
+
+	// Section field 为 sections 时的栏目标题。纯媒体栏目也可出现。
+	Section *string `json:"section,omitempty"`
+
+	// Title 可访问的来源标题或图片说明。显示为纯文本。
+	Title *string `json:"title,omitempty"`
+
+	// Url StuHelper 同源图片地址。客户端以当前凭证读取后可用 Blob 展示图片。
+	Url string `json:"url"`
+}
+
+// TeacherHomepageCopiedImageField 在资料页内的归属。
+type TeacherHomepageCopiedImageField string
+
+// TeacherHomepageCopiedImageKind defines model for TeacherHomepageCopiedImage.Kind.
+type TeacherHomepageCopiedImageKind string
 
 // TeacherHomepageCounts defines model for TeacherHomepageCounts.
 type TeacherHomepageCounts struct {
@@ -1942,6 +2072,16 @@ type TeacherHomepageFieldValueInput struct {
 
 // TeacherHomepageFieldValueInput_Photo defines model for TeacherHomepageFieldValueInput.Photo.
 type TeacherHomepageFieldValueInput_Photo struct {
+	union json.RawMessage
+}
+
+// TeacherHomepageMediaView defines model for TeacherHomepageMediaView.
+type TeacherHomepageMediaView struct {
+	Items []TeacherHomepageMedium `json:"items"`
+}
+
+// TeacherHomepageMedium defines model for TeacherHomepageMedium.
+type TeacherHomepageMedium struct {
 	union json.RawMessage
 }
 
@@ -2266,6 +2406,28 @@ type TeacherHomepageSection struct {
 	// Title 官网可见页签或正文分区的标题。
 	Title string `json:"title"`
 }
+
+// TeacherHomepageSourceLink 图片的原内容页回退，或者视频及附件原站链接。
+type TeacherHomepageSourceLink struct {
+	// Field 在资料页内的归属。
+	Field TeacherHomepageSourceLinkField `json:"field"`
+	Kind  TeacherHomepageSourceLinkKind  `json:"kind"`
+
+	// Section field 为 sections 时的栏目标题。纯媒体栏目也可出现。
+	Section *string `json:"section,omitempty"`
+
+	// Title 可访问的来源标题或图片说明。显示为纯文本。
+	Title *string `json:"title,omitempty"`
+
+	// Url 供主动点击的原站链接。图片回退指向该教师的学校原内容页。
+	Url string `json:"url"`
+}
+
+// TeacherHomepageSourceLinkField 在资料页内的归属。
+type TeacherHomepageSourceLinkField string
+
+// TeacherHomepageSourceLinkKind defines model for TeacherHomepageSourceLink.Kind.
+type TeacherHomepageSourceLinkKind string
 
 // TeacherHomepageSupervisor defines model for TeacherHomepageSupervisor.
 type TeacherHomepageSupervisor string
@@ -2776,6 +2938,68 @@ func (t *TeacherHomepageFieldValueInput_Photo) UnmarshalJSON(b []byte) error {
 	return err
 }
 
+// AsTeacherHomepageCopiedImage returns the union data inside the TeacherHomepageMedium as a TeacherHomepageCopiedImage
+func (t TeacherHomepageMedium) AsTeacherHomepageCopiedImage() (TeacherHomepageCopiedImage, error) {
+	var body TeacherHomepageCopiedImage
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromTeacherHomepageCopiedImage overwrites any union data inside the TeacherHomepageMedium as the provided TeacherHomepageCopiedImage
+func (t *TeacherHomepageMedium) FromTeacherHomepageCopiedImage(v TeacherHomepageCopiedImage) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeTeacherHomepageCopiedImage performs a merge with any union data inside the TeacherHomepageMedium, using the provided TeacherHomepageCopiedImage
+func (t *TeacherHomepageMedium) MergeTeacherHomepageCopiedImage(v TeacherHomepageCopiedImage) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsTeacherHomepageSourceLink returns the union data inside the TeacherHomepageMedium as a TeacherHomepageSourceLink
+func (t TeacherHomepageMedium) AsTeacherHomepageSourceLink() (TeacherHomepageSourceLink, error) {
+	var body TeacherHomepageSourceLink
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromTeacherHomepageSourceLink overwrites any union data inside the TeacherHomepageMedium as the provided TeacherHomepageSourceLink
+func (t *TeacherHomepageMedium) FromTeacherHomepageSourceLink(v TeacherHomepageSourceLink) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeTeacherHomepageSourceLink performs a merge with any union data inside the TeacherHomepageMedium, using the provided TeacherHomepageSourceLink
+func (t *TeacherHomepageMedium) MergeTeacherHomepageSourceLink(v TeacherHomepageSourceLink) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+func (t TeacherHomepageMedium) MarshalJSON() ([]byte, error) {
+	b, err := t.union.MarshalJSON()
+	return b, err
+}
+
+func (t *TeacherHomepageMedium) UnmarshalJSON(b []byte) error {
+	err := t.union.UnmarshalJSON(b)
+	return err
+}
+
 // RequestEditorFn is the function signature for the RequestEditor callback function
 type RequestEditorFn func(ctx context.Context, req *http.Request) error
 
@@ -3175,6 +3399,21 @@ type ClientInterface interface {
 	//
 	// 沿用教师目录的当前内容准入和学校范围。profile 为应用字段白名单、人工覆盖与隐藏设置后的纯文本投影。当前公开教师可展示已审批的独立资料。无可展示资料、整页隐藏或已停止展示时返回空对象。禁止缓存。.
 	GetTeacherHomepage(ctx context.Context, id string, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// GetTeacherHomepageBodyImage performs a GET /api/v1/catalog/objects/{id}/teacher-homepage/images/{image_id} (the `GetTeacherHomepageBodyImage` operationId) request.
+	//
+	// 沿用教师主页的当前登录、学校内容准入和目录可见性。摘要必须仍出现在该教师当前可见的正文媒体中。客户端用登录凭证读取二进制，可将 Blob 转为图片地址。响应禁止缓存。.
+	GetTeacherHomepageBodyImage(ctx context.Context, id string, imageId string, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// HeadTeacherHomepageBodyImage performs a HEAD /api/v1/catalog/objects/{id}/teacher-homepage/images/{image_id} (the `HeadTeacherHomepageBodyImage` operationId) request.
+	//
+	// 以与 GET 相同的登录与正文展示检查返回当前图片的响应头。.
+	HeadTeacherHomepageBodyImage(ctx context.Context, id string, imageId string, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// ListTeacherHomepageMedia performs a GET /api/v1/catalog/objects/{id}/teacher-homepage/media (the `ListTeacherHomepageMedia` operationId) request.
+	//
+	// 沿用教师主页的当前登录、学校内容准入和目录可见性。按官网正文顺序返回通过白名单和人工展示设置的媒体。整页隐藏、停止展示或没有可见媒体时返回空列表。响应禁止缓存。.
+	ListTeacherHomepageMedia(ctx context.Context, id string, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// GetTeacherHomepagePhoto performs a GET /api/v1/catalog/objects/{id}/teacher-homepage/photos/{photo_id} (the `GetTeacherHomepagePhoto` operationId) request.
 	//
@@ -4155,6 +4394,51 @@ func (c *Client) GetObjectSummary(ctx context.Context, id string, params *GetObj
 // 沿用教师目录的当前内容准入和学校范围。profile 为应用字段白名单、人工覆盖与隐藏设置后的纯文本投影。当前公开教师可展示已审批的独立资料。无可展示资料、整页隐藏或已停止展示时返回空对象。禁止缓存。.
 func (c *Client) GetTeacherHomepage(ctx context.Context, id string, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewGetTeacherHomepageRequest(c.Server, id)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// GetTeacherHomepageBodyImage performs a GET /api/v1/catalog/objects/{id}/teacher-homepage/images/{image_id} (the `GetTeacherHomepageBodyImage` operationId) request.
+//
+// 沿用教师主页的当前登录、学校内容准入和目录可见性。摘要必须仍出现在该教师当前可见的正文媒体中。客户端用登录凭证读取二进制，可将 Blob 转为图片地址。响应禁止缓存。.
+func (c *Client) GetTeacherHomepageBodyImage(ctx context.Context, id string, imageId string, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetTeacherHomepageBodyImageRequest(c.Server, id, imageId)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// HeadTeacherHomepageBodyImage performs a HEAD /api/v1/catalog/objects/{id}/teacher-homepage/images/{image_id} (the `HeadTeacherHomepageBodyImage` operationId) request.
+//
+// 以与 GET 相同的登录与正文展示检查返回当前图片的响应头。.
+func (c *Client) HeadTeacherHomepageBodyImage(ctx context.Context, id string, imageId string, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewHeadTeacherHomepageBodyImageRequest(c.Server, id, imageId)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// ListTeacherHomepageMedia performs a GET /api/v1/catalog/objects/{id}/teacher-homepage/media (the `ListTeacherHomepageMedia` operationId) request.
+//
+// 沿用教师主页的当前登录、学校内容准入和目录可见性。按官网正文顺序返回通过白名单和人工展示设置的媒体。整页隐藏、停止展示或没有可见媒体时返回空列表。响应禁止缓存。.
+func (c *Client) ListTeacherHomepageMedia(ctx context.Context, id string, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewListTeacherHomepageMediaRequest(c.Server, id)
 	if err != nil {
 		return nil, err
 	}
@@ -7331,6 +7615,122 @@ func NewGetTeacherHomepageRequest(server string, id string) (*http.Request, erro
 	return req, nil
 }
 
+// NewGetTeacherHomepageBodyImageRequest constructs an http.Request for the GetTeacherHomepageBodyImage method
+func NewGetTeacherHomepageBodyImageRequest(server string, id string, imageId string) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "id", id, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithOptions("simple", false, "image_id", imageId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/catalog/objects/%s/teacher-homepage/images/%s", pathParam0, pathParam1)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewHeadTeacherHomepageBodyImageRequest constructs an http.Request for the HeadTeacherHomepageBodyImage method
+func NewHeadTeacherHomepageBodyImageRequest(server string, id string, imageId string) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "id", id, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithOptions("simple", false, "image_id", imageId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/catalog/objects/%s/teacher-homepage/images/%s", pathParam0, pathParam1)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodHead, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewListTeacherHomepageMediaRequest constructs an http.Request for the ListTeacherHomepageMedia method
+func NewListTeacherHomepageMediaRequest(server string, id string) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "id", id, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/catalog/objects/%s/teacher-homepage/media", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
 // NewGetTeacherHomepagePhotoRequest constructs an http.Request for the GetTeacherHomepagePhoto method
 func NewGetTeacherHomepagePhotoRequest(server string, id string, photoId string) (*http.Request, error) {
 	var err error
@@ -7984,6 +8384,27 @@ type ClientWithResponsesInterface interface {
 	//
 	// Returns a wrapper object for the known response body format(s).
 	GetTeacherHomepageWithResponse(ctx context.Context, id string, reqEditors ...RequestEditorFn) (*GetTeacherHomepageResponse, error)
+
+	// GetTeacherHomepageBodyImageWithResponse performs a GET /api/v1/catalog/objects/{id}/teacher-homepage/images/{image_id} (the `GetTeacherHomepageBodyImage` operationId) request.
+	//
+	// 沿用教师主页的当前登录、学校内容准入和目录可见性。摘要必须仍出现在该教师当前可见的正文媒体中。客户端用登录凭证读取二进制，可将 Blob 转为图片地址。响应禁止缓存。.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	GetTeacherHomepageBodyImageWithResponse(ctx context.Context, id string, imageId string, reqEditors ...RequestEditorFn) (*GetTeacherHomepageBodyImageResponse, error)
+
+	// HeadTeacherHomepageBodyImageWithResponse performs a HEAD /api/v1/catalog/objects/{id}/teacher-homepage/images/{image_id} (the `HeadTeacherHomepageBodyImage` operationId) request.
+	//
+	// 以与 GET 相同的登录与正文展示检查返回当前图片的响应头。.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	HeadTeacherHomepageBodyImageWithResponse(ctx context.Context, id string, imageId string, reqEditors ...RequestEditorFn) (*HeadTeacherHomepageBodyImageResponse, error)
+
+	// ListTeacherHomepageMediaWithResponse performs a GET /api/v1/catalog/objects/{id}/teacher-homepage/media (the `ListTeacherHomepageMedia` operationId) request.
+	//
+	// 沿用教师主页的当前登录、学校内容准入和目录可见性。按官网正文顺序返回通过白名单和人工展示设置的媒体。整页隐藏、停止展示或没有可见媒体时返回空列表。响应禁止缓存。.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	ListTeacherHomepageMediaWithResponse(ctx context.Context, id string, reqEditors ...RequestEditorFn) (*ListTeacherHomepageMediaResponse, error)
 
 	// GetTeacherHomepagePhotoWithResponse performs a GET /api/v1/catalog/objects/{id}/teacher-homepage/photos/{photo_id} (the `GetTeacherHomepagePhoto` operationId) request.
 	//
@@ -12026,6 +12447,213 @@ func (r GetTeacherHomepageResponse) ContentType() string {
 	return ""
 }
 
+// GetTeacherHomepageBodyImageResponse200Headers the declared response headers of an HTTP 200 response for GetTeacherHomepageBodyImage
+type GetTeacherHomepageBodyImageResponse200Headers struct {
+	CacheControl        *string
+	ContentLength       *int
+	XAccelBuffering     *string
+	XContentTypeOptions *string
+}
+
+type GetTeacherHomepageBodyImageResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON400 the response for an HTTP 400 `application/json` response
+	JSON400 *Error
+	// JSON401 the response for an HTTP 401 `application/json` response
+	JSON401 *Error
+	// JSON403 the response for an HTTP 403 `application/json` response
+	JSON403 *Error
+	// JSON404 the response for an HTTP 404 `application/json` response
+	JSON404 *Error
+	// JSON503 the response for an HTTP 503 `application/json` response
+	JSON503 *Error
+	// Headers200 the parsed response headers for an HTTP 200 response
+	Headers200 *GetTeacherHomepageBodyImageResponse200Headers
+}
+
+// GetJSON400 returns the response for an HTTP 400 `application/json` response
+func (r GetTeacherHomepageBodyImageResponse) GetJSON400() *Error {
+	return r.JSON400
+}
+
+// GetJSON401 returns the response for an HTTP 401 `application/json` response
+func (r GetTeacherHomepageBodyImageResponse) GetJSON401() *Error {
+	return r.JSON401
+}
+
+// GetJSON403 returns the response for an HTTP 403 `application/json` response
+func (r GetTeacherHomepageBodyImageResponse) GetJSON403() *Error {
+	return r.JSON403
+}
+
+// GetJSON404 returns the response for an HTTP 404 `application/json` response
+func (r GetTeacherHomepageBodyImageResponse) GetJSON404() *Error {
+	return r.JSON404
+}
+
+// GetJSON503 returns the response for an HTTP 503 `application/json` response
+func (r GetTeacherHomepageBodyImageResponse) GetJSON503() *Error {
+	return r.JSON503
+}
+
+// GetBody returns the raw response body bytes
+func (r GetTeacherHomepageBodyImageResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r GetTeacherHomepageBodyImageResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetTeacherHomepageBodyImageResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r GetTeacherHomepageBodyImageResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+// HeadTeacherHomepageBodyImageResponse200Headers the declared response headers of an HTTP 200 response for HeadTeacherHomepageBodyImage
+type HeadTeacherHomepageBodyImageResponse200Headers struct {
+	CacheControl        *string
+	ContentLength       *int
+	ContentType         *string
+	XAccelBuffering     *string
+	XContentTypeOptions *string
+}
+
+type HeadTeacherHomepageBodyImageResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// Headers200 the parsed response headers for an HTTP 200 response
+	Headers200 *HeadTeacherHomepageBodyImageResponse200Headers
+}
+
+// GetBody returns the raw response body bytes
+func (r HeadTeacherHomepageBodyImageResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r HeadTeacherHomepageBodyImageResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r HeadTeacherHomepageBodyImageResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r HeadTeacherHomepageBodyImageResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+// ListTeacherHomepageMediaResponse200Headers the declared response headers of an HTTP 200 response for ListTeacherHomepageMedia
+type ListTeacherHomepageMediaResponse200Headers struct {
+	CacheControl *string
+}
+
+type ListTeacherHomepageMediaResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *TeacherHomepageMediaView
+	// JSON400 the response for an HTTP 400 `application/json` response
+	JSON400 *Error
+	// JSON401 the response for an HTTP 401 `application/json` response
+	JSON401 *Error
+	// JSON403 the response for an HTTP 403 `application/json` response
+	JSON403 *Error
+	// JSON404 the response for an HTTP 404 `application/json` response
+	JSON404 *Error
+	// JSON503 the response for an HTTP 503 `application/json` response
+	JSON503 *Error
+	// Headers200 the parsed response headers for an HTTP 200 response
+	Headers200 *ListTeacherHomepageMediaResponse200Headers
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r ListTeacherHomepageMediaResponse) GetJSON200() *TeacherHomepageMediaView {
+	return r.JSON200
+}
+
+// GetJSON400 returns the response for an HTTP 400 `application/json` response
+func (r ListTeacherHomepageMediaResponse) GetJSON400() *Error {
+	return r.JSON400
+}
+
+// GetJSON401 returns the response for an HTTP 401 `application/json` response
+func (r ListTeacherHomepageMediaResponse) GetJSON401() *Error {
+	return r.JSON401
+}
+
+// GetJSON403 returns the response for an HTTP 403 `application/json` response
+func (r ListTeacherHomepageMediaResponse) GetJSON403() *Error {
+	return r.JSON403
+}
+
+// GetJSON404 returns the response for an HTTP 404 `application/json` response
+func (r ListTeacherHomepageMediaResponse) GetJSON404() *Error {
+	return r.JSON404
+}
+
+// GetJSON503 returns the response for an HTTP 503 `application/json` response
+func (r ListTeacherHomepageMediaResponse) GetJSON503() *Error {
+	return r.JSON503
+}
+
+// GetBody returns the raw response body bytes
+func (r ListTeacherHomepageMediaResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r ListTeacherHomepageMediaResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r ListTeacherHomepageMediaResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r ListTeacherHomepageMediaResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
 // GetTeacherHomepagePhotoResponse200Headers the declared response headers of an HTTP 200 response for GetTeacherHomepagePhoto
 type GetTeacherHomepagePhotoResponse200Headers struct {
 	CacheControl        *string
@@ -13082,6 +13710,45 @@ func (c *ClientWithResponses) GetTeacherHomepageWithResponse(ctx context.Context
 		return nil, err
 	}
 	return ParseGetTeacherHomepageResponse(rsp)
+}
+
+// GetTeacherHomepageBodyImageWithResponse performs a GET /api/v1/catalog/objects/{id}/teacher-homepage/images/{image_id} (the `GetTeacherHomepageBodyImage` operationId) request.
+//
+// 沿用教师主页的当前登录、学校内容准入和目录可见性。摘要必须仍出现在该教师当前可见的正文媒体中。客户端用登录凭证读取二进制，可将 Blob 转为图片地址。响应禁止缓存。.
+//
+// Returns a wrapper object for the known response body format(s).
+func (c *ClientWithResponses) GetTeacherHomepageBodyImageWithResponse(ctx context.Context, id string, imageId string, reqEditors ...RequestEditorFn) (*GetTeacherHomepageBodyImageResponse, error) {
+	rsp, err := c.GetTeacherHomepageBodyImage(ctx, id, imageId, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetTeacherHomepageBodyImageResponse(rsp)
+}
+
+// HeadTeacherHomepageBodyImageWithResponse performs a HEAD /api/v1/catalog/objects/{id}/teacher-homepage/images/{image_id} (the `HeadTeacherHomepageBodyImage` operationId) request.
+//
+// 以与 GET 相同的登录与正文展示检查返回当前图片的响应头。.
+//
+// Returns a wrapper object for the known response body format(s).
+func (c *ClientWithResponses) HeadTeacherHomepageBodyImageWithResponse(ctx context.Context, id string, imageId string, reqEditors ...RequestEditorFn) (*HeadTeacherHomepageBodyImageResponse, error) {
+	rsp, err := c.HeadTeacherHomepageBodyImage(ctx, id, imageId, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseHeadTeacherHomepageBodyImageResponse(rsp)
+}
+
+// ListTeacherHomepageMediaWithResponse performs a GET /api/v1/catalog/objects/{id}/teacher-homepage/media (the `ListTeacherHomepageMedia` operationId) request.
+//
+// 沿用教师主页的当前登录、学校内容准入和目录可见性。按官网正文顺序返回通过白名单和人工展示设置的媒体。整页隐藏、停止展示或没有可见媒体时返回空列表。响应禁止缓存。.
+//
+// Returns a wrapper object for the known response body format(s).
+func (c *ClientWithResponses) ListTeacherHomepageMediaWithResponse(ctx context.Context, id string, reqEditors ...RequestEditorFn) (*ListTeacherHomepageMediaResponse, error) {
+	rsp, err := c.ListTeacherHomepageMedia(ctx, id, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseListTeacherHomepageMediaResponse(rsp)
 }
 
 // GetTeacherHomepagePhotoWithResponse performs a GET /api/v1/catalog/objects/{id}/teacher-homepage/photos/{photo_id} (the `GetTeacherHomepagePhoto` operationId) request.
@@ -16420,6 +17087,225 @@ func ParseGetTeacherHomepageResponse(rsp *http.Response) (*GetTeacherHomepageRes
 		}
 		response.JSON503 = &dest
 
+	}
+
+	return response, nil
+}
+
+// ParseGetTeacherHomepageBodyImageResponse parses an HTTP response from a GetTeacherHomepageBodyImageWithResponse call
+func ParseGetTeacherHomepageBodyImageResponse(rsp *http.Response) (*GetTeacherHomepageBodyImageResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetTeacherHomepageBodyImageResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON503 = &dest
+
+	}
+
+	switch {
+	case rsp.StatusCode == 200:
+		var headers GetTeacherHomepageBodyImageResponse200Headers
+		if values := rsp.Header.Values("Cache-Control"); len(values) > 0 {
+			var value string
+			if err := runtime.BindStyledParameterWithOptions("simple", "Cache-Control", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.CacheControl = &value
+		}
+		if values := rsp.Header.Values("Content-Length"); len(values) > 0 {
+			var value int
+			if err := runtime.BindStyledParameterWithOptions("simple", "Content-Length", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.ContentLength = &value
+		}
+		if values := rsp.Header.Values("X-Accel-Buffering"); len(values) > 0 {
+			var value string
+			if err := runtime.BindStyledParameterWithOptions("simple", "X-Accel-Buffering", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.XAccelBuffering = &value
+		}
+		if values := rsp.Header.Values("X-Content-Type-Options"); len(values) > 0 {
+			var value string
+			if err := runtime.BindStyledParameterWithOptions("simple", "X-Content-Type-Options", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.XContentTypeOptions = &value
+		}
+		response.Headers200 = &headers
+	}
+
+	return response, nil
+}
+
+// ParseHeadTeacherHomepageBodyImageResponse parses an HTTP response from a HeadTeacherHomepageBodyImageWithResponse call
+func ParseHeadTeacherHomepageBodyImageResponse(rsp *http.Response) (*HeadTeacherHomepageBodyImageResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &HeadTeacherHomepageBodyImageResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case rsp.StatusCode == 200:
+		var headers HeadTeacherHomepageBodyImageResponse200Headers
+		if values := rsp.Header.Values("Cache-Control"); len(values) > 0 {
+			var value string
+			if err := runtime.BindStyledParameterWithOptions("simple", "Cache-Control", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.CacheControl = &value
+		}
+		if values := rsp.Header.Values("Content-Length"); len(values) > 0 {
+			var value int
+			if err := runtime.BindStyledParameterWithOptions("simple", "Content-Length", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.ContentLength = &value
+		}
+		if values := rsp.Header.Values("Content-Type"); len(values) > 0 {
+			var value string
+			if err := runtime.BindStyledParameterWithOptions("simple", "Content-Type", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.ContentType = &value
+		}
+		if values := rsp.Header.Values("X-Accel-Buffering"); len(values) > 0 {
+			var value string
+			if err := runtime.BindStyledParameterWithOptions("simple", "X-Accel-Buffering", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.XAccelBuffering = &value
+		}
+		if values := rsp.Header.Values("X-Content-Type-Options"); len(values) > 0 {
+			var value string
+			if err := runtime.BindStyledParameterWithOptions("simple", "X-Content-Type-Options", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.XContentTypeOptions = &value
+		}
+		response.Headers200 = &headers
+	}
+
+	return response, nil
+}
+
+// ParseListTeacherHomepageMediaResponse parses an HTTP response from a ListTeacherHomepageMediaWithResponse call
+func ParseListTeacherHomepageMediaResponse(rsp *http.Response) (*ListTeacherHomepageMediaResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &ListTeacherHomepageMediaResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest TeacherHomepageMediaView
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON503 = &dest
+
+	}
+
+	switch {
+	case rsp.StatusCode == 200:
+		var headers ListTeacherHomepageMediaResponse200Headers
+		if values := rsp.Header.Values("Cache-Control"); len(values) > 0 {
+			var value string
+			if err := runtime.BindStyledParameterWithOptions("simple", "Cache-Control", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.CacheControl = &value
+		}
+		response.Headers200 = &headers
 	}
 
 	return response, nil

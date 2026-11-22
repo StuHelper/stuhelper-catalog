@@ -66,19 +66,21 @@ type TeacherHomepageImage struct {
 	MediaType string `json:"content_type"`
 	Width     int    `json:"width"`
 	Height    int    `json:"height"`
+	SizeBytes int64  `json:"-"`
 	Bytes     []byte `json:"-"`
 }
 
 type TeacherSite struct {
-	SiteID              string                `json:"site_id"`
-	Name                string                `json:"name"`
-	Unit                string                `json:"unit"`
-	URL                 string                `json:"url"`
-	Reason              string                `json:"reason"`
-	CandidateTeacherIDs []string              `json:"candidate_teacher_ids"`
-	CandidateCount      int64                 `json:"candidate_count"`
-	Profile             TeacherHomepage       `json:"profile"`
-	Photo               *TeacherHomepageImage `json:"photo,omitempty"`
+	SiteID              string                     `json:"site_id"`
+	Name                string                     `json:"name"`
+	Unit                string                     `json:"unit"`
+	URL                 string                     `json:"url"`
+	Reason              string                     `json:"reason"`
+	CandidateTeacherIDs []string                   `json:"candidate_teacher_ids"`
+	CandidateCount      int64                      `json:"candidate_count"`
+	Profile             TeacherHomepage            `json:"profile"`
+	Photo               *TeacherHomepageImage      `json:"photo,omitempty"`
+	BodyMedia           []TeacherHomepageBodyMedia `json:"body_media,omitempty"`
 }
 
 type TeacherSiteTeacher struct {
@@ -121,15 +123,19 @@ func ValidateTeacherHomepageImage(photo TeacherHomepageImage) error {
 	if !validTeacherHomepagePhotoMetadata(photo) || len(photo.Bytes) == 0 || len(photo.Bytes) > TeacherHomepageMaxPhotoBytes {
 		return ErrInput
 	}
-	sum := sha256.Sum256(photo.Bytes)
-	if hex.EncodeToString(sum[:]) != photo.ID {
+	return validateTeacherHomepageImageBytes(photo.Bytes, photo.ID, photo.MediaType, photo.Width, photo.Height)
+}
+
+func validateTeacherHomepageImageBytes(data []byte, id, mediaType string, width, height int) error {
+	sum := sha256.Sum256(data)
+	if hex.EncodeToString(sum[:]) != id {
 		return ErrInput
 	}
-	cfg, format, err := image.DecodeConfig(bytes.NewReader(photo.Bytes))
-	if err != nil || "image/"+format != photo.MediaType || cfg.Width != photo.Width || cfg.Height != photo.Height {
+	cfg, format, err := image.DecodeConfig(bytes.NewReader(data))
+	if err != nil || "image/"+format != mediaType || cfg.Width != width || cfg.Height != height {
 		return ErrInput
 	}
-	_, _, err = image.Decode(bytes.NewReader(photo.Bytes))
+	_, _, err = image.Decode(bytes.NewReader(data))
 	if err != nil {
 		return ErrInput
 	}
@@ -202,15 +208,20 @@ func normalizeTeacherReviewCandidates(ids []string, count int64, valid func(stri
 
 func validateTeacherHomepageSnapshot(in *TeacherSiteSnapshot, hosts []string) error {
 	if in.Sites == nil && in.Version == 0 {
-		if len(in.Teachers) != 0 || in.ReadPhoto != nil {
+		if len(in.Teachers) != 0 || in.ReadPhoto != nil || in.ReadBodyImage != nil {
 			return ErrInput
 		}
 		return nil
 	}
-	if in.Version != 0 && in.Version != 2 || len(in.Sites) > 20000 || len(in.Teachers) > 100000 {
+	if in.Version != 0 && in.Version != 2 && in.Version != 3 || len(in.Sites) > 20000 || len(in.Teachers) > 100000 {
 		return ErrInput
 	}
-	in.Version = 2
+	if in.Version == 0 {
+		in.Version = 2
+	}
+	if in.Version < 3 && in.ReadBodyImage != nil {
+		return ErrInput
+	}
 	in.Sites = append([]TeacherSite{}, in.Sites...)
 	in.Teachers = append([]TeacherSiteTeacher{}, in.Teachers...)
 	slices.SortFunc(in.Sites, func(a, b TeacherSite) int { return strings.Compare(a.SiteID, b.SiteID) })
@@ -244,7 +255,7 @@ func validateTeacherHomepageSnapshot(in *TeacherSiteSnapshot, hosts []string) er
 		}
 		if site.Reason == "site_unavailable" {
 			site.Profile = TeacherHomepage{}
-			if site.Photo != nil {
+			if site.Photo != nil || len(site.BodyMedia) != 0 {
 				return ErrInput
 			}
 			continue
@@ -256,6 +267,9 @@ func validateTeacherHomepageSnapshot(in *TeacherSiteSnapshot, hosts []string) er
 		if site.Photo != nil && (!validTeacherHomepagePhotoMetadata(*site.Photo) ||
 			len(site.Photo.Bytes) == 0 && in.ReadPhoto == nil || len(site.Photo.Bytes) > TeacherHomepageMaxPhotoBytes) {
 			return ErrInput
+		}
+		if err := validateTeacherHomepageBodyMedia(*site, in.Version == 3, hosts); err != nil {
+			return err
 		}
 	}
 	for raw := range matchesByURL {

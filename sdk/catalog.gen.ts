@@ -599,6 +599,41 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/catalog/objects/{id}/teacher-homepage/media": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description 沿用教师主页的当前登录、学校内容准入和目录可见性。按官网正文顺序返回通过白名单和人工展示设置的媒体。整页隐藏、停止展示或没有可见媒体时返回空列表。响应禁止缓存。 */
+        get: operations["listTeacherHomepageMedia"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/catalog/objects/{id}/teacher-homepage/images/{image_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description 沿用教师主页的当前登录、学校内容准入和目录可见性。摘要必须仍出现在该教师当前可见的正文媒体中。客户端用登录凭证读取二进制，可将 Blob 转为图片地址。响应禁止缓存。 */
+        get: operations["getTeacherHomepageBodyImage"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        /** @description 以与 GET 相同的登录与正文展示检查返回当前图片的响应头。 */
+        head: operations["headTeacherHomepageBodyImage"];
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/catalog/objects/{id}/teacher-homepage": {
         parameters: {
             query?: never;
@@ -1751,6 +1786,52 @@ export interface components {
             /** @description 按主页显示顺序提供可见页签及正文分区。 */
             sections: components["schemas"]["TeacherHomepageSection"][];
             photo?: components["schemas"]["TeacherHomepagePhoto"];
+        };
+        TeacherHomepageBodyImage: {
+            /** @enum {string} */
+            content_type: "image/jpeg" | "image/png";
+            width: number;
+            height: number;
+            /** Format: int64 */
+            size_bytes: number;
+        };
+        /** @description 已复制并通过校验的正文图片。 */
+        TeacherHomepageCopiedImage: {
+            /** @enum {string} */
+            kind: "image";
+            /**
+             * @description 在资料页内的归属。
+             * @enum {string}
+             */
+            field: "biography" | "research" | "sections";
+            /** @description field 为 sections 时的栏目标题。纯媒体栏目也可出现。 */
+            section?: string;
+            /** @description 可访问的来源标题或图片说明。显示为纯文本。 */
+            title?: string;
+            /** @description StuHelper 同源图片地址。客户端以当前凭证读取后可用 Blob 展示图片。 */
+            url: string;
+            /** @description 仅复制成功的正文图片含此项。客户端可据此读取并展示本地图片。 */
+            image: components["schemas"]["TeacherHomepageBodyImage"];
+        };
+        /** @description 图片的原内容页回退，或者视频及附件原站链接。 */
+        TeacherHomepageSourceLink: {
+            /** @enum {string} */
+            kind: "image" | "video" | "attachment";
+            /**
+             * @description 在资料页内的归属。
+             * @enum {string}
+             */
+            field: "biography" | "research" | "sections";
+            /** @description field 为 sections 时的栏目标题。纯媒体栏目也可出现。 */
+            section?: string;
+            /** @description 可访问的来源标题或图片说明。显示为纯文本。 */
+            title?: string;
+            /** @description 供主动点击的原站链接。图片回退指向该教师的学校原内容页。 */
+            url: string;
+        };
+        TeacherHomepageMedium: components["schemas"]["TeacherHomepageCopiedImage"] | components["schemas"]["TeacherHomepageSourceLink"];
+        TeacherHomepageMediaView: {
+            items: components["schemas"]["TeacherHomepageMedium"][];
         };
         /** @description 应用白名单、个人控制与匹配状态后的教师主页。资料不可展示时省略 profile。 */
         TeacherHomepagePublicView: {
@@ -5092,6 +5173,211 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["Error"];
                 };
+            };
+        };
+    };
+    listTeacherHomepageMedia: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description 目录教师对象标识。 */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 已校验的本地图片和可点击原站链接。按所在栏目分组时可使用 field 和 section。 */
+            200: {
+                headers: {
+                    "Cache-Control"?: "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TeacherHomepageMediaView"];
+                };
+            };
+            /** @description invalid_input。教师对象标识不符合约定。 */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description unauthenticated。需要登录。 */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description forbidden。当前账号不具备相应的学校内容准入。 */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description not_found。目标教师不在当前可读目录中。 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description unavailable。必要的认证或目录依赖暂不可用。 */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    getTeacherHomepageBodyImage: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                /** @description 正文图片内容的 SHA-256。 */
+                image_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 当前已验证的正文图片。最多 20 MiB，每边最多 8192 像素，总面积最多 16,777,216 像素。 */
+            200: {
+                headers: {
+                    "Cache-Control"?: "private, no-store";
+                    "X-Content-Type-Options"?: "nosniff";
+                    "Content-Length"?: number;
+                    "X-Accel-Buffering"?: "no";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "image/jpeg": string;
+                    "image/png": string;
+                };
+            };
+            /** @description Invalid input */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Authentication required */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not permitted */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description 教师或正文图片已不可见，或图片摘要不在当前可见正文中。 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description 必要依赖暂不可用，或正文图片下载没有在请求期限内取得处理名额。 */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    headTeacherHomepageBodyImage: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                /** @description 正文图片内容的 SHA-256。 */
+                image_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 当前已验证的正文图片。最多 20 MiB，每边最多 8192 像素，总面积最多 16,777,216 像素。 */
+            200: {
+                headers: {
+                    "Cache-Control"?: "private, no-store";
+                    "X-Content-Type-Options"?: "nosniff";
+                    "Content-Length"?: number;
+                    "Content-Type"?: "image/jpeg" | "image/png";
+                    "X-Accel-Buffering"?: "no";
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Invalid input */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Authentication required */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not permitted */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description 教师或正文图片已不可见，或图片摘要不在当前可见正文中。 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Required dependency unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
