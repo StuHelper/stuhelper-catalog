@@ -268,7 +268,7 @@ func (t *transaction) markProjectionPending(school string) error {
 		return nil
 	}
 	if _, err := t.tx.ExecContext(t.ctx, `INSERT INTO catalog.projection_pending(school_id,requested_at,updated_at) VALUES($1,clock_timestamp(),clock_timestamp())
- ON CONFLICT(school_id) DO UPDATE SET updated_at=excluded.updated_at`, school); err != nil {
+ ON CONFLICT(school_id) DO UPDATE SET updated_at=GREATEST(excluded.updated_at,projection_pending.updated_at + interval '1 microsecond')`, school); err != nil {
 		return safe(err)
 	}
 	_, err := t.tx.ExecContext(t.ctx, `SELECT pg_notify($1,$2)`, c.ProjectionChannel, school)

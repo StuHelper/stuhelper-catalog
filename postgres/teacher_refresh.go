@@ -13,23 +13,50 @@ func (t *transaction) BeginTeacherRefreshSnapshot() error {
 	return safe(err)
 }
 
+// Keep body-image quota evidence in maintenance storage. Existing Admin
+// clients validate the exact public refresh response shape.
+type storedTeacherRefresh struct {
+	c.TeacherRefreshRun
+	BodyImageQuotaExceeded *bool `json:"body_image_quota_exceeded,omitempty"`
+}
+
+func (v storedTeacherRefresh) run() c.TeacherRefreshRun {
+	if v.BodyImageQuotaExceeded != nil {
+		v.TeacherRefreshRun.BodyImageQuotaKnown = true
+		v.TeacherRefreshRun.BodyImageQuotaExceeded = *v.BodyImageQuotaExceeded
+	}
+	return v.TeacherRefreshRun
+}
+
 func (t *transaction) TeacherRefresh(id string) (c.TeacherRefreshRun, error) {
-	return read[c.TeacherRefreshRun](t, `SELECT data FROM catalog.teacher_refresh_runs WHERE id=$1
+	v, err := read[storedTeacherRefresh](t, `SELECT data FROM catalog.teacher_refresh_runs WHERE id=$1
  UNION ALL SELECT data FROM catalog.replays WHERE key='teacher-refresh-result:' || $1`, id)
+	return v.run(), err
 }
 func (t *transaction) TeacherRefreshLatest(school string) (*c.TeacherRefreshRun, error) {
-	v, e := read[c.TeacherRefreshRun](t, `SELECT data FROM catalog.teacher_refresh_runs WHERE school_id=$1 ORDER BY position DESC LIMIT 1`, school)
+	v, e := read[storedTeacherRefresh](t, `SELECT data FROM catalog.teacher_refresh_runs WHERE school_id=$1 ORDER BY position DESC LIMIT 1`, school)
 	if errors.Is(e, c.ErrNotFound) {
 		return nil, nil
 	}
-	return &v, e
+	run := v.run()
+	return &run, e
+}
+func (t *transaction) LastTeacherRefreshBodyImageQuota(school string) (*c.TeacherRefreshRun, error) {
+	v, err := read[storedTeacherRefresh](t, `SELECT data FROM catalog.teacher_refresh_runs
+ WHERE school_id=$1 AND status='succeeded' AND data ? 'body_image_quota_exceeded' ORDER BY position DESC LIMIT 1`, school)
+	if errors.Is(err, c.ErrNotFound) {
+		return nil, nil
+	}
+	run := v.run()
+	return &run, err
 }
 func (t *transaction) ActiveTeacherRefresh() (*c.TeacherRefreshRun, error) {
-	v, e := read[c.TeacherRefreshRun](t, `SELECT data FROM catalog.teacher_refresh_runs WHERE status IN ('queued','running') LIMIT 1`)
+	v, e := read[storedTeacherRefresh](t, `SELECT data FROM catalog.teacher_refresh_runs WHERE status IN ('queued','running') LIMIT 1`)
 	if errors.Is(e, c.ErrNotFound) {
 		return nil, nil
 	}
-	return &v, e
+	run := v.run()
+	return &run, e
 }
 func (t *transaction) SaveTeacherRefresh(v c.TeacherRefreshRun) error {
 	// Refuse unbounded task history growth. Existing results and audit records are
@@ -41,8 +68,13 @@ func (t *transaction) SaveTeacherRefresh(v c.TeacherRefreshRun) error {
 	if full {
 		return c.ErrUnavailable
 	}
+	stored := storedTeacherRefresh{TeacherRefreshRun: v}
+	if v.BodyImageQuotaKnown || v.BodyImageQuotaExceeded {
+		stored.BodyImageQuotaExceeded = &v.BodyImageQuotaExceeded
+	}
 	return t.save(`INSERT INTO catalog.teacher_refresh_runs(id,school_id,status,requested_at,data) VALUES($1,$2,$3,$4,$5)
- ON CONFLICT(id) DO UPDATE SET status=excluded.status,data=excluded.data`, v, v.ID, v.SchoolID, v.Status, v.RequestedAt)
+ ON CONFLICT(id) DO UPDATE SET status=excluded.status,data=excluded.data`,
+		stored, v.ID, v.SchoolID, v.Status, v.RequestedAt)
 }
 func (t *transaction) TeacherMarkCounts(school string) (c.TeacherDirectoryResult, error) {
 	return t.directoryCounts(school)

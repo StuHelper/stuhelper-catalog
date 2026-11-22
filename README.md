@@ -1,6 +1,12 @@
+---
+type: index
+status: Accepted
+updated: 2026-11-21
+---
+
 # StuHelper Catalog
 
-课程目录与可信选课记录模块，提供 Go 服务、PostgreSQL Repository、HTTP Handler 和生成的 Go/TypeScript SDK。学校接入协议与真实数据由私有适配器维护。
+课程目录与可信选课记录模块，提供 Go 服务、PostgreSQL Repository、HTTP Handler 和生成的 Go/TypeScript SDK。catalog 拥有规范目录、历史、作息、本人选课和搜索来源。学校接入协议与来源数据由私有适配器维护。
 
 课程、教师、学期、学期开课、教学班、授课关系和排课分别保存。公开课程列表按课程去重，支持开课学院、类别、性质及教师筛选。客户端课程列表不展示学期；学期保留在资格证据和课程评价中。
 
@@ -29,13 +35,17 @@ make setup
 bash scripts/check-with-postgres.sh
 ```
 
-检查脚本建立独立、仅 Unix socket 可访问的 当前稳定 PostgreSQL 集群，退出时清理。测试使用独立数据库与运行身份，检查事务回滚、并发幂等、学院分类、教师归属及禁止越权访问。
+检查脚本创建仅通过 Unix socket 访问的临时 PostgreSQL 集群，退出时清理。Catalog checks 在 GitHub `ubuntu-26.04` 上使用同一入口，检查生成一致性、模块边界、文档、权限、并发与投影规模。
 
 迁移身份执行 `postgres.Migrate`；运行身份仅获得 catalog schema 的读写权限，不得创建数据库对象或访问其他模块 schema。`postgres.CheckRuntime` 在应用装配时检查权限。
 
-当前首次建库迁移已验证。存量生产迁移、学校持续同步、运行库备份和恢复演练仍待实际环境验收。outbox 与业务同事务持久化并通知 OutboxChannel（catalog_outbox）。relay 通过 PendingOutbox 读取待发送事件，并传入需要排除的退避或人工处理主题。消费者持久提交后调用 ConfirmOutbox。通用跨服务 relay 由 backend 装配。
+生产发行、验证范围与待验证事项见[目录实施与验证](docs/development/catalog.md)。
 
-业务规则见 [课程与评价规格](https://github.com/StuHelper/stuhelper/blob/develop/docs/spec/academic-content.md)。
+目录事件通过业务事务内的 outbox 交给 backend relay，投递、确认、排除退避主题和重建见[审计与搜索来源](docs/spec/audit-discovery.md)。
+
+[module.yaml](module.yaml) 登记模块依赖、可用能力及场景测试。platform 提供基础能力，identity 支持目录读写和本人选课授权。增强目录另需 reviews 与 favorites 的指标端口，resources 批量提供本人最近课程的资料数量。
+
+[文档导航](docs/README.md) · [课程与评价规格](https://github.com/StuHelper/stuhelper/blob/develop/docs/spec/academic-content.md) · [目录维护规格](https://github.com/StuHelper/stuhelper/blob/develop/docs/spec/catalog-operations.md)
 
 本人名称查询 /catalog/me/references 只返回本人当前或历史选课记录关联对象的 ID、类型和名称，单次最多 100 个 ID。任一 ID 不属于本人记录时拒绝整次请求。名称接口不返回简介、评分、统计或排课详情，公共目录仍检查内容准入。
 
@@ -55,7 +65,7 @@ MySchedule 是供模块使用的公开接口，只读取当前账号的有效选
 
 课程与教师的游标分页、分类与名称索引、存量迁移和性能验证见[目录筛选规格](docs/spec/directory-performance.md)。查询诊断保留固定阶段与原因，不记录搜索词或对象身份。
 
-教师公开目录按“截止学期以来有授课记录或匹配官网”保存持久依据。完整来源刷新、并发重放、详情与搜索过滤见[教师目录标记](docs/spec/teacher-directory.md)。产品 Repository 启用 RequireTeacherDirectory 后，缺少标记的教师不进入公开查询。
+教师公开目录保留具备有效授课、官网匹配或获批独立主页资料任一依据的教师。完整来源刷新、并发重放、详情与搜索过滤见[教师目录标记](docs/spec/teacher-directory.md)。产品 Repository 启用 RequireTeacherDirectory 后，缺少标记的教师不进入公开查询。
 
 原型目录的分面、排序、本人最近课程和下一上课日见[原型数据接口](docs/spec/ui-data.md)。教师目录依赖 T2 持久标记，热度及推荐默认值已确认。
 

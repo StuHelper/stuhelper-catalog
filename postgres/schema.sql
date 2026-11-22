@@ -26,6 +26,11 @@ CREATE TABLE IF NOT EXISTS catalog.teacher_directory (
  teaching_updated_at timestamptz, official_updated_at timestamptz, updated_at timestamptz NOT NULL
 );
 CREATE INDEX IF NOT EXISTS catalog_teacher_directory_school ON catalog.teacher_directory(school_id,teacher_id) WHERE teaching OR official;
+ALTER TABLE catalog.teacher_directory ADD COLUMN IF NOT EXISTS homepage_site_id text NOT NULL DEFAULT '';
+ALTER TABLE catalog.teacher_directory ADD COLUMN IF NOT EXISTS homepage_manual boolean NOT NULL DEFAULT false;
+ALTER TABLE catalog.teacher_directory ADD COLUMN IF NOT EXISTS verified_homepage boolean NOT NULL DEFAULT false;
+ALTER TABLE catalog.teacher_directory ADD COLUMN IF NOT EXISTS verified_homepage_at timestamptz;
+CREATE INDEX IF NOT EXISTS catalog_teacher_directory_homepage ON catalog.teacher_directory(school_id,homepage_site_id) WHERE homepage_site_id<>'' AND official;
 CREATE TABLE IF NOT EXISTS catalog.teacher_site_sources (
  school_id text PRIMARY KEY REFERENCES catalog.objects(id), source_id text NOT NULL,
  revision bigint NOT NULL CHECK(revision>0), digest text NOT NULL, observed_at timestamptz NOT NULL, updated_at timestamptz NOT NULL
@@ -193,6 +198,97 @@ CREATE TABLE IF NOT EXISTS catalog.teacher_unmatched_sites (
  PRIMARY KEY(school_id,site_id)
 );
 CREATE INDEX IF NOT EXISTS catalog_teacher_unmatched_reason ON catalog.teacher_unmatched_sites(school_id,reason,site_id);
+-- Current site contents are replaced by complete snapshots. Decisions survive site
+-- removal and hold only the stable key, the action and a short last-seen summary.
+CREATE TABLE IF NOT EXISTS catalog.teacher_homepage_sites (
+ school_id text NOT NULL REFERENCES catalog.objects(id), site_id text NOT NULL, revision bigint NOT NULL CHECK(revision>0),
+ name text NOT NULL, unit text NOT NULL, url text NOT NULL, reason text NOT NULL,
+ candidate_ids text[] NOT NULL, candidate_count bigint NOT NULL CHECK(candidate_count>=cardinality(candidate_ids)),
+ profile jsonb NOT NULL, photo_id text NOT NULL DEFAULT '',
+ auto_teacher_id text NOT NULL DEFAULT '', auto_name text NOT NULL DEFAULT '', auto_department_id text NOT NULL DEFAULT '',
+ PRIMARY KEY(school_id,site_id), UNIQUE(school_id,url) DEFERRABLE INITIALLY DEFERRED
+);
+CREATE TABLE IF NOT EXISTS catalog.teacher_homepage_photos (
+ school_id text NOT NULL, site_id text NOT NULL, photo_id text NOT NULL,
+ media_type text NOT NULL CHECK(media_type IN ('image/jpeg','image/png')),
+ width integer NOT NULL CHECK(width>0), height integer NOT NULL CHECK(height>0),
+ data bytea CHECK(octet_length(data) BETWEEN 1 AND 2097152),
+ PRIMARY KEY(school_id,site_id,photo_id),
+ FOREIGN KEY(school_id,site_id) REFERENCES catalog.teacher_homepage_sites(school_id,site_id) ON DELETE CASCADE
+);
+ALTER TABLE catalog.teacher_homepage_photos ALTER COLUMN data DROP NOT NULL;
+ALTER TABLE catalog.teacher_homepage_sites ADD COLUMN IF NOT EXISTS body_media jsonb NOT NULL DEFAULT '[]'::jsonb
+ CHECK(jsonb_typeof(body_media)='array');
+-- Body images have a site-wide budget and share bytes by digest. Current site
+-- references select which of these private blobs may be served for a teacher.
+CREATE TABLE IF NOT EXISTS catalog.teacher_homepage_body_images (
+ image_id text PRIMARY KEY CHECK(image_id ~ '^[0-9a-f]{64}$'),
+ media_type text NOT NULL CONSTRAINT teacher_body_image_allowed_type CHECK(media_type IN ('image/jpeg','image/png','image/gif')),
+ width integer NOT NULL CHECK(width BETWEEN 1 AND 8192), height integer NOT NULL CHECK(height BETWEEN 1 AND 8192),
+ size_bytes integer NOT NULL CHECK(size_bytes BETWEEN 1 AND 20971520),
+ data bytea CHECK(octet_length(data)=size_bytes),
+ CHECK(width::bigint*height<=16777216)
+);
+ALTER TABLE catalog.teacher_homepage_body_images ALTER COLUMN data DROP NOT NULL;
+-- Upgrade the original two-type constraint once, including populated tables.
+DO $$ BEGIN
+ IF EXISTS (SELECT FROM pg_constraint WHERE conrelid='catalog.teacher_homepage_body_images'::regclass
+            AND conname='teacher_homepage_body_images_media_type_check') THEN
+  ALTER TABLE catalog.teacher_homepage_body_images DROP CONSTRAINT teacher_homepage_body_images_media_type_check,
+   ADD CONSTRAINT teacher_body_image_allowed_type CHECK(media_type IN ('image/jpeg','image/png','image/gif'));
+ END IF;
+END $$;
+CREATE TABLE IF NOT EXISTS catalog.teacher_homepage_body_refs (
+ school_id text NOT NULL, site_id text NOT NULL,
+ image_id text NOT NULL REFERENCES catalog.teacher_homepage_body_images(image_id),
+ source_url text NOT NULL,
+ PRIMARY KEY(school_id,site_id,image_id),
+ FOREIGN KEY(school_id,site_id) REFERENCES catalog.teacher_homepage_sites(school_id,site_id) ON DELETE CASCADE
+);
+CREATE INDEX IF NOT EXISTS catalog_teacher_homepage_body_refs_image ON catalog.teacher_homepage_body_refs(image_id);
+REVOKE ALL ON TABLE catalog.teacher_homepage_body_images,catalog.teacher_homepage_body_refs FROM PUBLIC;
+CREATE TABLE IF NOT EXISTS catalog.teacher_homepage_teachers (
+ school_id text NOT NULL REFERENCES catalog.objects(id), teacher_id text NOT NULL REFERENCES catalog.objects(id),
+ reason text NOT NULL, candidate_ids text[] NOT NULL,
+ candidate_count bigint NOT NULL CHECK(candidate_count>=cardinality(candidate_ids)),
+ PRIMARY KEY(school_id,teacher_id)
+);
+CREATE TABLE IF NOT EXISTS catalog.teacher_homepage_decisions (
+ school_id text NOT NULL REFERENCES catalog.objects(id), site_id text NOT NULL,
+ revision bigint NOT NULL CHECK(revision>0), action text NOT NULL CHECK(action IN ('bind','reject','revoke')),
+ teacher_id text NOT NULL DEFAULT '', name text NOT NULL, unit text NOT NULL, updated_at timestamptz NOT NULL,
+ PRIMARY KEY(school_id,site_id), CHECK((action='bind')=(teacher_id<>''))
+);
+CREATE UNIQUE INDEX IF NOT EXISTS catalog_teacher_homepage_decision_teacher
+ ON catalog.teacher_homepage_decisions(school_id,teacher_id) WHERE action='bind';
+CREATE TABLE IF NOT EXISTS catalog.teacher_homepage_review_state (
+ school_id text PRIMARY KEY REFERENCES catalog.objects(id), revision bigint NOT NULL CHECK(revision>0)
+);
+-- Publication controls follow the directory teacher independently of the
+-- current match and are never replaced by a website snapshot.
+CREATE TABLE IF NOT EXISTS catalog.teacher_homepage_controls (
+ school_id text NOT NULL REFERENCES catalog.objects(id), teacher_id text NOT NULL REFERENCES catalog.objects(id),
+ revision bigint NOT NULL CHECK(revision>0),
+ page_visibility text NOT NULL CHECK(page_visibility IN ('visible','hidden','stopped')),
+ rules jsonb NOT NULL CHECK(jsonb_typeof(rules)='array'), updated_at timestamptz NOT NULL,
+ PRIMARY KEY(school_id,teacher_id)
+);
+CREATE TABLE IF NOT EXISTS catalog.teacher_homepage_allowlists (
+ school_id text PRIMARY KEY REFERENCES catalog.objects(id), revision bigint NOT NULL CHECK(revision>0),
+ fields jsonb NOT NULL CHECK(jsonb_typeof(fields)='array'), updated_at timestamptz NOT NULL
+);
+CREATE TABLE IF NOT EXISTS catalog.teacher_homepage_override_photos (
+ school_id text NOT NULL, teacher_id text NOT NULL, photo_id text NOT NULL CHECK(photo_id ~ '^[0-9a-f]{64}$'),
+ media_type text NOT NULL CHECK(media_type IN ('image/jpeg','image/png')),
+ width integer NOT NULL CHECK(width BETWEEN 1 AND 4096), height integer NOT NULL CHECK(height BETWEEN 1 AND 4096),
+ data bytea CHECK(octet_length(data) BETWEEN 1 AND 2097152),
+ PRIMARY KEY(school_id,teacher_id), CHECK(width*height<=8388608),
+ FOREIGN KEY(school_id,teacher_id) REFERENCES catalog.teacher_homepage_controls(school_id,teacher_id) DEFERRABLE INITIALLY DEFERRED
+);
+ALTER TABLE catalog.teacher_homepage_override_photos ALTER COLUMN data DROP NOT NULL;
+REVOKE ALL ON TABLE catalog.teacher_homepage_sites,catalog.teacher_homepage_photos,catalog.teacher_homepage_teachers,
+ catalog.teacher_homepage_decisions,catalog.teacher_homepage_review_state,catalog.teacher_homepage_controls,
+ catalog.teacher_homepage_allowlists,catalog.teacher_homepage_override_photos FROM PUBLIC;
 -- Versioned public directory. Source objects and private enrollments remain owned
 -- by their existing tables. A head is published only after every projection passes.
 CREATE TABLE IF NOT EXISTS catalog.term_orders (
@@ -212,6 +308,8 @@ CREATE TABLE IF NOT EXISTS catalog.projection_failures (
 CREATE TABLE IF NOT EXISTS catalog.projection_pending (
  school_id text PRIMARY KEY, requested_at timestamptz NOT NULL, updated_at timestamptz NOT NULL
 );
+ALTER TABLE catalog.projection_pending ADD COLUMN IF NOT EXISTS homepage_revoked_ids text[] NOT NULL DEFAULT '{}';
+ALTER TABLE catalog.projection_pending ADD COLUMN IF NOT EXISTS verified_teachers_unavailable_ids text[] NOT NULL DEFAULT '{}';
 CREATE TABLE IF NOT EXISTS catalog.projection_rebuild_runs (
  id text PRIMARY KEY, school_id text NOT NULL,
  status text NOT NULL CHECK(status IN ('queued','running','succeeded','failed','timed_out')),
@@ -236,6 +334,7 @@ CREATE TABLE IF NOT EXISTS catalog.projection_objects (
  teaching boolean NOT NULL DEFAULT false, official boolean NOT NULL DEFAULT false, data jsonb NOT NULL,
  PRIMARY KEY(version,id)
 );
+ALTER TABLE catalog.projection_objects ADD COLUMN IF NOT EXISTS verified_homepage boolean NOT NULL DEFAULT false;
 CREATE INDEX IF NOT EXISTS projection_objects_page ON catalog.projection_objects(version,kind,id) WHERE visible;
 CREATE INDEX IF NOT EXISTS projection_objects_terms ON catalog.projection_objects(version,kind,term_key DESC,id) WHERE visible;
 CREATE INDEX IF NOT EXISTS projection_objects_course ON catalog.projection_objects(version,course_id,kind,id);
@@ -318,3 +417,33 @@ LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog AS $$ BEGIN
  ANALYZE catalog.projection_teaching_history;
 END $$;
 REVOKE ALL ON FUNCTION catalog.analyze_directory_projection() FROM PUBLIC;
+
+CREATE TABLE IF NOT EXISTS catalog.teacher_image_signature_limits (
+ scope text NOT NULL CHECK(scope IN ('global','user','ip')),
+ identity_hash bytea NOT NULL, window_start timestamptz NOT NULL, issued integer NOT NULL CHECK(issued>0),
+ PRIMARY KEY(scope,identity_hash)
+);
+CREATE INDEX IF NOT EXISTS teacher_image_signature_expiry ON catalog.teacher_image_signature_limits(window_start);
+REVOKE ALL ON catalog.teacher_image_signature_limits FROM PUBLIC;
+
+CREATE TABLE IF NOT EXISTS catalog.teacher_image_objects (
+ class text NOT NULL CHECK(class IN ('avatars','body')), digest text NOT NULL CHECK(digest ~ '^[a-f0-9]{64}$'),
+ has_delivery boolean NOT NULL DEFAULT false, copy_pending boolean NOT NULL DEFAULT false, next_check timestamptz NOT NULL DEFAULT now(),
+ PRIMARY KEY(class,digest)
+);
+CREATE INDEX IF NOT EXISTS teacher_image_objects_check ON catalog.teacher_image_objects(next_check);
+CREATE TABLE IF NOT EXISTS catalog.teacher_image_publications (
+ class text NOT NULL, digest text NOT NULL, kind text NOT NULL, school text NOT NULL, owner_id text NOT NULL,
+ next_check timestamptz NOT NULL DEFAULT now(),
+ PRIMARY KEY(class,digest,kind,school,owner_id),
+ FOREIGN KEY (class,digest) REFERENCES catalog.teacher_image_objects ON DELETE CASCADE
+);
+CREATE INDEX IF NOT EXISTS teacher_image_publications_check ON catalog.teacher_image_publications(next_check);
+CREATE TABLE IF NOT EXISTS catalog.teacher_image_purges (
+ class text NOT NULL CHECK(class IN ('avatars','body')), digest text NOT NULL CHECK(digest ~ '^[a-f0-9]{64}$'),
+ queued_at timestamptz NOT NULL DEFAULT now(), job_id text NOT NULL DEFAULT '', PRIMARY KEY(class,digest)
+);
+REVOKE ALL ON catalog.teacher_image_objects,catalog.teacher_image_publications,catalog.teacher_image_purges FROM PUBLIC;
+CREATE INDEX IF NOT EXISTS teacher_image_source_digest ON catalog.teacher_homepage_photos(photo_id) WHERE data IS NULL;
+CREATE INDEX IF NOT EXISTS teacher_image_override_digest ON catalog.teacher_homepage_override_photos(photo_id) WHERE data IS NULL;
+CREATE INDEX IF NOT EXISTS teacher_image_publication_owner ON catalog.teacher_image_publications(school,owner_id);

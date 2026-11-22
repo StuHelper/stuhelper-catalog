@@ -47,19 +47,25 @@ type TeacherSiteMatch struct {
 // An interrupted crawl must not be submitted as a snapshot. Revision is the
 // observation's Unix microsecond timestamp, not a local import attempt counter.
 type TeacherSiteSnapshot struct {
-	CandidateFingerprint string             `json:"candidate_fingerprint"`
-	SchoolID             string             `json:"school_id"`
-	SourceID             string             `json:"source_id"`
-	Revision             int64              `json:"revision"`
-	ObservedAt           time.Time          `json:"observed_at"`
-	Matches              []TeacherSiteMatch `json:"matches"`
+	CandidateFingerprint string                                        `json:"candidate_fingerprint"`
+	SchoolID             string                                        `json:"school_id"`
+	SourceID             string                                        `json:"source_id"`
+	Revision             int64                                         `json:"revision"`
+	ObservedAt           time.Time                                     `json:"observed_at"`
+	Matches              []TeacherSiteMatch                            `json:"matches"`
+	Version              int                                           `json:"version,omitempty"`
+	Sites                []TeacherSite                                 `json:"sites,omitempty"`
+	Teachers             []TeacherSiteTeacher                          `json:"teachers,omitempty"`
+	ReadPhoto            func(context.Context, string) ([]byte, error) `json:"-"`
+	ReadBodyImage        func(context.Context, string) ([]byte, error) `json:"-"`
 }
 
 type TeacherDirectoryResult struct {
-	Teaching int `json:"teaching"`
-	Official int `json:"official"`
-	Both     int `json:"both"`
-	Eligible int `json:"eligible"`
+	Teaching               int  `json:"teaching"`
+	Official               int  `json:"official"`
+	Both                   int  `json:"both"`
+	Eligible               int  `json:"eligible"`
+	BodyImageQuotaExceeded bool `json:"-"`
 }
 
 // TeacherDirectoryTransaction is implemented by the owning repository. It is
@@ -68,6 +74,13 @@ type TeacherDirectoryTransaction interface {
 	TeacherCandidates(string, string, int) ([]TeacherCandidate, error)
 	RefreshTeachingDirectory(string, time.Time) (TeacherDirectoryResult, bool, error)
 	ReplaceTeacherSites(TeacherSiteSnapshot, string, time.Time) (TeacherDirectoryResult, error)
+}
+
+// TeacherHomepagePublicationTransaction records approval of verified teacher
+// material in the same transaction as the request decision and audit entry.
+// The caller holds the school lock and has checked the submitter's ownership.
+type TeacherHomepagePublicationTransaction interface {
+	GrantVerifiedTeacherHomepage(school, teacherID string, at time.Time) error
 }
 
 // TeacherCandidateFingerprint binds matching decisions to all candidate names
@@ -161,9 +174,16 @@ func (s *Service) ImportTeacherSites(ctx context.Context, p Principal, in Teache
 		if !ok {
 			return ErrUnavailable
 		}
-		var e error
-		out, e = port.ReplaceTeacherSites(in, p.Subject, s.now())
-		return e
+		now := s.now()
+		if in.Sites != nil {
+			if _, _, err := port.RefreshTeachingDirectory(in.SchoolID, now); err != nil {
+				return err
+			}
+		}
+		var err error
+		out, err = port.ReplaceTeacherSites(in, p.Subject, now)
+		out.BodyImageQuotaExceeded = err == nil && teacherHomepageBodyImageQuota(t)
+		return err
 	})
 	return out, err
 }
@@ -188,6 +208,17 @@ func validTeacherSiteHost(host string, allowed []string) bool {
 	return false
 }
 
+func validTeacherSiteURL(raw string, hosts []string) bool {
+	if !validText(raw, 512) || raw != strings.TrimSpace(raw) {
+		return false
+	}
+	u, err := url.Parse(raw)
+	return err == nil && u.Scheme == "https" && u.Opaque == "" && validTeacherSiteHost(u.Host, hosts) && u.User == nil &&
+		u.RawQuery == "" && !u.ForceQuery && u.Fragment == "" && validText(u.Path, 512) &&
+		(u.RawPath == "" || u.RawPath == u.Path) && strings.HasPrefix(u.Path, "/") && path.Clean(u.Path) == u.Path &&
+		u.Path != "/index.htm" && strings.HasSuffix(u.Path, "/index.htm")
+}
+
 func (s *Service) validateTeacherSites(in *TeacherSiteSnapshot) error {
 	fingerprint, fingerprintError := hex.DecodeString(in.CandidateFingerprint)
 	if fingerprintError != nil || len(fingerprint) != 32 || !ValidID(in.SchoolID) || !ValidID(in.SourceID) || in.Revision < 1 || in.ObservedAt.IsZero() ||
@@ -198,16 +229,10 @@ func (s *Service) validateTeacherSites(in *TeacherSiteSnapshot) error {
 	in.Matches = append([]TeacherSiteMatch{}, in.Matches...)
 	slices.SortFunc(in.Matches, func(a, b TeacherSiteMatch) int { return strings.Compare(a.TeacherID, b.TeacherID) })
 	for i, match := range in.Matches {
-		if !validText(match.URL, 512) || match.URL != strings.TrimSpace(match.URL) {
-			return ErrInput
-		}
-		u, e := url.Parse(match.URL)
 		if !ValidID(match.TeacherID) || !ValidID(match.DepartmentID) || !validText(match.Name, 256) || strings.TrimSpace(match.Name) == "" ||
-			e != nil || u.Scheme != "https" || u.Opaque != "" || !validTeacherSiteHost(u.Host, hosts) || u.User != nil || u.RawQuery != "" || u.Fragment != "" ||
-			!validText(u.Path, 512) || u.RawPath != "" && u.RawPath != u.Path || !strings.HasPrefix(u.Path, "/") || path.Clean(u.Path) != u.Path ||
-			u.Path == "/index.htm" || !strings.HasSuffix(u.Path, "/index.htm") || i > 0 && in.Matches[i-1].TeacherID == match.TeacherID {
+			!validTeacherSiteURL(match.URL, hosts) || i > 0 && in.Matches[i-1].TeacherID == match.TeacherID {
 			return ErrInput
 		}
 	}
-	return nil
+	return validateTeacherHomepageSnapshot(in, hosts)
 }

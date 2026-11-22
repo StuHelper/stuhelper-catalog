@@ -23,10 +23,18 @@ var baseSchema string
 //go:embed course_search.sql
 var courseSearchSchema string
 
-var Schema = baseSchema + "\n" + courseSearchSchema
+//go:embed activity_calendar.sql
+var activityCalendarSchema string
+
+//go:embed teacher_homepage_requests.sql
+var teacherHomepageRequestSchema string
+
+var Schema = baseSchema + "\n" + courseSearchSchema + "\n" + activityCalendarSchema + "\n" + teacherHomepageRequestSchema
 
 type Repository struct {
-	DB *sql.DB
+	// TeacherImageStorage overrides byte storage; nil uses the existing PostgreSQL rows.
+	TeacherImageStorage catalog.TeacherImageStorage
+	DB                  *sql.DB
 	// Enable in product composition. Maintenance candidate enumeration has its
 	// own authorized port and does not disable this public read filter.
 	RequireTeacherDirectory    bool
@@ -35,6 +43,8 @@ type Repository struct {
 	directoryData              *directoryCache
 }
 type transaction struct {
+	imageRegistryDB         *sql.DB
+	teacherImageStorage     catalog.TeacherImageStorage
 	projectionRead          bool
 	repoDirectoryProjection bool
 	projectionSchools       map[string]bool
@@ -47,6 +57,7 @@ type transaction struct {
 	pendingTeacherSchools   map[string]bool
 	teachingTime            time.Time
 	mutationTime            time.Time
+	bodyImageQuotaExceeded  bool
 	tx                      *sql.Tx
 	ctx                     context.Context
 	objects                 map[string]catalog.Record
@@ -99,6 +110,8 @@ func (r *Repository) Transaction(ctx context.Context, run func(catalog.Transacti
 	}
 	defer tx.Rollback()
 	t := &transaction{
+		imageRegistryDB:         r.DB,
+		teacherImageStorage:     r.TeacherImageStorage,
 		tx:                      tx,
 		ctx:                     ctx,
 		objects:                 map[string]catalog.Record{},
@@ -188,6 +201,9 @@ func (t *transaction) Object(id string) (catalog.Record, error) {
 }
 func (t *transaction) SaveObject(r catalog.Record) error {
 	o := r.Object
+	if o.TeacherHomepage != nil || r.Imported.TeacherHomepage != nil {
+		return catalog.ErrInput
+	}
 	if !o.UpdatedAt.IsZero() && o.UpdatedAt.After(t.mutationTime) {
 		t.mutationTime = o.UpdatedAt
 	}
@@ -312,7 +328,7 @@ func (t *transaction) recordAudit(v catalog.Event) error {
 		result = "unknown"
 	}
 	reason := ""
-	if v.Reason == "catalog.merge" || v.Reason == "catalog.state_change" {
+	if v.Reason == "catalog.merge" || v.Reason == "catalog.state_change" || catalog.ValidTeacherHomepageAuditReason(v.Type, v.Reason) {
 		reason = v.Reason
 	}
 	actor, target, action, school := v.Actor, v.Subject, v.Type, v.SchoolID

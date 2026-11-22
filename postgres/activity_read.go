@@ -66,7 +66,7 @@ func (r *Repository) ActivitySnapshot(ctx context.Context, fromDay, toDay time.T
 	if len(state.Visibility) > 8192 {
 		return out, "", m.ErrUnavailable
 	}
-	rows, e := tx.QueryContext(ctx, `SELECT data FROM (SELECT DISTINCT ON(id COLLATE "C") id,data FROM catalog.activity_history WHERE day>=$1 AND day<$2 AND id COLLATE "C">$3 COLLATE "C" AND pg_visible_in_snapshot(recorded_xid,$4::pg_snapshot) ORDER BY id COLLATE "C",revision DESC) latest ORDER BY id COLLATE "C" LIMIT $5`, fromDay, toDay, state.After, state.Visibility, limit+1)
+	rows, e := tx.QueryContext(ctx, `SELECT data FROM (SELECT DISTINCT ON(id COLLATE "C") id,data FROM catalog.activity_history WHERE day>=$1 AND day<$2 AND id COLLATE "C">$3 COLLATE "C" AND pg_visible_in_snapshot(recorded_xid,$4::pg_snapshot) ORDER BY id COLLATE "C",revision DESC) latest ORDER BY id COLLATE "C" LIMIT $5`, m.ActivityDate(fromDay).Format(time.DateOnly), m.ActivityDate(toDay).Format(time.DateOnly), state.After, state.Visibility, limit+1)
 	if e != nil {
 		return out, "", safe(e)
 	}
@@ -106,7 +106,7 @@ func (r *Repository) PruneActivityHistory(ctx context.Context, beforeDay time.Ti
 	if !m.ActivityDay(beforeDay) || limit < 1 || limit > 1000 {
 		return 0, m.ErrInput
 	}
-	result, e := r.DB.ExecContext(ctx, `DELETE FROM catalog.activity_history WHERE (id,revision) IN (SELECT h.id,h.revision FROM catalog.activity_history h JOIN catalog.activity_buckets b USING(id) WHERE h.day<$1 AND h.revision<b.revision ORDER BY h.day,h.id,h.revision LIMIT $2)`, beforeDay, limit)
+	result, e := r.DB.ExecContext(ctx, `DELETE FROM catalog.activity_history WHERE (id,revision) IN (SELECT h.id,h.revision FROM catalog.activity_history h JOIN catalog.activity_buckets b USING(id) WHERE h.day<$1 AND h.revision<b.revision ORDER BY h.day,h.id,h.revision LIMIT $2)`, m.ActivityDate(beforeDay).Format(time.DateOnly), limit)
 	if e != nil {
 		return 0, safe(e)
 	}

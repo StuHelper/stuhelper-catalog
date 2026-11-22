@@ -18,6 +18,10 @@ import (
 )
 
 func activityDatabase(t *testing.T) (*Repository, *sql.DB) {
+	return activityDatabaseWithSchema(t, Schema)
+}
+
+func activityDatabaseWithSchema(t *testing.T, schema string) (*Repository, *sql.DB) {
 	t.Helper()
 	dsn := os.Getenv("STUHELPER_CATALOG_TEST_DSN")
 	if dsn == "" {
@@ -35,7 +39,7 @@ func activityDatabase(t *testing.T) (*Repository, *sql.DB) {
 	}
 	cfg.Database = name
 	db := stdlib.OpenDB(*cfg)
-	if _, e = db.Exec(Schema); e != nil {
+	if _, e = db.Exec(schema); e != nil {
 		t.Fatal(e)
 	}
 	if _, e = admin.Exec(`CREATE ROLE ` + role + ` LOGIN`); e != nil {
@@ -62,17 +66,17 @@ func activityDatabase(t *testing.T) (*Repository, *sql.DB) {
 func TestActivitySnapshotSchemaRollbackAndBoundedCleanup(t *testing.T) {
 	repo, db := activityDatabase(t)
 	ctx := context.Background()
-	day := time.Date(2026, 11, 9, 0, 0, 0, 0, time.UTC)
+	day := m.ActivityDate(time.Date(2026, 11, 9, 0, 0, 0, 0, time.UTC))
 	change := func(tx *sql.Tx, id string, delta int64) error {
 		return (&transaction{tx: tx, ctx: ctx}).changeActivity("course", id, "school", day, delta, 0, nil, day)
 	}
-	apply := func(id string, delta int64) error {
+	apply := func(id string, delta int64, visible *bool) error {
 		tx, e := repo.DB.BeginTx(ctx, nil)
 		if e != nil {
 			return e
 		}
 		defer tx.Rollback()
-		if e = change(tx, id, delta); e != nil {
+		if e = (&transaction{tx: tx, ctx: ctx}).changeActivity("course", id, "school", day, delta, 0, visible, day); e != nil {
 			return e
 		}
 		return tx.Commit()
@@ -106,10 +110,10 @@ func TestActivitySnapshotSchemaRollbackAndBoundedCleanup(t *testing.T) {
 	if e != nil || len(pending) != 0 {
 		t.Fatal(pending, e)
 	}
-	if e = apply("a", 1); e != nil {
+	if e = apply("a", 1, nil); e != nil {
 		t.Fatal(e)
 	}
-	if e = apply("b", 1); e != nil {
+	if e = apply("b", 1, nil); e != nil {
 		t.Fatal(e)
 	}
 	wait, cancel = context.WithTimeout(ctx, time.Second)
@@ -147,7 +151,8 @@ func TestActivitySnapshotSchemaRollbackAndBoundedCleanup(t *testing.T) {
 	if e = late.Commit(); e != nil {
 		t.Fatal(e)
 	}
-	if e = apply("b", -1); e != nil {
+	hidden := false
+	if e = apply("b", 0, &hidden); e != nil {
 		t.Fatal(e)
 	}
 	seen := append([]m.Activity{}, page...)
@@ -166,10 +171,8 @@ func TestActivitySnapshotSchemaRollbackAndBoundedCleanup(t *testing.T) {
 	if e != nil || len(fresh) != 3 || fresh[1].Visible || fresh[1].Revision != 2 {
 		t.Fatal(fresh, e)
 	}
-	for _, n := range fresh[1].Metrics {
-		if n != 0 {
-			t.Fatal("tombstone retained a count", fresh[1])
-		}
+	if fresh[1].Metrics["views"] != 1 {
+		t.Fatal("visibility change modified the underlying view count", fresh[1])
 	}
 	if _, _, e = repo.ActivitySnapshot(ctx, day, day.AddDate(0, 0, 2), firstCursor, 1); e == nil {
 		t.Fatal("window changed")
@@ -184,7 +187,7 @@ func TestActivitySnapshotSchemaRollbackAndBoundedCleanup(t *testing.T) {
 	if e != nil {
 		t.Fatal(e)
 	}
-	if fmt.Sprintf("%x", sha256.Sum256(raw)) != "0449f23e99a9146b01e56f00942b49fc756e5c60fb1d4e0486520651d02fc867" {
+	if fmt.Sprintf("%x", sha256.Sum256(raw)) != "b536d1161b4dbf53db99c3da9760dbe294be6e705f4e8f75541df02c6f318bb7" {
 		t.Fatal("activity contract drift")
 	}
 	var definition any
@@ -241,10 +244,10 @@ func TestActivitySnapshotSchemaRollbackAndBoundedCleanup(t *testing.T) {
 			t.Fatal(e)
 		}
 	}
-	if e = apply("a", 1); e != nil {
+	if e = apply("a", 1, nil); e != nil {
 		t.Fatal(e)
 	}
-	if e = apply("a", 1); e != nil {
+	if e = apply("a", 1, nil); e != nil {
 		t.Fatal(e)
 	}
 	n, e := repo.PruneActivityHistory(ctx, day.AddDate(0, 0, 1), 1)
@@ -259,14 +262,14 @@ func TestActivitySnapshotSchemaRollbackAndBoundedCleanup(t *testing.T) {
 		t.Fatal("latest tombstone removed", current, e)
 	}
 	// A failed outbox insert cannot leave a partial counter revision.
-	if _, e = db.Exec(`ALTER TABLE catalog.outbox ADD CONSTRAINT fail_activity CHECK(data->>'type'<>'discovery.activity.v1') NOT VALID`); e != nil {
+	if _, e = db.Exec(`ALTER TABLE catalog.outbox ADD CONSTRAINT fail_activity CHECK(data->>'type'<>'discovery.activity.v2') NOT VALID`); e != nil {
 		t.Fatal(e)
 	}
 	current, e = repo.ReadActivity(ctx, m.ActivityID("course", "a", day))
 	if e != nil {
 		t.Fatal(e)
 	}
-	if e = apply("a", 1); e == nil {
+	if e = apply("a", 1, nil); e == nil {
 		t.Fatal("outbox failure ignored")
 	}
 	after, e := repo.ReadActivity(ctx, current.ID)

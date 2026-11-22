@@ -2,7 +2,7 @@
   "openapi": "3.0.3",
   "info": {
     "title": "StuHelper Catalog",
-    "version": "0.10.0"
+    "version": "0.15.0"
   },
   "servers": [
     {
@@ -292,9 +292,19 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "name": "include_teacher_homepage",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "default": false
+            },
+            "description": "设为 true 且官网姓名和资料可展示时返回 teacher_homepage。缺失、false 或姓名未获准展示时省略该字段。独立教师主页接口支持逐字段隐藏。"
           }
         ],
-        "description": "Requires current content admission in the served school: valid campus eligibility or verified teacher status. Missing admission returns 403; unavailable required facts return 503. No preview, content, counts or statistics are returned on rejection. 教师公开查询由服务端目录标记过滤：有授课记录或已匹配官网名单即可保留。列表、详情、批量查询、筛选选项及计数使用相同依据。未标记的教师详情返回 not_found。 Courses outside the current visible directory projection return not_found, including direct links. 普通目录仅提供学校、院系、分类、性质、学期、课程和教师；term_course、class、assignment、schedule 仅供管理端或受信服务使用。"
+        "description": "Requires current content admission in the served school: valid campus eligibility or verified teacher status. Missing admission returns 403; unavailable required facts return 503. No preview, content, counts or statistics are returned on rejection. 教师公开查询由服务端目录标记过滤：具有有效授课、官网匹配或经核实的独立主页资料任一依据即可保留。列表、详情、批量查询、筛选选项及计数使用相同依据。未标记的教师详情返回 not_found。 Courses outside the current visible directory projection return not_found, including direct links. 普通目录仅提供学校、院系、分类、性质、学期、课程和教师；term_course、class、assignment、schedule 仅供管理端或受信服务使用。 教师详情可选择附带可展示的主页资料。教师院系与职称仍取目录字段。"
       },
       "patch": {
         "operationId": "correctObject",
@@ -740,7 +750,7 @@
             "bearerAuth": []
           }
         ],
-        "description": "Requires current content admission in the served school: valid campus eligibility or verified teacher status. Missing admission returns 403; unavailable required facts return 503. No preview, content, counts or statistics are returned on rejection. 教师公开查询由服务端目录标记过滤：有授课记录或已匹配官网名单即可保留。列表、详情、批量查询、筛选选项及计数使用相同依据。未标记的教师详情返回 not_found。 普通目录仅提供学校、院系、分类、性质、学期、课程和教师；term_course、class、assignment、schedule 仅供管理端或受信服务使用。 教学班相关 ID 与未知 ID 一样列入 missing_ids，不返回其对象。混合查询仍返回其余可见课程和教师。"
+        "description": "Requires current content admission in the served school: valid campus eligibility or verified teacher status. Missing admission returns 403; unavailable required facts return 503. No preview, content, counts or statistics are returned on rejection. 教师公开查询由服务端目录标记过滤：具有有效授课、官网匹配或经核实的独立主页资料任一依据即可保留。列表、详情、批量查询、筛选选项及计数使用相同依据。未标记的教师详情返回 not_found。 普通目录仅提供学校、院系、分类、性质、学期、课程和教师；term_course、class、assignment、schedule 仅供管理端或受信服务使用。 教学班相关 ID 与未知 ID 一样列入 missing_ids，不返回其对象。混合查询仍返回其余可见课程和教师。"
       }
     },
     "/api/v1/catalog/objects/{id}/summary": {
@@ -754,6 +764,16 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "name": "include_teacher_homepage",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "default": false
+            },
+            "description": "设为 true 且官网姓名和资料可展示时返回 teacher_homepage。缺失、false 或姓名未获准展示时省略该字段。独立教师主页接口支持逐字段隐藏。"
           }
         ],
         "responses": {
@@ -833,7 +853,7 @@
             "bearerAuth": []
           }
         ],
-        "description": "Requires current content admission in the served school: valid campus eligibility or verified teacher status. Missing admission returns 403; unavailable required facts return 503. No preview, content, counts or statistics are returned on rejection. 教师公开查询由服务端目录标记过滤：有授课记录或已匹配官网名单即可保留。列表、详情、批量查询、筛选选项及计数使用相同依据。未标记的教师详情返回 not_found。 Courses outside the current visible directory projection return not_found, including direct links. 普通目录仅提供学校、院系、分类、性质、学期、课程和教师；term_course、class、assignment、schedule 仅供管理端或受信服务使用。"
+        "description": "Requires current content admission in the served school: valid campus eligibility or verified teacher status. Missing admission returns 403; unavailable required facts return 503. No preview, content, counts or statistics are returned on rejection. 教师公开查询由服务端目录标记过滤：具有有效授课、官网匹配或经核实的独立主页资料任一依据即可保留。列表、详情、批量查询、筛选选项及计数使用相同依据。未标记的教师详情返回 not_found。 Courses outside the current visible directory projection return not_found, including direct links. 普通目录仅提供学校、院系、分类、性质、学期、课程和教师；term_course、class、assignment、schedule 仅供管理端或受信服务使用。 include_teacher_homepage 参数仅作用于摘要主对象 object。"
       }
     },
     "/api/v1/catalog/objects/{id}/merge-preview": {
@@ -1460,7 +1480,7 @@
             }
           }
         ],
-        "description": "Requires current content admission in the served school: valid campus eligibility or verified teacher status. Missing admission returns 403; unavailable required facts return 503. No preview, content, counts or statistics are returned on rejection. 教师公开查询由服务端目录标记过滤：有授课记录或已匹配官网名单即可保留。列表、详情、批量查询、筛选选项及计数使用相同依据。未标记的教师详情返回 not_found。 普通目录仅提供学校、院系、分类、性质、学期、课程和教师；term_course、class、assignment、schedule 仅供管理端或受信服务使用。"
+        "description": "Requires current content admission in the served school: valid campus eligibility or verified teacher status. Missing admission returns 403; unavailable required facts return 503. No preview, content, counts or statistics are returned on rejection. 教师公开查询由服务端目录标记过滤：具有有效授课、官网匹配或经核实的独立主页资料任一依据即可保留。列表、详情、批量查询、筛选选项及计数使用相同依据。未标记的教师详情返回 not_found。 普通目录仅提供学校、院系、分类、性质、学期、课程和教师；term_course、class、assignment、schedule 仅供管理端或受信服务使用。"
       }
     },
     "/api/v1/catalog/admin/objects": {
@@ -2613,7 +2633,7 @@
             }
           },
           "409": {
-            "description": "Revision or idempotency conflict",
+            "description": "The published directory version or the heat window changed. Restart from the first page.",
             "content": {
               "application/json": {
                 "schema": {
@@ -2783,7 +2803,7 @@
             }
           }
         ],
-        "description": "Current visible course/teacher directory, stable sort with ID tie-break and filter-bound cursor. Categories count distinct courses after all filters except category_id. Department groups respect all current filters. Classification filters apply to the same offering/class. Teacher rows and counts require T2 persisted marking; absent marker enforcement returns 503. Scores are read in bounded batches from owning modules, without per-row queries. Catalog membership is cached with transactional revision invalidation; ratings and heat are always current. 目录成员和分面来自同一持久投影版本，实时评分与热度按 ID 关联。游标绑定投影版本，重建后使用旧游标返回 409，应从第一页重新读取。 普通目录仅提供学校、院系、分类、性质、学期、课程和教师；term_course、class、assignment、schedule 仅供管理端或受信服务使用。"
+        "description": "Current visible course/teacher directory, stable sort with ID tie-break and filter-bound cursor. Categories count distinct courses after all filters except category_id. Department groups respect all current filters. Classification filters apply to the same offering/class. Teacher rows and counts require T2 persisted marking; absent marker enforcement returns 503. Scores are read in bounded batches from owning modules, without per-row queries. Catalog membership is cached with transactional revision invalidation; ratings and heat are always current. 目录成员和分面来自同一持久投影版本，实时评分与热度按 ID 关联。游标绑定投影版本，目录重建或热门等含热度排序的窗口换日后，旧游标返回 409，应从第一页重新读取。 普通目录仅提供学校、院系、分类、性质、学期、课程和教师；term_course、class、assignment、schedule 仅供管理端或受信服务使用。"
       }
     },
     "/api/v1/catalog/me/recent-courses": {
@@ -3358,7 +3378,7 @@
             }
           }
         ],
-        "description": "Requires catalog.teacher-sites.refresh and current school management scope. Audited durable enqueue. Only one queued/running refresh globally; a competing request returns 409. Replay with the same actor, school, key and mode returns the original run; a different mode conflicts. Deadline is 45 minutes including queue time. Manual full and incremental are supported; monthly scheduler only enqueues incremental.",
+        "description": "Requires catalog.teacher-sites.refresh and current school management scope. Audited durable enqueue. Only one queued/running refresh globally; a competing request returns 409. Replay with the same actor, school, key and mode returns the original run; a different mode conflicts. Use the returned deadline_at as the expiry of the specific run, including queue time. The monthly scheduler only enqueues incremental work. A timeout preserves the published snapshot.",
         "responses": {
           "400": {
             "description": "Invalid input",
@@ -3885,6 +3905,2338 @@
           }
         }
       }
+    },
+    "/api/v1/catalog/objects/{id}/teacher-homepage/photos/{photo_id}": {
+      "get": {
+        "operationId": "getTeacherHomepagePhoto",
+        "description": "沿用当前教师详情的登录、学校内容准入和目录可见性。教师仍与站点匹配且该摘要对应当前照片时返回图片，否则返回 404。客户端用登录凭证读取二进制，可将 Blob 转为图片地址。响应禁止缓存。",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128,
+              "pattern": "^[A-Za-z0-9_.:-]+$"
+            }
+          },
+          {
+            "name": "photo_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 64,
+              "maxLength": 64,
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "description": "teacher_homepage.photo.url 中的照片内容 SHA-256。"
+          }
+        ],
+        "responses": {
+          "302": {"description": "Authorized private media redirect valid for 60 seconds", "headers": {"Location": {"required": true, "schema": {"type": "string", "format": "uri"}}}},
+          "429": {"description": "Teacher image signature issuance limit exceeded", "headers": {"Retry-After": {"required": true, "description": "Seconds until the next issuance window", "schema": {"type": "integer", "minimum": 1, "maximum": 60}}}},
+          "200": {
+            "description": "当前已验证的本地照片。总大小最多 2 MiB，每边最多 4096 像素，面积最多 8,388,608 像素。",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "enum": [
+                    "private, no-store"
+                  ]
+                }
+              },
+              "X-Content-Type-Options": {
+                "schema": {
+                  "type": "string",
+                  "enum": [
+                    "nosniff"
+                  ]
+                }
+              }
+            },
+            "content": {
+              "image/jpeg": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              },
+              "image/png": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not permitted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "教师不可见、没有当前有效主页照片，或照片摘要与当前版本不符。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Required dependency unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/catalog/admin/schools/{school_id}/teacher-sites/review/sites": {
+      "get": {
+        "operationId": "listTeacherHomepageReviewSites",
+        "description": "要求 catalog.teacher-sites.read 和当前学校管理范围。按 ID 升序分页，服务端记录查看审计。每页列表正文达到 3 MiB 前提前分页，继续使用 next 读取后续记录。 包含站点摘要、原因、目录候选和当前决定。",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "school_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128,
+              "pattern": "^[A-Za-z0-9_.:-]+$"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "pending",
+                "decided",
+                "all"
+              ],
+              "default": "pending"
+            },
+            "description": "pending 为待处理站点；decided 为当前有人工决定的站点，含已从官网移除的站点。"
+          },
+          {
+            "name": "q",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "maxLength": 200,
+              "minLength": 1
+            },
+            "description": "站点姓名、单位或站点标识摘要的字面子串，大小写不敏感。"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 20
+            }
+          },
+          {
+            "name": "after",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "maxLength": 4096,
+              "minLength": 1
+            },
+            "description": "上页返回的游标。错误筛选或不合法游标返回 400；快照或人工决定变化导致游标失效时返回 409，从首页重新读取。"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TeacherHomepageReviewSitePage"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not permitted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "not_found：对象不存在、当前不可见，或 ID（含合并前别名）指向 term_course、class、assignment、schedule。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Revision or idempotency conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Required dependency unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/catalog/admin/schools/{school_id}/teacher-sites/review/teachers": {
+      "get": {
+        "operationId": "listTeacherHomepageReviewTeachers",
+        "description": "要求 catalog.teacher-sites.read 和当前学校管理范围。按 ID 升序分页，服务端记录查看审计。每页列表正文达到 3 MiB 前提前分页，继续使用 next 读取后续记录。 包含目录教师、原因和同名站点候选摘要。",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "school_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128,
+              "pattern": "^[A-Za-z0-9_.:-]+$"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "unmatched",
+                "all"
+              ],
+              "default": "unmatched"
+            },
+            "description": "unmatched 为当前没有官网匹配的目录教师；all 也包含已匹配教师，可供选择任意同校有效目标。"
+          },
+          {
+            "name": "q",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "maxLength": 200,
+              "minLength": 1
+            },
+            "description": "目录教师姓名、院系名称或目录教师 ID 的字面子串，大小写不敏感。"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 20
+            }
+          },
+          {
+            "name": "after",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "maxLength": 4096,
+              "minLength": 1
+            },
+            "description": "上页返回的游标。错误筛选或不合法游标返回 400；快照或人工决定变化导致游标失效时返回 409，从首页重新读取。"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TeacherHomepageReviewTeacherPage"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not permitted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "not_found：对象不存在、当前不可见，或 ID（含合并前别名）指向 term_course、class、assignment、schedule。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Revision or idempotency conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Required dependency unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/catalog/admin/schools/{school_id}/teacher-sites/review/sites/{site_id}/decision": {
+      "put": {
+        "operationId": "setTeacherHomepageDecision",
+        "description": "要求 catalog.maintain 和当前学校管理范围。人工决定与审计一起提交。相同操作者、学校、幂等键及请求返回原结果。复用键改变请求、修订冲突或目标已有其他人工绑定时返回 409。",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "school_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128,
+              "pattern": "^[A-Za-z0-9_.:-]+$"
+            }
+          },
+          {
+            "name": "site_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 69,
+              "maxLength": 69,
+              "pattern": "^site-[0-9a-f]{64}$"
+            },
+            "description": "管理页站点标识，按学校隔离的 SHA-256 摘要。"
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "maxLength": 128,
+              "minLength": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TeacherHomepageDecisionResult"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not permitted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "学校范围内找不到指定站点或目录教师。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Revision or idempotency conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Required dependency unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TeacherHomepageDecisionInput"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/catalog/admin/schools/{school_id}/teacher-sites/teachers/{teacher_id}/homepage": {
+      "get": {
+        "operationId": "getTeacherHomepageControls",
+        "description": "要求 catalog.maintain 和当前学校管理范围。返回当前采集资料及人工控制，供管理员分别核对来源与显示设置。未匹配或当前来源不可用时省略 source。禁止缓存。",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "school_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128,
+              "pattern": "^[A-Za-z0-9_.:-]+$"
+            },
+            "description": "当前管理学校。"
+          },
+          {
+            "name": "teacher_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128,
+              "pattern": "^[A-Za-z0-9_.:-]+$"
+            },
+            "description": "目录教师标识。"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TeacherHomepageControlsView"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "invalid_input。字段、内容、分页参数或幂等键不符合约定。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "unauthenticated。需要登录。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "forbidden。当前账号没有对应学校维护权限或有效的本人教师关联。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "not_found。目标教师或申请在允许范围内不存在。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "unavailable。必要的认证、目录、审计或通知依赖暂不可用。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "operationId": "setTeacherHomepageControls",
+        "description": "要求 catalog.maintain 和当前学校管理范围。以请求中完整的人工设置替换旧设置。剔除头像字节后的设置最多 1 MiB。控制、审计和幂等回执同一事务提交。首次修改时使用修订 0。相同操作者、学校、幂等键和请求重放返回原教师标识和写入修订。使用 GET 读取当前完整设置。",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "school_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128,
+              "pattern": "^[A-Za-z0-9_.:-]+$"
+            },
+            "description": "当前管理学校。"
+          },
+          {
+            "name": "teacher_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128,
+              "pattern": "^[A-Za-z0-9_.:-]+$"
+            },
+            "description": "目录教师标识。"
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            },
+            "description": "网络重试沿用原请求标识与内容。"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TeacherHomepageControlsReceipt"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "invalid_input。字段或请求内容不符合约定，或头像实际格式与声明不符、超过图片字节或像素限制、无法解码。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "unauthenticated。需要登录。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "forbidden。当前账号没有对应学校维护权限或有效的本人教师关联。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "not_found。目标教师或申请在允许范围内不存在。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "conflict 表示修订已变化或幂等键对应的内容不同。teacher_homepage_capacity_exceeded 表示合并整组和逐标签规则后，有效人工通用字段超过 128 项或人工栏目超过 64 项。减少或合并人工项后再重试。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "payload_too_large。JSON 请求体超过 4 MiB 时由应用返回。入口代理按自身限制也可返回 413，响应格式取决于代理。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "unavailable。必要的认证、目录、审计或通知依赖暂不可用。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TeacherHomepageControlsInput"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/catalog/objects/{id}/teacher-homepage/media": {
+      "get": {
+        "operationId": "listTeacherHomepageMedia",
+        "description": "沿用教师主页的当前登录、学校内容准入和目录可见性。按官网正文顺序返回通过白名单和人工展示设置的媒体。整页隐藏、停止展示或没有可见媒体时返回空列表。响应禁止缓存。",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128,
+              "pattern": "^[A-Za-z0-9_.:-]+$"
+            },
+            "description": "目录教师对象标识。"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "已校验的本地图片和可点击原站链接。按所在栏目分组时可使用 field 和 section。",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "enum": [
+                    "private, no-store"
+                  ]
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TeacherHomepageMediaView"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "invalid_input。教师对象标识不符合约定。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "unauthenticated。需要登录。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "forbidden。当前账号不具备相应的学校内容准入。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "not_found。目标教师不在当前可读目录中。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "unavailable。必要的认证或目录依赖暂不可用。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/catalog/objects/{id}/teacher-homepage/images/{image_id}": {
+      "get": {
+        "operationId": "getTeacherHomepageBodyImage",
+        "description": "沿用教师主页的当前登录、学校内容准入和目录可见性。摘要必须仍出现在该教师当前可见的正文媒体中。客户端用登录凭证读取二进制，可将 Blob 转为图片地址。响应禁止缓存。",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128,
+              "pattern": "^[A-Za-z0-9_.:-]+$"
+            }
+          },
+          {
+            "name": "image_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 64,
+              "maxLength": 64,
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "description": "正文图片内容的 SHA-256。"
+          }
+        ],
+        "responses": {
+          "302": {"description": "Authorized private media redirect valid for 60 seconds", "headers": {"Location": {"required": true, "schema": {"type": "string", "format": "uri"}}}},
+          "429": {"description": "Teacher image signature issuance limit exceeded", "headers": {"Retry-After": {"required": true, "description": "Seconds until the next issuance window", "schema": {"type": "integer", "minimum": 1, "maximum": 60}}}},
+          "200": {
+            "description": "当前已验证的正文图片。最多 20 MiB，每边最多 8192 像素，总面积最多 16,777,216 像素。",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "enum": [
+                    "private, no-store"
+                  ]
+                }
+              },
+              "X-Content-Type-Options": {
+                "schema": {
+                  "type": "string",
+                  "enum": [
+                    "nosniff"
+                  ]
+                }
+              },
+              "Content-Length": {
+                "schema": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 20971520
+                }
+              },
+              "X-Accel-Buffering": {
+                "schema": {
+                  "type": "string",
+                  "enum": [
+                    "no"
+                  ]
+                }
+              }
+            },
+            "content": {
+              "image/jpeg": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              },
+              "image/png": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              },
+              "image/gif": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not permitted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "教师或正文图片已不可见，或图片摘要不在当前可见正文中。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "必要依赖暂不可用，或正文图片下载没有在请求期限内取得处理名额。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "head": {
+        "operationId": "headTeacherHomepageBodyImage",
+        "description": "以与 GET 相同的登录与正文展示检查返回当前图片的响应头。",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128,
+              "pattern": "^[A-Za-z0-9_.:-]+$"
+            }
+          },
+          {
+            "name": "image_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 64,
+              "maxLength": 64,
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "description": "正文图片内容的 SHA-256。"
+          }
+        ],
+        "responses": {
+          "302": {"description": "Authorized private media redirect valid for 60 seconds", "headers": {"Location": {"required": true, "schema": {"type": "string", "format": "uri"}}}},
+          "429": {"description": "Teacher image signature issuance limit exceeded", "headers": {"Retry-After": {"required": true, "description": "Seconds until the next issuance window", "schema": {"type": "integer", "minimum": 1, "maximum": 60}}}},
+          "200": {
+            "description": "当前已验证的正文图片。最多 20 MiB，每边最多 8192 像素，总面积最多 16,777,216 像素。",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "enum": [
+                    "private, no-store"
+                  ]
+                }
+              },
+              "X-Content-Type-Options": {
+                "schema": {
+                  "type": "string",
+                  "enum": [
+                    "nosniff"
+                  ]
+                }
+              },
+              "Content-Length": {
+                "schema": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 20971520
+                }
+              },
+              "Content-Type": {
+                "schema": {
+                  "type": "string",
+                  "enum": [
+                    "image/jpeg",
+                    "image/png",
+                    "image/gif"
+                  ]
+                }
+              },
+              "X-Accel-Buffering": {
+                "schema": {
+                  "type": "string",
+                  "enum": [
+                    "no"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input"
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "403": {
+            "description": "Not permitted"
+          },
+          "404": {
+            "description": "教师或正文图片已不可见，或图片摘要不在当前可见正文中。"
+          },
+          "503": {
+            "description": "Required dependency unavailable"
+          }
+        }
+      }
+    },
+    "/api/v1/catalog/objects/{id}/teacher-homepage": {
+      "get": {
+        "operationId": "getTeacherHomepage",
+        "description": "沿用教师目录的当前内容准入和学校范围。profile 为应用字段白名单、人工覆盖与隐藏设置后的纯文本投影。当前公开教师可展示已审批的独立资料。无可展示资料、整页隐藏或已停止展示时返回空对象。禁止缓存。",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128,
+              "pattern": "^[A-Za-z0-9_.:-]+$"
+            },
+            "description": "目录教师对象标识。"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TeacherHomepagePublicView"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "invalid_input。字段、内容、分页参数或幂等键不符合约定。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "unauthenticated。需要登录。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "forbidden。当前账号没有对应学校维护权限或有效的本人教师关联。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "not_found。目标教师或申请在允许范围内不存在。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "unavailable。必要的认证、目录、审计或通知依赖暂不可用。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/catalog/admin/schools/{school_id}/teacher-sites/homepage-counts": {
+      "get": {
+        "operationId": "getTeacherHomepageCounts",
+        "description": "要求 catalog.maintain 和当前学校管理范围。已核实人工资料单列统计，不计为官网匹配。三种依据可重叠，eligible 为并集。统计读取当前资料和已选定的授课截止条件，批准引入的新教师在下一代目录投影发布后进入公开列表。禁止缓存。",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "school_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128,
+              "pattern": "^[A-Za-z0-9_.:-]+$"
+            },
+            "description": "当前管理学校。"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TeacherHomepageCounts"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "invalid_input。字段、内容、分页参数或幂等键不符合约定。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "unauthenticated。需要登录。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "forbidden。当前账号没有对应学校维护权限或有效的本人教师关联。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "not_found。目标教师或申请在允许范围内不存在。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "unavailable。必要的认证、目录、审计或通知依赖暂不可用。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/catalog/admin/schools/{school_id}/teacher-sites/allowlist": {
+      "get": {
+        "operationId": "getTeacherHomepageAllowlist",
+        "description": "要求 catalog.maintain 和当前学校管理范围。读取该校教师主页的采集字段白名单。禁止缓存。",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "school_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128,
+              "pattern": "^[A-Za-z0-9_.:-]+$"
+            },
+            "description": "当前管理学校。"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TeacherHomepageAllowlist"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "invalid_input。字段、内容、分页参数或幂等键不符合约定。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "unauthenticated。需要登录。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "forbidden。当前账号没有对应学校维护权限或有效的本人教师关联。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "not_found。目标教师或申请在允许范围内不存在。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "unavailable。必要的认证、目录、审计或通知依赖暂不可用。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "operationId": "setTeacherHomepageAllowlist",
+        "description": "要求 catalog.maintain 和当前学校管理范围。替换完整采集字段白名单，并在同一事务保存修订、审计及幂等回执。管理员明确保存的覆盖值拥有独立的展示权限。隐藏与停止展示优先。",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "school_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128,
+              "pattern": "^[A-Za-z0-9_.:-]+$"
+            },
+            "description": "当前管理学校。"
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            },
+            "description": "网络重试沿用原请求标识与内容。"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TeacherHomepageAllowlist"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "invalid_input。字段、内容、分页参数或幂等键不符合约定。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "unauthenticated。需要登录。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "forbidden。当前账号没有对应学校维护权限或有效的本人教师关联。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "not_found。目标教师或申请在允许范围内不存在。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "conflict。修订已变化、申请已处理或幂等键对应的内容不同。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "unavailable。必要的认证、目录、审计或通知依赖暂不可用。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TeacherHomepageAllowlistInput"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/catalog/objects/{id}/teacher-homepage/requests": {
+      "get": {
+        "operationId": "listMyTeacherHomepageRequests",
+        "description": "按提交账号读取该目录教师的申请，同时复核当前有效教师认证和教师目录关联。查询范围与本人可访问的教师目录对象一致。禁止缓存。",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128,
+              "pattern": "^[A-Za-z0-9_.:-]+$"
+            },
+            "description": "目录教师对象标识。"
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "pending",
+                "approved",
+                "rejected",
+                "all"
+              ],
+              "default": "all"
+            }
+          },
+          {
+            "name": "after",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "maxLength": 512
+            },
+            "description": "上一页的 next。游标仅用于相同学校、教师、申请状态及查看范围。"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 20
+            },
+            "description": "页面条目上限。"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TeacherHomepageRequestPage"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "invalid_input。字段、内容、分页参数或幂等键不符合约定。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "unauthenticated。需要登录。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "forbidden。当前账号没有对应学校维护权限或有效的本人教师关联。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "not_found。目标教师或申请在允许范围内不存在。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "unavailable。必要的认证、目录、审计或通知依赖暂不可用。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "operationId": "submitTeacherHomepageRequest",
+        "description": "仅当前通过教师认证、并已关联该学校和目录教师的账号可提交。提交后进入管理员队列，处理结果通过站内通知告知本人。不含头像字节的申请正文最多 1 MiB。同一账号每分钟最多提交十条新申请。相同账号、教师、幂等键和请求重放返回原结果。",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128,
+              "pattern": "^[A-Za-z0-9_.:-]+$"
+            },
+            "description": "目录教师对象标识。"
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            },
+            "description": "网络重试沿用原请求标识与内容。"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TeacherHomepageRequest"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "invalid_input。字段或请求内容不符合约定，或头像实际格式与声明不符、超过图片字节或像素限制、无法解码。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "unauthenticated。需要登录。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "forbidden。当前账号没有对应学校维护权限或有效的本人教师关联。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "not_found。目标教师或申请在允许范围内不存在。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "conflict。修订已变化、申请已处理或幂等键对应的内容不同。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "payload_too_large。JSON 请求体超过 4 MiB 时由应用返回。入口代理按自身限制也可返回 413，响应格式取决于代理。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "rate_limited。当前账号在一分钟内已提交十条新申请。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "unavailable。必要的认证、目录、审计或通知依赖暂不可用。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TeacherHomepageRequestInput"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/catalog/me/teacher-homepage/requests/{request_id}": {
+      "get": {
+        "operationId": "getMyTeacherHomepageRequest",
+        "description": "按提交账号读取申请详情，并复核有效教师认证与目录教师关联。供站内通知直达。其他账号请求同一标识时返回 404。禁止缓存。",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128,
+              "pattern": "^[A-Za-z0-9_.:-]+$"
+            },
+            "description": "申请标识。"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TeacherHomepageRequest"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "invalid_input。字段、内容、分页参数或幂等键不符合约定。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "unauthenticated。需要登录。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "forbidden。当前账号没有对应学校维护权限或有效的本人教师关联。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "not_found。目标教师或申请在允许范围内不存在。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "unavailable。必要的认证、目录、审计或通知依赖暂不可用。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/catalog/admin/schools/{school_id}/teacher-sites/requests": {
+      "get": {
+        "operationId": "listTeacherHomepageRequests",
+        "description": "要求 catalog.maintain 和当前学校管理范围。按学校、状态和可选教师筛选，使用稳定顺序和游标分页。禁止缓存。",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "school_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128,
+              "pattern": "^[A-Za-z0-9_.:-]+$"
+            },
+            "description": "当前管理学校。"
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "pending",
+                "approved",
+                "rejected",
+                "all"
+              ],
+              "default": "pending"
+            }
+          },
+          {
+            "name": "teacher_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128,
+              "pattern": "^[A-Za-z0-9_.:-]+$"
+            },
+            "description": "仅列出指定目录教师的申请。"
+          },
+          {
+            "name": "after",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "maxLength": 512
+            },
+            "description": "上一页的 next。游标仅用于相同学校、教师、申请状态及查看范围。"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 20
+            },
+            "description": "页面条目上限。"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TeacherHomepageRequestPage"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "invalid_input。字段、内容、分页参数或幂等键不符合约定。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "unauthenticated。需要登录。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "forbidden。当前账号没有对应学校维护权限或有效的本人教师关联。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "not_found。目标教师或申请在允许范围内不存在。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "unavailable。必要的认证、目录、审计或通知依赖暂不可用。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/catalog/admin/schools/{school_id}/teacher-sites/requests/{request_id}": {
+      "get": {
+        "operationId": "getTeacherHomepageRequest",
+        "description": "要求 catalog.maintain 和当前学校管理范围。读取本校申请的原始提案和处理结果。禁止缓存。",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "school_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128,
+              "pattern": "^[A-Za-z0-9_.:-]+$"
+            },
+            "description": "当前管理学校。"
+          },
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128,
+              "pattern": "^[A-Za-z0-9_.:-]+$"
+            },
+            "description": "申请标识。"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TeacherHomepageRequest"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "invalid_input。字段、内容、分页参数或幂等键不符合约定。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "unauthenticated。需要登录。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "forbidden。当前账号没有对应学校维护权限或有效的本人教师关联。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "not_found。目标教师或申请在允许范围内不存在。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "unavailable。必要的认证、目录、审计或通知依赖暂不可用。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/catalog/admin/schools/{school_id}/teacher-sites/requests/{request_id}/decision": {
+      "put": {
+        "operationId": "resolveTeacherHomepageRequest",
+        "description": "要求 catalog.maintain 和当前学校管理范围。批准时应用申请对应字段修改或隐藏。发布新值前重新核对申请人的有效教师归属。获批的非空文字、非空列表或替代头像可形成独立公开依据。状态、显示规则、审计、通知事件和幂等回执在同一事务提交。相同操作者、学校、幂等键和请求重放返回原结果。",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "school_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128,
+              "pattern": "^[A-Za-z0-9_.:-]+$"
+            },
+            "description": "当前管理学校。"
+          },
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128,
+              "pattern": "^[A-Za-z0-9_.:-]+$"
+            },
+            "description": "申请标识。"
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            },
+            "description": "网络重试沿用原请求标识与内容。"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TeacherHomepageRequest"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "invalid_input。字段、内容、分页参数或幂等键不符合约定。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "unauthenticated。需要登录。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "forbidden。当前账号没有对应学校维护权限或有效的本人教师关联。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "not_found。目标教师或申请在允许范围内不存在。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "conflict 表示修订已变化、申请已处理或幂等键对应的内容不同。teacher_homepage_capacity_exceeded 表示批准后有效人工通用字段超过 128 项或人工栏目超过 64 项。申请保持待处理。减少或合并人工项后，使用当前修订重新审批。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "unavailable。必要的认证、目录、审计或通知依赖暂不可用。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TeacherHomepageRequestDecisionInput"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/catalog/admin/schools/{school_id}/teacher-sites/requests/{request_id}/photo": {
+      "get": {
+        "operationId": "getTeacherHomepageRequestPhoto",
+        "description": "要求 catalog.maintain 和当前学校管理范围。管理员在审核时仅可读取该校申请携带的已验证头像。禁止缓存。",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "school_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128,
+              "pattern": "^[A-Za-z0-9_.:-]+$"
+            },
+            "description": "当前管理学校。"
+          },
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128,
+              "pattern": "^[A-Za-z0-9_.:-]+$"
+            },
+            "description": "申请标识。"
+          }
+        ],
+        "responses": {
+          "302": {"description": "Authorized private media redirect valid for 60 seconds", "headers": {"Location": {"required": true, "schema": {"type": "string", "format": "uri"}}}},
+          "429": {"description": "Teacher image signature issuance limit exceeded", "headers": {"Retry-After": {"required": true, "description": "Seconds until the next issuance window", "schema": {"type": "integer", "minimum": 1, "maximum": 60}}}},
+          "200": {
+            "description": "重新编码并去除来源元数据的申请头像。",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "enum": [
+                    "private, no-store"
+                  ]
+                }
+              },
+              "Content-Length": {
+                "schema": {
+                  "type": "integer",
+                  "maximum": 2097152
+                }
+              }
+            },
+            "content": {
+              "image/jpeg": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              },
+              "image/png": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "invalid_input。字段、内容、分页参数或幂等键不符合约定。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "unauthenticated。需要登录。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "forbidden。当前账号没有对应学校维护权限或有效的本人教师关联。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "not_found。目标教师或申请在允许范围内不存在。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "unavailable。必要的认证、目录、审计或通知依赖暂不可用。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -4056,6 +6408,15 @@
             "minimum": 0,
             "maximum": 10000,
             "description": "当前课程主档的学时；未知时省略或为 null，0 表示已确认的零学时。"
+          },
+          "teacher_homepage": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/TeacherHomepage"
+              }
+            ],
+            "readOnly": true,
+            "description": "派生的响应字段。教师详情和摘要主对象在请求 include_teacher_homepage=true 且姓名和资料可展示时返回。"
           }
         },
         "required": [
@@ -4217,6 +6578,15 @@
             "minimum": 0,
             "maximum": 10000,
             "description": "当前课程主档的学时；未知时省略或为 null，0 表示已确认的零学时。"
+          },
+          "teacher_homepage": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/TeacherHomepage"
+              }
+            ],
+            "readOnly": true,
+            "description": "派生的响应字段。教师详情和摘要主对象在请求 include_teacher_homepage=true 且姓名和资料可展示时返回。"
           }
         },
         "required": [
@@ -5053,6 +7423,12 @@
             "type": "string",
             "format": "date-time"
           },
+          "window_days": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 366,
+            "description": "Number of Beijing calendar dates in the heat window (Asia/Shanghai, UTC+8), including today up to the time of the request. The default is 30."
+          },
           "facet_total": {
             "type": "integer",
             "minimum": 0,
@@ -5439,7 +7815,8 @@
           },
           "deadline_at": {
             "type": "string",
-            "format": "date-time"
+            "format": "date-time",
+            "description": "Server-assigned expiry of this run, including time spent in the queue. Idempotent replays return the recorded deadline."
           },
           "duration_ms": {
             "type": "integer",
@@ -5543,7 +7920,8 @@
           },
           "deadline_at": {
             "type": "string",
-            "format": "date-time"
+            "format": "date-time",
+            "description": "Server-assigned expiry of this run, including time spent in the queue. Idempotent replays return the recorded deadline."
           },
           "duration_ms": {
             "type": "integer",
@@ -6034,6 +8412,1521 @@
           "source_revision_lag": { "type": "integer", "format": "int64", "minimum": 0 },
           "pending_rebuild": { "type": "boolean" }
         }
+      },
+      "TeacherHomepageField": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "label",
+          "value"
+        ],
+        "properties": {
+          "label": {
+            "type": "string",
+            "maxLength": 160,
+            "minLength": 1,
+            "description": "官网字段标签。"
+          },
+          "value": {
+            "type": "string",
+            "maxLength": 1024,
+            "description": "官网字段值，纯文本。"
+          }
+        }
+      },
+      "TeacherHomepageSection": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "title",
+          "text"
+        ],
+        "properties": {
+          "title": {
+            "type": "string",
+            "maxLength": 160,
+            "minLength": 1,
+            "description": "官网可见页签或正文分区的标题。"
+          },
+          "text": {
+            "type": "string",
+            "maxLength": 16000,
+            "description": "对应分区的可见正文，纯文本，可含换行。"
+          }
+        }
+      },
+      "TeacherHomepagePhoto": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "url",
+          "content_type",
+          "width",
+          "height"
+        ],
+        "properties": {
+          "url": {
+            "type": "string",
+            "maxLength": 512,
+            "pattern": "^[/]api[/]v1[/]catalog[/]objects[/][^/?#]+[/]teacher-homepage[/]photos[/][0-9a-f]{64}$",
+            "description": "StuHelper 同源相对地址。读取须继续满足教师页的当前内容准入。"
+          },
+          "content_type": {
+            "type": "string",
+            "enum": [
+              "image/jpeg",
+              "image/png"
+            ],
+            "description": "照片的实际图片类型。"
+          },
+          "width": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 4096,
+            "description": "照片的像素宽度。"
+          },
+          "height": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 4096,
+            "description": "照片的像素高度。"
+          }
+        },
+        "description": "官网头像的本地副本，最多 2 MiB，总面积最多 8,388,608 像素。"
+      },
+      "TeacherHomepage": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "name",
+          "supervisors",
+          "fields",
+          "sections"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 256,
+            "minLength": 1,
+            "description": "官网显示的姓名。"
+          },
+          "position": {
+            "type": "string",
+            "maxLength": 512,
+            "minLength": 1,
+            "description": "官网主要任职或职务。教师职称使用目录字段。"
+          },
+          "education": {
+            "type": "string",
+            "maxLength": 512,
+            "minLength": 1,
+            "description": "官网学历。"
+          },
+          "degree": {
+            "type": "string",
+            "maxLength": 512,
+            "minLength": 1,
+            "description": "官网学位。"
+          },
+          "discipline": {
+            "type": "string",
+            "maxLength": 512,
+            "minLength": 1,
+            "description": "官网学科。教师院系使用目录字段。"
+          },
+          "supervisors": {
+            "type": "array",
+            "maxItems": 2,
+            "items": {
+              "type": "string",
+              "enum": [
+                "博士生导师",
+                "硕士生导师"
+              ]
+            },
+            "description": "官网公开的导师身份。",
+            "uniqueItems": true
+          },
+          "email": {
+            "type": "string",
+            "maxLength": 512,
+            "minLength": 1,
+            "description": "官网公开邮箱的显示文本，可包含多个地址或防垃圾邮件写法。"
+          },
+          "phone": {
+            "type": "string",
+            "maxLength": 512,
+            "minLength": 1,
+            "description": "官网公开电话号码的显示文本，可包含区号、分机或多个号码。"
+          },
+          "office_location": {
+            "type": "string",
+            "maxLength": 512,
+            "minLength": 1,
+            "description": "官网公开办公地点。"
+          },
+          "hire_date": {
+            "type": "string",
+            "maxLength": 512,
+            "minLength": 1,
+            "description": "官网入职或入校任教时间的显示文本，保留来源的日期精度及格式。"
+          },
+          "biography": {
+            "type": "string",
+            "maxLength": 16000,
+            "minLength": 1,
+            "description": "官网个人简介，纯文本。原始页签也可能包含该内容。"
+          },
+          "research": {
+            "type": "string",
+            "maxLength": 16000,
+            "minLength": 1,
+            "description": "官网研究方向或领域，纯文本。原始页签也可能包含该内容。"
+          },
+          "fields": {
+            "type": "array",
+            "maxItems": 128,
+            "items": {
+              "$ref": "#/components/schemas/TeacherHomepageField"
+            },
+            "description": "按主页显示顺序提供其他字段。院系和职称以目录为准。"
+          },
+          "sections": {
+            "type": "array",
+            "maxItems": 64,
+            "items": {
+              "$ref": "#/components/schemas/TeacherHomepageSection"
+            },
+            "description": "按主页显示顺序提供可见页签及正文分区。"
+          },
+          "photo": {
+            "$ref": "#/components/schemas/TeacherHomepagePhoto"
+          }
+        },
+        "description": "当前已匹配的官网资料。未提供的可选字段省略，数组空时返回 []。资料 UTF-8 JSON 大小不超过 1 MiB。"
+      },
+      "TeacherHomepageDecision": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "action"
+        ],
+        "properties": {
+          "action": {
+            "type": "string",
+            "enum": [
+              "bind",
+              "reject"
+            ],
+            "description": "bind 为人工绑定。reject 为标记不对应。"
+          },
+          "teacher_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128,
+            "pattern": "^[A-Za-z0-9_.:-]+$",
+            "description": "bind 的目标目录教师 ID。reject 时省略。"
+          }
+        }
+      },
+      "TeacherHomepageDecisionInput": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "action",
+          "expected_revision"
+        ],
+        "properties": {
+          "action": {
+            "type": "string",
+            "enum": [
+              "bind",
+              "reject",
+              "revoke"
+            ],
+            "description": "绑定到有效的同校目录教师、标记该站点不对应、或撤销当前人工决定。"
+          },
+          "teacher_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128,
+            "pattern": "^[A-Za-z0-9_.:-]+$",
+            "description": "bind 时必填，目标可以从目录列表搜索。reject 和 revoke 时省略。"
+          },
+          "expected_revision": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0,
+            "description": "此站点人工决定的修订。首次操作前为 0，撤销后保留修订。"
+          }
+        }
+      },
+      "TeacherHomepageDecisionResult": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "site_id",
+          "decision_revision"
+        ],
+        "properties": {
+          "site_id": {
+            "type": "string",
+            "minLength": 69,
+            "maxLength": 69,
+            "pattern": "^site-[0-9a-f]{64}$",
+            "description": "按学校隔离的站点标识摘要。"
+          },
+          "decision_revision": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0,
+            "description": "此站点人工决定的修订。首次操作前为 0，撤销后保留修订。"
+          },
+          "decision": {
+            "$ref": "#/components/schemas/TeacherHomepageDecision"
+          }
+        },
+        "description": "此次请求提交后的人工决定。撤销时省略 decision。"
+      },
+      "TeacherHomepageReviewSiteSummary": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "site_id",
+          "name",
+          "unit",
+          "present"
+        ],
+        "properties": {
+          "site_id": {
+            "type": "string",
+            "minLength": 69,
+            "maxLength": 69,
+            "pattern": "^site-[0-9a-f]{64}$",
+            "description": "按学校隔离的站点标识摘要。"
+          },
+          "name": {
+            "type": "string",
+            "maxLength": 256,
+            "minLength": 1,
+            "description": "官网显示的姓名。"
+          },
+          "unit": {
+            "type": "string",
+            "maxLength": 512,
+            "description": "官网显示的单位。来源缺失时为空字符串。"
+          },
+          "present": {
+            "type": "boolean",
+            "description": "最新成功发布的快照含该站点的可用详情；站点消失或详情不可用时为 false。"
+          }
+        }
+      },
+      "TeacherHomepageReviewTeacherSummary": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "teacher_id",
+          "name"
+        ],
+        "properties": {
+          "teacher_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128,
+            "pattern": "^[A-Za-z0-9_.:-]+$",
+            "description": "同一学校的稳定目录教师 ID。"
+          },
+          "name": {
+            "type": "string",
+            "maxLength": 256,
+            "minLength": 1,
+            "description": "目录教师姓名。"
+          },
+          "department_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128,
+            "pattern": "^[A-Za-z0-9_.:-]+$",
+            "description": "教务目录院系 ID。"
+          },
+          "department": {
+            "type": "string",
+            "maxLength": 512,
+            "minLength": 1,
+            "description": "教务目录院系名称。"
+          },
+          "title": {
+            "type": "string",
+            "maxLength": 512,
+            "minLength": 1,
+            "description": "教务目录职称。"
+          }
+        }
+      },
+      "TeacherHomepageReviewSite": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "site_id",
+          "name",
+          "unit",
+          "present",
+          "candidate_count",
+          "candidates",
+          "decision_revision"
+        ],
+        "properties": {
+          "site_id": {
+            "type": "string",
+            "minLength": 69,
+            "maxLength": 69,
+            "pattern": "^site-[0-9a-f]{64}$",
+            "description": "按学校隔离的站点标识摘要。"
+          },
+          "name": {
+            "type": "string",
+            "maxLength": 256,
+            "minLength": 1,
+            "description": "官网显示的姓名。"
+          },
+          "unit": {
+            "type": "string",
+            "maxLength": 512,
+            "description": "官网显示的单位。来源缺失时为空字符串。"
+          },
+          "present": {
+            "type": "boolean",
+            "description": "最新成功发布的快照含该站点的可用详情；站点消失或详情不可用时为 false。"
+          },
+          "reason": {
+            "type": "string",
+            "maxLength": 64,
+            "minLength": 1,
+            "description": "处理原因代码。常见值为 catalog_name_absent、catalog_name_missing、name_absent、catalog_unit_missing、site_unit_missing、unit_mismatch、ambiguous_catalog、ambiguous_site、awaiting_snapshot、snapshot_changed、manual_conflict、site_unavailable。无处理原因时省略。"
+          },
+          "biography_excerpt": {
+            "type": "string",
+            "maxLength": 320,
+            "minLength": 1,
+            "description": "官网个人简介短摘。"
+          },
+          "discipline": {
+            "type": "string",
+            "maxLength": 512,
+            "minLength": 1,
+            "description": "官网学科。"
+          },
+          "matched_teacher_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128,
+            "pattern": "^[A-Za-z0-9_.:-]+$",
+            "description": "当前有效匹配的目录教师 ID。"
+          },
+          "candidate_count": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0,
+            "description": "快照候选总数，可大于 candidates 返回的数量。已停用或合并的目录候选不再返回。"
+          },
+          "candidates": {
+            "type": "array",
+            "maxItems": 100,
+            "items": {
+              "$ref": "#/components/schemas/TeacherHomepageReviewTeacherSummary"
+            },
+            "description": "最新完整匹配快照中仍有效的同名目录候选，按 ID 升序。"
+          },
+          "decision_revision": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0,
+            "description": "此站点人工决定的修订。首次操作前为 0，撤销后保留修订。"
+          },
+          "decision": {
+            "$ref": "#/components/schemas/TeacherHomepageDecision"
+          }
+        }
+      },
+      "TeacherHomepageReviewTeacher": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "teacher_id",
+          "name",
+          "candidate_count",
+          "candidates"
+        ],
+        "properties": {
+          "teacher_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128,
+            "pattern": "^[A-Za-z0-9_.:-]+$",
+            "description": "同一学校的稳定目录教师 ID。"
+          },
+          "name": {
+            "type": "string",
+            "maxLength": 256,
+            "minLength": 1,
+            "description": "目录教师姓名。"
+          },
+          "department_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128,
+            "pattern": "^[A-Za-z0-9_.:-]+$",
+            "description": "教务目录院系 ID。"
+          },
+          "department": {
+            "type": "string",
+            "maxLength": 512,
+            "minLength": 1,
+            "description": "教务目录院系名称。"
+          },
+          "title": {
+            "type": "string",
+            "maxLength": 512,
+            "minLength": 1,
+            "description": "教务目录职称。"
+          },
+          "reason": {
+            "type": "string",
+            "maxLength": 64,
+            "minLength": 1,
+            "description": "处理原因代码。常见值为 catalog_name_absent、catalog_name_missing、name_absent、catalog_unit_missing、site_unit_missing、unit_mismatch、ambiguous_catalog、ambiguous_site、awaiting_snapshot、snapshot_changed、manual_conflict、site_unavailable。无处理原因时省略。"
+          },
+          "matched_site_id": {
+            "type": "string",
+            "minLength": 69,
+            "maxLength": 69,
+            "pattern": "^site-[0-9a-f]{64}$",
+            "description": "当前有效匹配的站点标识摘要。"
+          },
+          "candidate_count": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0,
+            "description": "快照候选总数，可大于 candidates 返回的数量。已停用或合并的目录候选不再返回。"
+          },
+          "candidates": {
+            "type": "array",
+            "maxItems": 100,
+            "items": {
+              "$ref": "#/components/schemas/TeacherHomepageReviewSiteSummary"
+            },
+            "description": "同名官网候选，按站点 ID 升序。"
+          }
+        }
+      },
+      "TeacherHomepageReviewSitePage": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "items",
+          "total",
+          "next"
+        ],
+        "properties": {
+          "items": {
+            "type": "array",
+            "maxItems": 100,
+            "items": {
+              "$ref": "#/components/schemas/TeacherHomepageReviewSite"
+            },
+            "description": "当前页内容。"
+          },
+          "total": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0,
+            "description": "满足当前筛选条件的记录总数。"
+          },
+          "next": {
+            "type": "string",
+            "maxLength": 4096,
+            "description": "下一页游标，末页为空字符串。"
+          }
+        }
+      },
+      "TeacherHomepageReviewTeacherPage": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "items",
+          "total",
+          "next"
+        ],
+        "properties": {
+          "items": {
+            "type": "array",
+            "maxItems": 100,
+            "items": {
+              "$ref": "#/components/schemas/TeacherHomepageReviewTeacher"
+            },
+            "description": "当前页内容。"
+          },
+          "total": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0,
+            "description": "满足当前筛选条件的记录总数。"
+          },
+          "next": {
+            "type": "string",
+            "maxLength": 4096,
+            "description": "下一页游标，末页为空字符串。"
+          }
+        }
+      },
+      "TeacherHomepageFieldSelector": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "field"
+        ],
+        "properties": {
+          "field": {
+            "type": "string",
+            "enum": [
+              "name",
+              "position",
+              "education",
+              "degree",
+              "discipline",
+              "supervisors",
+              "email",
+              "phone",
+              "office_location",
+              "hire_date",
+              "biography",
+              "research",
+              "fields",
+              "sections",
+              "photo",
+              "page"
+            ],
+            "description": "教师主页字段。page 专用于本人申请隐藏整页。TeacherHomepage.name 表示官网姓名。目录姓名、院系与职称由教务对象维护。"
+          },
+          "label": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 160,
+            "description": "仅 fields 或 sections 可使用。匹配 fields 标签或 sections 标题；省略时操作整组。相同标签或标题的重复值一起处理。"
+          }
+        }
+      },
+      "TeacherHomepageCounts": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "teaching",
+          "official",
+          "both",
+          "eligible",
+          "verified_homepage"
+        ],
+        "properties": {
+          "teaching": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0,
+            "description": "由授课事实获得目录展示资格的教师数。"
+          },
+          "official": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0,
+            "description": "由有效官网匹配获得目录展示资格的教师数。"
+          },
+          "both": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0,
+            "description": "同时具有授课及有效官网匹配依据的教师数。"
+          },
+          "eligible": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0,
+            "description": "具有至少一项资格的目录教师数，每位教师只计一次。"
+          },
+          "verified_homepage": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0,
+            "description": "具有经核实、已批准的独立主页资料依据的教师数。与授课或官网依据可重叠。允许隐藏主页资料而保留此项资格。"
+          }
+        }
+      },
+      "TeacherHomepageAllowlist": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "revision",
+          "fields"
+        ],
+        "properties": {
+          "revision": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "fields": {
+            "type": "array",
+            "maxItems": 256,
+            "items": {
+              "$ref": "#/components/schemas/TeacherHomepageFieldSelector"
+            },
+            "description": "获准展示的唯一采集字段选择器。学校可显式保存空名单。动态 fields 或 sections 只列附明确 label 的单项。"
+          }
+        }
+      },
+      "TeacherHomepageAllowlistInput": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "expected_revision",
+          "fields"
+        ],
+        "properties": {
+          "expected_revision": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "fields": {
+            "type": "array",
+            "maxItems": 256,
+            "items": {
+              "$ref": "#/components/schemas/TeacherHomepageFieldSelector"
+            },
+            "description": "完整名单。拒绝 page、重复选择器，以及缺少明确标签的动态 fields 或 sections 条目。"
+          }
+        }
+      },
+      "TeacherHomepageFieldValue": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [],
+        "properties": {
+          "text": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 16000,
+            "description": "用于固定文本字段或指定标签的通用字段、栏目。name 最多 256 字符；biography 和 research 最多 16000 字符；其余固定文本字段最多 512 字符；通用字段值最多 1024，栏目正文最多 16000 字符。"
+          },
+          "supervisors": {
+            "type": "array",
+            "maxItems": 2,
+            "items": {
+              "$ref": "#/components/schemas/TeacherHomepageSupervisor"
+            },
+            "description": "导师类别完整列表。显式空数组清空。"
+          },
+          "fields": {
+            "type": "array",
+            "maxItems": 128,
+            "items": {
+              "$ref": "#/components/schemas/TeacherHomepageField"
+            },
+            "description": "通用字段完整列表。显式空数组清空。"
+          },
+          "sections": {
+            "type": "array",
+            "maxItems": 64,
+            "items": {
+              "$ref": "#/components/schemas/TeacherHomepageSection"
+            },
+            "description": "栏目完整列表。显式空数组清空。"
+          },
+          "photo": {
+            "$ref": "#/components/schemas/TeacherHomepagePortrait"
+          }
+        },
+        "minProperties": 1,
+        "maxProperties": 1,
+        "description": "只返回与所选字段类型对应的一种值。文本均按纯文本显示。photo 返回已验证图片元数据。"
+      },
+      "TeacherHomepageFieldRule": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "field",
+          "hidden"
+        ],
+        "properties": {
+          "field": {
+            "$ref": "#/components/schemas/TeacherHomepageFieldSelector"
+          },
+          "hidden": {
+            "type": "boolean",
+            "description": "true 隐藏该字段。隐藏优先于覆盖，保留覆盖值供恢复时使用。"
+          },
+          "override": {
+            "$ref": "#/components/schemas/TeacherHomepageFieldValue"
+          }
+        }
+      },
+      "TeacherHomepageControls": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "revision",
+          "page_visibility",
+          "rules",
+          "independent"
+        ],
+        "properties": {
+          "revision": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "page_visibility": {
+            "type": "string",
+            "enum": [
+              "visible",
+              "hidden",
+              "stopped"
+            ],
+            "description": "visible 允许按字段展示。hidden 隐藏整组教师主页资料。stopped 标记停止展示。隐藏与停止展示时均收回资料和照片访问，并持久保留字段设置。"
+          },
+          "independent": {
+            "type": "boolean",
+            "readOnly": true,
+            "description": "当前教师存在经本人申请及管理员批准的独立主页资料。"
+          },
+          "rules": {
+            "type": "array",
+            "maxItems": 256,
+            "items": {
+              "$ref": "#/components/schemas/TeacherHomepageFieldRule"
+            },
+            "description": "当前人工字段规则。无规则返回空数组。"
+          }
+        }
+      },
+      "TeacherHomepageControlsReceipt": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "teacher_id",
+          "revision"
+        ],
+        "properties": {
+          "teacher_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128,
+            "pattern": "^[A-Za-z0-9_.:-]+$",
+            "description": "本次写入的标准目录教师标识。"
+          },
+          "revision": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1,
+            "description": "本次写入产生的人工控制修订。重复提交原请求时返回同一值。"
+          }
+        }
+      },
+      "TeacherHomepageControlsView": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "controls"
+        ],
+        "properties": {
+          "source": {
+            "$ref": "#/components/schemas/TeacherHomepage"
+          },
+          "controls": {
+            "$ref": "#/components/schemas/TeacherHomepageControls"
+          }
+        }
+      },
+      "TeacherHomepageControlsInput": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "expected_revision",
+          "page_visibility",
+          "rules"
+        ],
+        "properties": {
+          "expected_revision": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "page_visibility": {
+            "type": "string",
+            "enum": [
+              "visible",
+              "hidden",
+              "stopped"
+            ],
+            "description": "visible 允许按字段展示。hidden 隐藏整组教师主页资料。stopped 标记停止展示。隐藏与停止展示时均收回资料和照片访问，并持久保留字段设置。"
+          },
+          "rules": {
+            "type": "array",
+            "maxItems": 256,
+            "items": {
+              "$ref": "#/components/schemas/TeacherHomepageFieldRuleInput"
+            },
+            "description": "完整人工规则列表。省略旧规则将其移除。保留规则且省略 override 撤销覆盖。重复字段选择器无效。"
+          }
+        }
+      },
+      "TeacherHomepageRequestInput": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "kind",
+          "field",
+          "message"
+        ],
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "correction",
+              "supplement",
+              "hide"
+            ],
+            "description": "更正、补充或隐藏。更正与补充要求 value，隐藏省略 value。"
+          },
+          "field": {
+            "$ref": "#/components/schemas/TeacherHomepageFieldSelector"
+          },
+          "value": {
+            "$ref": "#/components/schemas/TeacherHomepageProposalValue"
+          },
+          "message": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 2000,
+            "description": "反馈说明，去除首尾空白后须有内容。"
+          }
+        }
+      },
+      "TeacherHomepageRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "teacher_id",
+          "kind",
+          "field",
+          "message",
+          "status",
+          "revision",
+          "created_at"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128,
+            "pattern": "^[A-Za-z0-9_.:-]+$"
+          },
+          "teacher_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128,
+            "pattern": "^[A-Za-z0-9_.:-]+$"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "correction",
+              "supplement",
+              "hide"
+            ]
+          },
+          "field": {
+            "$ref": "#/components/schemas/TeacherHomepageFieldSelector"
+          },
+          "value": {
+            "$ref": "#/components/schemas/TeacherHomepageFieldValue"
+          },
+          "message": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 2000,
+            "description": "申请人填写的说明。"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "pending",
+              "approved",
+              "rejected"
+            ]
+          },
+          "revision": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "首次提交时间。"
+          },
+          "resolved_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "处理完成时间，待处理时省略。"
+          },
+          "resolution_note": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 2000,
+            "description": "向本人反馈的处理说明，待处理时省略。"
+          }
+        }
+      },
+      "TeacherHomepageRequestPage": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "items",
+          "total",
+          "next"
+        ],
+        "properties": {
+          "items": {
+            "type": "array",
+            "maxItems": 100,
+            "items": {
+              "$ref": "#/components/schemas/TeacherHomepageRequest"
+            },
+            "description": "按请求顺序返回。达到 3 MiB 页面预算时在条目边界分页。"
+          },
+          "total": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "next": {
+            "type": "string",
+            "maxLength": 512,
+            "description": "下一页游标，空字符串表示末页。"
+          }
+        }
+      },
+      "TeacherHomepageRequestDecisionInput": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "action",
+          "expected_revision",
+          "note"
+        ],
+        "properties": {
+          "action": {
+            "type": "string",
+            "enum": [
+              "approve",
+              "reject"
+            ]
+          },
+          "expected_revision": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1
+          },
+          "expected_homepage_revision": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0,
+            "description": "批准时必填，使用当前教师主页控制修订。拒绝时省略。"
+          },
+          "note": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 2000,
+            "description": "反馈给申请人的处理结论，去除首尾空白后须有内容。"
+          }
+        }
+      },
+      "TeacherHomepagePublicProfile": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "supervisors",
+          "fields",
+          "sections"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 256,
+            "minLength": 1,
+            "description": "允许显示时提供的官网姓名。被隐藏或未获准时省略。"
+          },
+          "position": {
+            "type": "string",
+            "maxLength": 512,
+            "minLength": 1,
+            "description": "官网主要任职或职务。教师职称使用目录字段。"
+          },
+          "education": {
+            "type": "string",
+            "maxLength": 512,
+            "minLength": 1,
+            "description": "官网学历。"
+          },
+          "degree": {
+            "type": "string",
+            "maxLength": 512,
+            "minLength": 1,
+            "description": "官网学位。"
+          },
+          "discipline": {
+            "type": "string",
+            "maxLength": 512,
+            "minLength": 1,
+            "description": "官网学科。教师院系使用目录字段。"
+          },
+          "supervisors": {
+            "type": "array",
+            "maxItems": 2,
+            "items": {
+              "type": "string",
+              "enum": [
+                "博士生导师",
+                "硕士生导师"
+              ]
+            },
+            "description": "官网公开的导师身份。",
+            "uniqueItems": true
+          },
+          "email": {
+            "type": "string",
+            "maxLength": 512,
+            "minLength": 1,
+            "description": "官网公开邮箱的显示文本，可包含多个地址或防垃圾邮件写法。"
+          },
+          "phone": {
+            "type": "string",
+            "maxLength": 512,
+            "minLength": 1,
+            "description": "官网公开电话号码的显示文本，可包含区号、分机或多个号码。"
+          },
+          "office_location": {
+            "type": "string",
+            "maxLength": 512,
+            "minLength": 1,
+            "description": "官网公开办公地点。"
+          },
+          "hire_date": {
+            "type": "string",
+            "maxLength": 512,
+            "minLength": 1,
+            "description": "官网入职或入校任教时间的显示文本，保留来源的日期精度及格式。"
+          },
+          "biography": {
+            "type": "string",
+            "maxLength": 16000,
+            "minLength": 1,
+            "description": "官网个人简介，纯文本。原始页签也可能包含该内容。"
+          },
+          "research": {
+            "type": "string",
+            "maxLength": 16000,
+            "minLength": 1,
+            "description": "官网研究方向或领域，纯文本。原始页签也可能包含该内容。"
+          },
+          "fields": {
+            "type": "array",
+            "maxItems": 128,
+            "items": {
+              "$ref": "#/components/schemas/TeacherHomepageField"
+            },
+            "description": "按主页显示顺序提供其他字段。院系和职称以目录为准。"
+          },
+          "sections": {
+            "type": "array",
+            "maxItems": 64,
+            "items": {
+              "$ref": "#/components/schemas/TeacherHomepageSection"
+            },
+            "description": "按主页显示顺序提供可见页签及正文分区。"
+          },
+          "photo": {
+            "$ref": "#/components/schemas/TeacherHomepagePhoto"
+          }
+        }
+      },
+      "TeacherHomepageBodyImage": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "content_type",
+          "width",
+          "height",
+          "size_bytes"
+        ],
+        "properties": {
+          "content_type": {
+            "type": "string",
+            "enum": [
+              "image/jpeg",
+              "image/png",
+              "image/gif"
+            ]
+          },
+          "width": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 8192
+          },
+          "height": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 8192
+          },
+          "size_bytes": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1,
+            "maximum": 20971520
+          }
+        }
+      },
+      "TeacherHomepageCopiedImage": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "kind",
+          "field",
+          "url",
+          "image"
+        ],
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "image"
+            ]
+          },
+          "field": {
+            "type": "string",
+            "enum": [
+              "biography",
+              "research",
+              "sections"
+            ],
+            "description": "在资料页内的归属。"
+          },
+          "section": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 160,
+            "description": "field 为 sections 时的栏目标题。纯媒体栏目也可出现。"
+          },
+          "title": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 160,
+            "description": "可访问的来源标题或图片说明。显示为纯文本。"
+          },
+          "url": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 2048,
+            "pattern": "^/api/v1/catalog/objects/[^/?#]+/teacher-homepage/images/[0-9a-f]{64}$",
+            "description": "StuHelper 同源图片地址。客户端以当前凭证读取后可用 Blob 展示图片。"
+          },
+          "image": {
+            "$ref": "#/components/schemas/TeacherHomepageBodyImage",
+            "description": "仅复制成功的正文图片含此项。客户端可据此读取并展示本地图片。"
+          }
+        },
+        "description": "已复制并通过校验的正文图片。"
+      },
+      "TeacherHomepageSourceLink": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "kind",
+          "field",
+          "url"
+        ],
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "image",
+              "video",
+              "attachment"
+            ]
+          },
+          "field": {
+            "type": "string",
+            "enum": [
+              "biography",
+              "research",
+              "sections"
+            ],
+            "description": "在资料页内的归属。"
+          },
+          "section": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 160,
+            "description": "field 为 sections 时的栏目标题。纯媒体栏目也可出现。"
+          },
+          "title": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 160,
+            "description": "可访问的来源标题或图片说明。显示为纯文本。"
+          },
+          "url": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 2048,
+            "pattern": "^https?://",
+            "description": "供主动点击的原站链接。图片回退指向该教师的学校原内容页。"
+          }
+        },
+        "description": "图片的原内容页回退，或者视频及附件原站链接。"
+      },
+      "TeacherHomepageMedium": {
+        "oneOf": [
+          {
+            "$ref": "#/components/schemas/TeacherHomepageCopiedImage"
+          },
+          {
+            "$ref": "#/components/schemas/TeacherHomepageSourceLink"
+          }
+        ]
+      },
+      "TeacherHomepageMediaView": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "items"
+        ],
+        "properties": {
+          "items": {
+            "type": "array",
+            "maxItems": 1000,
+            "items": {
+              "$ref": "#/components/schemas/TeacherHomepageMedium"
+            }
+          }
+        }
+      },
+      "TeacherHomepagePublicView": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [],
+        "properties": {
+          "profile": {
+            "$ref": "#/components/schemas/TeacherHomepagePublicProfile"
+          }
+        },
+        "description": "应用白名单、个人控制与匹配状态后的教师主页。资料不可展示时省略 profile。"
+      },
+      "TeacherHomepageSupervisor": {
+        "type": "string",
+        "enum": [
+          "博士生导师",
+          "硕士生导师"
+        ]
+      },
+      "TeacherHomepageFieldValueInput": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [],
+        "properties": {
+          "text": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 16000,
+            "description": "用于固定文本字段或指定标签的通用字段、栏目。name 最多 256 字符；biography 和 research 最多 16000 字符；其余固定文本字段最多 512 字符；通用字段值最多 1024，栏目正文最多 16000 字符。"
+          },
+          "supervisors": {
+            "type": "array",
+            "maxItems": 2,
+            "items": {
+              "$ref": "#/components/schemas/TeacherHomepageSupervisor"
+            },
+            "description": "导师类别完整列表。显式空数组清空。"
+          },
+          "fields": {
+            "type": "array",
+            "maxItems": 128,
+            "items": {
+              "$ref": "#/components/schemas/TeacherHomepageField"
+            },
+            "description": "通用字段完整列表。显式空数组清空。"
+          },
+          "sections": {
+            "type": "array",
+            "maxItems": 64,
+            "items": {
+              "$ref": "#/components/schemas/TeacherHomepageSection"
+            },
+            "description": "栏目完整列表。显式空数组清空。"
+          },
+          "photo": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/TeacherHomepagePortraitUpload"
+              },
+              {
+                "$ref": "#/components/schemas/TeacherHomepagePortraitReuse"
+              }
+            ]
+          }
+        },
+        "minProperties": 1,
+        "maxProperties": 1,
+        "description": "只填与所选字段类型对应的一种值。page 隐藏不提交值。"
+      },
+      "TeacherHomepageProposalValue": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [],
+        "properties": {
+          "text": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 16000,
+            "description": "用于固定文本字段或指定标签的通用字段、栏目。name 最多 256 字符；biography 和 research 最多 16000 字符；其余固定文本字段最多 512 字符；通用字段值最多 1024，栏目正文最多 16000 字符。"
+          },
+          "supervisors": {
+            "type": "array",
+            "maxItems": 2,
+            "items": {
+              "$ref": "#/components/schemas/TeacherHomepageSupervisor"
+            },
+            "description": "导师类别完整列表。显式空数组清空。"
+          },
+          "fields": {
+            "type": "array",
+            "maxItems": 128,
+            "items": {
+              "$ref": "#/components/schemas/TeacherHomepageField"
+            },
+            "description": "通用字段完整列表。显式空数组清空。"
+          },
+          "sections": {
+            "type": "array",
+            "maxItems": 64,
+            "items": {
+              "$ref": "#/components/schemas/TeacherHomepageSection"
+            },
+            "description": "栏目完整列表。显式空数组清空。"
+          },
+          "photo": {
+            "$ref": "#/components/schemas/TeacherHomepagePortraitUpload"
+          }
+        },
+        "minProperties": 1,
+        "maxProperties": 1,
+        "description": "只填与所选字段类型对应的一种值。page 隐藏不提交值。"
+      },
+      "TeacherHomepageFieldRuleInput": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "field",
+          "hidden"
+        ],
+        "properties": {
+          "field": {
+            "$ref": "#/components/schemas/TeacherHomepageFieldSelector"
+          },
+          "hidden": {
+            "type": "boolean",
+            "description": "true 隐藏该字段。隐藏优先于覆盖，保留覆盖值供恢复时使用。"
+          },
+          "override": {
+            "$ref": "#/components/schemas/TeacherHomepageFieldValueInput"
+          }
+        }
+      },
+      "TeacherHomepagePortrait": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "content_type",
+          "width",
+          "height"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$",
+            "minLength": 64,
+            "maxLength": 64
+          },
+          "content_type": {
+            "type": "string",
+            "enum": [
+              "image/jpeg",
+              "image/png"
+            ]
+          },
+          "width": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 4096
+          },
+          "height": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 4096
+          }
+        }
+      },
+      "TeacherHomepagePortraitUpload": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "content_type",
+          "data"
+        ],
+        "properties": {
+          "content_type": {
+            "type": "string",
+            "enum": [
+              "image/jpeg",
+              "image/png"
+            ]
+          },
+          "data": {
+            "type": "string",
+            "format": "byte",
+            "minLength": 4,
+            "maxLength": 2796204,
+            "description": "经标准 base64 编码的 JPEG 或 PNG 数据。解码后最多 2 MiB，单边不超过 4096 像素，总面积不超过 8,388,608 像素。服务器校验实际类型和尺寸。"
+          }
+        }
+      },
+      "TeacherHomepagePortraitReuse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$",
+            "minLength": 64,
+            "maxLength": 64
+          }
+        },
+        "description": "保留当前已持久化的同一教师的覆盖头像。提交 GET 返回的覆盖头像 id。"
       }
     }
   }

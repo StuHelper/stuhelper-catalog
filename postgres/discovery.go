@@ -43,7 +43,8 @@ func (t *transaction) DiscoveryCurrent(school string, ids []string) ([]c.Discove
 			return nil, err
 		}
 		return list[c.DiscoveryDocument](t, `SELECT d.data FROM catalog.projection_heads h JOIN catalog.projection_documents d ON d.version=h.version
- WHERE h.school_id=$1 AND d.id=ANY($2::text[]) AND (d.data->>'visible')::boolean ORDER BY d.id COLLATE "C"`, school, ids)
+ JOIN catalog.projection_objects o ON o.version=d.version AND o.id=d.id
+ WHERE h.school_id=$1 AND d.id=ANY($2::text[]) AND (d.data->>'visible')::boolean AND `+projectedVisible("o")+` ORDER BY d.id COLLATE "C"`, school, ids)
 	}
 	return list[c.DiscoveryDocument](t, `SELECT h.data FROM catalog.objects o CROSS JOIN LATERAL (SELECT data FROM catalog.discovery_history h WHERE h.id=o.id ORDER BY h.revision DESC LIMIT 1) h WHERE o.id=ANY($1::text[]) AND o.school_id=$2 AND o.id=catalog.canonical(o.id) AND NOT COALESCE((o.data->'object'->>'inactive')::boolean,false) AND (h.data->>'visible')::boolean `+t.teacherVisibility("o")+` ORDER BY o.id COLLATE "C"`, ids, school)
 }

@@ -17,8 +17,9 @@ import (
 
 type Authenticate func(*http.Request) (catalog.Principal, error)
 type Handler struct {
-	Service      *catalog.Service
-	Authenticate Authenticate
+	Service       *catalog.Service
+	Authenticate  Authenticate
+	ImageRedirect TeacherImageRedirect
 }
 
 func (h Handler) Routes() http.Handler {
@@ -29,6 +30,8 @@ func (h Handler) Routes() http.Handler {
 	h.operationRoutes(m)
 	h.adminReadRoutes(m)
 	h.teacherRefreshRoutes(m)
+	h.teacherHomepageRoutes(m)
+	h.teacherHomepageRequestRoutes(m)
 	m.HandleFunc("GET /api/v1/catalog/filter-options", h.filterOptions)
 	m.HandleFunc("GET /api/v1/catalog/me/references", func(w http.ResponseWriter, r *http.Request) {
 		p, ok := h.principal(w, r)
@@ -51,12 +54,34 @@ func (h Handler) Routes() http.Handler {
 		if !ok {
 			return
 		}
+		includeHomepage, e := teacherHomepageRequested(r)
+		if e != nil {
+			respond(w, nil, e)
+			return
+		}
+		if includeHomepage {
+			w.Header().Set("Cache-Control", "private, no-store")
+			v, e := h.Service.ReadSummaryWithTeacherHomepage(r.Context(), p, r.PathValue("id"))
+			respond(w, v, e)
+			return
+		}
 		v, e := h.Service.ReadSummary(r.Context(), p, r.PathValue("id"))
 		respond(w, v, e)
 	})
 	m.HandleFunc("GET /api/v1/catalog/objects/{id}", func(w http.ResponseWriter, r *http.Request) {
 		p, ok := h.principal(w, r)
 		if !ok {
+			return
+		}
+		includeHomepage, e := teacherHomepageRequested(r)
+		if e != nil {
+			respond(w, nil, e)
+			return
+		}
+		if includeHomepage {
+			w.Header().Set("Cache-Control", "private, no-store")
+			v, e := h.Service.ReadWithTeacherHomepage(r.Context(), p, r.PathValue("id"))
+			respond(w, v, e)
 			return
 		}
 		v, e := h.Service.Read(r.Context(), p, r.PathValue("id"))
@@ -112,7 +137,7 @@ func respond(w http.ResponseWriter, v any, e error) {
 		for _, item := range []struct {
 			e error
 			s int
-		}{{catalog.ErrScheduleIncomplete, 422}, {catalog.ErrUnauthenticated, 401}, {catalog.ErrInput, 400}, {catalog.ErrForbidden, 403}, {catalog.ErrNotFound, 404}, {catalog.ErrConflict, 409}} {
+		}{{catalog.ErrScheduleIncomplete, 422}, {catalog.ErrUnauthenticated, 401}, {catalog.ErrInput, 400}, {catalog.ErrForbidden, 403}, {catalog.ErrNotFound, 404}, {catalog.ErrConflict, 409}, {catalog.ErrTeacherHomepageCapacity, 409}, {catalog.ErrRateLimited, 429}} {
 			if errors.Is(e, item.e) {
 				status = item.s
 				code = item.e.Error()

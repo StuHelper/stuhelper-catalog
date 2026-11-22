@@ -16,20 +16,21 @@ import (
 )
 
 type Service struct {
-	DirectoryMetrics        DirectoryMetricProvider
-	DirectoryConfig         DirectoryConfig
-	RecentResources         RecentResourceCounts
-	OwnSummaryAccess        OwnSummaryAccess
-	EnrollmentSource        EnrollmentSource
-	TeacherSiteHosts        map[string][]string
-	ActivityLogger          *slog.Logger
-	OwnLogger               *slog.Logger
-	DirectoryLogger         *slog.Logger
-	AsyncMaintenanceRebuild bool
-	viewStats               viewCounters
-	ReadAccess              ContentAccess
-	Repo                    Repository
-	Clock                   func() time.Time
+	DirectoryMetrics         DirectoryMetricProvider
+	DirectoryConfig          DirectoryConfig
+	RecentResources          RecentResourceCounts
+	OwnSummaryAccess         OwnSummaryAccess
+	EnrollmentSource         EnrollmentSource
+	TeacherHomepageOwnership TeacherHomepageOwnership
+	TeacherSiteHosts         map[string][]string
+	ActivityLogger           *slog.Logger
+	OwnLogger                *slog.Logger
+	DirectoryLogger          *slog.Logger
+	AsyncMaintenanceRebuild  bool
+	viewStats                viewCounters
+	ReadAccess               ContentAccess
+	Repo                     Repository
+	Clock                    func() time.Time
 }
 
 func (s *Service) now() time.Time {
@@ -75,6 +76,9 @@ func validText(v string, n int) bool {
 var kinds = []string{"school", "department", "category", "nature", "term", "course", "teacher", "term_course", "class", "assignment", "schedule"}
 
 func validateObject(o Object, school string) error {
+	if o.TeacherHomepage != nil {
+		return ErrInput
+	}
 	if !validCourseFields(o) {
 		return ErrInput
 	}

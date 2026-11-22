@@ -120,7 +120,7 @@ func TestActivityViewFailureTelemetryAndBoundedDedupRetention(t *testing.T) {
 	}
 	var logs bytes.Buffer
 	s.ActivityLogger = slog.New(slog.NewJSONHandler(&logs, nil))
-	if _, e := db.Exec(`ALTER TABLE catalog.outbox ADD CONSTRAINT fail_views CHECK(data->>'type'<>'discovery.activity.v1') NOT VALID`); e != nil {
+	if _, e := db.Exec(`ALTER TABLE catalog.outbox ADD CONSTRAINT fail_views CHECK(data->>'type'<>'discovery.activity.v2') NOT VALID`); e != nil {
 		t.Fatal(e)
 	}
 	if _, e := s.Read(ctx, c.Principal{Subject: "private-user"}, "course"); e != nil {
@@ -176,7 +176,8 @@ func TestActivityViewFailureTelemetryAndBoundedDedupRetention(t *testing.T) {
 	}); e != nil {
 		t.Fatal(e)
 	}
-	docs, _, e := repo.ActivitySnapshot(ctx, day, day.AddDate(0, 0, 1), "", 100)
+	from, until := c.ActivityWindow(day, 1)
+	docs, _, e := repo.ActivitySnapshot(ctx, from, until, "", 100)
 	if e != nil || len(docs) != 1 || docs[0].Visible {
 		t.Fatal(docs, e)
 	}
@@ -201,6 +202,8 @@ func TestActivityViewAliasesShareCanonicalDeduplication(t *testing.T) {
 	if _, e = s.Merge(ctx, p, "old-course", "merge", merge); e != nil {
 		t.Fatal(e)
 	}
+	now := time.Date(2026, 11, 9, 16, 0, 0, 0, time.UTC)
+	s.Clock = func() time.Time { return now }
 	viewer := c.Principal{Subject: "issuer:student"}
 	if _, e = s.Read(ctx, viewer, "old-course"); e != nil {
 		t.Fatal(e)
@@ -209,7 +212,8 @@ func TestActivityViewAliasesShareCanonicalDeduplication(t *testing.T) {
 		t.Fatal(e)
 	}
 	repo := s.Repo.(*postgres.Repository)
-	docs, _, e := repo.ActivitySnapshot(ctx, time.Now().UTC().Truncate(24*time.Hour), time.Now().UTC().Truncate(24*time.Hour).Add(24*time.Hour), "", 100)
+	from, until := c.ActivityWindow(now, 1)
+	docs, _, e := repo.ActivitySnapshot(ctx, from, until, "", 100)
 	if e != nil || len(docs) != 1 || docs[0].Target.ID != "course" || docs[0].Metrics["views"] != 1 {
 		t.Fatal(docs, e)
 	}

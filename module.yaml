@@ -27,12 +27,18 @@ capabilities:
   - catalog.directory
   - catalog.teacher-sites.read
   - catalog.teacher-sites.refresh
+  - catalog.teacher-sites.requests
 capability_requires:
   catalog.teacher-sites.read:
     - id: identity
       api: 1
   catalog.teacher-sites.refresh:
     - id: identity
+      api: 1
+  catalog.teacher-sites.requests:
+    - id: identity
+      api: 1
+    - id: verification
       api: 1
   catalog.read:
     - id: identity
@@ -59,6 +65,9 @@ specifications:
   - docs/spec/teacher-directory.md
   - docs/spec/enrollment-source.md
   - docs/spec/activity.md
+  - docs/spec/audit-discovery.md
+  - docs/spec/directory-performance.md
+  - docs/spec/my-courses.md
   - docs/spec/ui-data.md
 scenario_tests:
   CAT-IDENTITY-01:
@@ -98,6 +107,59 @@ scenario_tests:
   CAT-TEACHER-03:
     - teacher_directory_test.go#TestTeacherSitesAtomicReplayRevocationAndChangedIdentity
     - teacher_directory_test.go#TestTeacherDirectoryKeepsAuthorizedMaintenanceOfHiddenTeachers
+  CAT-TEACHER-04:
+    - teacher_homepage_postgres_test.go#TestTeacherHomepagePostgresProjectionAndAdmission
+    - teacher_homepage_test.go#TestTeacherHomepageDetailsAndPhotoRequireCurrentAdmission
+  CAT-TEACHER-05:
+    - teacher_homepage_postgres_test.go#TestTeacherHomepagePostgresReviewPaginationAndScope
+    - teacher_homepage_test.go#TestTeacherSiteReviewHTTPRequiresSchoolPermissions
+  CAT-TEACHER-06:
+    - teacher_homepage_postgres_test.go#TestTeacherHomepagePostgresDecisionAtomicity
+  CAT-TEACHER-07:
+    - teacher_homepage_postgres_test.go#TestTeacherHomepagePostgresRefreshPreservesDecisions
+  CAT-TEACHER-08:
+    - teacher_homepage_render_test.go#TestTeacherHomepagePresentationSuppressesMultilineContactCopies
+    - teacher_homepage_controls_postgres_test.go#TestTeacherHomepageControlsPostgresVisibilityAndRefresh
+    - teacher_homepage_controls_postgres_test.go#TestTeacherHomepageControlsPostgresSchoolAllowlistAndReplacementPhoto
+    - teacher_homepage_photo_upload_test.go#TestValidateTeacherHomepagePhotoUpload
+    - httpapi/teacher_homepage_photo_test.go#TestWriteTeacherHomepagePhotoUsesPrivateSameOriginResponse
+    - teacher_homepage_complaint_test.go#TestTeacherHomepageComplaintHideRevisionAndReplay
+  CAT-TEACHER-09:
+    - teacher_homepage_capacity_postgres_test.go#TestTeacherHomepageControlsPostgresRejectsOverrideCapacity
+    - teacher_homepage_controls_postgres_test.go#TestTeacherHomepageControlsPostgresAuditAndReplay
+    - teacher_homepage_controls_storage_test.go#TestTeacherHomepageControlsPostgresPersistence
+    - teacher_homepage_change_audit_test.go#TestTeacherHomepageAuditRecordsChangesWithoutProfileData
+    - teacher_homepage_change_audit_test.go#TestTeacherHomepageAuditDistinguishesPageAndAllowlistChanges
+    - httpapi/teacher_homepage_body_test.go#TestTeacherHomepageInputSizeAndJSONErrors
+  CAT-TEACHER-10:
+    - teacher_homepage_capacity_postgres_test.go#TestTeacherHomepageRequestsPostgresRejectsApprovalBeyondOverrideCapacity
+    - teacher_homepage_requests_postgres_test.go#TestTeacherHomepageRequestsPostgresAuthorizationAndReview
+    - teacher_homepage_requests_postgres_test.go#TestTeacherHomepageRequestsPostgresSubmissionQuota
+    - teacher_homepage_request_repository_test.go#TestTeacherHomepageRequestRepositoryScopeAndKeyset
+  CAT-TEACHER-11:
+    - teacher_homepage_requests_postgres_test.go#TestTeacherHomepageRequestsPostgresDecisionAndOutboxAtomicity
+    - teacher_homepage_request_notification_test.go#TestTeacherHomepageRequestNotificationUsesOriginalPrivateReceipt
+  CAT-TEACHER-12:
+    - teacher_homepage_requests_postgres_test.go#TestTeacherHomepageRequestsPostgresIndependentPortrait
+    - teacher_homepage_publication_test.go#TestVerifiedTeacherHomepagePublicationCreatesIndependentDirectoryEvidence
+  CAT-TEACHER-13:
+    - teacher_homepage_request_repository_test.go#TestTeacherHomepageRequestRetention
+  CAT-TEACHER-14:
+    - teacher_homepage_media_postgres_test.go#TestTeacherHomepageBodyMediaPostgresAuthorizationAndRevocation
+  CAT-TEACHER-15:
+    - teacher_homepage_gif_test.go#TestBodyGIFLimitsAndSanitizedExtensions
+    - postgres/teacher_homepage_body_media_test.go#TestBodyImageMediaTypeMigration
+    - teacher_image_cos_test.go#TestTeacherImageDeliveryRequiresCurrentOverrideRow
+    - teacherimages/cos_test.go#TestCOSAdapterContentIntegrity
+    - teacherimages/cos_test.go#TestTypeDMatchesEdgeRule
+    - teacher_image_cos_test.go#TestTeacherImageMigrationAndRevokedDelivery
+    - teacher_image_cos_test.go#TestTeacherImageIssuanceLimits
+    - teacher_image_storage_test.go#TestTeacherImageStorageKeepsAuthorizationAndPrivateNamespaces
+    - teacher_homepage_media_test.go#TestTeacherHomepageBodyMediaSnapshotValidation
+    - teacher_homepage_media_test.go#TestTeacherHomepageBodyImageValidatesBytes
+    - postgres/teacher_homepage_body_media_test.go#TestTeacherHomepageBodyImagesQuotaFallbackAndReplacement
+    - postgres/teacher_homepage_body_media_test.go#TestTeacherHomepageBodyImagesGlobalQuotaSerializesSchools
+    - postgres/teacher_homepage_body_media_test.go#TestTeacherHomepageBodyImageQuotaWarningPersistsOutsidePublicJSON
   CAT-SOURCE-01:
     - enrollment_source_test.go#TestOwnSourceRefreshIsAtomicScopedAndDurablyIdempotent
     - source_concurrency_test.go#TestSourceSnapshotCoordinatesWithOrdinaryImport
@@ -115,6 +177,12 @@ scenario_tests:
     - activity_test.go#TestActivityViewFailureTelemetryAndBoundedDedupRetention
     - activity_test.go#TestActivityViewAliasesShareCanonicalDeduplication
     - outbox_delivery_test.go#TestBoundedPruningHostAllowlistAndOperationalMetrics
+  CAT-ACTIVITY-02:
+    - activity_window_test.go#TestActivityWindowBeijingCalendar
+    - activity_window_test.go#TestDirectoryHeatAndViewsRollOverAtBeijingMidnight
+  CAT-ACTIVITY-03:
+    - postgres/activity_calendar_test.go#TestActivityCalendarMigrationRebinsViewsAndPreservesWritesAcrossRollback
+    - postgres/activity_calendar_test.go#TestActivityCalendarPartialUTCDateUsesElapsedTime
   CO-02:
     - integration_test.go#TestImportRelationsClassificationAndMissingCredits
   CO-04:
@@ -165,6 +233,7 @@ scenario_tests:
     - content_test.go#TestContentReadAdmissionCoversEveryHTTPReadAndPreservesOwnEnrollment
   MC-01:
     - timetable_test.go#TestStructuredImportPreviewCalendarAndOwnership
+    - schedule_test.go#TestOwnedScheduleReadsOnlyCurrentEnrollmentMeetings
   MC-02:
     - timetable_test.go#TestStructuredImportPreviewCalendarAndOwnership
   MC-03:

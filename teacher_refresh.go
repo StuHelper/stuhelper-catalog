@@ -11,25 +11,33 @@ import (
 	"time"
 )
 
-const TeacherRefreshTimeout = 45 * time.Minute
+const (
+	TeacherRefreshTimeout     = 45 * time.Minute
+	teacherFullRefreshTimeout = 8 * time.Hour
+
+	// TeacherRefreshMaxRequests bounds reported requests at four per second.
+	TeacherRefreshMaxRequests = int64(teacherFullRefreshTimeout/time.Second) * 4
+)
 
 var TeacherUnmatchedReasons = []string{"catalog_name_absent", "catalog_unit_missing", "site_unit_missing", "unit_mismatch", "ambiguous_catalog", "ambiguous_site"}
 
 type TeacherRefreshRun struct {
-	ID            string                  `json:"id"`
-	SchoolID      string                  `json:"school_id"`
-	Mode          string                  `json:"mode"`
-	Trigger       string                  `json:"trigger"`
-	Status        string                  `json:"status"`
-	RequestedAt   time.Time               `json:"requested_at"`
-	StartedAt     *time.Time              `json:"started_at"`
-	FinishedAt    *time.Time              `json:"finished_at"`
-	DeadlineAt    time.Time               `json:"deadline_at"`
-	DurationMS    int64                   `json:"duration_ms"`
-	Requests      *int64                  `json:"requests"`
-	SiteCount     *int64                  `json:"site_count"`
-	Counts        *TeacherDirectoryResult `json:"counts"`
-	FailureReason string                  `json:"failure_reason"`
+	ID                     string                  `json:"id"`
+	SchoolID               string                  `json:"school_id"`
+	Mode                   string                  `json:"mode"`
+	Trigger                string                  `json:"trigger"`
+	Status                 string                  `json:"status"`
+	RequestedAt            time.Time               `json:"requested_at"`
+	StartedAt              *time.Time              `json:"started_at"`
+	FinishedAt             *time.Time              `json:"finished_at"`
+	DeadlineAt             time.Time               `json:"deadline_at"`
+	DurationMS             int64                   `json:"duration_ms"`
+	Requests               *int64                  `json:"requests"`
+	SiteCount              *int64                  `json:"site_count"`
+	Counts                 *TeacherDirectoryResult `json:"counts"`
+	FailureReason          string                  `json:"failure_reason"`
+	BodyImageQuotaExceeded bool                    `json:"-"`
+	BodyImageQuotaKnown    bool                    `json:"-"`
 }
 
 type TeacherRefreshStatus struct {
@@ -246,7 +254,11 @@ func (s *Service) QueueTeacherRefresh(ctx context.Context, p Principal, school, 
 				return ErrInput
 			}
 			now := s.now()
-			out = TeacherRefreshRun{ID: id, SchoolID: school, Mode: mode, Trigger: trigger, Status: "queued", RequestedAt: now, DeadlineAt: now.Add(TeacherRefreshTimeout)}
+			timeout := TeacherRefreshTimeout
+			if mode == "full" {
+				timeout = teacherFullRefreshTimeout
+			}
+			out = TeacherRefreshRun{ID: id, SchoolID: school, Mode: mode, Trigger: trigger, Status: "queued", RequestedAt: now, DeadlineAt: now.Add(timeout)}
 			if err = port.SaveTeacherRefresh(out); err != nil {
 				return err
 			}
@@ -316,7 +328,7 @@ func normalizedUnmatched(in TeacherUnmatchedSnapshot) TeacherUnmatchedSnapshot {
 	for i := range in.Items {
 		// Website slugs sometimes resemble staff identifiers. The management API
 		// needs only a stable row key, so persist a one-way school-scoped digest.
-		in.Items[i].SiteID = "site-" + digest([]string{in.SchoolID, in.Items[i].SiteID})
+		in.Items[i].SiteID = TeacherSiteID(in.SchoolID, in.Items[i].SiteID)
 	}
 	slices.SortFunc(in.Items, func(a, b UnmatchedTeacherSite) int { return strings.Compare(a.SiteID, b.SiteID) })
 	return in
@@ -348,11 +360,50 @@ func (s *Service) ImportTeacherUnmatched(ctx context.Context, p Principal, in Te
 }
 
 type TeacherRefreshCompletion struct {
-	Snapshot      *TeacherSiteSnapshot
-	Unmatched     []UnmatchedTeacherSite
-	Requests      *int64
-	SiteCount     *int64
-	FailureReason string
+	Snapshot               *TeacherSiteSnapshot
+	Unmatched              []UnmatchedTeacherSite
+	Requests               *int64
+	SiteCount              *int64
+	FailureReason          string
+	BodyImageQuotaExceeded bool
+	BodyImageQuotaKnown    bool
+}
+
+// The owning repository may additionally reach the live storage limit while
+// replacing the current snapshot.
+type teacherHomepageBodyImageQuotaTransaction interface {
+	TeacherHomepageBodyImageQuotaExceeded() bool
+}
+
+func teacherHomepageBodyImageQuota(t Transaction) bool {
+	quota, ok := t.(teacherHomepageBodyImageQuotaTransaction)
+	return ok && quota.TeacherHomepageBodyImageQuotaExceeded()
+}
+
+type teacherHomepageBodyImageQuotaHistory interface {
+	LastTeacherRefreshBodyImageQuota(school string) (*TeacherRefreshRun, error)
+}
+
+// LastTeacherRefreshBodyImageQuota restores the last committed warning state to
+// a refresh worker after interruption. It is a maintenance-only operation.
+func (s *Service) LastTeacherRefreshBodyImageQuota(ctx context.Context, p Principal, school string) (*TeacherRefreshRun, error) {
+	if !p.CanImport || p.Subject == "" || !allowed(p, school) {
+		return nil, ErrForbidden
+	}
+	if !ValidID(school) {
+		return nil, ErrInput
+	}
+	var out *TeacherRefreshRun
+	err := s.Repo.Transaction(ctx, func(t Transaction) error {
+		port, ok := t.(teacherHomepageBodyImageQuotaHistory)
+		if !ok {
+			return ErrUnavailable
+		}
+		var e error
+		out, e = port.LastTeacherRefreshBodyImageQuota(school)
+		return e
+	})
+	return out, err
 }
 
 func (s *Service) CompleteTeacherRefresh(ctx context.Context, p Principal, id string, in TeacherRefreshCompletion) (TeacherRefreshRun, error) {
@@ -360,11 +411,11 @@ func (s *Service) CompleteTeacherRefresh(ctx context.Context, p Principal, id st
 	if p.Subject == "" || !p.CanImport || !ValidID(id) {
 		return out, ErrForbidden
 	}
-	if !slices.Contains([]string{"", "crawl_failed", "request_failed", "invalid_snapshot", "import_conflict", "dependency_unavailable", "worker_interrupted", "timeout"}, in.FailureReason) || in.Requests != nil && (*in.Requests < 0 || *in.Requests > 100000) || in.SiteCount != nil && (*in.SiteCount < 0 || *in.SiteCount > 20000) {
+	if !slices.Contains([]string{"", "crawl_failed", "request_failed", "invalid_snapshot", "import_conflict", "dependency_unavailable", "worker_interrupted", "timeout"}, in.FailureReason) || in.Requests != nil && (*in.Requests < 0 || *in.Requests > TeacherRefreshMaxRequests) || in.SiteCount != nil && (*in.SiteCount < 0 || *in.SiteCount > 20000) {
 		return out, ErrInput
 	}
 	if in.FailureReason == "" {
-		if in.Snapshot == nil || in.Requests == nil || in.SiteCount == nil || int64(len(in.Snapshot.Matches)+len(in.Unmatched)) != *in.SiteCount {
+		if in.Snapshot == nil || in.Requests == nil || in.SiteCount == nil {
 			return out, ErrInput
 		}
 		snapshot := *in.Snapshot
@@ -372,8 +423,17 @@ func (s *Service) CompleteTeacherRefresh(ctx context.Context, p Principal, id st
 		if err := s.validateTeacherSites(in.Snapshot); err != nil {
 			return out, err
 		}
-		if err := validateUnmatched(TeacherUnmatchedSnapshot{SchoolID: in.Snapshot.SchoolID, Revision: in.Snapshot.Revision, ObservedAt: in.Snapshot.ObservedAt, Items: in.Unmatched}, s.now()); err != nil {
-			return out, err
+		if in.Snapshot.Sites != nil {
+			if int64(len(in.Snapshot.Sites)) != *in.SiteCount || len(in.Unmatched) != 0 {
+				return out, ErrInput
+			}
+		} else {
+			if int64(len(in.Snapshot.Matches)+len(in.Unmatched)) != *in.SiteCount {
+				return out, ErrInput
+			}
+			if err := validateUnmatched(TeacherUnmatchedSnapshot{SchoolID: in.Snapshot.SchoolID, Revision: in.Snapshot.Revision, ObservedAt: in.Snapshot.ObservedAt, Items: in.Unmatched}, s.now()); err != nil {
+				return out, err
+			}
 		}
 	}
 	err := s.Repo.Transaction(ctx, func(t Transaction) error {
@@ -412,11 +472,15 @@ func (s *Service) CompleteTeacherRefresh(ctx context.Context, p Principal, id st
 			if e != nil {
 				return e
 			}
-			review := normalizedUnmatched(TeacherUnmatchedSnapshot{SchoolID: out.SchoolID, Revision: in.Snapshot.Revision, ObservedAt: in.Snapshot.ObservedAt, Items: in.Unmatched})
-			if err = port.ReplaceTeacherUnmatched(review); err != nil {
-				return err
+			if in.Snapshot.Sites == nil {
+				review := normalizedUnmatched(TeacherUnmatchedSnapshot{SchoolID: out.SchoolID, Revision: in.Snapshot.Revision, ObservedAt: in.Snapshot.ObservedAt, Items: in.Unmatched})
+				if err = port.ReplaceTeacherUnmatched(review); err != nil {
+					return err
+				}
 			}
 			out.Counts = &counts
+			out.BodyImageQuotaExceeded = in.BodyImageQuotaExceeded || teacherHomepageBodyImageQuota(t)
+			out.BodyImageQuotaKnown = in.BodyImageQuotaKnown || out.BodyImageQuotaExceeded
 		}
 		now := s.now()
 		if !now.Before(out.DeadlineAt) {
