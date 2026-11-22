@@ -140,14 +140,17 @@ func TestTeacherImageIssuanceLimits(t *testing.T) {
 		if err := repo.TakeTeacherImageSignature(ctx, "u", ip); err != nil {
 			t.Fatal(err)
 		}
-		if _, err := db.Exec("UPDATE catalog.teacher_image_signature_limits SET issued=$1 WHERE scope=$2", v.limit, v.scope); err != nil {
+		if _, err := db.Exec("UPDATE catalog.teacher_image_signature_limits SET issued=$1 WHERE scope=$2", v.limit-1, v.scope); err != nil {
 			t.Fatal(err)
+		}
+		if err := repo.TakeTeacherImageSignature(ctx, "u", ip); err != nil {
+			t.Fatalf("%s denied its last allowed issuance: %v", v.scope, err)
 		}
 		if err := repo.TakeTeacherImageSignature(ctx, "u", ip); !errors.Is(err, c.ErrRateLimited) {
 			t.Fatalf("%s allowed: %v", v.scope, err)
 		}
 		var sum int
-		if err := db.QueryRow("SELECT SUM(issued) FROM catalog.teacher_image_signature_limits").Scan(&sum); err != nil || sum != v.limit+2 {
+		if err := db.QueryRow("SELECT SUM(issued) FROM catalog.teacher_image_signature_limits").Scan(&sum); err != nil || sum != v.limit+4 {
 			t.Fatal("rejected request changed counters")
 		}
 	}
