@@ -24,7 +24,12 @@ func (a *bodyMediaReadAccess) Scope(ctx context.Context, p c.Principal, school s
 }
 
 func TestTeacherHomepageBodyMediaPostgresAuthorizationAndRevocation(t *testing.T) {
-	s, p, _, in := homepageFixture(t)
+	checkBodyMediaStorage(t, nil)
+}
+
+func checkBodyMediaStorage(t *testing.T, store c.TeacherImageStorage) {
+	t.Helper()
+	s, p, _, in := homepageFixtureWithImages(t, store)
 	access := &bodyMediaReadAccess{}
 	s.ReadAccess = access
 	h := homepageHandler(s)

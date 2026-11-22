@@ -43,15 +43,14 @@ func (t *transaction) TeacherHomepageBodyImage(school, teacherID, imageID string
 	var out c.TeacherHomepageImage
 	columns := `i.image_id,i.media_type,i.width,i.height,i.size_bytes`
 	args := []any{&out.ID, &out.MediaType, &out.Width, &out.Height, &out.SizeBytes}
-	if loadBytes {
-		columns += `,i.data`
-		args = append(args, &out.Bytes)
-	}
 	err := t.tx.QueryRowContext(t.ctx, `SELECT `+columns+homepageTeacherFrom()+`
  JOIN catalog.teacher_homepage_body_refs r ON r.school_id=s.school_id AND r.site_id=s.site_id AND r.source_url=s.url
  JOIN catalog.teacher_homepage_body_images i ON i.image_id=r.image_id`+homepageTeacherWhere()+` AND i.image_id=$3`,
 		school, teacherID, imageID).Scan(args...)
-	return out, safe(err)
+	if err != nil || !loadBytes {
+		return out, safe(err)
+	}
+	return t.readImage(c.TeacherImageKey{Kind: c.BodyImageObject, Digest: imageID}, out)
 }
 
 func (t *transaction) TeacherHomepageBodyImageQuotaExceeded() bool {
@@ -240,10 +239,12 @@ func (t *transaction) readVerifiedBodyImage(in c.TeacherSiteSnapshot, img c.Teac
 }
 
 func (t *transaction) insertBodyImage(img c.TeacherHomepageBodyImage, data []byte) error {
-	_, err := t.tx.ExecContext(t.ctx, `INSERT INTO catalog.teacher_homepage_body_images
+	return t.imageStore().Write(t.ctx, c.TeacherImageKey{Kind: c.BodyImageObject, Digest: img.ID}, data, func(inline []byte) error {
+		_, err := t.tx.ExecContext(t.ctx, `INSERT INTO catalog.teacher_homepage_body_images
  (image_id,media_type,width,height,size_bytes,data) VALUES($1,$2,$3,$4,$5,$6)`,
-		img.ID, img.MediaType, img.Width, img.Height, img.SizeBytes, data)
-	return safe(err)
+			img.ID, img.MediaType, img.Width, img.Height, img.SizeBytes, inline)
+		return safe(err)
+	})
 }
 
 func (t *transaction) insertBodyImageRef(school string, ref bodyImageReference) error {

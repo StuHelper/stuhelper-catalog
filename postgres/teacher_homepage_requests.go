@@ -123,31 +123,36 @@ func (t *transaction) TeacherHomepageRequestsSince(submitter string, since time.
 }
 
 func (t *transaction) SaveTeacherHomepageRequestPhoto(school, requestID string, photo c.TeacherHomepageImage) error {
-	result, err := t.tx.ExecContext(t.ctx, `INSERT INTO catalog.teacher_homepage_request_photos
+	return t.imageStore().Write(t.ctx, c.TeacherImageKey{Kind: c.RequestPortrait, School: school, OwnerID: requestID, Digest: photo.ID}, photo.Bytes, func(inline []byte) error {
+		result, err := t.tx.ExecContext(t.ctx, `INSERT INTO catalog.teacher_homepage_request_photos
  (request_id,photo_id,media_type,width,height,data)
  SELECT r.id,$3,$4,$5,$6,$7 FROM catalog.teacher_homepage_requests r
  WHERE r.school_id=$1 AND r.id=$2 AND r.status='pending'`,
-		school, requestID, photo.ID, photo.MediaType, photo.Width, photo.Height, photo.Bytes)
-	if err != nil {
-		return safe(err)
-	}
-	count, err := result.RowsAffected()
-	if err != nil {
-		return safe(err)
-	}
-	if count == 0 {
-		return c.ErrNotFound
-	}
-	return nil
+			school, requestID, photo.ID, photo.MediaType, photo.Width, photo.Height, inline)
+		if err != nil {
+			return safe(err)
+		}
+		count, err := result.RowsAffected()
+		if err != nil {
+			return safe(err)
+		}
+		if count == 0 {
+			return c.ErrNotFound
+		}
+		return nil
+	})
 }
 
 func (t *transaction) ReadTeacherHomepageRequestPhoto(school, requestID string) (c.TeacherHomepageImage, error) {
 	var out c.TeacherHomepageImage
-	err := t.tx.QueryRowContext(t.ctx, `SELECT p.photo_id,p.media_type,p.width,p.height,p.data
+	err := t.tx.QueryRowContext(t.ctx, `SELECT p.photo_id,p.media_type,p.width,p.height
  FROM catalog.teacher_homepage_request_photos p JOIN catalog.teacher_homepage_requests r ON r.id=p.request_id
  WHERE r.school_id=$1 AND r.id=$2 AND `+readableTeacherHomepageRequest, school, requestID).
-		Scan(&out.ID, &out.MediaType, &out.Width, &out.Height, &out.Bytes)
-	return out, safe(err)
+		Scan(&out.ID, &out.MediaType, &out.Width, &out.Height)
+	if err != nil {
+		return out, safe(err)
+	}
+	return t.readImage(c.TeacherImageKey{Kind: c.RequestPortrait, School: school, OwnerID: requestID, Digest: out.ID}, out)
 }
 
 func (t *transaction) LinkTeacherHomepageRequestReplay(requestID, replayKey string) error {

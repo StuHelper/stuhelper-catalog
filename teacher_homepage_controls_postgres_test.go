@@ -6,6 +6,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"github.com/StuHelper/stuhelper-catalog/postgres"
 	"image"
 	"image/color"
 	"image/png"
@@ -84,7 +85,13 @@ func homepageDecode[T any](t *testing.T, out *httptest.ResponseRecorder) T {
 
 func homepageFixture(t *testing.T) (*c.Service, c.Principal, *sql.DB, c.TeacherSiteSnapshot) {
 	t.Helper()
+	return homepageFixtureWithImages(t, nil)
+}
+
+func homepageFixtureWithImages(t *testing.T, storage c.TeacherImageStorage) (*c.Service, c.Principal, *sql.DB, c.TeacherSiteSnapshot) {
+	t.Helper()
 	s, p, migration, _ := projectionFixture(t)
+	s.Repo.(*postgres.Repository).TeacherImageStorage = storage
 	p.CanRefreshTeacherSites = true
 	in := teacherHomepagePostgresSnapshot(t, s, p)
 	publishTeacherHomepagePostgresSnapshot(t, s, p, "homepage-controls-initial", in)
@@ -223,7 +230,12 @@ func homepagePortrait(t *testing.T) []byte {
 }
 
 func TestTeacherHomepageControlsPostgresSchoolAllowlistAndReplacementPhoto(t *testing.T) {
-	s, p, _, source := homepageFixture(t)
+	checkOverridePortraitStorage(t, nil)
+}
+
+func checkOverridePortraitStorage(t *testing.T, store c.TeacherImageStorage) {
+	t.Helper()
+	s, p, _, source := homepageFixtureWithImages(t, store)
 	h := homepageHandler(s)
 	source = homepageNextSnapshot(source)
 	source.Sites[0].Profile.Fields = append(source.Sites[0].Profile.Fields,

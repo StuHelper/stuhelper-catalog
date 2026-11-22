@@ -173,3 +173,9 @@ PUT 需要 `Idempotency-Key`、`action` 和 `expected_revision`。人工绑定�
 客户端取站点当前 `decision_revision` 作为预期修订，首次为 0。撤销后保留修订并重新按自动规则计算。相同请求返回原结果，改用相同键请求不同内容或修订不符时返回 409。
 
 人工决定、幂等回执、审计及匹配变化在同一事务中提交。审计记录操作人、学校、站点、操作和结果，绑定时附目录教师 ID。公开详情只显示当前有效匹配的资料。
+
+## 图片字节存储
+
+`TeacherImageStorage` 位于 `teacher_image_storage.go`，装配入口是 `postgres.Repository.TeacherImageStorage`。默认适配器 `postgres.InlineTeacherImages` 继续使用现有事务和 PostgreSQL 字节列。正文按摘要去重，官网头像、人工头像及申请头像以各自的学校、归属和摘要区分。
+
+读取先核对可见性与当前归属，再调用适配器。写入先验证图片，再由适配器发布元数据。外部实现须幂等写入并调用 `publish(nil)`，使事务仅保存引用；回滚后按已提交引用回收孤立对象。已有内联数据可由 `readInline` 读取。签名、边缘撤权和对象迁移由分发模块负责。

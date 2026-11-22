@@ -212,10 +212,11 @@ CREATE TABLE IF NOT EXISTS catalog.teacher_homepage_photos (
  school_id text NOT NULL, site_id text NOT NULL, photo_id text NOT NULL,
  media_type text NOT NULL CHECK(media_type IN ('image/jpeg','image/png')),
  width integer NOT NULL CHECK(width>0), height integer NOT NULL CHECK(height>0),
- data bytea NOT NULL CHECK(octet_length(data) BETWEEN 1 AND 2097152),
+ data bytea CHECK(octet_length(data) BETWEEN 1 AND 2097152),
  PRIMARY KEY(school_id,site_id,photo_id),
  FOREIGN KEY(school_id,site_id) REFERENCES catalog.teacher_homepage_sites(school_id,site_id) ON DELETE CASCADE
 );
+ALTER TABLE catalog.teacher_homepage_photos ALTER COLUMN data DROP NOT NULL;
 ALTER TABLE catalog.teacher_homepage_sites ADD COLUMN IF NOT EXISTS body_media jsonb NOT NULL DEFAULT '[]'::jsonb
  CHECK(jsonb_typeof(body_media)='array');
 -- Body images have a site-wide budget and share bytes by digest. Current site
@@ -225,9 +226,10 @@ CREATE TABLE IF NOT EXISTS catalog.teacher_homepage_body_images (
  media_type text NOT NULL CHECK(media_type IN ('image/jpeg','image/png')),
  width integer NOT NULL CHECK(width BETWEEN 1 AND 8192), height integer NOT NULL CHECK(height BETWEEN 1 AND 8192),
  size_bytes integer NOT NULL CHECK(size_bytes BETWEEN 1 AND 20971520),
- data bytea NOT NULL CHECK(octet_length(data)=size_bytes),
+ data bytea CHECK(octet_length(data)=size_bytes),
  CHECK(width::bigint*height<=16777216)
 );
+ALTER TABLE catalog.teacher_homepage_body_images ALTER COLUMN data DROP NOT NULL;
 CREATE TABLE IF NOT EXISTS catalog.teacher_homepage_body_refs (
  school_id text NOT NULL, site_id text NOT NULL,
  image_id text NOT NULL REFERENCES catalog.teacher_homepage_body_images(image_id),
@@ -271,10 +273,11 @@ CREATE TABLE IF NOT EXISTS catalog.teacher_homepage_override_photos (
  school_id text NOT NULL, teacher_id text NOT NULL, photo_id text NOT NULL CHECK(photo_id ~ '^[0-9a-f]{64}$'),
  media_type text NOT NULL CHECK(media_type IN ('image/jpeg','image/png')),
  width integer NOT NULL CHECK(width BETWEEN 1 AND 4096), height integer NOT NULL CHECK(height BETWEEN 1 AND 4096),
- data bytea NOT NULL CHECK(octet_length(data) BETWEEN 1 AND 2097152),
+ data bytea CHECK(octet_length(data) BETWEEN 1 AND 2097152),
  PRIMARY KEY(school_id,teacher_id), CHECK(width*height<=8388608),
  FOREIGN KEY(school_id,teacher_id) REFERENCES catalog.teacher_homepage_controls(school_id,teacher_id) DEFERRABLE INITIALLY DEFERRED
 );
+ALTER TABLE catalog.teacher_homepage_override_photos ALTER COLUMN data DROP NOT NULL;
 REVOKE ALL ON TABLE catalog.teacher_homepage_sites,catalog.teacher_homepage_photos,catalog.teacher_homepage_teachers,
  catalog.teacher_homepage_decisions,catalog.teacher_homepage_review_state,catalog.teacher_homepage_controls,
  catalog.teacher_homepage_allowlists,catalog.teacher_homepage_override_photos FROM PUBLIC;
