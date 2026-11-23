@@ -55,6 +55,15 @@ func TestHomepagePartialScopeAndReplay(t *testing.T) {
 	if err := s.ApplyHomepageDetailPatch(ctx, p, bad); !errors.Is(err, c.ErrConflict) {
 		t.Fatal(err)
 	}
+	patch.Set = map[string]json.RawMessage{"email": json.RawMessage("null")}
+	patch.CheckedAt = patch.CheckedAt.Add(time.Second)
+	if err := s.ApplyHomepageDetailPatch(ctx, p, patch); err != nil {
+		t.Fatal(err)
+	}
+	out, err = s.ReadTeacherHomepage(ctx, p, "official")
+	if err != nil || out.Profile == nil || out.Profile.Email != "" || out.Profile.Phone == "" || out.Profile.Biography != "Home text" {
+		t.Fatal(out, err)
+	}
 	patch.PageStatus = "not_found"
 	patch.Set = nil
 	patch.CheckedAt = patch.CheckedAt.Add(time.Second)
