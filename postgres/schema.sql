@@ -210,6 +210,9 @@ CREATE TABLE IF NOT EXISTS catalog.teacher_homepage_sites (
  auto_teacher_id text NOT NULL DEFAULT '', auto_name text NOT NULL DEFAULT '', auto_department_id text NOT NULL DEFAULT '',
  PRIMARY KEY(school_id,site_id), UNIQUE(school_id,url) DEFERRABLE INITIALLY DEFERRED
 );
+ALTER TABLE catalog.teacher_homepage_sites ADD COLUMN IF NOT EXISTS partial_base jsonb;
+ALTER TABLE catalog.teacher_homepage_sites ADD COLUMN IF NOT EXISTS partial_digest text NOT NULL DEFAULT '';
+ALTER TABLE catalog.teacher_homepage_sites ADD COLUMN IF NOT EXISTS partial_dates jsonb NOT NULL DEFAULT '{}';
 CREATE TABLE IF NOT EXISTS catalog.teacher_homepage_photos (
  school_id text NOT NULL, site_id text NOT NULL, photo_id text NOT NULL,
  media_type text NOT NULL CHECK(media_type IN ('image/jpeg','image/png')),
