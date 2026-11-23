@@ -117,6 +117,7 @@ scenario_tests:
   CAT-TEACHER-06:
     - teacher_homepage_postgres_test.go#TestTeacherHomepagePostgresDecisionAtomicity
   CAT-TEACHER-07:
+    - teacher_homepage_partial_test.go#TestHomepagePartialScopeAndReplay
     - teacher_homepage_postgres_test.go#TestTeacherHomepagePostgresRefreshPreservesDecisions
   CAT-TEACHER-08:
     - teacher_homepage_render_test.go#TestTeacherHomepagePresentationSuppressesMultilineContactCopies

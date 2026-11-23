@@ -139,7 +139,7 @@ func (t *transaction) upsertHomepageSites(school string, revision int64, raw str
  FROM jsonb_to_recordset($3::jsonb) AS r(site_id text,name text,unit text,url text,reason text,
  candidate_ids text[],candidate_count bigint,profile jsonb,body_media jsonb,photo_id text,auto_teacher_id text,auto_name text,auto_department_id text)
  ON CONFLICT(school_id,site_id) DO UPDATE SET revision=excluded.revision,name=excluded.name,unit=excluded.unit,
- url=excluded.url,reason=excluded.reason,candidate_ids=excluded.candidate_ids,candidate_count=excluded.candidate_count,profile=excluded.profile,body_media=excluded.body_media,
+ partial_dates='{}',partial_base=NULL,partial_digest='',url=excluded.url,reason=excluded.reason,candidate_ids=excluded.candidate_ids,candidate_count=excluded.candidate_count,profile=excluded.profile,body_media=excluded.body_media,
  photo_id=excluded.photo_id,auto_teacher_id=excluded.auto_teacher_id,auto_name=excluded.auto_name,auto_department_id=excluded.auto_department_id`,
 		school, revision, raw)
 	return safe(err)
@@ -222,14 +222,7 @@ func (t *transaction) saveTeacherHomepagePhotos(in c.TeacherSiteSnapshot) error 
 		if err := c.ValidateTeacherHomepageImage(image); err != nil {
 			return err
 		}
-		key := c.TeacherImageKey{Kind: c.SitePortrait, School: in.SchoolID, OwnerID: site.SiteID, Digest: image.ID}
-		if err := t.writeTeacherImage(key, image.Bytes, func(inline []byte) error {
-			_, err := t.tx.ExecContext(t.ctx, `INSERT INTO catalog.teacher_homepage_photos(school_id,site_id,photo_id,media_type,width,height,data)
- VALUES($1,$2,$3,$4,$5,$6,$7)
- ON CONFLICT(school_id,site_id,photo_id) DO UPDATE SET media_type=excluded.media_type,width=excluded.width,height=excluded.height,data=excluded.data`,
-				in.SchoolID, site.SiteID, image.ID, image.MediaType, image.Width, image.Height, inline)
-			return safe(err)
-		}); err != nil {
+		if err := t.writeHomepagePhoto(in.SchoolID, site.SiteID, image); err != nil {
 			return err
 		}
 	}
@@ -275,4 +268,15 @@ func (t *transaction) applyHomepageMembership(school string, at time.Time) ([]st
  RETURNING teacher_id
  )
  SELECT to_jsonb(teacher_id) FROM cleared UNION ALL SELECT to_jsonb(teacher_id) FROM activated`, school, at)
+}
+
+func (t *transaction) writeHomepagePhoto(school, siteID string, image c.TeacherHomepageImage) error {
+	key := c.TeacherImageKey{Kind: c.SitePortrait, School: school, OwnerID: siteID, Digest: image.ID}
+	return t.writeTeacherImage(key, image.Bytes, func(inline []byte) error {
+		_, err := t.tx.ExecContext(t.ctx, `INSERT INTO catalog.teacher_homepage_photos(school_id,site_id,photo_id,media_type,width,height,data)
+ VALUES($1,$2,$3,$4,$5,$6,$7)
+ ON CONFLICT(school_id,site_id,photo_id) DO UPDATE SET media_type=excluded.media_type,width=excluded.width,height=excluded.height,data=excluded.data`,
+			school, siteID, image.ID, image.MediaType, image.Width, image.Height, inline)
+		return safe(err)
+	})
 }
