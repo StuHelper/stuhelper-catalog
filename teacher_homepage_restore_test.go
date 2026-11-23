@@ -72,3 +72,71 @@ func TestLegacyTextRestoreChecksMembershipAndReplays(t *testing.T) {
 		t.Fatalf("different file: %v", err)
 	}
 }
+
+func TestReviewedLegacyAmbiguityPreservesMarkerUntilAdminBinding(t *testing.T) {
+	s, p, db, _ := projectionFixture(t)
+	p.CanReadTeacherSites = true
+	ctx := context.Background()
+	in := teacherHomepagePostgresSnapshot(t, s, p)
+	for i := range in.Sites {
+		site := &in.Sites[i]
+		site.Photo = nil
+		site.Profile = c.TeacherHomepage{Name: site.Name, Biography: "Historical text"}
+	}
+	held, pending := in.Sites[1], in.Sites[2]
+	in.Sites[1].Reason = "ambiguous_catalog"
+	in.Teachers[1].Reason = "ambiguous_catalog"
+	legacy := in
+	legacy.Sites, legacy.Teachers, legacy.Version = nil, nil, 0
+	legacy.Matches = append(append([]c.TeacherSiteMatch{}, in.Matches...), c.TeacherSiteMatch{TeacherID: "legacy", Name: "Legacy", DepartmentID: "dept", URL: held.URL})
+	if _, err := s.ImportTeacherSites(ctx, p, legacy); err != nil {
+		t.Fatal(err)
+	}
+	if err := s.ImportTeacherUnmatched(ctx, p, c.TeacherUnmatchedSnapshot{SchoolID: in.SchoolID, Revision: in.Revision, ObservedAt: in.ObservedAt,
+		Items: []c.UnmatchedTeacherSite{{SiteID: "reject", Name: pending.Name, Unit: pending.Unit, Reason: pending.Reason, CandidateCount: pending.CandidateCount}}}); err != nil {
+		t.Fatal(err)
+	}
+	dates := map[string]time.Time{}
+	for _, site := range in.Sites {
+		dates[site.SiteID] = in.ObservedAt
+	}
+	review := []c.LegacyHomepageReview{{SiteID: held.SiteID, TeacherID: "legacy", DepartmentID: "dept", Reason: "ambiguous_catalog"}}
+	restore := func(items []c.LegacyHomepageReview) error {
+		return s.RestoreTeacherHomepageTextWithReview(ctx, p, in, strings.Repeat("b", 64), dates, items)
+	}
+	if err := restore(nil); !errors.Is(err, c.ErrConflict) {
+		t.Fatal(err)
+	}
+	for i := 0; i < 2; i++ {
+		if err := restore(review); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err := restore(nil); !errors.Is(err, c.ErrConflict) {
+		t.Fatal(err)
+	}
+	checkHeld := func() {
+		var ok bool
+		err := db.QueryRow(`SELECT (SELECT official AND homepage_site_id='' AND homepage_url=$1 FROM catalog.teacher_directory WHERE teacher_id='legacy')
+ AND (SELECT count(*) FROM catalog.teacher_unmatched_sites)=1 AND (SELECT jsonb_array_length(legacy_text_receipt->'held') FROM catalog.teacher_site_sources WHERE school_id='school')=1`, held.URL).Scan(&ok)
+		if err != nil || !ok {
+			t.Fatalf("unlinked legacy marker: %v %v", ok, err)
+		}
+	}
+	checkHeld()
+	if _, err := s.SetTeacherSiteDecision(ctx, p, "school", pending.SiteID, "other-site", teacherHomepageDecision("reject", "", 0)); err != nil {
+		t.Fatal(err)
+	}
+	checkHeld()
+	page, err := s.ReadTeacherSiteReviews(ctx, p, c.TeacherReviewQuery{SchoolID: "school", Status: "pending", Query: held.SiteID, Limit: 10})
+	if err != nil || len(page.Items) != 1 || page.Items[0].MatchedTeacherID != "" {
+		t.Fatal(page, err)
+	}
+	if _, err := s.SetTeacherSiteDecision(ctx, p, "school", held.SiteID, "review-binding", teacherHomepageDecision("bind", "legacy", 0)); err != nil {
+		t.Fatal(err)
+	}
+	out, err := s.ReadTeacherHomepage(ctx, p, "legacy")
+	if err != nil || out.Profile == nil || out.Profile.Biography != "Historical text" {
+		t.Fatal(out, err)
+	}
+}
