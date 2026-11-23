@@ -115,6 +115,7 @@ scenario_tests:
     - teacher_homepage_postgres_test.go#TestTeacherHomepagePostgresReviewPaginationAndScope
     - teacher_homepage_test.go#TestTeacherSiteReviewHTTPRequiresSchoolPermissions
   CAT-TEACHER-06:
+    - teacher_homepage_restore_test.go#TestReviewedLegacyAmbiguityPreservesMarkerUntilAdminBinding
     - teacher_homepage_postgres_test.go#TestTeacherHomepagePostgresDecisionAtomicity
   CAT-TEACHER-07:
     - teacher_homepage_partial_test.go#TestHomepagePartialScopeAndReplay

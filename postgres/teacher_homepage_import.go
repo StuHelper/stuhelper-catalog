@@ -255,6 +255,13 @@ func (t *transaction) applyHomepageMembership(school string, at time.Time) ([]st
  UPDATE catalog.teacher_directory td SET official=false,matched_name='',matched_department_id='',homepage_url='',
  homepage_site_id='',homepage_manual=false,official_updated_at=$2,updated_at=$2
  WHERE td.school_id=$1 AND td.official AND NOT EXISTS(SELECT 1 FROM links l WHERE l.teacher_id=td.teacher_id)
+ AND NOT (td.homepage_site_id='' AND EXISTS (
+ SELECT FROM catalog.teacher_site_sources src
+ CROSS JOIN LATERAL jsonb_to_recordset(src.legacy_text_receipt->'held') h(site_id text,teacher_id text)
+ JOIN catalog.teacher_homepage_sites hs ON hs.school_id=$1 AND hs.site_id=h.site_id
+ WHERE src.school_id=$1 AND hs.revision=(src.legacy_text_receipt->>'source_revision')::bigint
+ AND hs.url=td.homepage_url AND h.teacher_id=td.teacher_id AND NOT EXISTS (
+ SELECT FROM catalog.teacher_homepage_decisions d WHERE d.school_id=$1 AND d.site_id=h.site_id AND d.action IN ('bind','reject'))))
  RETURNING teacher_id
  ), activated AS (
  INSERT INTO catalog.teacher_directory AS td(teacher_id,school_id,official,matched_name,matched_department_id,homepage_url,homepage_site_id,
