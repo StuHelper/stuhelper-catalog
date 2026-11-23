@@ -35,6 +35,8 @@ CREATE TABLE IF NOT EXISTS catalog.teacher_site_sources (
  school_id text PRIMARY KEY REFERENCES catalog.objects(id), source_id text NOT NULL,
  revision bigint NOT NULL CHECK(revision>0), digest text NOT NULL, observed_at timestamptz NOT NULL, updated_at timestamptz NOT NULL
 );
+-- The one-time text restore has its own receipt; the source revision remains the observation.
+ALTER TABLE catalog.teacher_site_sources ADD COLUMN IF NOT EXISTS legacy_text_receipt jsonb;
 CREATE TABLE IF NOT EXISTS catalog.history(id text NOT NULL, revision bigint NOT NULL, data jsonb NOT NULL, PRIMARY KEY(id,revision));
 CREATE TABLE IF NOT EXISTS catalog.enrollments (
  id text PRIMARY KEY, subject text NOT NULL, school_id text NOT NULL, course_id text NOT NULL,
