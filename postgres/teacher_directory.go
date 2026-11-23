@@ -256,6 +256,13 @@ func (t *transaction) ReplaceTeacherSites(in c.TeacherSiteSnapshot, actor string
 	} else if !errors.Is(err, c.ErrNotFound) {
 		return c.TeacherDirectoryResult{}, err
 	}
+	var newerDetail bool
+	if err := t.tx.QueryRowContext(t.ctx, `SELECT EXISTS(SELECT FROM catalog.teacher_homepage_sites WHERE school_id=$1 AND partial_digest<>'' AND revision>=$2)`, in.SchoolID, in.Revision).Scan(&newerDetail); err != nil {
+		return c.TeacherDirectoryResult{}, safe(err)
+	}
+	if newerDetail {
+		return c.TeacherDirectoryResult{}, c.ErrConflict
+	}
 	if at.After(t.mutationTime) {
 		t.mutationTime = at
 	}
