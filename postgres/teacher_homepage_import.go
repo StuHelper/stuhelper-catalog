@@ -61,6 +61,19 @@ func (t *transaction) saveTeacherHomepageSites(in c.TeacherSiteSnapshot, bodyIma
 	if err := t.Lock("teacher-homepage-body-images"); err != nil {
 		return err
 	}
+	if err := t.writeHomepageSiteRows(in); err != nil {
+		return err
+	}
+	if _, err := t.tx.ExecContext(t.ctx, `DELETE FROM catalog.teacher_homepage_sites WHERE school_id=$1 AND revision<>$2`, in.SchoolID, in.Revision); err != nil {
+		return safe(err)
+	}
+	if err := t.replaceTeacherHomepageBodyMedia(in, bodyImageBudget); err != nil {
+		return err
+	}
+	return t.saveTeacherHomepagePhotos(in)
+}
+
+func (t *transaction) writeHomepageSiteRows(in c.TeacherSiteSnapshot) error {
 	matches := make(map[string]c.TeacherSiteMatch, len(in.Matches))
 	for _, match := range in.Matches {
 		matches[match.URL] = match
@@ -115,13 +128,7 @@ func (t *transaction) saveTeacherHomepageSites(in c.TeacherSiteSnapshot, bodyIma
 			return err
 		}
 	}
-	if _, err := t.tx.ExecContext(t.ctx, `DELETE FROM catalog.teacher_homepage_sites WHERE school_id=$1 AND revision<>$2`, in.SchoolID, in.Revision); err != nil {
-		return safe(err)
-	}
-	if err := t.replaceTeacherHomepageBodyMedia(in, bodyImageBudget); err != nil {
-		return err
-	}
-	return t.saveTeacherHomepagePhotos(in)
+	return nil
 }
 
 func (t *transaction) upsertHomepageSites(school string, revision int64, raw string) error {

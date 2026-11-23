@@ -108,6 +108,7 @@ scenario_tests:
     - teacher_directory_test.go#TestTeacherSitesAtomicReplayRevocationAndChangedIdentity
     - teacher_directory_test.go#TestTeacherDirectoryKeepsAuthorizedMaintenanceOfHiddenTeachers
   CAT-TEACHER-04:
+    - teacher_homepage_restore_test.go#TestLegacyTextRestoreChecksMembershipAndReplays
     - teacher_homepage_postgres_test.go#TestTeacherHomepagePostgresProjectionAndAdmission
     - teacher_homepage_test.go#TestTeacherHomepageDetailsAndPhotoRequireCurrentAdmission
   CAT-TEACHER-05:
