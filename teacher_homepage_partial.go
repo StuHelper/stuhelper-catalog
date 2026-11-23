@@ -1,6 +1,7 @@
 package catalog
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"slices"
@@ -81,7 +82,7 @@ func (s *Service) ApplyHomepageDetailPatch(ctx context.Context, p Principal, in 
 		if !slices.Contains(teacherHomepageScalarFields[1:], key) && key != "sections" && key != "fields" {
 			return ErrInput
 		}
-		if string(raw) == "null" || !json.Valid(raw) {
+		if !json.Valid(raw) || (key == "fields" || key == "sections") && bytes.Equal(bytes.TrimSpace(raw), []byte("null")) {
 			return ErrInput
 		}
 	}
@@ -135,6 +136,10 @@ func MergeHomepageDetail(old TeacherHomepage, set map[string]json.RawMessage) (T
 				return old, ErrInput
 			}
 			v := homepageScalar(&old, key)
+			if bytes.Equal(bytes.TrimSpace(raw), []byte("null")) {
+				*v = ""
+				continue
+			}
 			if json.Unmarshal(raw, v) != nil || *v == "" {
 				return old, ErrInput
 			}

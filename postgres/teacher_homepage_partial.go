@@ -68,7 +68,11 @@ func (t *transaction) ApplyHomepageDetailPatch(in c.HomepageDetailPatch, actor s
 		return t.withdrawPartialHomepage(in, sum, actor, at)
 	}
 	if base == nil {
-		base = profile
+		// Only the rich full-crawl lists are needed to merge later homepage lists.
+		base, err = json.Marshal(c.TeacherHomepage{Fields: oldProfile.Fields, Sections: oldProfile.Sections})
+		if err != nil {
+			return c.ErrInput
+		}
 	}
 	var original c.TeacherHomepage
 	if json.Unmarshal(base, &original) != nil {
