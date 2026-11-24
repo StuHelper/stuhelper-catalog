@@ -335,11 +335,6 @@ func (r homepageRedaction) clean(value string, explicit bool) string {
 				continue
 			}
 			line = label[0] + value
-			if originalTeacherHomepageURL.MatchString(line) && !personalHomepageLabels[key] {
-				continue
-			}
-		} else if originalTeacherHomepageURL.MatchString(line) {
-			continue
 		}
 		if teacherHomepageRecordLabels[normalized] ||
 			(r.hidden["email"] || !explicit && r.excluded["email"]) && homepageEmail.MatchString(normalized) ||

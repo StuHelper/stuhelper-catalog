@@ -72,3 +72,17 @@ func TestTeacherDisplayOnlyLiteralAddressesInUnlistedSection(t *testing.T) {
 		t.Fatal("address visible before reveal")
 	}
 }
+
+func TestTeacherDisplayAuthoredSourceLinksAndMediaScope(t *testing.T) {
+	p := newHomepagePresentation(TeacherHomepageControls{PageVisibility: TeacherHomepageVisible}, TeacherHomepageAllowlist{Fields: defaultTeacherHomepageAllowlist()})
+	original := "https://shi.buaa.edu.cn/synthetic/zh_CN/index.htm"
+	src := TeacherHomepage{Name: "合成教师", Biography: "教师个人主页 " + original, Fields: []TeacherHomepageField{{Label: "主页", Value: original}}}
+	view := p.profile(&src, "teacher")
+	if view == nil || view.Biography != src.Biography || len(view.Fields) != 1 || view.Fields[0].Value != original {
+		t.Fatal("author supplied site lost")
+	}
+	policy := p.redaction(src)
+	if _, ok := p.mediaArea(TeacherHomepageBodyMedia{Field: "sections", Section: "unlisted@example.org"}, &policy); ok {
+		t.Fatal("a text-only email granted access to unlisted media")
+	}
+}
