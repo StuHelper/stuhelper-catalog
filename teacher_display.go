@@ -66,6 +66,8 @@ func validPersonalHomepage(value string) bool {
 }
 
 // A department rename applies to prose, never to the destination the author supplied.
+var explicitHomepageScheme = regexp.MustCompile(`^[a-zA-Z][a-zA-Z0-9+.-]*:`)
+
 var authoredAddress = regexp.MustCompile(`(?i)https?://[^[:space:]<>"'，。；、（）]+`)
 
 func (d homepageDirectory) renameText(text string) string {
@@ -98,7 +100,13 @@ func (d homepageDirectory) value(label, value string) (string, bool) {
 	case homepageTitleLabels[label]:
 		return value, teacherHomepageLabelKey(value) != teacherHomepageLabelKey(d.title)
 	case personalHomepageLabels[label]:
-		return value, validPersonalHomepage(value)
+		// A heading may introduce prose, a URL on the following line, or a
+		// URL with an annotation. Web only links literal HTTP(S) spans.
+		text := strings.TrimSpace(value)
+		if strings.ContainsFunc(text, unicode.IsSpace) || !explicitHomepageScheme.MatchString(text) && !strings.HasPrefix(text, "//") {
+			return value, true
+		}
+		return value, validPersonalHomepage(text)
 	}
 	return value, true
 }
