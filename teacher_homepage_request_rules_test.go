@@ -27,7 +27,7 @@ func TestTeacherHomepageRequestValidatesProposal(t *testing.T) {
 		{"page cannot be overridden", TeacherHomepageRequestInput{Kind: "correction", Field: TeacherHomepageFieldSelector{Field: "page"}, Value: &TeacherHomepageFieldValue{Text: &text}, Message: "说明"}, false},
 		{"photo hide has no replacement", TeacherHomepageRequestInput{Kind: "hide", Field: TeacherHomepageFieldSelector{Field: "photo"}, Value: &TeacherHomepageFieldValue{Text: &text}, Message: "说明"}, false},
 		{"directory title is not a homepage field", TeacherHomepageRequestInput{Kind: "correction", Field: TeacherHomepageFieldSelector{Field: "title"}, Value: &TeacherHomepageFieldValue{Text: &text}, Message: "说明"}, false},
-		{"directory title cannot be inserted as an extra label", TeacherHomepageRequestInput{Kind: "supplement", Field: TeacherHomepageFieldSelector{Field: "fields"}, Value: &TeacherHomepageFieldValue{Fields: &reserved}, Message: "说明"}, false},
+		{"source title can be supplemented separately from the directory title", TeacherHomepageRequestInput{Kind: "supplement", Field: TeacherHomepageFieldSelector{Field: "fields"}, Value: &TeacherHomepageFieldValue{Fields: &reserved}, Message: "说明"}, true},
 		{"untrusted photo reference", TeacherHomepageRequestInput{Kind: "correction", Field: TeacherHomepageFieldSelector{Field: "photo"}, Value: &TeacherHomepageFieldValue{Photo: &TeacherHomepageFieldPhoto{ID: "foreign"}}, Message: "说明"}, false},
 	}
 	for _, tt := range tests {
