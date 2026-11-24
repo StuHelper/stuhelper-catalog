@@ -87,3 +87,18 @@ func TestTeacherDisplayAuthoredSourceLinksAndMediaScope(t *testing.T) {
 		t.Fatal("a text-only email granted access to unlisted media")
 	}
 }
+
+func TestHomepageLabelPreservesProseAndSeparateLines(t *testing.T) {
+	p := newHomepagePresentation(TeacherHomepageControls{PageVisibility: TeacherHomepageVisible}, TeacherHomepageAllowlist{Fields: defaultTeacherHomepageAllowlist()})
+	for _, text := range []string{
+		"个人主页：学术经历及 研究资料见：https://faculty.example.org/lab",
+		"个人主页：请参见本页列出的 团队科研资料。",
+		"个人主页：\nhttps://faculty.example.org/lab",
+		"个人主页：https://faculty.example.org/lab （实验室）",
+	} {
+		got := p.profile(&TeacherHomepage{Name: "合成教师", Biography: text}, "teacher")
+		if got == nil || got.Biography != text {
+			t.Errorf("lost author text %q", text)
+		}
+	}
+}
