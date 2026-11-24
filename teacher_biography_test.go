@@ -41,8 +41,11 @@ func TestBiographySampleNarratives(t *testing.T) {
 }
 
 func TestBiographyOnlyDeduplicatesPublishedLines(t *testing.T) {
-	source := TeacherHomepage{Name: "测试教师", Degree: "博士", Fields: []TeacherHomepageField{{Label: "来源记录", Value: "博士"}, {Label: "未公布来源", Value: "论文全文"}}, Biography: "学位：博士\n院校经历：博士\n合成论文全文\n仍须显示的内容\n教学：相同值", Sections: []TeacherHomepageSection{{Title: "论文", Text: "合成论文全文\n另一条论文"}, {Title: "任意未发布栏目", Text: "仍须显示的内容"}, {Title: "研究方向", Text: "相同值"}}}
-	p := newHomepagePresentation(TeacherHomepageControls{PageVisibility: TeacherHomepageVisible}, TeacherHomepageAllowlist{Fields: defaultTeacherHomepageAllowlist()})
+	source := TeacherHomepage{Name: "测试教师", Degree: "博士", Fields: []TeacherHomepageField{{Label: "来源记录", Value: "学位：博士"}, {Label: "未公布来源", Value: "论文全文"}}, Biography: "学位：博士\n院校经历：博士\n合成论文全文\n仍须显示的内容\n教学：相同值", Sections: []TeacherHomepageSection{{Title: "论文", Text: "合成论文全文\n另一条论文"}, {Title: "任意未发布栏目", Text: "仍须显示的内容"}, {Title: "研究方向", Text: "相同值"}}}
+	paper := "合成论文全文\n另一条论文"
+	p := newHomepagePresentation(TeacherHomepageControls{PageVisibility: TeacherHomepageVisible, Rules: []TeacherHomepageFieldRule{
+		{Field: TeacherHomepageFieldSelector{Field: "sections", Label: "论文"}, Override: &TeacherHomepageFieldValue{Text: &paper}},
+	}}, TeacherHomepageAllowlist{Fields: defaultTeacherHomepageAllowlist()})
 	out := p.profile(&source, "teacher")
 	if out == nil || out.Biography != "院校经历：博士\n仍须显示的内容\n教学：相同值" || len(out.Sections) != 2 {
 		t.Fatal(out)
