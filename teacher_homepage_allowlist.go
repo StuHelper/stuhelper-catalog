@@ -5,8 +5,10 @@ import (
 	"crypto/rand"
 	"encoding/json"
 	"errors"
+	"maps"
 	"math"
 	"regexp"
+	"slices"
 	"strings"
 	"time"
 )
@@ -63,15 +65,17 @@ func defaultTeacherHomepageAllowlist() []TeacherHomepageFieldSelector {
 	for _, label := range teacherHomepageExtraLabels {
 		fields = append(fields, TeacherHomepageFieldSelector{Field: "fields", Label: label})
 	}
+	// These are website facts, kept independently of the directory's authoritative unit and title.
+	for _, labels := range []map[string]bool{homepageUnitLabels, homepageTitleLabels, personalHomepageLabels} {
+		for _, label := range slices.Sorted(maps.Keys(labels)) {
+			fields = append(fields, TeacherHomepageFieldSelector{Field: "fields", Label: label}, TeacherHomepageFieldSelector{Field: "sections", Label: label})
+		}
+	}
 	return fields
 }
 
 var teacherHomepageRecordLabels = map[string]bool{
-	"所在单位": true, "工作单位": true, "单位": true, "department": true, "院系": true, "所属院系": true,
-	"学院": true, "学校/院系": true, "department/school": true, "faculty": true, "affiliation": true,
-	"职称": true, "professional title": true, "technical title": true, "professional rank": true,
-	"academic title": true, "acad. title": true, "官网": true, "官网主页": true, "官方网站": true, "原始主页": true,
-	"主页": true, "website": true, "homepage": true, "official website": true,
+	"官网": true, "官网主页": true, "官方网站": true, "原始主页": true, "official website": true,
 	"更新时间": true, "更新日期": true, "最后更新时间": true, "最后更新": true, "上次更新": true, "最近更新": true,
 	"页面更新时间": true, "最后修改时间": true, "updated on": true, "last updated": true, "last update": true,
 	"last update time": true, "last modified": true, "last modification": true,

@@ -268,7 +268,7 @@ func (r homepageRedaction) add(field, value string, hard bool) {
 		for _, email := range homepageEmail.FindAllString(key, -1) {
 			r.copies[homepageCopy{value: email, field: "email", hard: true}] = true
 		}
-		for _, phone := range homepagePhone.FindAllString(key, -1) {
+		for _, phone := range homepagePhone.FindAllString(value, -1) {
 			if digits := homepageDigits(phone); len(digits) >= 7 {
 				r.copies[homepageCopy{value: digits, field: "phone", hard: true}] = true
 			}
@@ -331,7 +331,7 @@ func (r homepageRedaction) clean(value string, explicit bool) string {
 				continue
 			}
 			value, keep := r.directory.value(key, line[len(label[0]):])
-			if !keep || teacherHomepageRecordLabels[key] && !homepageUnitLabels[key] && !homepageTitleLabels[key] && !personalHomepageLabels[key] {
+			if !keep || teacherHomepageRecordLabels[key] {
 				continue
 			}
 			line = label[0] + value

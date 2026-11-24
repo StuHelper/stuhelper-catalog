@@ -89,8 +89,8 @@ func TestTeacherHomepageDetailsAndPhotoRequireCurrentAdmission(t *testing.T) {
 		t.Fatal(err)
 	}
 	home := teacher.TeacherHomepage
-	if home == nil || home.Email != in.Sites[0].Profile.Email || home.Phone != in.Sites[0].Profile.Phone ||
-		home.OfficeLocation != in.Sites[0].Profile.OfficeLocation || home.HireDate != "2020" ||
+	if home == nil || home.Email != "" || home.Phone != "" ||
+		home.OfficeLocation != "" || home.HireDate != "2020" ||
 		home.Photo == nil || home.Photo.URL != photoURL || home.Photo.Width != 2 || home.Photo.Height != 3 {
 		t.Fatal("matched profile or photo metadata missing")
 	}
@@ -132,7 +132,7 @@ func TestTeacherHomepageDetailsAndPhotoRequireCurrentAdmission(t *testing.T) {
 	}
 	call(objectBase+"/teacher/teacher-homepage/photos/"+photoID, verified, http.StatusNotFound)
 	call(detail+opts+"&include_teacher_homepage=false", verified, http.StatusBadRequest)
-	for _, path := range []string{detail + opts, detail + "/summary" + opts, photoURL} {
+	for _, path := range []string{detail + opts, detail + "/summary" + opts, detail + "/teacher-homepage?reveal_contacts=true", photoURL} {
 		call(path, "", http.StatusUnauthorized)
 		call(path, "issuer:unverified", http.StatusForbidden)
 		access.revoked = true
