@@ -329,6 +329,7 @@ func attachTeacherHomepage(t Transaction, teacher *Object) error {
 	if err != nil || profile == nil || profile.Name == "" {
 		return err
 	}
+	maskHomepageContacts(profile)
 	teacher.TeacherHomepage = profile
 	return nil
 }

@@ -195,7 +195,7 @@ func (p homepagePresentation) mediaArea(item TeacherHomepageBodyMedia, redaction
 		return "", p.allowed[group]
 	}
 	key := teacherHomepageSelectorKey(TeacherHomepageFieldSelector{Field: group.Field, Label: item.Section})
-	if rule := p.rules[key]; rule.Override == nil {
+	if rule := p.rules[key]; p.allowed[key] && rule.Override == nil {
 		visible, ok := p.dynamicItem(key, homepageTextItem{label: item.Section, text: item.Section}, rule, false, redaction)
 		return visible.label, ok
 	}

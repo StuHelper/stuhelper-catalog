@@ -55,6 +55,7 @@ func TestBiographyOnlyDeduplicatesPublishedLines(t *testing.T) {
 func TestBiographyKeepsPrivacyAndDirectoryRules(t *testing.T) {
 	source := TeacherHomepage{Name: "测试教师", Email: "test@example.org", Biography: "普通论文记录\n校外联系 test@example.org\n隐藏标记出现在履历中\n职称：教授", Sections: []TeacherHomepageSection{{Title: "私有栏目", Text: "隐藏标记"}, {Title: "论文", Text: "此文含隐藏标记"}}}
 	p := newHomepagePresentation(TeacherHomepageControls{PageVisibility: TeacherHomepageVisible, Rules: []TeacherHomepageFieldRule{{Field: TeacherHomepageFieldSelector{Field: "email"}, Hidden: true}, {Field: TeacherHomepageFieldSelector{Field: "sections", Label: "私有栏目"}, Hidden: true}}}, TeacherHomepageAllowlist{Fields: defaultTeacherHomepageAllowlist()})
+	p.directory.title = "教授"
 	out := p.profile(&source, "teacher")
 	if out == nil || strings.Contains(out.Biography, "隐藏") || out.Biography != "普通论文记录" || len(out.Sections) != 0 {
 		t.Fatal(out)

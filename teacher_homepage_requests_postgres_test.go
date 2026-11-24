@@ -157,9 +157,9 @@ func TestTeacherHomepageRequestsPostgresAuthorizationAndReview(t *testing.T) {
 		t.Fatalf("invalid rejection: %+v", rejected)
 	}
 	pub := homepageCall(t, h, http.MethodGet, homepageObject+"?include_teacher_homepage=true", homepageReader, "", "", http.StatusOK)
-	object := homepageDecode[c.Object](t, pub)
-	if object.TeacherHomepage == nil || object.TeacherHomepage.Email != homepageProposedEmail || object.TeacherHomepage.Phone != "555-0100" {
-		t.Fatalf("approval or rejection did not apply correctly: %+v", object.TeacherHomepage)
+	profile := homepagePublicProfile(t, h, homepagePublic+"?reveal_contacts=true")
+	if profile == nil || profile.Email != homepageProposedEmail || profile.Phone != "555-0100" {
+		t.Fatal("approval or rejection did not apply correctly")
 	}
 	if strings.Contains(pub.Body.String(), homepagePrivateNote) || strings.Contains(pub.Body.String(), ownReceipt.ResolutionNote) {
 		t.Fatal("request annotations reached public output")
@@ -293,8 +293,8 @@ func TestTeacherHomepageRequestsPostgresDecisionAndOutboxAtomicity(t *testing.T)
 	homepageRejectAudit(t, migration, homepageResolveAction)
 	homepageCall(t, h, http.MethodPut, decision, homepageAdmin, key, body, http.StatusServiceUnavailable)
 	homepageAssertPending(t, homepageCall(t, h, http.MethodGet, requestURL, homepageAdmin, "", "", http.StatusOK))
-	object := homepageDecode[c.Object](t, homepageCall(t, h, http.MethodGet, homepageObject+"?include_teacher_homepage=true", homepageReader, "", "", http.StatusOK))
-	if object.TeacherHomepage == nil || object.TeacherHomepage.Email != "auto@example.org" || len(outbox()) != 0 {
+	profile := homepagePublicProfile(t, h, homepagePublic+"?reveal_contacts=true")
+	if profile == nil || profile.Email != "auto@example.org" || len(outbox()) != 0 {
 		t.Fatal("audit failure committed a profile edit or notification")
 	}
 	homepageAllowAudit(t, migration)

@@ -153,10 +153,13 @@ func TestTeacherHomepageControlsPostgresVisibilityAndRefresh(t *testing.T) {
 			t.Fatal("detail and summary disagree about homepage visibility")
 		}
 		publicHome, _ := json.Marshal(homepagePublicProfile(t, h, homepagePublic))
+		if bytes.Contains(detailHome, []byte("@")) {
+			t.Fatal("default reads disclosed email")
+		}
 		if !bytes.Equal(publicHome, detailHome) {
 			t.Fatal("dedicated homepage and teacher detail disagree about homepage visibility")
 		}
-		return object.TeacherHomepage
+		return homepagePublicProfile(t, h, homepagePublic+"?reveal_contacts=true")
 	}
 	const visibleRules = `[{"field":{"field":"email"},"hidden":false,"override":{"text":"approved@example.org"}},{"field":{"field":"phone"},"hidden":true},{"field":{"field":"photo"},"hidden":true}]`
 	revision := homepageSet(t, h, 0, "visible", visibleRules, "hide-phone-and-photo")
@@ -201,7 +204,7 @@ func TestTeacherHomepageControlsPostgresVisibilityAndRefresh(t *testing.T) {
 		t.Fatal("homepage data leaked into the directory list")
 	}
 	homepageSet(t, h, revision, "visible", `[{"field":{"field":"name"},"hidden":true}]`, "hide-site-name")
-	nameHidden := homepageCall(t, h, http.MethodGet, homepagePublic, homepageReader, "", "", http.StatusOK)
+	nameHidden := homepageCall(t, h, http.MethodGet, homepagePublic+"?reveal_contacts=true", homepageReader, "", "", http.StatusOK)
 	payload := homepageDecode[struct {
 		Profile map[string]json.RawMessage `json:"profile"`
 	}](t, nameHidden)
@@ -245,7 +248,7 @@ func checkOverridePortraitStorage(t *testing.T, store c.TeacherImageStorage) {
 		c.TeacherHomepageSection{Title: "Unreviewed Section", Text: "private-section-from-website"})
 	publishTeacherHomepagePostgresSnapshot(t, s, p, "source-with-unreviewed-fields", source)
 
-	profile := homepagePublicProfile(t, h, homepagePublic)
+	profile := homepagePublicProfile(t, h, homepagePublic+"?reveal_contacts=true")
 	if profile == nil || profile.Photo == nil {
 		t.Fatal("the initial approved source profile should be visible")
 	}
@@ -275,7 +278,7 @@ func checkOverridePortraitStorage(t *testing.T, store c.TeacherImageStorage) {
 	}
 	homepageCall(t, h, http.MethodPut, homepageAllowlist, homepageAdmin, "stale-policy", schoolPolicy, http.StatusConflict)
 	policyRev := homepageRevision(t, response)
-	profile = homepagePublicProfile(t, h, homepagePublic)
+	profile = homepagePublicProfile(t, h, homepagePublic+"?reveal_contacts=true")
 	if profile == nil || profile.Email != "" || profile.Photo != nil || len(profile.Sections) != 1 ||
 		profile.Sections[0].Text != "private-section-from-website" {
 		t.Fatalf("school allowlist did not control collected fields: %+v", profile)
@@ -291,7 +294,7 @@ func checkOverridePortraitStorage(t *testing.T, store c.TeacherImageStorage) {
 	// corresponding website field to the school allowlist.
 	rules := fmt.Sprintf(`[{"field":{"field":"email"},"hidden":false,"override":{"text":"edited@example.org"}},{"field":{"field":"photo"},"hidden":false,"override":{"photo":%s}}]`, upload)
 	controlsRev := homepageSet(t, h, 0, "visible", rules, "replace-portrait")
-	profile = homepagePublicProfile(t, h, homepagePublic)
+	profile = homepagePublicProfile(t, h, homepagePublic+"?reveal_contacts=true")
 	if profile == nil || profile.Email != "edited@example.org" || profile.Photo == nil || profile.Photo.URL == sourcePhotoURL ||
 		profile.Photo.Width != 3 || profile.Photo.Height != 1 {
 		t.Fatalf("approved override did not replace collected values: %+v", profile)
@@ -305,7 +308,7 @@ func checkOverridePortraitStorage(t *testing.T, store c.TeacherImageStorage) {
 	homepageCall(t, h, http.MethodHead, sourcePhotoURL, homepageReader, "", "", http.StatusNotFound)
 
 	controlsRev = homepageSet(t, h, controlsRev, "visible", `[{"field":{"field":"email"},"hidden":true}]`, "hide-all-email-copies")
-	profile = homepagePublicProfile(t, h, homepagePublic)
+	profile = homepagePublicProfile(t, h, homepagePublic+"?reveal_contacts=true")
 	if profile == nil || profile.Email != "" || profile.Photo != nil {
 		t.Fatalf("hidden or cleared fields remained visible: %+v", profile)
 	}
@@ -318,7 +321,7 @@ func checkOverridePortraitStorage(t *testing.T, store c.TeacherImageStorage) {
 	reopen := fmt.Sprintf(`{"expected_revision":%d,"fields":[{"field":"name"},{"field":"photo"}]}`, policyRev)
 	homepageCall(t, h, http.MethodPut, homepageAllowlist, homepageAdmin, "restore-source-photo-policy", reopen, http.StatusOK)
 	homepageSet(t, h, controlsRev, "visible", "[]", "clear-label-hides")
-	if profile = homepagePublicProfile(t, h, homepagePublic); profile == nil || profile.Photo == nil || profile.Photo.URL != sourcePhotoURL {
+	if profile = homepagePublicProfile(t, h, homepagePublic+"?reveal_contacts=true"); profile == nil || profile.Photo == nil || profile.Photo.URL != sourcePhotoURL {
 		t.Fatalf("restoring source allowlist did not restore the original portrait: %+v", profile)
 	}
 	homepageCall(t, h, http.MethodGet, sourcePhotoURL, homepageReader, "", "", http.StatusOK)
@@ -388,8 +391,7 @@ func TestTeacherHomepageControlsPostgresAuditAndReplay(t *testing.T) {
 	const key = "concurrent-homepage-override"
 	homepageRejectAudit(t, migration, action)
 	homepageCall(t, h, http.MethodPut, homepageControls, homepageAdmin, key, body, http.StatusServiceUnavailable)
-	object := homepageDecode[c.Object](t, homepageCall(t, h, http.MethodGet, homepageObject+"?include_teacher_homepage=true", homepageReader, "", "", http.StatusOK))
-	if object.TeacherHomepage == nil || object.TeacherHomepage.Email != "auto@example.org" {
+	if profile := homepagePublicProfile(t, h, homepagePublic+"?reveal_contacts=true"); profile == nil || profile.Email != "auto@example.org" {
 		t.Fatal("audit failure committed an override")
 	}
 	homepageAllowAudit(t, migration)
@@ -440,8 +442,7 @@ func TestTeacherHomepageControlsPostgresAuditAndReplay(t *testing.T) {
 	changed := strings.Replace(body, "edited@example.org", "different@example.org", 1)
 	homepageCall(t, h, http.MethodPut, homepageControls, homepageAdmin, key, changed, http.StatusConflict)
 
-	object = homepageDecode[c.Object](t, homepageCall(t, h, http.MethodGet, homepageObject+"?include_teacher_homepage=true", homepageReader, "", "", http.StatusOK))
-	if object.TeacherHomepage == nil || object.TeacherHomepage.Email != "edited@example.org" {
+	if profile := homepagePublicProfile(t, h, homepagePublic+"?reveal_contacts=true"); profile == nil || profile.Email != "edited@example.org" {
 		t.Fatal("committed value was overwritten")
 	}
 	homepageSet(t, h, 1, "visible", "[]", "clear-after-replay")
@@ -452,7 +453,7 @@ func TestTeacherHomepageControlsPostgresAuditAndReplay(t *testing.T) {
 	if count := homepageAuditCount(t, migration, action, homepageAdmin); count != 2 {
 		t.Fatalf("clearing and replaying added %d total successful audit entries; want 2", count)
 	}
-	if profile := homepagePublicProfile(t, h, homepagePublic); profile == nil || profile.Email != "auto@example.org" {
+	if profile := homepagePublicProfile(t, h, homepagePublic+"?reveal_contacts=true"); profile == nil || profile.Email != "auto@example.org" {
 		t.Fatalf("replaying a revoked override changed the published state: %+v", profile)
 	}
 }

@@ -5,8 +5,10 @@ import (
 	"crypto/rand"
 	"encoding/json"
 	"errors"
+	"maps"
 	"math"
 	"regexp"
+	"slices"
 	"strings"
 	"time"
 )
@@ -31,7 +33,7 @@ var teacherHomepageScalarFields = []string{
 }
 
 var teacherHomepageSectionLabels = []string{
-	"个人简介", "个人介绍", "简介", "个人概况", "Biography", "Introduction", "Profile", "Personal profile",
+	"其他联系方式", "联系方式", "Other contact information", "Contact details", "个人简介", "个人介绍", "简介", "个人概况", "Biography", "Introduction", "Profile", "Personal profile",
 	"研究方向", "研究领域", "研究兴趣", "Research interests", "Research directions", "Research field", "Research fields",
 	"科研成果", "学术成果", "科研项目", "科研工作", "Research", "Research projects", "Research achievements",
 	"论文", "论文成果", "代表性论文", "论著", "代表著作", "学术论文", "著作", "Publications", "Papers", "Books",
@@ -45,6 +47,7 @@ var teacherHomepageSectionLabels = []string{
 }
 
 var teacherHomepageExtraLabels = []string{
+	"其他联系方式", "个人联系方式", "联系方式", "邮箱", "电子邮箱", "电子邮件", "电话", "办公电话", "联系电话", "手机", "办公地点", "办公地址", "E-mail", "Email", "Phone", "Other contact information", "Contact details",
 	"研究方向", "研究领域", "研究兴趣", "Research interests", "Research directions",
 	"社会兼职", "学术兼职", "学术活动", "Academic service",
 	"教育经历", "教育背景", "工作经历", "任职经历", "学术经历", "Education", "Experience", "Work experience",
@@ -62,15 +65,17 @@ func defaultTeacherHomepageAllowlist() []TeacherHomepageFieldSelector {
 	for _, label := range teacherHomepageExtraLabels {
 		fields = append(fields, TeacherHomepageFieldSelector{Field: "fields", Label: label})
 	}
+	// These are website facts, kept independently of the directory's authoritative unit and title.
+	for _, labels := range []map[string]bool{homepageUnitLabels, homepageTitleLabels, personalHomepageLabels} {
+		for _, label := range slices.Sorted(maps.Keys(labels)) {
+			fields = append(fields, TeacherHomepageFieldSelector{Field: "fields", Label: label}, TeacherHomepageFieldSelector{Field: "sections", Label: label})
+		}
+	}
 	return fields
 }
 
 var teacherHomepageRecordLabels = map[string]bool{
-	"所在单位": true, "工作单位": true, "单位": true, "department": true, "院系": true, "所属院系": true,
-	"学院": true, "学校/院系": true, "department/school": true, "faculty": true, "affiliation": true,
-	"职称": true, "professional title": true, "technical title": true, "professional rank": true,
-	"academic title": true, "acad. title": true, "官网": true, "官网主页": true, "官方网站": true, "原始主页": true,
-	"主页": true, "website": true, "homepage": true, "official website": true,
+	"官网": true, "官网主页": true, "官方网站": true, "原始主页": true, "official website": true,
 	"更新时间": true, "更新日期": true, "最后更新时间": true, "最后更新": true, "上次更新": true, "最近更新": true,
 	"页面更新时间": true, "最后修改时间": true, "updated on": true, "last updated": true, "last update": true,
 	"last update time": true, "last modified": true, "last modification": true,

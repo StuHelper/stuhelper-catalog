@@ -46,7 +46,7 @@ func TestHomepagePartialScopeAndReplay(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	out, err := s.ReadTeacherHomepage(ctx, p, "official")
+	out, err := s.ReadTeacherHomepageWithContacts(ctx, p, "official")
 	if err != nil || out.Profile == nil || out.Profile.Biography != "Home text" || out.Profile.Email == "" || out.Profile.Photo == nil || len(out.Profile.Sections) != 1 {
 		t.Fatal(out, err)
 	}
@@ -60,7 +60,7 @@ func TestHomepagePartialScopeAndReplay(t *testing.T) {
 	if err := s.ApplyHomepageDetailPatch(ctx, p, patch); err != nil {
 		t.Fatal(err)
 	}
-	out, err = s.ReadTeacherHomepage(ctx, p, "official")
+	out, err = s.ReadTeacherHomepageWithContacts(ctx, p, "official")
 	if err != nil || out.Profile == nil || out.Profile.Email != "" || out.Profile.Phone == "" || out.Profile.Biography != "Home text" {
 		t.Fatal(out, err)
 	}

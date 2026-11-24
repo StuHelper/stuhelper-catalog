@@ -16,14 +16,16 @@ type TeacherHomepagePublicProfile struct {
 }
 
 type TeacherHomepagePublication struct {
-	Profile *TeacherHomepagePublicProfile `json:"profile,omitempty"`
+	ContactsAvailable bool                          `json:"contacts_available,omitempty"`
+	Profile           *TeacherHomepagePublicProfile `json:"profile,omitempty"`
 }
 
 type homepagePresentation struct {
-	controls TeacherHomepageControls
-	allowed  map[TeacherHomepageFieldSelector]bool
-	rules    map[TeacherHomepageFieldSelector]TeacherHomepageFieldRule
-	hidden   map[string]bool
+	directory homepageDirectory
+	controls  TeacherHomepageControls
+	allowed   map[TeacherHomepageFieldSelector]bool
+	rules     map[TeacherHomepageFieldSelector]TeacherHomepageFieldRule
+	hidden    map[string]bool
 }
 
 func readTeacherHomepagePresentation(t Transaction, teacher Object) (homepagePresentation, error) {
@@ -142,6 +144,7 @@ type homepageCopy struct {
 }
 
 type homepageRedaction struct {
+	directory        homepageDirectory
 	excluded, hidden map[string]bool
 	copies           map[homepageCopy]bool
 	contactLines     map[string]bool
@@ -150,7 +153,7 @@ type homepageRedaction struct {
 }
 
 func (p homepagePresentation) redaction(source TeacherHomepage) homepageRedaction {
-	r := homepageRedaction{excluded: map[string]bool{}, hidden: p.hidden, copies: map[homepageCopy]bool{}, contactLines: map[string]bool{}}
+	r := homepageRedaction{directory: p.directory, excluded: map[string]bool{}, hidden: p.hidden, copies: map[homepageCopy]bool{}, contactLines: map[string]bool{}}
 	for _, field := range teacherHomepageScalarFields {
 		key := TeacherHomepageFieldSelector{Field: field}
 		r.excluded[field] = p.hidden[field] || !p.allowed[key]
@@ -196,10 +199,12 @@ func (r homepageRedaction) suppressValue(p homepagePresentation, source *Teacher
 	if hard || p.rules[key].Override != nil ||
 		alias != "" && (r.excluded[alias] || p.rules[TeacherHomepageFieldSelector{Field: alias}].Override != nil) {
 		r.add(alias, value, hard)
+	} else if contactLabel(key.Label) && p.hidden["phone"] {
+		for _, phone := range homepagePhone.FindAllString(value, -1) {
+			r.add("phone", phone, true)
+		}
 	} else if unlisted {
-		if contactLabel(key.Label) || alias == "email" || alias == "phone" || alias == "office_location" || homepageEmail.MatchString(value) || homepagePhone.MatchString(value) {
-			r.add(alias, value, false)
-		} else if text := teacherHomepageLabelKey(value); text != "" {
+		if text := teacherHomepageLabelKey(value); text != "" {
 			r.copies[homepageCopy{value: text, field: alias, ordinary: true}] = true
 		}
 	}
@@ -259,6 +264,16 @@ func (r homepageRedaction) add(field, value string, hard bool) {
 		return
 	}
 	hiddenContact := hard && (field == "office_location" || field == "phone" || field == "email")
+	if hard {
+		for _, email := range homepageEmail.FindAllString(key, -1) {
+			r.copies[homepageCopy{value: email, field: "email", hard: true}] = true
+		}
+		for _, phone := range homepagePhone.FindAllString(value, -1) {
+			if digits := homepageDigits(phone); len(digits) >= 7 {
+				r.copies[homepageCopy{value: digits, field: "phone", hard: true}] = true
+			}
+		}
+	}
 	if field == "phone" || hiddenContact && strings.Contains(value, "\n") {
 		for line := range strings.SplitSeq(value, "\n") {
 			r.addContactLine(field, line, hard)
@@ -304,20 +319,24 @@ func (r homepageRedaction) clean(value string, explicit bool) string {
 	value = homepageLineBreaks.Replace(value)
 	lines := make([]string, 0, 1+strings.Count(value, "\n"))
 	for line := range strings.SplitSeq(value, "\n") {
-		if originalTeacherHomepageURL.MatchString(line) {
-			continue
-		}
+		original := line
+		line = r.directory.renameText(line)
 		normalized := teacherHomepageLabelKey(line)
 		if label := homepageLabelPrefix.FindStringSubmatch(line); label != nil {
 			key := teacherHomepageLabelKey(label[1])
 			alias := teacherHomepageAliases[key]
-			if teacherHomepageRecordLabels[key] || r.hidden[alias] || !explicit && r.excluded[alias] {
+			if r.hidden[alias] || !explicit && r.excluded[alias] {
 				continue
 			}
+			value, keep := r.directory.value(key, line[len(label[0]):])
+			if !keep || teacherHomepageRecordLabels[key] {
+				continue
+			}
+			line = label[0] + value
 		}
 		if teacherHomepageRecordLabels[normalized] ||
 			(r.hidden["email"] || !explicit && r.excluded["email"]) && homepageEmail.MatchString(normalized) ||
-			r.contains(normalized, explicit) {
+			r.contains(normalized, explicit) || original != line && r.contains(teacherHomepageLabelKey(original), explicit) {
 			continue
 		}
 		lines = append(lines, line)
@@ -452,16 +471,42 @@ func validateTeacherHomepageOverrideCapacity(controls TeacherHomepageControls) e
 
 func (p homepagePresentation) dynamicItem(key TeacherHomepageFieldSelector, item homepageTextItem, rule TeacherHomepageFieldRule, groupOverride bool, redaction *homepageRedaction) (homepageTextItem, bool) {
 	alias := teacherHomepageAliases[key.Label]
-	if key.Label == "" || teacherHomepageRecordLabels[key.Label] || rule.Hidden || p.hidden[alias] {
+	if key.Label == "" || rule.Hidden || p.hidden[alias] {
 		return item, false
 	}
 	explicit := item.overridden || groupOverride
-	if !explicit && (!p.allowed[key] || alias != "" && (!p.allowed[TeacherHomepageFieldSelector{Field: alias}] ||
-		p.rules[TeacherHomepageFieldSelector{Field: alias}].Override != nil)) {
+	if !explicit && alias != "" && (!p.allowed[TeacherHomepageFieldSelector{Field: alias}] || p.rules[TeacherHomepageFieldSelector{Field: alias}].Override != nil) {
 		return item, false
+	}
+	if !explicit && !p.allowed[key] {
+		// Outside a listed heading only explicitly written email addresses are eligible.
+		// Keep the rest of the unlisted field or section private.
+		email := TeacherHomepageFieldSelector{Field: "email"}
+		if redaction == nil || p.hidden["email"] || !p.allowed[email] || p.rules[email].Override != nil || teacherHomepageRecordLabels[key.Label] {
+			return item, false
+		}
+		policy := *redaction
+		policy.keepOrdinary = true
+		var addresses []string
+		for _, address := range homepageEmail.FindAllString(item.text, -1) {
+			if policy.clean(address, false) != "" && !slices.Contains(addresses, address) {
+				addresses = append(addresses, address)
+			}
+		}
+		if len(addresses) == 0 {
+			return item, false
+		}
+		item.text = strings.Join(addresses, "\n")
+		item.label = "邮箱"
+		redaction = &policy
 	}
 	if redaction != nil {
 		item.text = redaction.clean(item.text, explicit)
+		value, keep := redaction.directory.value(key.Label, item.text)
+		if !keep {
+			return item, false
+		}
+		item.text = value
 		item.label = redaction.clean(item.label, explicit)
 	}
 	item.overridden = explicit
@@ -540,10 +585,26 @@ func publishedTeacherHomepage(t Transaction, teacher Object) (*TeacherHomepage, 
 	if err != nil {
 		return nil, err
 	}
+	if source != nil || presentation.controls.Independent {
+		presentation.directory, err = teacherDisplayDirectory(t, teacher)
+		if err != nil {
+			return nil, err
+		}
+	}
 	return presentation.profile(source, id), nil
 }
 
 func (s *Service) ReadTeacherHomepage(ctx context.Context, p Principal, id string) (TeacherHomepagePublication, error) {
+	return s.readTeacherHomepage(ctx, p, id, false)
+}
+
+// ReadTeacherHomepageWithContacts handles a reader's explicit reveal. Both paths
+// resolve the current match, reader scope and per-teacher controls in one read.
+func (s *Service) ReadTeacherHomepageWithContacts(ctx context.Context, p Principal, id string) (TeacherHomepagePublication, error) {
+	return s.readTeacherHomepage(ctx, p, id, true)
+}
+
+func (s *Service) readTeacherHomepage(ctx context.Context, p Principal, id string, reveal bool) (TeacherHomepagePublication, error) {
 	var out TeacherHomepagePublication
 	err := s.readPublicObject(ctx, p, id, true, func(t Transaction, teacher Object) error {
 		if teacher.Kind != "teacher" {
@@ -554,6 +615,9 @@ func (s *Service) ReadTeacherHomepage(ctx context.Context, p Principal, id strin
 			return err
 		}
 		if profile != nil {
+			if !reveal {
+				out.ContactsAvailable = maskHomepageContacts(profile)
+			}
 			out.Profile = &TeacherHomepagePublicProfile{TeacherHomepage: profile, Name: profile.Name}
 		}
 		return nil

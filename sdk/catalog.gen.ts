@@ -1835,6 +1835,8 @@ export interface components {
         };
         /** @description 应用白名单、个人控制与匹配状态后的教师主页。资料不可展示时省略 profile。 */
         TeacherHomepagePublicView: {
+            /** @description 普通响应有可按需查看的联系方式时返回 true。 */
+            contacts_available?: boolean;
             profile?: components["schemas"]["TeacherHomepagePublicProfile"];
         };
         /** @enum {string} */
@@ -5435,7 +5437,10 @@ export interface operations {
     };
     getTeacherHomepage: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description 读者主动查看时传 true。重新核对准入和显示设置后返回联系方式。 */
+                reveal_contacts?: boolean;
+            };
             header?: never;
             path: {
                 /** @description 目录教师对象标识。 */

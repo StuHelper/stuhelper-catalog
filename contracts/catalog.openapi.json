@@ -2,7 +2,7 @@
   "openapi": "3.0.3",
   "info": {
     "title": "StuHelper Catalog",
-    "version": "0.15.0"
+    "version": "0.16.0"
   },
   "servers": [
     {
@@ -5046,6 +5046,16 @@
               "pattern": "^[A-Za-z0-9_.:-]+$"
             },
             "description": "目录教师对象标识。"
+          },
+          {
+            "name": "reveal_contacts",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "default": false
+            },
+            "description": "读者主动查看时传 true。重新核对准入和显示设置后返回联系方式。"
           }
         ],
         "responses": {
@@ -9727,6 +9737,10 @@
         "additionalProperties": false,
         "required": [],
         "properties": {
+          "contacts_available": {
+            "type": "boolean",
+            "description": "普通响应有可按需查看的联系方式时返回 true。"
+          },
           "profile": {
             "$ref": "#/components/schemas/TeacherHomepagePublicProfile"
           }
