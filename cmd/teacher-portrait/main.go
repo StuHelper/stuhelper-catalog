@@ -17,6 +17,7 @@ import (
 
 func run() error {
 	mode := flag.String("mode", "", "install-policy or exclude")
+	runtimeRole := flag.String("runtime-role", "", "Catalog runtime role to grant during installation")
 	school := flag.String("school", "", "Catalog school ID")
 	numbers := flag.String("sites", "", "comma-separated numeric source site IDs")
 	digest := flag.String("digest", "", "expected SHA-256")
@@ -35,7 +36,7 @@ func run() error {
 	defer cancel()
 	switch *mode {
 	case "install-policy":
-		return postgres.InstallSitePortraitPolicy(ctx, db)
+		return postgres.InstallSitePortraitPolicy(ctx, db, *runtimeRole)
 	case "exclude":
 		if !c.ValidID(*actor) {
 			return c.ErrInput

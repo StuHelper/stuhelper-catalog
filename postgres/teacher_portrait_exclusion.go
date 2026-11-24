@@ -9,14 +9,18 @@ import (
 	"time"
 
 	c "github.com/StuHelper/stuhelper-catalog"
+	"github.com/jackc/pgx/v5"
 )
 
 //go:embed teacher_portrait_exclusion.sql
 var portraitExclusionSchema string
 
 // InstallSitePortraitPolicy installs only this migration on an existing Catalog.
-// The caller uses its migration identity and grants the runtime table privileges.
-func InstallSitePortraitPolicy(ctx context.Context, db *sql.DB) error {
+// The migration identity grants access before the trigger becomes visible.
+func InstallSitePortraitPolicy(ctx context.Context, db *sql.DB, runtimeRole string) error {
+	if !c.ValidID(runtimeRole) || len(runtimeRole) > 63 {
+		return c.ErrInput
+	}
 	tx, err := db.BeginTx(ctx, nil)
 	if err != nil {
 		return err
@@ -26,6 +30,9 @@ func InstallSitePortraitPolicy(ctx context.Context, db *sql.DB) error {
 		return err
 	}
 	if _, err = tx.ExecContext(ctx, portraitExclusionSchema); err != nil {
+		return err
+	}
+	if _, err = tx.ExecContext(ctx, "GRANT SELECT, INSERT ON catalog.teacher_portrait_exclusions TO "+pgx.Identifier{runtimeRole}.Sanitize()); err != nil {
 		return err
 	}
 	return tx.Commit()
