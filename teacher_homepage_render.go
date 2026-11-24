@@ -320,9 +320,7 @@ func (r homepageRedaction) clean(value string, explicit bool) string {
 	lines := make([]string, 0, 1+strings.Count(value, "\n"))
 	for line := range strings.SplitSeq(value, "\n") {
 		original := line
-		if r.directory.renames != nil {
-			line = r.directory.renames.Replace(line)
-		}
+		line = r.directory.renameText(line)
 		normalized := teacherHomepageLabelKey(line)
 		if label := homepageLabelPrefix.FindStringSubmatch(line); label != nil {
 			key := teacherHomepageLabelKey(label[1])

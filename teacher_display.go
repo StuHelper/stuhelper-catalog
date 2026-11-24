@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"net/url"
+	"regexp"
 	"slices"
 	"strings"
 	"unicode"
@@ -62,6 +63,24 @@ func validPersonalHomepage(value string) bool {
 	}
 	u, err := url.Parse(raw)
 	return err == nil && (u.Scheme == "http" || u.Scheme == "https") && u.Hostname() != "" && u.User == nil
+}
+
+// A department rename applies to prose, never to the destination the author supplied.
+var authoredAddress = regexp.MustCompile(`(?i)https?://[^[:space:]<>"'，。；、（）]+`)
+
+func (d homepageDirectory) renameText(text string) string {
+	if d.renames == nil {
+		return text
+	}
+	var out strings.Builder
+	start := 0
+	for _, match := range authoredAddress.FindAllStringIndex(text, -1) {
+		out.WriteString(d.renames.Replace(text[start:match[0]]))
+		out.WriteString(text[match[0]:match[1]])
+		start = match[1]
+	}
+	out.WriteString(d.renames.Replace(text[start:]))
+	return out.String()
 }
 
 var homepageUnitLabels = map[string]bool{

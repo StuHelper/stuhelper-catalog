@@ -75,7 +75,8 @@ func TestTeacherDisplayOnlyLiteralAddressesInUnlistedSection(t *testing.T) {
 
 func TestTeacherDisplayAuthoredSourceLinksAndMediaScope(t *testing.T) {
 	p := newHomepagePresentation(TeacherHomepageControls{PageVisibility: TeacherHomepageVisible}, TeacherHomepageAllowlist{Fields: defaultTeacherHomepageAllowlist()})
-	original := "https://shi.buaa.edu.cn/synthetic/zh_CN/index.htm"
+	p.directory.renames = strings.NewReplacer("旧学院", "新学院")
+	original := "https://shi.buaa.edu.cn/旧学院/zh_CN/index.htm"
 	src := TeacherHomepage{Name: "合成教师", Biography: "教师个人主页 " + original, Fields: []TeacherHomepageField{{Label: "主页", Value: original}}}
 	view := p.profile(&src, "teacher")
 	if view == nil || view.Biography != src.Biography || len(view.Fields) != 1 || view.Fields[0].Value != original {
