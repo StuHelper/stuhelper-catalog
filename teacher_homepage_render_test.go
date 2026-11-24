@@ -29,8 +29,8 @@ func TestTeacherHomepagePresentationFiltersUnlistedAndHiddenCopies(t *testing.T)
 		},
 	}, TeacherHomepageAllowlist{Fields: defaultTeacherHomepageAllowlist()})
 	profile := presentation.profile(source, "teacher")
-	if profile == nil || profile.Email != "" || profile.OfficeLocation != "" || len(profile.Fields) != 0 || len(profile.Sections) != 1 ||
-		profile.Sections[0].Text != "合成课程" || profile.Biography != "合成教学经历" {
+	if profile == nil || profile.Email != "" || profile.OfficeLocation != "" || len(profile.Fields) != 1 || profile.Fields[0].Value != "合成备用联络地点" || len(profile.Sections) != 1 ||
+		profile.Sections[0].Text != "合成课程\n联络地点为合成备用联络地点" || profile.Biography != "合成教学经历" {
 		t.Fatalf("unexpected published profile: %+v", profile)
 	}
 }

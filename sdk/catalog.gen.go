@@ -2202,7 +2202,9 @@ type TeacherHomepagePublicProfileSupervisors string
 
 // TeacherHomepagePublicView 应用白名单、个人控制与匹配状态后的教师主页。资料不可展示时省略 profile。
 type TeacherHomepagePublicView struct {
-	Profile *TeacherHomepagePublicProfile `json:"profile,omitempty"`
+	// ContactsAvailable 普通响应有可按需查看的联系方式时返回 true。
+	ContactsAvailable *bool                         `json:"contacts_available,omitempty"`
+	Profile           *TeacherHomepagePublicProfile `json:"profile,omitempty"`
 }
 
 // TeacherHomepageRequest defines model for TeacherHomepageRequest.
@@ -2811,6 +2813,12 @@ type GetObjectSummaryParams struct {
 	IncludeTeacherHomepage *bool `form:"include_teacher_homepage,omitempty" json:"include_teacher_homepage,omitempty"`
 }
 
+// GetTeacherHomepageParams defines parameters for GetTeacherHomepage.
+type GetTeacherHomepageParams struct {
+	// RevealContacts 读者主动查看时传 true。重新核对准入和显示设置后返回联系方式。
+	RevealContacts *bool `form:"reveal_contacts,omitempty" json:"reveal_contacts,omitempty"`
+}
+
 // ListMyTeacherHomepageRequestsParams defines parameters for ListMyTeacherHomepageRequests.
 type ListMyTeacherHomepageRequestsParams struct {
 	Status *ListMyTeacherHomepageRequestsParamsStatus `form:"status,omitempty" json:"status,omitempty"`
@@ -3401,7 +3409,7 @@ type ClientInterface interface {
 	// GetTeacherHomepage performs a GET /api/v1/catalog/objects/{id}/teacher-homepage (the `GetTeacherHomepage` operationId) request.
 	//
 	// 沿用教师目录的当前内容准入和学校范围。profile 为应用字段白名单、人工覆盖与隐藏设置后的纯文本投影。当前公开教师可展示已审批的独立资料。无可展示资料、整页隐藏或已停止展示时返回空对象。禁止缓存。.
-	GetTeacherHomepage(ctx context.Context, id string, reqEditors ...RequestEditorFn) (*http.Response, error)
+	GetTeacherHomepage(ctx context.Context, id string, params *GetTeacherHomepageParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// GetTeacherHomepageBodyImage performs a GET /api/v1/catalog/objects/{id}/teacher-homepage/images/{image_id} (the `GetTeacherHomepageBodyImage` operationId) request.
 	//
@@ -4395,8 +4403,8 @@ func (c *Client) GetObjectSummary(ctx context.Context, id string, params *GetObj
 // GetTeacherHomepage performs a GET /api/v1/catalog/objects/{id}/teacher-homepage (the `GetTeacherHomepage` operationId) request.
 //
 // 沿用教师目录的当前内容准入和学校范围。profile 为应用字段白名单、人工覆盖与隐藏设置后的纯文本投影。当前公开教师可展示已审批的独立资料。无可展示资料、整页隐藏或已停止展示时返回空对象。禁止缓存。.
-func (c *Client) GetTeacherHomepage(ctx context.Context, id string, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewGetTeacherHomepageRequest(c.Server, id)
+func (c *Client) GetTeacherHomepage(ctx context.Context, id string, params *GetTeacherHomepageParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetTeacherHomepageRequest(c.Server, id, params)
 	if err != nil {
 		return nil, err
 	}
@@ -7585,7 +7593,7 @@ func NewGetObjectSummaryRequest(server string, id string, params *GetObjectSumma
 }
 
 // NewGetTeacherHomepageRequest constructs an http.Request for the GetTeacherHomepage method
-func NewGetTeacherHomepageRequest(server string, id string) (*http.Request, error) {
+func NewGetTeacherHomepageRequest(server string, id string, params *GetTeacherHomepageParams) (*http.Request, error) {
 	var err error
 
 	var pathParam0 string
@@ -7608,6 +7616,33 @@ func NewGetTeacherHomepageRequest(server string, id string) (*http.Request, erro
 	queryURL, err := serverURL.Parse(operationPath)
 	if err != nil {
 		return nil, err
+	}
+
+	if params != nil {
+		// queryValues collects non-styled parameters (passthrough, JSON)
+		// that are safe to round-trip through url.Values.Encode().
+		queryValues := queryURL.Query()
+		// rawQueryFragments collects pre-encoded query fragments from
+		// styled parameters, preserving literal commas as delimiters
+		// per the OpenAPI spec (e.g. "color=blue,black,brown").
+		var rawQueryFragments []string
+
+		if params.RevealContacts != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "reveal_contacts", *params.RevealContacts, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "boolean", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if encoded := queryValues.Encode(); encoded != "" {
+			rawQueryFragments = append(rawQueryFragments, encoded)
+		}
+		queryURL.RawQuery = strings.Join(rawQueryFragments, "&")
 	}
 
 	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
@@ -8386,7 +8421,7 @@ type ClientWithResponsesInterface interface {
 	// 沿用教师目录的当前内容准入和学校范围。profile 为应用字段白名单、人工覆盖与隐藏设置后的纯文本投影。当前公开教师可展示已审批的独立资料。无可展示资料、整页隐藏或已停止展示时返回空对象。禁止缓存。.
 	//
 	// Returns a wrapper object for the known response body format(s).
-	GetTeacherHomepageWithResponse(ctx context.Context, id string, reqEditors ...RequestEditorFn) (*GetTeacherHomepageResponse, error)
+	GetTeacherHomepageWithResponse(ctx context.Context, id string, params *GetTeacherHomepageParams, reqEditors ...RequestEditorFn) (*GetTeacherHomepageResponse, error)
 
 	// GetTeacherHomepageBodyImageWithResponse performs a GET /api/v1/catalog/objects/{id}/teacher-homepage/images/{image_id} (the `GetTeacherHomepageBodyImage` operationId) request.
 	//
@@ -13763,8 +13798,8 @@ func (c *ClientWithResponses) GetObjectSummaryWithResponse(ctx context.Context, 
 // 沿用教师目录的当前内容准入和学校范围。profile 为应用字段白名单、人工覆盖与隐藏设置后的纯文本投影。当前公开教师可展示已审批的独立资料。无可展示资料、整页隐藏或已停止展示时返回空对象。禁止缓存。.
 //
 // Returns a wrapper object for the known response body format(s).
-func (c *ClientWithResponses) GetTeacherHomepageWithResponse(ctx context.Context, id string, reqEditors ...RequestEditorFn) (*GetTeacherHomepageResponse, error) {
-	rsp, err := c.GetTeacherHomepage(ctx, id, reqEditors...)
+func (c *ClientWithResponses) GetTeacherHomepageWithResponse(ctx context.Context, id string, params *GetTeacherHomepageParams, reqEditors ...RequestEditorFn) (*GetTeacherHomepageResponse, error) {
+	rsp, err := c.GetTeacherHomepage(ctx, id, params, reqEditors...)
 	if err != nil {
 		return nil, err
 	}

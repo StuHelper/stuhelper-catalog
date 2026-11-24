@@ -151,6 +151,10 @@ func readTeacherHomepageComplaint(t Transaction, school, teacherID string) (Teac
 		if err != nil {
 			return reference, controls, err
 		}
+		presentation.directory, err = teacherDisplayDirectory(t, teacher)
+		if err != nil {
+			return reference, controls, err
+		}
 		reference.Visible = presentation.profile(source, teacherID) != nil
 	}
 

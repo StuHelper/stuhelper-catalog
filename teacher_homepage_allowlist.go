@@ -31,7 +31,7 @@ var teacherHomepageScalarFields = []string{
 }
 
 var teacherHomepageSectionLabels = []string{
-	"个人简介", "个人介绍", "简介", "个人概况", "Biography", "Introduction", "Profile", "Personal profile",
+	"其他联系方式", "联系方式", "Other contact information", "Contact details", "个人简介", "个人介绍", "简介", "个人概况", "Biography", "Introduction", "Profile", "Personal profile",
 	"研究方向", "研究领域", "研究兴趣", "Research interests", "Research directions", "Research field", "Research fields",
 	"科研成果", "学术成果", "科研项目", "科研工作", "Research", "Research projects", "Research achievements",
 	"论文", "论文成果", "代表性论文", "论著", "代表著作", "学术论文", "著作", "Publications", "Papers", "Books",
@@ -45,6 +45,7 @@ var teacherHomepageSectionLabels = []string{
 }
 
 var teacherHomepageExtraLabels = []string{
+	"其他联系方式", "个人联系方式", "联系方式", "邮箱", "电子邮箱", "电子邮件", "电话", "办公电话", "联系电话", "手机", "办公地点", "办公地址", "E-mail", "Email", "Phone", "Other contact information", "Contact details",
 	"研究方向", "研究领域", "研究兴趣", "Research interests", "Research directions",
 	"社会兼职", "学术兼职", "学术活动", "Academic service",
 	"教育经历", "教育背景", "工作经历", "任职经历", "学术经历", "Education", "Experience", "Work experience",

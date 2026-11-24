@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"net/http"
+	"net/url"
 
 	"github.com/StuHelper/stuhelper-catalog"
 )
@@ -59,7 +60,16 @@ func (h Handler) readTeacherHomepage(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	view, err := h.Service.ReadTeacherHomepage(r.Context(), p, r.PathValue("id"))
+	query, err := url.ParseQuery(r.URL.RawQuery)
+	if err != nil || len(query) > 1 || len(query) == 1 && (len(query["reveal_contacts"]) != 1 || query.Get("reveal_contacts") != "true" && query.Get("reveal_contacts") != "false") {
+		respond(w, nil, catalog.ErrInput)
+		return
+	}
+	read := h.Service.ReadTeacherHomepage
+	if query.Get("reveal_contacts") == "true" {
+		read = h.Service.ReadTeacherHomepageWithContacts
+	}
+	view, err := read(r.Context(), p, r.PathValue("id"))
 	respond(w, view, err)
 }
 
