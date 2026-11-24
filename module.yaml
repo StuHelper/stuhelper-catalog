@@ -121,6 +121,7 @@ scenario_tests:
     - teacher_homepage_postgres_test.go#TestTeacherHomepagePostgresDecisionAtomicity
   CAT-TEACHER-07:
     - teacher_biography_test.go#TestBiographySampleNarratives
+    - teacher_biography_test.go#TestBiographyPreservesPreviouslyVisibleOpening
     - teacher_biography_test.go#TestBiographyOnlyDeduplicatesPublishedLines
     - teacher_biography_test.go#TestBiographyKeepsPrivacyAndDirectoryRules
     - teacher_portrait_exclusion_test.go#TestExcludeSitePortraitChecksEveryReference

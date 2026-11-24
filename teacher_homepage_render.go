@@ -505,7 +505,7 @@ func (p homepagePresentation) profile(source *TeacherHomepage, teacher string) *
 		out.Sections = append(out.Sections, TeacherHomepageSection{Title: item.label, Text: item.text})
 	}
 	if out.Biography != "" && p.rules[TeacherHomepageFieldSelector{Field: "biography"}].Override == nil {
-		out.Biography = deduplicateVisibleBiography(out)
+		out.Biography = redaction.deduplicateVisibleBiography(out)
 	}
 	if allowed, override := p.photo(); allowed {
 		if override != nil {

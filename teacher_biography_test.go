@@ -41,7 +41,7 @@ func TestBiographySampleNarratives(t *testing.T) {
 }
 
 func TestBiographyOnlyDeduplicatesPublishedLines(t *testing.T) {
-	source := TeacherHomepage{Name: "测试教师", Degree: "博士", Biography: "学位：博士\n院校经历：博士\n合成论文全文\n仍须显示的内容\n教学：相同值", Sections: []TeacherHomepageSection{{Title: "论文", Text: "合成论文全文\n另一条论文"}, {Title: "任意未发布栏目", Text: "仍须显示的内容"}, {Title: "研究方向", Text: "相同值"}}}
+	source := TeacherHomepage{Name: "测试教师", Degree: "博士", Fields: []TeacherHomepageField{{Label: "来源记录", Value: "博士"}, {Label: "未公布来源", Value: "论文全文"}}, Biography: "学位：博士\n院校经历：博士\n合成论文全文\n仍须显示的内容\n教学：相同值", Sections: []TeacherHomepageSection{{Title: "论文", Text: "合成论文全文\n另一条论文"}, {Title: "任意未发布栏目", Text: "仍须显示的内容"}, {Title: "研究方向", Text: "相同值"}}}
 	p := newHomepagePresentation(TeacherHomepageControls{PageVisibility: TeacherHomepageVisible}, TeacherHomepageAllowlist{Fields: defaultTeacherHomepageAllowlist()})
 	out := p.profile(&source, "teacher")
 	if out == nil || out.Biography != "院校经历：博士\n仍须显示的内容\n教学：相同值" || len(out.Sections) != 2 {
@@ -55,5 +55,15 @@ func TestBiographyKeepsPrivacyAndDirectoryRules(t *testing.T) {
 	out := p.profile(&source, "teacher")
 	if out == nil || strings.Contains(out.Biography, "隐藏") || out.Biography != "普通论文记录" || len(out.Sections) != 0 {
 		t.Fatal(out)
+	}
+}
+
+func TestBiographyPreservesPreviouslyVisibleOpening(t *testing.T) {
+	bio := "开场履历和科研成果。\n另一条经历。"
+	src := TeacherHomepage{Name: "教师", Biography: bio, Sections: []TeacherHomepageSection{{Title: "个人简介", Text: bio}}}
+	p := newHomepagePresentation(TeacherHomepageControls{PageVisibility: TeacherHomepageVisible}, TeacherHomepageAllowlist{Fields: defaultTeacherHomepageAllowlist()})
+	profile := p.profile(&src, "teacher")
+	if profile == nil || profile.Biography != bio || len(profile.Sections) != 1 || profile.Sections[0].Text != bio {
+		t.Fatal(profile)
 	}
 }

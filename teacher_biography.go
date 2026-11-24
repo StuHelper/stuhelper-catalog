@@ -13,7 +13,19 @@ func contactLabel(label string) bool {
 
 // Compare the biography with the final, filtered fields. A source-only section
 // or a line removed by privacy rules cannot serve as the surviving copy.
-func deduplicateVisibleBiography(profile *TeacherHomepage) string {
+func (r homepageRedaction) deduplicateVisibleBiography(profile *TeacherHomepage) string {
+	// Existing opening text has priority over a collapsible section. Verify a
+	// surviving copy only for lines that the former policy would have removed.
+	candidates := map[string]bool{}
+	for line := range strings.SplitSeq(profile.Biography, "\n") {
+		key := teacherHomepageLabelKey(line)
+		if key != "" && r.contains(key, false) {
+			candidates[key] = true
+		}
+	}
+	if len(candidates) == 0 {
+		return profile.Biography
+	}
 	lines := map[string]bool{}
 	type pair struct{ label, value string }
 	labelled := map[pair]bool{}
@@ -45,7 +57,12 @@ func deduplicateVisibleBiography(profile *TeacherHomepage) string {
 	}
 	var keep []string
 	for line := range strings.SplitSeq(profile.Biography, "\n") {
-		if lines[teacherHomepageLabelKey(line)] {
+		key := teacherHomepageLabelKey(line)
+		if !candidates[key] {
+			keep = append(keep, line)
+			continue
+		}
+		if lines[key] {
 			continue
 		}
 		if m := homepageLabelPrefix.FindStringSubmatchIndex(line); m != nil {
