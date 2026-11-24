@@ -482,9 +482,30 @@ func (p homepagePresentation) dynamicItem(key TeacherHomepageFieldSelector, item
 		return item, false
 	}
 	explicit := item.overridden || groupOverride
-	if !explicit && (!p.allowed[key] || alias != "" && (!p.allowed[TeacherHomepageFieldSelector{Field: alias}] ||
-		p.rules[TeacherHomepageFieldSelector{Field: alias}].Override != nil)) {
+	if !explicit && alias != "" && (!p.allowed[TeacherHomepageFieldSelector{Field: alias}] || p.rules[TeacherHomepageFieldSelector{Field: alias}].Override != nil) {
 		return item, false
+	}
+	if !explicit && !p.allowed[key] {
+		// Outside a listed heading only explicitly written email addresses are eligible.
+		// Keep the rest of the unlisted field or section private.
+		email := TeacherHomepageFieldSelector{Field: "email"}
+		if redaction == nil || p.hidden["email"] || !p.allowed[email] || p.rules[email].Override != nil || teacherHomepageRecordLabels[key.Label] {
+			return item, false
+		}
+		policy := *redaction
+		policy.keepOrdinary = true
+		var addresses []string
+		for _, address := range homepageEmail.FindAllString(item.text, -1) {
+			if policy.clean(address, false) != "" && !slices.Contains(addresses, address) {
+				addresses = append(addresses, address)
+			}
+		}
+		if len(addresses) == 0 {
+			return item, false
+		}
+		item.text = strings.Join(addresses, "\n")
+		item.label = "邮箱"
+		redaction = &policy
 	}
 	if redaction != nil {
 		item.text = redaction.clean(item.text, explicit)

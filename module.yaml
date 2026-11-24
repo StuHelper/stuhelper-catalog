@@ -129,6 +129,7 @@ scenario_tests:
     - teacher_homepage_postgres_test.go#TestTeacherHomepagePostgresRefreshPreservesDecisions
   CAT-TEACHER-08:
     - teacher_display_test.go#TestTeacherDisplayContactRevealAndLinks
+    - teacher_display_test.go#TestTeacherDisplayOnlyLiteralAddressesInUnlistedSection
     - teacher_display_test.go#TestTeacherDisplayTenSites
     - teacher_homepage_render_test.go#TestTeacherHomepagePresentationSuppressesMultilineContactCopies
     - teacher_homepage_controls_postgres_test.go#TestTeacherHomepageControlsPostgresVisibilityAndRefresh

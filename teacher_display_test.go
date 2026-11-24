@@ -60,3 +60,15 @@ func TestTeacherDisplayContactRevealAndLinks(t *testing.T) {
 		t.Fatal("explicit hide must apply across repeated contact values")
 	}
 }
+
+func TestTeacherDisplayOnlyLiteralAddressesInUnlistedSection(t *testing.T) {
+	src := TeacherHomepage{Name: "测试教师", Sections: []TeacherHomepageSection{{Title: "未列栏目", Text: "外部项目说明\n写信给 lab@example.org 或 name [at] example.org"}}}
+	p := newHomepagePresentation(TeacherHomepageControls{PageVisibility: TeacherHomepageVisible}, TeacherHomepageAllowlist{Fields: defaultTeacherHomepageAllowlist()})
+	out := p.profile(&src, "teacher")
+	if len(out.Sections) != 1 || out.Sections[0].Text != "lab@example.org" {
+		t.Fatal("unlisted prose or inferred address returned")
+	}
+	if !maskHomepageContacts(out) || strings.Contains(out.Sections[0].Text, "@") {
+		t.Fatal("address visible before reveal")
+	}
+}

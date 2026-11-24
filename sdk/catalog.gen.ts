@@ -1835,9 +1835,9 @@ export interface components {
         };
         /** @description 应用白名单、个人控制与匹配状态后的教师主页。资料不可展示时省略 profile。 */
         TeacherHomepagePublicView: {
-            profile?: components["schemas"]["TeacherHomepagePublicProfile"];
             /** @description 普通响应有可按需查看的联系方式时返回 true。 */
             contacts_available?: boolean;
+            profile?: components["schemas"]["TeacherHomepagePublicProfile"];
         };
         /** @enum {string} */
         TeacherHomepageSupervisor: "博士生导师" | "硕士生导师";
