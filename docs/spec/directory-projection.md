@@ -1,7 +1,7 @@
 ---
 type: spec
 status: Accepted
-updated: 2026-11-19
+updated: 2026-11-24
 ---
 
 # 可展示目录投影
@@ -113,5 +113,6 @@ Get、List、Lookup、Summary、Resolve、ReviewEnrollments 与 HasTaught 是供
 | CAT-PROJECTION-03 | 同步中断保留旧投影，重试完整切换，已完成、超时或被接管的执行不能继续写入 |
 | CAT-PROJECTION-04 | 并发读取始终获得完整版本，搜索快照稳定，当前权限撤销后拒绝读取 |
 | CAT-PROJECTION-05 | 相同五十五万行数据和评分条件下比较四种排序、教师、复杂筛选及选项的 p95 |
+| RET-12 | 旧修订自替代起保留 90 日。墓碑经订阅方确认、排除重放与有效保留后，按实际修订分批清理。 |
 
 测试使用独立 PostgreSQL 与运行身份。生产行数、重建耗时、存储和接口延迟由部署负责人在正式同步后另行记录，隔离环境结果不作为生产测量值。

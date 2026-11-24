@@ -452,3 +452,127 @@ REVOKE ALL ON catalog.teacher_image_objects,catalog.teacher_image_publications,c
 CREATE INDEX IF NOT EXISTS teacher_image_source_digest ON catalog.teacher_homepage_photos(photo_id) WHERE data IS NULL;
 CREATE INDEX IF NOT EXISTS teacher_image_override_digest ON catalog.teacher_homepage_override_photos(photo_id) WHERE data IS NULL;
 CREATE INDEX IF NOT EXISTS teacher_image_publication_owner ON catalog.teacher_image_publications(school,owner_id);
+
+-- Existing rows first became observable to this retention policy at migration.
+-- PostgreSQL stores the stable column default without rewriting the table.
+ALTER TABLE catalog.discovery_history ADD COLUMN IF NOT EXISTS retention_at timestamptz NOT NULL DEFAULT statement_timestamp();
+ALTER TABLE catalog.discovery_history ADD COLUMN IF NOT EXISTS retention_basis text NOT NULL DEFAULT 'first_observed';
+ALTER TABLE catalog.discovery_history ALTER COLUMN retention_basis SET DEFAULT 'recorded_write';
+CREATE TABLE IF NOT EXISTS catalog.discovery_scan (
+ singleton boolean PRIMARY KEY CHECK(singleton), after_id text COLLATE "C" NOT NULL DEFAULT '', after_revision bigint NOT NULL DEFAULT 0
+);
+INSERT INTO catalog.discovery_scan(singleton) VALUES(true) ON CONFLICT DO NOTHING;
+CREATE INDEX IF NOT EXISTS catalog_projected_object_generations ON catalog.projection_documents(id,version);
+CREATE TABLE IF NOT EXISTS catalog.discovery_holds (
+ id text NOT NULL, revision bigint NOT NULL, case_ref text NOT NULL, basis text NOT NULL, purpose text NOT NULL, end_condition text NOT NULL,
+ review_at timestamptz NOT NULL, until_at timestamptz NOT NULL CHECK(isfinite(until_at) AND review_at<=until_at),
+ PRIMARY KEY(id,revision,case_ref), FOREIGN KEY(id,revision) REFERENCES catalog.discovery_history(id,revision) ON DELETE CASCADE
+);
+CREATE TABLE IF NOT EXISTS catalog.discovery_delivery_evidence(
+ id text NOT NULL, revision bigint NOT NULL, delivered_at timestamptz NOT NULL, sealed boolean NOT NULL DEFAULT false,
+ next_check timestamptz NOT NULL DEFAULT now(), PRIMARY KEY(id,revision)
+);
+CREATE INDEX IF NOT EXISTS discovery_proof_retry ON catalog.discovery_delivery_evidence(next_check,id,revision);
+CREATE INDEX IF NOT EXISTS discovery_history_scan ON catalog.discovery_history(id COLLATE "C",revision);
+CREATE INDEX IF NOT EXISTS discovery_outbox_proof ON catalog.outbox((data->>'subject'),((data#>>'{data,revision}')::bigint),sent_at)
+ WHERE data->>'type'='catalog.discovery.v1';
+CREATE OR REPLACE FUNCTION catalog.capture_discovery_delivery() RETURNS trigger
+LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog AS $$
+BEGIN
+ IF NEW.data->>'type'='catalog.discovery.v1' AND NEW.sent_at IS NOT NULL AND NEW.data#>>'{data,visible}'='false' THEN
+   INSERT INTO catalog.discovery_delivery_evidence(id,revision,delivered_at)
+   VALUES(NEW.data->>'subject',(NEW.data#>>'{data,revision}')::bigint,NEW.sent_at) ON CONFLICT DO NOTHING;
+ END IF;
+ RETURN NEW;
+END $$;
+DROP TRIGGER IF EXISTS capture_discovery_delivery ON catalog.outbox;
+CREATE TRIGGER capture_discovery_delivery AFTER UPDATE OF sent_at ON catalog.outbox FOR EACH ROW
+ WHEN (OLD.sent_at IS NULL AND NEW.sent_at IS NOT NULL) EXECUTE FUNCTION catalog.capture_discovery_delivery();
+
+CREATE OR REPLACE FUNCTION catalog.maintain_discovery_history(p_limit integer) RETURNS void
+LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog AS $$
+DECLARE pos catalog.discovery_scan; item record; successor record; observed timestamptz; observed_basis text; committed timestamptz; n integer:=0;
+BEGIN
+ IF p_limit IS NULL OR p_limit NOT BETWEEN 1 AND 100 THEN RAISE EXCEPTION 'invalid limit' USING ERRCODE='22023'; END IF;
+ SELECT * INTO pos FROM catalog.discovery_scan WHERE singleton FOR UPDATE SKIP LOCKED;
+ IF NOT FOUND THEN RETURN; END IF;
+ FOR item IN SELECT id,revision,recorded_xid,retention_at,retention_basis,data->>'visible' AS visible
+   FROM catalog.discovery_history WHERE (id COLLATE "C",revision)>(pos.after_id,pos.after_revision)
+   ORDER BY id COLLATE "C",revision LIMIT p_limit FOR UPDATE
+ LOOP
+  n:=n+1; pos.after_id:=item.id; pos.after_revision:=item.revision;
+  -- Persist available transaction evidence before the server discards old XIDs.
+  IF item.retention_basis='first_observed' AND current_setting('track_commit_timestamp')='on'
+    AND pg_current_xact_id()::text::numeric-item.recorded_xid::text::numeric BETWEEN 0 AND 2147483647 THEN
+    committed:=pg_xact_commit_timestamp(item.recorded_xid::xid);
+    IF committed IS NOT NULL AND committed<=item.retention_at THEN
+      UPDATE catalog.discovery_history SET retention_at=committed,retention_basis='history_commit' WHERE id=item.id AND revision=item.revision;
+    END IF;
+  END IF;
+   IF item.visible='false' THEN
+     -- Recover positive delivery evidence still present before this migration.
+     INSERT INTO catalog.discovery_delivery_evidence(id,revision,delivered_at)
+      SELECT item.id,item.revision,e.sent_at FROM catalog.outbox e WHERE e.data->>'type'='catalog.discovery.v1' AND e.data->>'subject'=item.id
+       AND (e.data#>>'{data,revision}')::bigint=item.revision AND e.data#>>'{data,visible}'='false' AND e.sent_at IS NOT NULL
+       LIMIT 1 ON CONFLICT DO NOTHING;
+   CONTINUE;
+   END IF;
+  SELECT recorded_xid,retention_at,retention_basis INTO successor FROM catalog.discovery_history
+   WHERE id=item.id AND revision>item.revision ORDER BY revision LIMIT 1;
+  IF NOT FOUND THEN CONTINUE; END IF;
+  observed:=successor.retention_at; observed_basis:=successor.retention_basis;
+  IF observed_basis='first_observed' AND current_setting('track_commit_timestamp')='on'
+    AND pg_current_xact_id()::text::numeric-successor.recorded_xid::text::numeric BETWEEN 0 AND 2147483647 THEN
+    committed:=pg_xact_commit_timestamp(successor.recorded_xid::xid);
+    IF committed IS NOT NULL THEN observed:=committed; END IF;
+  END IF;
+  IF observed + interval '90 days' > statement_timestamp() OR EXISTS(
+    SELECT 1 FROM catalog.discovery_holds WHERE id=item.id AND revision=item.revision AND until_at>statement_timestamp()) THEN CONTINUE; END IF;
+  DELETE FROM catalog.discovery_history WHERE id=item.id AND revision=item.revision;
+  DELETE FROM catalog.discovery_delivery_evidence WHERE id=item.id AND revision=item.revision AND NOT sealed;
+ END LOOP;
+ UPDATE catalog.discovery_scan SET after_id=CASE WHEN n<p_limit THEN '' ELSE pos.after_id END,
+  after_revision=CASE WHEN n<p_limit THEN 0 ELSE pos.after_revision END WHERE singleton;
+END $$;
+
+-- A terminal revision can be retired only after all prior history and pending
+-- deliveries are gone. A positive relay receipt and the Search acknowledgment
+-- are separate; absence from the outbox alone cannot authorize a deletion.
+CREATE OR REPLACE FUNCTION catalog.seal_discovery_retirement(p_id text,p_revision bigint) RETURNS boolean
+LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog AS $$
+DECLARE h catalog.discovery_history; observed timestamptz; committed timestamptz;
+BEGIN
+ SELECT * INTO h FROM catalog.discovery_history WHERE id=p_id AND revision=p_revision FOR UPDATE;
+ IF NOT FOUND THEN RETURN EXISTS(SELECT 1 FROM catalog.discovery_delivery_evidence WHERE id=p_id AND revision=p_revision AND sealed); END IF;
+ observed:=h.retention_at;
+ IF h.retention_basis='first_observed' AND current_setting('track_commit_timestamp')='on'
+   AND pg_current_xact_id()::text::numeric-h.recorded_xid::text::numeric BETWEEN 0 AND 2147483647 THEN
+   committed:=pg_xact_commit_timestamp(h.recorded_xid::xid);
+   observed:=COALESCE(committed,observed);
+ END IF;
+ IF h.data->>'visible' IS DISTINCT FROM 'false' OR observed+interval '90 days'>statement_timestamp()
+  OR NOT EXISTS(SELECT 1 FROM catalog.discovery_delivery_evidence WHERE id=p_id AND revision=p_revision)
+  OR EXISTS(SELECT 1 FROM catalog.discovery_history WHERE id=p_id AND revision<p_revision)
+  OR EXISTS(SELECT 1 FROM catalog.outbox WHERE data->>'type'='catalog.discovery.v1' AND data->>'subject'=p_id AND sent_at IS NULL)
+  OR EXISTS(SELECT 1 FROM catalog.discovery_holds WHERE id=p_id AND revision=p_revision AND until_at>statement_timestamp())
+  OR EXISTS(SELECT 1 FROM catalog.projection_documents WHERE id=p_id) OR EXISTS(SELECT 1 FROM catalog.objects WHERE id=p_id)
+  THEN RETURN false; END IF;
+ UPDATE catalog.discovery_delivery_evidence SET sealed=true WHERE id=p_id AND revision=p_revision;
+ DELETE FROM catalog.discovery_history WHERE id=p_id AND revision=p_revision;
+ RETURN true;
+END $$;
+REVOKE ALL ON FUNCTION catalog.capture_discovery_delivery(), catalog.maintain_discovery_history(integer),catalog.seal_discovery_retirement(text,bigint) FROM PUBLIC;
+
+CREATE OR REPLACE FUNCTION catalog.claim_discovery_retirements(p_limit integer)
+RETURNS TABLE(object_id text,object_revision bigint,already_sealed boolean)
+LANGUAGE sql SECURITY DEFINER SET search_path=pg_catalog AS $$
+ WITH due AS (SELECT id,revision FROM catalog.discovery_delivery_evidence e WHERE next_check<=statement_timestamp() AND NOT EXISTS(SELECT 1 FROM catalog.discovery_delivery_evidence older WHERE older.id=e.id AND older.revision<e.revision)
+ ORDER BY next_check,id,revision LIMIT least(greatest(p_limit,0),100) FOR UPDATE SKIP LOCKED)
+ UPDATE catalog.discovery_delivery_evidence p SET next_check=statement_timestamp()+interval '1 hour' FROM due
+ WHERE (p.id,p.revision)=(due.id,due.revision) RETURNING p.id,p.revision,p.sealed
+$$;
+CREATE OR REPLACE FUNCTION catalog.ack_discovery_retirement(p_id text,p_revision bigint)
+RETURNS void LANGUAGE sql SECURITY DEFINER SET search_path=pg_catalog AS $$
+ DELETE FROM catalog.discovery_delivery_evidence WHERE id=p_id AND revision=p_revision AND sealed
+$$;
+REVOKE ALL ON FUNCTION catalog.claim_discovery_retirements(integer),catalog.ack_discovery_retirement(text,bigint) FROM PUBLIC;
