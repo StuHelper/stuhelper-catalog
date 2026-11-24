@@ -138,6 +138,7 @@ var homepageLineBreaks = strings.NewReplacer("\r\n", "\n", "\r", "\n", "\u0085",
 type homepageCopy struct {
 	value, field string
 	hard         bool
+	ordinary     bool
 }
 
 type homepageRedaction struct {
@@ -145,6 +146,7 @@ type homepageRedaction struct {
 	copies           map[homepageCopy]bool
 	contactLines     map[string]bool
 	contactMatcher   *strings.Replacer
+	keepOrdinary     bool
 }
 
 func (p homepagePresentation) redaction(source TeacherHomepage) homepageRedaction {
@@ -191,9 +193,15 @@ func (r homepageRedaction) suppressValue(p homepagePresentation, source *Teacher
 	alias := teacherHomepageAliases[key.Label]
 	hard := p.hidden[group] || p.rules[key].Hidden || p.hidden[alias]
 	unlisted := !p.allowed[key] && !p.isAllowedScalarCopy(source, alias, value)
-	if hard || unlisted || p.rules[key].Override != nil ||
+	if hard || p.rules[key].Override != nil ||
 		alias != "" && (r.excluded[alias] || p.rules[TeacherHomepageFieldSelector{Field: alias}].Override != nil) {
 		r.add(alias, value, hard)
+	} else if unlisted {
+		if contactLabel(key.Label) || alias == "email" || alias == "phone" || alias == "office_location" || homepageEmail.MatchString(value) || homepagePhone.MatchString(value) {
+			r.add(alias, value, false)
+		} else if text := teacherHomepageLabelKey(value); text != "" {
+			r.copies[homepageCopy{value: text, field: alias, ordinary: true}] = true
+		}
 	}
 }
 
@@ -329,7 +337,7 @@ func (r homepageRedaction) contains(text string, explicit bool) bool {
 		}
 	}
 	for copy := range r.copies {
-		if explicit && !copy.hard {
+		if explicit && !copy.hard || r.keepOrdinary && copy.ordinary {
 			continue
 		}
 		if text == copy.value ||
@@ -477,7 +485,9 @@ func (p homepagePresentation) profile(source *TeacherHomepage, teacher string) *
 		if rule := p.rules[key]; rule.Override != nil {
 			*homepageScalar(out, field) = redaction.clean(*rule.Override.Text, true)
 		} else if p.allowed[key] {
-			*homepageScalar(out, field) = redaction.clean(*homepageScalar(source, field), false)
+			policy := redaction
+			policy.keepOrdinary = field == "biography"
+			*homepageScalar(out, field) = policy.clean(*homepageScalar(source, field), false)
 		}
 	}
 	key := TeacherHomepageFieldSelector{Field: "supervisors"}
@@ -493,6 +503,9 @@ func (p homepagePresentation) profile(source *TeacherHomepage, teacher string) *
 	}
 	for _, item := range boundHomepageItems(p.sectionItems(source.Sections, &redaction), teacherHomepageSectionLimit) {
 		out.Sections = append(out.Sections, TeacherHomepageSection{Title: item.label, Text: item.text})
+	}
+	if out.Biography != "" && p.rules[TeacherHomepageFieldSelector{Field: "biography"}].Override == nil {
+		out.Biography = deduplicateVisibleBiography(out)
 	}
 	if allowed, override := p.photo(); allowed {
 		if override != nil {
