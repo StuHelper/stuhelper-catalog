@@ -7,7 +7,7 @@ import (
 	"testing"
 )
 
-func TestUnassignedDepartmentIsExclusiveAcrossDirectoryFilters(t *testing.T) {
+func TestDirectoryGroupsUseOnlyNamedOfferingDepartments(t *testing.T) {
 	s, p, input := fixture(t)
 	for i := range input.Objects {
 		switch input.Objects[i].ID {
@@ -46,17 +46,13 @@ func TestUnassignedDepartmentIsExclusiveAcrossDirectoryFilters(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		if all.Total != 2 || len(all.DepartmentFacets) != 2 {
-			t.Fatalf("projected=%t totals %d facets %+v", projected, all.Total, all.DepartmentFacets)
+		if all.Total != 2 || len(all.DepartmentFacets) != 1 || all.DepartmentFacets[0].ID != "dept" || all.DepartmentFacets[0].Count != 1 {
+			t.Fatalf("projected=%t total %d facets %+v", projected, all.Total, all.DepartmentFacets)
 		}
-		last := all.DepartmentFacets[1]
-		if last.ID != "@unassigned" || last.Name == "" || last.Count != 1 || last.ReviewCount != 3 {
-			t.Fatalf("projected=%t unassigned facet %+v", projected, last)
-		}
-		q.DepartmentID = "@unassigned"
+		q.DepartmentID = "dept"
 		group, err := s.ReadDirectory(ctx, reader, q)
-		if err != nil || group.Total != 1 || len(group.Items) != 1 || group.Items[0].Object.ID != "unassigned" || len(group.Items[0].Departments) != 0 {
-			t.Fatalf("projected=%t unassigned group total %d err %v", projected, group.Total, err)
+		if err != nil || group.Total != 1 || len(group.Items) != 1 || group.Items[0].Object.ID != "course" || len(group.Items[0].Departments) != 1 || group.Items[0].Departments[0].ID != "dept" {
+			t.Fatalf("projected=%t grouped rows %d %v", projected, group.Total, err)
 		}
 		q.DepartmentID = ""
 		q.TeacherID = "teacher"
