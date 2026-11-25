@@ -2,7 +2,7 @@
   "openapi": "3.0.3",
   "info": {
     "title": "StuHelper Catalog",
-    "version": "0.19.0"
+    "version": "0.19.1"
   },
   "servers": [
     {
@@ -7563,6 +7563,7 @@
             }
           },
           "department_facets": {
+            "description": "Departments in school code order: numeric official codes, B-prefixed numeric units, other codes, then missing codes. Ties use name and ID.",
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/DirectoryFacet"
@@ -7798,6 +7799,7 @@
             "minimum": 0
           },
           "departments": {
+            "description": "Uses the same school department order as directory department_facets.",
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/FilterOption"

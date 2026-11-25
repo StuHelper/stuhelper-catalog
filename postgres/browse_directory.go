@@ -109,7 +109,7 @@ func directorySelectionQuery(q c.DirectoryQuery) (string, []any, error) {
  'category_facets',COALESCE((SELECT jsonb_agg(jsonb_build_object('id',ca.id,'name',ca.name,'count',COALESCE(cc.n,0),'review_count',0) ORDER BY ca.name COLLATE "C",ca.id)
  FROM catalog.objects ca LEFT JOIN category_counts cc ON cc.category_id=ca.id WHERE ca.kind='category' AND ca.school_id=` + school + ` AND ` + kind + `='course'
  AND NOT COALESCE((ca.data->'object'->>'inactive')::boolean,false) AND NOT EXISTS(SELECT 1 FROM catalog.redirects r WHERE r.alias_id=ca.id)),'[]'::jsonb),
- 'department_facets',COALESCE((SELECT jsonb_agg(jsonb_build_object('id',dc.department_id,'name',d.name,'count',dc.n,'review_count',0) ORDER BY d.name COLLATE "C",dc.department_id)
+ 'department_facets',COALESCE((SELECT jsonb_agg(jsonb_build_object('id',dc.department_id,'name',d.name,'count',dc.n,'review_count',0) ORDER BY d.department_sort_key)
  FROM department_counts dc JOIN catalog.objects d ON d.id=dc.department_id AND d.kind='department' AND d.school_id=` + school + `
  AND NOT COALESCE((d.data->'object'->>'inactive')::boolean,false) AND NOT EXISTS(SELECT 1 FROM catalog.redirects r WHERE r.alias_id=d.id)),'[]'::jsonb),
  'nature_facets',COALESCE((SELECT jsonb_agg(jsonb_build_object('id',n.id,'name',n.name,'count',nc.n,'review_count',0) ORDER BY n.name COLLATE "C",n.id)
