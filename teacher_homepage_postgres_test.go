@@ -113,8 +113,8 @@ func TestTeacherHomepagePostgresProjectionAndAdmission(t *testing.T) {
 		t.Fatalf("catalog facts or profile under current projection: %+v %v", teacher, err)
 	}
 	profile := teacher.TeacherHomepage
-	if profile.Email != "" || profile.Phone != "" ||
-		profile.OfficeLocation != "" || profile.HireDate != "2023-08" ||
+	if profile.Email != "\uE000" || profile.Phone != "\uE000" ||
+		profile.OfficeLocation != "\uE000" || profile.HireDate != "2023-08" ||
 		len(profile.Sections) != 1 || profile.Sections[0].Text != "Synthetic publication" ||
 		len(profile.Fields) != 1 || profile.Fields[0].Value != "A field from the website" ||
 		profile.Photo == nil || profile.Photo.Width != 2 || profile.Photo.Height != 3 {

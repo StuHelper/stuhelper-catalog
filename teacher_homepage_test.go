@@ -89,8 +89,8 @@ func TestTeacherHomepageDetailsAndPhotoRequireCurrentAdmission(t *testing.T) {
 		t.Fatal(err)
 	}
 	home := teacher.TeacherHomepage
-	if home == nil || home.Email != "" || home.Phone != "" ||
-		home.OfficeLocation != "" || home.HireDate != "2020" ||
+	if home == nil || home.Email != "\uE000" || home.Phone != "\uE000" ||
+		home.OfficeLocation != "\uE000" || home.HireDate != "2020" ||
 		home.Photo == nil || home.Photo.URL != photoURL || home.Photo.Width != 2 || home.Photo.Height != 3 {
 		t.Fatal("matched profile or photo metadata missing")
 	}
