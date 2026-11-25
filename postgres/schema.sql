@@ -576,3 +576,13 @@ RETURNS void LANGUAGE sql SECURITY DEFINER SET search_path=pg_catalog AS $$
  DELETE FROM catalog.discovery_delivery_evidence WHERE id=p_id AND revision=p_revision AND sealed
 $$;
 REVOKE ALL ON FUNCTION catalog.claim_discovery_retirements(integer),catalog.ack_discovery_retirement(text,bigint) FROM PUBLIC;
+
+CREATE TABLE IF NOT EXISTS catalog.teacher_avatar_cache (
+ source_digest text PRIMARY KEY CHECK(source_digest ~ '^[a-f0-9]{64}$'),
+ digest text NOT NULL CHECK(digest ~ '^[a-f0-9]{64}$'),
+ created_at timestamptz NOT NULL DEFAULT now(),
+ data bytea CHECK(data IS NULL OR octet_length(data) BETWEEN 1 AND 32768)
+);
+CREATE INDEX IF NOT EXISTS teacher_avatar_cache_content ON catalog.teacher_avatar_cache(digest);
+CREATE INDEX IF NOT EXISTS teacher_avatar_cache_age ON catalog.teacher_avatar_cache(created_at,source_digest);
+REVOKE ALL ON catalog.teacher_avatar_cache FROM PUBLIC;

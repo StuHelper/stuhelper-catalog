@@ -204,3 +204,34 @@ func TestTeacherImageDeliveryRequiresCurrentOverrideRow(t *testing.T) {
 		t.Fatal("orphaned override metadata authorized a delivery")
 	}
 }
+
+func TestDirectoryAvatarEdgeCopyUsesOnlyCurrentHomepagePhoto(t *testing.T) {
+	store := &testCOS{originals: map[string][]byte{}, serving: map[string]bool{}}
+	s, _, db, source := homepageFixtureWithImages(t, store)
+	repo := s.Repo.(*postgres.Repository)
+	p := c.Principal{Subject: homepageReader}
+	ctx := context.Background()
+	digest := source.Sites[0].Photo.ID
+	thumb, key, err := s.ReadTeacherAvatar(ctx, p, "official", digest, false)
+	if err != nil || key.Digest == digest || key.Digest != thumb.ID || len(store.originals[thumb.ID]) == 0 {
+		t.Fatal("missing derived object", err)
+	}
+	if err := repo.PrepareTeacherImage(ctx, key); err != nil || !store.serving[thumb.ID] || store.serving[digest] {
+		t.Fatal("wrong edge object", err)
+	}
+	store.failRead = true
+	if _, cached, err := s.ReadTeacherAvatar(ctx, p, "official", digest, false); err != nil || cached != key {
+		t.Fatal("cached thumbnail re-read original", err)
+	}
+	var count int
+	if err := db.QueryRow("SELECT count(*) FROM catalog.teacher_avatar_cache WHERE data IS NULL").Scan(&count); err != nil || count != 1 {
+		t.Fatal("invalid external cache", err)
+	}
+	homepageSet(t, homepageHandler(s), 0, "hidden", "[]", "hide-thumbnail")
+	if err := repo.PrepareTeacherImage(ctx, key); !errors.Is(err, c.ErrNotFound) {
+		t.Fatal("revoked thumbnail remained signable", err)
+	}
+	if _, err := repo.ReconcileTeacherImages(ctx, 20); err != nil || store.serving[thumb.ID] {
+		t.Fatal("withdrawn thumbnail retained an edge copy", err)
+	}
+}

@@ -19,6 +19,14 @@ func TestTeacherDirectoryAvatarUsesCurrentPhotoPermissions(t *testing.T) {
 	url := homepagePublic + "/photos/" + source.Sites[0].Photo.ID + "/thumbnail"
 	checkList := func(want string) {
 		t.Helper()
+		profile := homepagePublicProfile(t, h, homepagePublic)
+		homepageURL := ""
+		if profile != nil && profile.Photo != nil {
+			homepageURL = profile.Photo.URL + "/thumbnail"
+		}
+		if homepageURL != want {
+			t.Fatal("homepage and expected thumbnail differ")
+		}
 		page := homepageDecode[struct {
 			Items []struct {
 				Object c.Object

@@ -99,6 +99,15 @@ func (t *transaction) publicationVisible(k c.TeacherImageKey) (bool, error) {
 	if teacher.Kind != "teacher" || teacher.SchoolID != k.School || teacher.Inactive {
 		return false, nil
 	}
+	if k.Kind == c.DirectoryPortrait {
+		photos, err := t.directoryPhotos(k.School, []string{k.OwnerID})
+		if err != nil || photos[k.OwnerID] == nil {
+			return false, err
+		}
+		var visible bool
+		err = t.tx.QueryRowContext(t.ctx, `SELECT EXISTS(SELECT 1 FROM catalog.teacher_avatar_cache WHERE source_digest=$1 AND digest=$2)`, photos[k.OwnerID].ID, k.Digest).Scan(&visible)
+		return visible, safe(err)
+	}
 	return c.TeacherImageIsPublished(t, teacher, k)
 }
 

@@ -1227,6 +1227,8 @@ type DirectoryFacet struct {
 
 // DirectoryItem defines model for DirectoryItem.
 type DirectoryItem struct {
+	// AvatarUrl 教师当前可展示照片的缩略图地址。其他情况省略。
+	AvatarUrl      *string         `json:"avatar_url,omitempty"`
 	Categories     []Object        `json:"categories"`
 	Departments    []Object        `json:"departments"`
 	Dimensions     []DirectoryBand `json:"dimensions"`
@@ -3433,6 +3435,11 @@ type ClientInterface interface {
 	// 沿用当前教师详情的登录、学校内容准入和目录可见性。教师仍与站点匹配且该摘要对应当前照片时返回图片，否则返回 404。客户端用登录凭证读取二进制，可将 Blob 转为图片地址。响应禁止缓存。.
 	GetTeacherHomepagePhoto(ctx context.Context, id string, photoId string, reqEditors ...RequestEditorFn) (*http.Response, error)
 
+	// GetTeacherDirectoryAvatar performs a GET /api/v1/catalog/objects/{id}/teacher-homepage/photos/{photo_id}/thumbnail (the `GetTeacherDirectoryAvatar` operationId) request.
+	//
+	// 每次核对当前教师、学校资格和主页照片展示权限。源照片摘要标识 128 像素居中裁剪的 JPEG 缩略图。生产通过短期 EdgeOne 签名地址分发。.
+	GetTeacherDirectoryAvatar(ctx context.Context, id string, photoId string, reqEditors ...RequestEditorFn) (*http.Response, error)
+
 	// ListMyTeacherHomepageRequests performs a GET /api/v1/catalog/objects/{id}/teacher-homepage/requests (the `ListMyTeacherHomepageRequests` operationId) request.
 	//
 	// 按提交账号读取该目录教师的申请，同时复核当前有效教师认证和教师目录关联。查询范围与本人可访问的教师目录对象一致。禁止缓存。.
@@ -4467,6 +4474,21 @@ func (c *Client) ListTeacherHomepageMedia(ctx context.Context, id string, reqEdi
 // 沿用当前教师详情的登录、学校内容准入和目录可见性。教师仍与站点匹配且该摘要对应当前照片时返回图片，否则返回 404。客户端用登录凭证读取二进制，可将 Blob 转为图片地址。响应禁止缓存。.
 func (c *Client) GetTeacherHomepagePhoto(ctx context.Context, id string, photoId string, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewGetTeacherHomepagePhotoRequest(c.Server, id, photoId)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// GetTeacherDirectoryAvatar performs a GET /api/v1/catalog/objects/{id}/teacher-homepage/photos/{photo_id}/thumbnail (the `GetTeacherDirectoryAvatar` operationId) request.
+//
+// 每次核对当前教师、学校资格和主页照片展示权限。源照片摘要标识 128 像素居中裁剪的 JPEG 缩略图。生产通过短期 EdgeOne 签名地址分发。.
+func (c *Client) GetTeacherDirectoryAvatar(ctx context.Context, id string, photoId string, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetTeacherDirectoryAvatarRequest(c.Server, id, photoId)
 	if err != nil {
 		return nil, err
 	}
@@ -7812,6 +7834,47 @@ func NewGetTeacherHomepagePhotoRequest(server string, id string, photoId string)
 	return req, nil
 }
 
+// NewGetTeacherDirectoryAvatarRequest constructs an http.Request for the GetTeacherDirectoryAvatar method
+func NewGetTeacherDirectoryAvatarRequest(server string, id string, photoId string) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "id", id, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithOptions("simple", false, "photo_id", photoId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/catalog/objects/%s/teacher-homepage/photos/%s/thumbnail", pathParam0, pathParam1)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
 // NewListMyTeacherHomepageRequestsRequest constructs an http.Request for the ListMyTeacherHomepageRequests method
 func NewListMyTeacherHomepageRequestsRequest(server string, id string, params *ListMyTeacherHomepageRequestsParams) (*http.Request, error) {
 	var err error
@@ -8452,6 +8515,13 @@ type ClientWithResponsesInterface interface {
 	//
 	// Returns a wrapper object for the known response body format(s).
 	GetTeacherHomepagePhotoWithResponse(ctx context.Context, id string, photoId string, reqEditors ...RequestEditorFn) (*GetTeacherHomepagePhotoResponse, error)
+
+	// GetTeacherDirectoryAvatarWithResponse performs a GET /api/v1/catalog/objects/{id}/teacher-homepage/photos/{photo_id}/thumbnail (the `GetTeacherDirectoryAvatar` operationId) request.
+	//
+	// 每次核对当前教师、学校资格和主页照片展示权限。源照片摘要标识 128 像素居中裁剪的 JPEG 缩略图。生产通过短期 EdgeOne 签名地址分发。.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	GetTeacherDirectoryAvatarWithResponse(ctx context.Context, id string, photoId string, reqEditors ...RequestEditorFn) (*GetTeacherDirectoryAvatarResponse, error)
 
 	// ListMyTeacherHomepageRequestsWithResponse performs a GET /api/v1/catalog/objects/{id}/teacher-homepage/requests (the `ListMyTeacherHomepageRequests` operationId) request.
 	//
@@ -12827,6 +12897,97 @@ func (r GetTeacherHomepagePhotoResponse) ContentType() string {
 	return ""
 }
 
+// GetTeacherDirectoryAvatarResponse200Headers the declared response headers of an HTTP 200 response for GetTeacherDirectoryAvatar
+type GetTeacherDirectoryAvatarResponse200Headers struct {
+	CacheControl        *string
+	XContentTypeOptions *string
+}
+
+// GetTeacherDirectoryAvatarResponse302Headers the declared response headers of an HTTP 302 response for GetTeacherDirectoryAvatar
+type GetTeacherDirectoryAvatarResponse302Headers struct {
+	Location string
+}
+
+// GetTeacherDirectoryAvatarResponse429Headers the declared response headers of an HTTP 429 response for GetTeacherDirectoryAvatar
+type GetTeacherDirectoryAvatarResponse429Headers struct {
+	RetryAfter int
+}
+
+type GetTeacherDirectoryAvatarResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON400 the response for an HTTP 400 `application/json` response
+	JSON400 *Error
+	// JSON401 the response for an HTTP 401 `application/json` response
+	JSON401 *Error
+	// JSON403 the response for an HTTP 403 `application/json` response
+	JSON403 *Error
+	// JSON404 the response for an HTTP 404 `application/json` response
+	JSON404 *Error
+	// JSON503 the response for an HTTP 503 `application/json` response
+	JSON503 *Error
+	// Headers200 the parsed response headers for an HTTP 200 response
+	Headers200 *GetTeacherDirectoryAvatarResponse200Headers
+	// Headers302 the parsed response headers for an HTTP 302 response
+	Headers302 *GetTeacherDirectoryAvatarResponse302Headers
+	// Headers429 the parsed response headers for an HTTP 429 response
+	Headers429 *GetTeacherDirectoryAvatarResponse429Headers
+}
+
+// GetJSON400 returns the response for an HTTP 400 `application/json` response
+func (r GetTeacherDirectoryAvatarResponse) GetJSON400() *Error {
+	return r.JSON400
+}
+
+// GetJSON401 returns the response for an HTTP 401 `application/json` response
+func (r GetTeacherDirectoryAvatarResponse) GetJSON401() *Error {
+	return r.JSON401
+}
+
+// GetJSON403 returns the response for an HTTP 403 `application/json` response
+func (r GetTeacherDirectoryAvatarResponse) GetJSON403() *Error {
+	return r.JSON403
+}
+
+// GetJSON404 returns the response for an HTTP 404 `application/json` response
+func (r GetTeacherDirectoryAvatarResponse) GetJSON404() *Error {
+	return r.JSON404
+}
+
+// GetJSON503 returns the response for an HTTP 503 `application/json` response
+func (r GetTeacherDirectoryAvatarResponse) GetJSON503() *Error {
+	return r.JSON503
+}
+
+// GetBody returns the raw response body bytes
+func (r GetTeacherDirectoryAvatarResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r GetTeacherDirectoryAvatarResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetTeacherDirectoryAvatarResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r GetTeacherDirectoryAvatarResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
 type ListMyTeacherHomepageRequestsResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -13858,6 +14019,19 @@ func (c *ClientWithResponses) GetTeacherHomepagePhotoWithResponse(ctx context.Co
 		return nil, err
 	}
 	return ParseGetTeacherHomepagePhotoResponse(rsp)
+}
+
+// GetTeacherDirectoryAvatarWithResponse performs a GET /api/v1/catalog/objects/{id}/teacher-homepage/photos/{photo_id}/thumbnail (the `GetTeacherDirectoryAvatar` operationId) request.
+//
+// 每次核对当前教师、学校资格和主页照片展示权限。源照片摘要标识 128 像素居中裁剪的 JPEG 缩略图。生产通过短期 EdgeOne 签名地址分发。.
+//
+// Returns a wrapper object for the known response body format(s).
+func (c *ClientWithResponses) GetTeacherDirectoryAvatarWithResponse(ctx context.Context, id string, photoId string, reqEditors ...RequestEditorFn) (*GetTeacherDirectoryAvatarResponse, error) {
+	rsp, err := c.GetTeacherDirectoryAvatar(ctx, id, photoId, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetTeacherDirectoryAvatarResponse(rsp)
 }
 
 // ListMyTeacherHomepageRequestsWithResponse performs a GET /api/v1/catalog/objects/{id}/teacher-homepage/requests (the `ListMyTeacherHomepageRequests` operationId) request.
@@ -17566,6 +17740,106 @@ func ParseGetTeacherHomepagePhotoResponse(rsp *http.Response) (*GetTeacherHomepa
 		response.Headers302 = &headers
 	case rsp.StatusCode == 429:
 		var headers GetTeacherHomepagePhotoResponse429Headers
+		if values := rsp.Header.Values("Retry-After"); len(values) > 0 {
+			var value int
+			if err := runtime.BindStyledParameterWithOptions("simple", "Retry-After", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: true, Type: "integer", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.RetryAfter = value
+		}
+		response.Headers429 = &headers
+	}
+
+	return response, nil
+}
+
+// ParseGetTeacherDirectoryAvatarResponse parses an HTTP response from a GetTeacherDirectoryAvatarWithResponse call
+func ParseGetTeacherDirectoryAvatarResponse(rsp *http.Response) (*GetTeacherDirectoryAvatarResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetTeacherDirectoryAvatarResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case rsp.StatusCode == 302:
+		break // No content-type
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
+
+	case rsp.StatusCode == 429:
+		break // No content-type
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON503 = &dest
+
+	}
+
+	switch {
+	case rsp.StatusCode == 200:
+		var headers GetTeacherDirectoryAvatarResponse200Headers
+		if values := rsp.Header.Values("Cache-Control"); len(values) > 0 {
+			var value string
+			if err := runtime.BindStyledParameterWithOptions("simple", "Cache-Control", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.CacheControl = &value
+		}
+		if values := rsp.Header.Values("X-Content-Type-Options"); len(values) > 0 {
+			var value string
+			if err := runtime.BindStyledParameterWithOptions("simple", "X-Content-Type-Options", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.XContentTypeOptions = &value
+		}
+		response.Headers200 = &headers
+	case rsp.StatusCode == 302:
+		var headers GetTeacherDirectoryAvatarResponse302Headers
+		if values := rsp.Header.Values("Location"); len(values) > 0 {
+			var value string
+			if err := runtime.BindStyledParameterWithOptions("simple", "Location", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: true, Type: "string", Format: "uri"}); err != nil {
+				return nil, err
+			}
+			headers.Location = value
+		}
+		response.Headers302 = &headers
+	case rsp.StatusCode == 429:
+		var headers GetTeacherDirectoryAvatarResponse429Headers
 		if values := rsp.Header.Values("Retry-After"); len(values) > 0 {
 			var value int
 			if err := runtime.BindStyledParameterWithOptions("simple", "Retry-After", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: true, Type: "integer", Format: ""}); err != nil {
