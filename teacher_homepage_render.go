@@ -258,7 +258,7 @@ func (r homepageRedaction) suppressOverrideItem(p homepagePresentation, group, l
 }
 
 func (r homepageRedaction) add(field, value string, hard bool) {
-	value = homepageLineBreaks.Replace(value)
+	value = homepageLineBreaks.Replace(strings.ReplaceAll(value, homepageContactMarker, ""))
 	key := teacherHomepageLabelKey(value)
 	if key == "" {
 		return
@@ -316,7 +316,7 @@ func (r homepageRedaction) clean(value string, explicit bool) string {
 	if value == "" {
 		return ""
 	}
-	value = homepageLineBreaks.Replace(value)
+	value = homepageLineBreaks.Replace(strings.ReplaceAll(value, homepageContactMarker, ""))
 	lines := make([]string, 0, 1+strings.Count(value, "\n"))
 	for line := range strings.SplitSeq(value, "\n") {
 		original := line
@@ -514,6 +514,10 @@ func (p homepagePresentation) dynamicItem(key TeacherHomepageFieldSelector, item
 }
 
 func (p homepagePresentation) profile(source *TeacherHomepage, teacher string) *TeacherHomepage {
+	return p.renderProfile(source, teacher, nil)
+}
+
+func (p homepagePresentation) renderProfile(source *TeacherHomepage, teacher string, placements homepageMediaPlacements) *TeacherHomepage {
 	if !p.permitsPage() || source == nil && !p.controls.Independent {
 		return nil
 	}
@@ -546,12 +550,14 @@ func (p homepagePresentation) profile(source *TeacherHomepage, teacher string) *
 	for _, item := range boundHomepageItems(p.fieldItems(source.Fields, &redaction), teacherHomepageFieldLimit) {
 		out.Fields = append(out.Fields, TeacherHomepageField{Label: item.label, Value: item.text})
 	}
-	for _, item := range boundHomepageItems(p.sectionItems(source.Sections, &redaction), teacherHomepageSectionLimit) {
+	sections := boundHomepageItems(p.sectionItems(source.Sections, &redaction), teacherHomepageSectionLimit)
+	for _, item := range sections {
 		out.Sections = append(out.Sections, TeacherHomepageSection{Title: item.label, Text: item.text})
 	}
 	if out.Biography != "" && p.rules[TeacherHomepageFieldSelector{Field: "biography"}].Override == nil {
 		out.Biography = redaction.deduplicateVisibleBiography(out)
 	}
+	p.deduplicateSections(out, sections, placements)
 	if allowed, override := p.photo(); allowed {
 		if override != nil {
 			out.Photo = &TeacherHomepagePhoto{ID: override.ID, ContentType: override.ContentType, Width: override.Width, Height: override.Height}

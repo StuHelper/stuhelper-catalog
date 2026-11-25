@@ -2149,7 +2149,7 @@ type TeacherHomepageProposalValue struct {
 	Text *string `json:"text,omitempty"`
 }
 
-// TeacherHomepagePublicProfile defines model for TeacherHomepagePublicProfile.
+// TeacherHomepagePublicProfile 默认投影用单个 U+E000 标示每处被遮盖的联系方式，包括非空的 email、phone 和 office_location。客户端在原位置渲染“查看联系方式”。源文本中的 U+E000 在展示前移除。
 type TeacherHomepagePublicProfile struct {
 	// Biography 官网个人简介，纯文本。原始页签也可能包含该内容。
 	Biography *string `json:"biography,omitempty"`
@@ -2200,11 +2200,13 @@ type TeacherHomepagePublicProfile struct {
 // TeacherHomepagePublicProfileSupervisors defines model for TeacherHomepagePublicProfile.Supervisors.
 type TeacherHomepagePublicProfileSupervisors string
 
-// TeacherHomepagePublicView 应用白名单、个人控制与匹配状态后的教师主页。资料不可展示时省略 profile。
+// TeacherHomepagePublicView 应用白名单、个人控制与匹配状态后的教师主页。资料不可展示时省略 profile。默认投影在每处被遮盖的位置返回 U+E000。请求 reveal_contacts=true 后返回当前允许查看的原值，正文不含该标记。
 type TeacherHomepagePublicView struct {
 	// ContactsAvailable 普通响应有可按需查看的联系方式时返回 true。
-	ContactsAvailable *bool                         `json:"contacts_available,omitempty"`
-	Profile           *TeacherHomepagePublicProfile `json:"profile,omitempty"`
+	ContactsAvailable *bool `json:"contacts_available,omitempty"`
+
+	// Profile 默认投影用单个 U+E000 标示每处被遮盖的联系方式，包括非空的 email、phone 和 office_location。客户端在原位置渲染“查看联系方式”。源文本中的 U+E000 在展示前移除。
+	Profile *TeacherHomepagePublicProfile `json:"profile,omitempty"`
 }
 
 // TeacherHomepageRequest defines model for TeacherHomepageRequest.

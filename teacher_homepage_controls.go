@@ -86,6 +86,7 @@ type TeacherHomepageOverridePhotoTransaction interface {
 }
 
 func teacherHomepageLabelKey(label string) string {
+	label = strings.ReplaceAll(label, homepageContactMarker, "")
 	return cases.Fold().String(strings.Join(strings.Fields(strings.TrimRight(norm.NFKC.String(strings.TrimSpace(label)), ":")), " "))
 }
 

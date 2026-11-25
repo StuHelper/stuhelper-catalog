@@ -48,7 +48,7 @@ func TestTeacherDisplayContactRevealAndLinks(t *testing.T) {
 	if view == nil || len(view.Sections) != 1 || view.Sections[0].Text != src.Sections[0].Text || view.Biography != "邮箱：other@example.org\n主页：https://example.org:8443/学术" {
 		t.Fatal("reveal must retain source contacts and only valid links")
 	}
-	if !maskHomepageContacts(view) || view.Email != "" || view.Phone != "" || strings.Contains(view.Biography, "@") || strings.Contains(view.Sections[0].Text, "5555") {
+	if !maskHomepageContacts(view) || view.Email != "\uE000" || view.Phone != "\uE000" || strings.Contains(view.Biography, "@") || strings.Contains(view.Sections[0].Text, "5555") {
 		t.Fatal("initial response contains a contact")
 	}
 	p = newHomepagePresentation(TeacherHomepageControls{PageVisibility: TeacherHomepageVisible, Rules: []TeacherHomepageFieldRule{
