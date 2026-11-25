@@ -12,17 +12,13 @@ import (
 )
 
 type DirectoryConfig struct {
-	WindowDays     int     `json:"window_days"`
 	ViewWeight     float64 `json:"view_weight"`
 	FavoriteWeight float64 `json:"favorite_weight"`
 	ReviewWeight   float64 `json:"review_weight"`
 }
 
-func DefaultDirectoryConfig() DirectoryConfig { return DirectoryConfig{30, 1, 3, 5} }
+func DefaultDirectoryConfig() DirectoryConfig { return DirectoryConfig{1, 3, 5} }
 func (c DirectoryConfig) Validate() error {
-	if c.WindowDays < 1 || c.WindowDays > 366 {
-		return ErrInput
-	}
 	positive := false
 	for _, weight := range []float64{c.ViewWeight, c.FavoriteWeight, c.ReviewWeight} {
 		if math.IsNaN(weight) || math.IsInf(weight, 0) || weight < 0 || weight > 1000000 {
@@ -44,14 +40,12 @@ type DirectoryBand struct {
 type DirectoryMetric struct {
 	ID             string           `json:"id"`
 	ReviewCount    int64            `json:"review_count"`
-	RecentReviews  int64            `json:"recent_reviews"`
 	Favorites      int64            `json:"favorites"`
 	Recommendation string           `json:"recommendation"`
 	Dimensions     [5]DirectoryBand `json:"dimensions"`
 }
 type DirectoryMetricProvider interface {
-	// Metrics receives inclusive and exclusive boundaries at Beijing midnight.
-	Metrics(context.Context, Principal, string, string, time.Time, time.Time) ([]DirectoryMetric, error)
+	Metrics(context.Context, Principal, string, string) ([]DirectoryMetric, error)
 }
 type DirectoryItem struct {
 	AvatarURL      string           `json:"avatar_url,omitempty"`
@@ -78,11 +72,9 @@ type DirectoryPage struct {
 	DepartmentFacets []DirectoryFacet `json:"department_facets"`
 	NatureFacets     []DirectoryFacet `json:"nature_facets"`
 	GeneratedAt      time.Time        `json:"generated_at"`
-	WindowDays       int              `json:"window_days"`
 }
 type DirectoryPosition struct {
 	Version        int64   `json:"version,omitempty"`
-	WindowStart    string  `json:"window_start,omitempty"`
 	Scope          string  `json:"scope"`
 	ID             string  `json:"id"`
 	Name           string  `json:"name"`
@@ -112,7 +104,7 @@ type DirectoryResult struct {
 	NatureFacets     []DirectoryFacet `json:"nature_facets"`
 }
 type DirectoryTransaction interface {
-	Directory(DirectoryQuery, DirectoryPosition, []DirectoryMetric, DirectoryConfig, time.Time, time.Time) (DirectoryResult, error)
+	Directory(DirectoryQuery, DirectoryPosition, []DirectoryMetric, DirectoryConfig) (DirectoryResult, error)
 }
 
 func directoryScope(p Principal, q DirectoryQuery, config DirectoryConfig) string {
@@ -213,11 +205,6 @@ func (s *Service) ReadDirectory(ctx context.Context, p Principal, q DirectoryQue
 	if config.Validate() != nil || s.DirectoryMetrics == nil {
 		return out, ErrUnavailable
 	}
-	from, until := ActivityWindow(out.GeneratedAt, config.WindowDays)
-	windowStart := ""
-	if q.Sort != "name" {
-		windowStart = from.Format(time.DateOnly)
-	}
 	scope := directoryScope(p, q, config)
 	position := DirectoryPosition{}
 	if q.After != "" {
@@ -226,13 +213,10 @@ func (s *Service) ReadDirectory(ctx context.Context, p Principal, q DirectoryQue
 			!validText(position.Name, 256) || position.Heat < 0 || math.IsNaN(position.Heat) || math.IsInf(position.Heat, 0) || position.Reviews < 0 || position.Recommendation < 0 || position.Recommendation > 4 {
 			return out, ErrInput
 		}
-		if position.WindowStart != windowStart {
-			return out, ErrConflict
-		}
 	}
 	callCtx, cancel := context.WithTimeout(ctx, 3*time.Second)
 	defer cancel()
-	metrics, err := s.DirectoryMetrics.Metrics(callCtx, p, school, q.Kind, from, until)
+	metrics, err := s.DirectoryMetrics.Metrics(callCtx, p, school, q.Kind)
 	if err != nil {
 		if ctx.Err() == nil && errors.Is(err, context.DeadlineExceeded) {
 			return out, ErrUnavailable
@@ -244,7 +228,7 @@ func (s *Service) ReadDirectory(ctx context.Context, p Principal, q DirectoryQue
 	}
 	seen := make(map[string]bool, len(metrics))
 	for _, metric := range metrics {
-		if !ValidID(metric.ID) || seen[metric.ID] || metric.ReviewCount < 0 || metric.RecentReviews < 0 || metric.Favorites < 0 ||
+		if !ValidID(metric.ID) || seen[metric.ID] || metric.ReviewCount < 0 || metric.Favorites < 0 ||
 			!slices.Contains([]string{"unrated", "not_recommended", "average", "recommended", "strongly_recommended"}, metric.Recommendation) {
 			return out, ErrUnavailable
 		}
@@ -262,7 +246,7 @@ func (s *Service) ReadDirectory(ctx context.Context, p Principal, q DirectoryQue
 			return ErrUnavailable
 		}
 		var err error
-		result, err = port.Directory(q, position, metrics, config, from, until)
+		result, err = port.Directory(q, position, metrics, config)
 		return err
 	})
 	if err != nil {
@@ -271,7 +255,7 @@ func (s *Service) ReadDirectory(ctx context.Context, p Principal, q DirectoryQue
 	if len(result.Rows) > q.Limit {
 		result.Rows = result.Rows[:q.Limit]
 		last := result.Rows[len(result.Rows)-1]
-		position = DirectoryPosition{Version: result.Version, WindowStart: windowStart, Scope: scope, ID: last.Item.Object.ID, Name: last.Item.Object.Name, Heat: last.Item.Heat, Reviews: last.Item.ReviewCount, Recommendation: last.Rank}
+		position = DirectoryPosition{Version: result.Version, Scope: scope, ID: last.Item.Object.ID, Name: last.Item.Object.Name, Heat: last.Item.Heat, Reviews: last.Item.ReviewCount, Recommendation: last.Rank}
 		encoded, err := json.Marshal(position)
 		if err != nil {
 			return DirectoryPage{}, ErrUnavailable
@@ -282,6 +266,5 @@ func (s *Service) ReadDirectory(ctx context.Context, p Principal, q DirectoryQue
 		out.Items = append(out.Items, row.Item)
 	}
 	out.Total, out.FacetTotal, out.CategoryFacets, out.DepartmentFacets, out.NatureFacets = result.Total, result.FacetTotal, result.CategoryFacets, result.DepartmentFacets, result.NatureFacets
-	out.WindowDays = config.WindowDays
 	return out, nil
 }

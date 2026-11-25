@@ -364,7 +364,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** @description Current visible course/teacher directory, stable sort with ID tie-break and filter-bound cursor. Categories count distinct courses after all filters except category_id. Department groups respect all current filters. Classification filters apply to the same offering/class. Teacher rows and counts require T2 persisted marking; absent marker enforcement returns 503. Scores are read in bounded batches from owning modules, without per-row queries. Catalog membership is cached with transactional revision invalidation; ratings and heat are always current. 目录成员和分面来自同一持久投影版本，实时评分与热度按 ID 关联。游标绑定投影版本，目录重建或热门等含热度排序的窗口换日后，旧游标返回 409，应从第一页重新读取。 普通目录仅提供学校、院系、分类、性质、学期、课程和教师；term_course、class、assignment、schedule 仅供管理端或受信服务使用。 */
+        /** @description Current visible course/teacher directory, stable sort with ID tie-break and filter-bound cursor. Categories count distinct courses after all filters except category_id. Department groups respect all current filters. Classification filters apply to the same offering/class. Teacher rows and counts require T2 persisted marking; absent marker enforcement returns 503. Scores are read in bounded batches from owning modules, without per-row queries. Catalog membership is cached with transactional revision invalidation; ratings and heat are always current. 目录成员和分面来自同一持久投影版本，实时评分与热度按 ID 关联。游标绑定投影版本，目录重建后，旧游标返回 409，应从第一页重新读取。 普通目录仅提供学校、院系、分类、性质、学期、课程和教师；term_course、class、assignment、schedule 仅供管理端或受信服务使用。 */
         get: operations["listDirectory"];
         put?: never;
         post?: never;
@@ -1094,6 +1094,7 @@ export interface components {
             review_count: number;
             recommendation: components["schemas"]["Recommendation"];
             dimensions: components["schemas"]["DirectoryBand"][];
+            /** @description Weighted all-time views, daily net favorites and currently visible reviews for this directory object. */
             heat: number;
         };
         DirectoryPage: {
@@ -1105,8 +1106,6 @@ export interface components {
             nature_facets: components["schemas"]["DirectoryFacet"][];
             /** Format: date-time */
             generated_at: string;
-            /** @description Number of Beijing calendar dates in the heat window (Asia/Shanghai, UTC+8), including today up to the time of the request. The default is 30. */
-            window_days?: number;
             /** @description Distinct objects after all filters except category_id / category_ids, for the All category badge. */
             facet_total: number;
         };
@@ -1311,6 +1310,8 @@ export interface components {
         CategoryAlias: {
             from: string;
             to: string;
+            /** @description Retire source IDs from the published directory without redirecting them to the target. */
+            retire_source?: boolean;
         };
         SportsProject: {
             key: string;
@@ -1328,6 +1329,8 @@ export interface components {
             cutoff_season: "spring" | "summer" | "autumn";
             excluded_course_names?: string[];
             excluded_category_names?: string[];
+            /** @description Category filters omitted from this school directory. Courses and their source classifications remain available. */
+            hidden_category_names?: string[];
             category_aliases?: components["schemas"]["CategoryAlias"][];
             sports?: components["schemas"]["SportsDirectoryPolicy"] | null;
         };
@@ -3845,7 +3848,7 @@ export interface operations {
                     "application/json": components["schemas"]["Error"];
                 };
             };
-            /** @description The published directory version or the heat window changed. Restart from the first page. */
+            /** @description The published directory version changed. Restart from the first page. */
             409: {
                 headers: {
                     [name: string]: unknown;

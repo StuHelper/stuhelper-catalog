@@ -23,7 +23,7 @@ func (blockingRecentResources) CountRecentResources(ctx context.Context, _ c.Pri
 
 type blockingDirectoryMetrics struct{}
 
-func (blockingDirectoryMetrics) Metrics(ctx context.Context, _ c.Principal, _, _ string, _, _ time.Time) ([]c.DirectoryMetric, error) {
+func (blockingDirectoryMetrics) Metrics(ctx context.Context, _ c.Principal, _, _ string) ([]c.DirectoryMetric, error) {
 	<-ctx.Done()
 	return nil, ctx.Err()
 }
