@@ -82,6 +82,7 @@ func (t *transaction) applyCategoryAliases(school string, report *c.ProjectionRe
 		}
 	}
 	aliases := map[string]string{}
+	retired := map[string]bool{}
 	for _, rule := range report.Policy.CategoryAliases {
 		target, err := t.ensureDisplayCategory(school, rule.To, report, byName)
 		if err != nil {
@@ -90,6 +91,7 @@ func (t *transaction) applyCategoryAliases(school string, report *c.ProjectionRe
 		for _, object := range objects {
 			if (c.PolicyName(object.Name) == c.PolicyName(rule.From) || c.PolicyName(object.Name) == c.PolicyName(rule.To)) && object.ID != target.ID {
 				aliases[object.ID] = target.ID
+				retired[object.ID] = retired[object.ID] || rule.RetireSource
 			}
 		}
 	}
@@ -107,6 +109,9 @@ func (t *transaction) applyCategoryAliases(school string, report *c.ProjectionRe
 		to := aliases[from]
 		if _, err = t.tx.ExecContext(t.ctx, `UPDATE catalog.projection_objects SET category_id=$3,data=data||jsonb_build_object('category_id',$3::text) WHERE version=$1 AND category_id=$2`, report.Version, from, to); err != nil {
 			return safe(err)
+		}
+		if retired[from] {
+			continue
 		}
 		if _, err = t.tx.ExecContext(t.ctx, `INSERT INTO catalog.projection_aliases(version,alias_id,canonical_id) VALUES($1,$2,$3)`, report.Version, from, to); err != nil {
 			return safe(err)

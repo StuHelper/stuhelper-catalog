@@ -1,7 +1,7 @@
 ---
 type: spec
 status: Accepted
-updated: 2026-11-21
+updated: 2026-11-26
 ---
 
 # 热门活动来源
@@ -59,7 +59,7 @@ PruneActivityHistory(ctx, beforeDay, limit) 以北京时间零点为截止，每
 | 场景 | 验证条件 |
 | --- | --- |
 | CAT-ACTIVITY-01 | 本来源计数、权限、并发、回滚、事件 Schema、固定分页、墓碑和清理上限 |
-| CAT-ACTIVITY-02 | 北京时间零点、UTC 16:00 前后、跨月、1 日及 366 日窗口。旧日令牌、密钥和热度游标过期 |
+| CAT-ACTIVITY-02 | 北京时间零点、UTC 16:00 前后、跨月、1 日及 366 日窗口。旧日令牌与密钥到期清理，目录累计浏览和跨日分页继续有效 |
 | CAT-ACTIVITY-03 | PostgreSQL 按已知时刻或时长比例归日，重复执行保留各日计数，回退保留新增浏览 |
 
 ## 存量归日与回退
