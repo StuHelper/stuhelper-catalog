@@ -57,7 +57,7 @@ func projectedSelectionQuery(q c.DirectoryQuery, version int64, useHomepageRevoc
 	query := `WITH base AS MATERIALIZED(SELECT o.id,o.name,o.department_id,o.category_id,o.nature_id FROM catalog.projection_objects o WHERE ` + strings.Join(baseWhere, " AND ") + `),
  variants AS (` + variants + `), eligible AS MATERIALIZED(SELECT v.* FROM variants v WHERE ` + strings.Join(common, " AND ") + `),
  matching AS MATERIALIZED(SELECT * FROM eligible WHERE ` + category + `),
- candidates AS (SELECT m.id,b.name,array_agg(DISTINCT m.department_id) AS departments,array_agg(DISTINCT m.category_id) AS categories,array_agg(DISTINCT m.nature_id) AS natures
+ candidates AS (SELECT m.id,b.name,COALESCE(array_agg(DISTINCT m.department_id) FILTER (WHERE m.department_id<>''),'{}'::text[]) AS departments,array_agg(DISTINCT m.category_id) AS categories,array_agg(DISTINCT m.nature_id) AS natures
  FROM matching m JOIN base b ON b.id=m.id GROUP BY m.id,b.name ORDER BY m.id),
  category_counts AS (SELECT category_id,count(DISTINCT id) AS n,array_agg(DISTINCT id) AS ids FROM eligible GROUP BY category_id),
  department_counts AS (SELECT department_id,count(DISTINCT id) AS n FROM matching GROUP BY department_id),
@@ -69,8 +69,8 @@ func projectedSelectionQuery(q c.DirectoryQuery, version int64, useHomepageRevoc
  'category_facets',COALESCE((SELECT jsonb_agg(jsonb_build_object('id',o.id,'name',o.name,'count',COALESCE(cc.n,0),'review_count',0) ORDER BY o.name COLLATE "C",o.id)
  FROM catalog.projection_options o LEFT JOIN category_counts cc ON cc.category_id=o.id
  WHERE o.version=$1 AND o.owner_kind=$2 AND o.kind='category'),'[]'::jsonb),
- 'department_facets',COALESCE((SELECT jsonb_agg(jsonb_build_object('id',dc.department_id,'name',COALESCE(o.name,''),'count',dc.n,'review_count',0) ORDER BY o.name COLLATE "C",dc.department_id)
- FROM department_counts dc LEFT JOIN catalog.projection_objects o ON o.version=$1 AND o.kind='department' AND o.id=dc.department_id),'[]'::jsonb),
+ 'department_facets',COALESCE((SELECT jsonb_agg(jsonb_build_object('id',dc.department_id,'name',o.name,'count',dc.n,'review_count',0) ORDER BY o.name COLLATE "C",dc.department_id)
+ FROM department_counts dc JOIN catalog.projection_objects o ON o.version=$1 AND o.kind='department' AND o.id=dc.department_id),'[]'::jsonb),
  'nature_facets',COALESCE((SELECT jsonb_agg(jsonb_build_object('id',nc.nature_id,'name',o.name,'count',nc.n,'review_count',0) ORDER BY o.name COLLATE "C",nc.nature_id)
  FROM nature_counts nc JOIN catalog.projection_objects o ON o.version=$1 AND o.kind='nature' AND o.id=nc.nature_id),'[]'::jsonb))`
 	return query, args, nil

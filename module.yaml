@@ -293,6 +293,7 @@ scenario_tests:
   CAT-SOURCE-06:
     - own_performance_test.go#TestOwnScheduleSkewedClassPlanIsBounded
   CAT-UI-01:
+    - department_group_test.go#TestDirectoryGroupsUseOnlyNamedOfferingDepartments
     - ui_backend_test.go#TestUIDirectoryFacetsSortingVisibilityAndPagination
     - ui_backend_test.go#TestUIDirectorySameClassFacetCounts
     - ui_backend_test.go#TestUIDirectoryNatureFacetsMultiSelectAndCreditsRange

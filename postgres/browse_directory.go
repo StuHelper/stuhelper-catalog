@@ -96,7 +96,7 @@ func directorySelectionQuery(q c.DirectoryQuery) (string, []any, error) {
 	ctes := []string{base, variants,
 		"eligible AS MATERIALIZED (SELECT v.id,v.department_id,v.category_id,v.nature_id FROM variants v WHERE " + strings.Join(common, " AND ") + " LIMIT 500001)",
 		"matching AS MATERIALIZED (SELECT * FROM eligible WHERE " + category + ")",
-		`candidates AS (SELECT m.id,b.name,array_agg(DISTINCT m.department_id) AS departments,array_agg(DISTINCT m.category_id) AS categories,array_agg(DISTINCT m.nature_id) AS natures
+		`candidates AS (SELECT m.id,b.name,COALESCE(array_agg(DISTINCT m.department_id) FILTER (WHERE m.department_id<>''),'{}'::text[]) AS departments,array_agg(DISTINCT m.category_id) AS categories,array_agg(DISTINCT m.nature_id) AS natures
  FROM matching m JOIN base b ON b.id=m.id GROUP BY m.id,b.name ORDER BY m.id LIMIT 100001)`,
 		categoryCounts,
 		`department_counts AS (SELECT department_id,count(DISTINCT id) AS n FROM matching GROUP BY department_id)`,
@@ -109,8 +109,8 @@ func directorySelectionQuery(q c.DirectoryQuery) (string, []any, error) {
  'category_facets',COALESCE((SELECT jsonb_agg(jsonb_build_object('id',ca.id,'name',ca.name,'count',COALESCE(cc.n,0),'review_count',0) ORDER BY ca.name COLLATE "C",ca.id)
  FROM catalog.objects ca LEFT JOIN category_counts cc ON cc.category_id=ca.id WHERE ca.kind='category' AND ca.school_id=` + school + ` AND ` + kind + `='course'
  AND NOT COALESCE((ca.data->'object'->>'inactive')::boolean,false) AND NOT EXISTS(SELECT 1 FROM catalog.redirects r WHERE r.alias_id=ca.id)),'[]'::jsonb),
- 'department_facets',COALESCE((SELECT jsonb_agg(jsonb_build_object('id',dc.department_id,'name',COALESCE(d.name,''),'count',dc.n,'review_count',0) ORDER BY d.name COLLATE "C",dc.department_id)
- FROM department_counts dc LEFT JOIN catalog.objects d ON d.id=dc.department_id AND d.kind='department' AND d.school_id=` + school + `
+ 'department_facets',COALESCE((SELECT jsonb_agg(jsonb_build_object('id',dc.department_id,'name',d.name,'count',dc.n,'review_count',0) ORDER BY d.name COLLATE "C",dc.department_id)
+ FROM department_counts dc JOIN catalog.objects d ON d.id=dc.department_id AND d.kind='department' AND d.school_id=` + school + `
  AND NOT COALESCE((d.data->'object'->>'inactive')::boolean,false) AND NOT EXISTS(SELECT 1 FROM catalog.redirects r WHERE r.alias_id=d.id)),'[]'::jsonb),
  'nature_facets',COALESCE((SELECT jsonb_agg(jsonb_build_object('id',n.id,'name',n.name,'count',nc.n,'review_count',0) ORDER BY n.name COLLATE "C",n.id)
  FROM nature_counts nc JOIN catalog.objects n ON n.id=nc.nature_id AND n.kind='nature' AND n.school_id=` + school + `
