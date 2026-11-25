@@ -11,6 +11,9 @@ type SchoolDataAccess interface {
 
 func withSchoolData[T any](s *Service, ctx context.Context, p Principal, school string, read func(context.Context, string) (T, error)) (T, error) {
 	var zero, result T
+	if err := ctx.Err(); err != nil {
+		return zero, err
+	}
 	if p.Subject == "" {
 		return zero, ErrUnauthenticated
 	}

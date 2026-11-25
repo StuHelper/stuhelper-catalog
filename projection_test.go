@@ -39,7 +39,7 @@ func serveJSONRequest(h http.Handler, method, path, idempotencyKey, body string)
 func projectionFixture(t *testing.T) (*c.Service, c.Principal, *sql.DB, c.ProjectionReport) {
 	t.Helper()
 	repo, admin := database(t)
-	s := &c.Service{Repo: repo, ReadAccess: &readAccess{}, DirectoryMetrics: uiMetrics{}}
+	s := &c.Service{Repo: repo, SchoolDataAccess: fixtureSchoolData{}, ReadAccess: &readAccess{}, DirectoryMetrics: uiMetrics{}}
 	p := c.Principal{Subject: "issuer:student", Schools: []string{"school"}, CanImport: true, CanMaintain: true}
 	objects := []c.Object{{ID: "school", Kind: "school", Name: "Synthetic school"}, {ID: "dept", Kind: "department", Name: "Department"}, {ID: "unused", Kind: "category", Name: "Empty"},
 		{ID: "category", Kind: "category", Name: "Visible category"}, {ID: "nature", Kind: "nature", Name: "Nature"},
