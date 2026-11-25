@@ -1102,6 +1102,7 @@ export interface components {
             next: string;
             total: number;
             category_facets: components["schemas"]["DirectoryFacet"][];
+            /** @description Departments in school code order: numeric official codes, B-prefixed numeric units, other codes, then missing codes. Ties use name and ID. */
             department_facets: components["schemas"]["DirectoryFacet"][];
             nature_facets: components["schemas"]["DirectoryFacet"][];
             /** Format: date-time */
@@ -1158,6 +1159,7 @@ export interface components {
             kind: "course" | "teacher";
             /** Format: int64 */
             total: number;
+            /** @description Uses the same school department order as directory department_facets. */
             departments: components["schemas"]["FilterOption"][];
             categories: components["schemas"]["FilterOption"][];
             natures: components["schemas"]["FilterOption"][];
