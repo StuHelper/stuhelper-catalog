@@ -54,6 +54,9 @@ func projectedSelectionQuery(q c.DirectoryQuery, version int64, useHomepageRevoc
 	} else if q.CategoryID != "" {
 		category = "category_id=" + canonical(q.CategoryID)
 	}
+	if q.CategoryID != "" || len(q.CategoryIDs) > 0 {
+		category += " AND category_id IN (SELECT id FROM catalog.projection_options WHERE version=$1 AND owner_kind='course' AND kind='category')"
+	}
 	query := `WITH base AS MATERIALIZED(SELECT o.id,o.name,o.department_id,o.category_id,o.nature_id FROM catalog.projection_objects o WHERE ` + strings.Join(baseWhere, " AND ") + `),
  variants AS (` + variants + `), eligible AS MATERIALIZED(SELECT v.* FROM variants v WHERE ` + strings.Join(common, " AND ") + `),
  matching AS MATERIALIZED(SELECT * FROM eligible WHERE ` + category + `),

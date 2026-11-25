@@ -277,6 +277,14 @@ func (t *transaction) RebuildDirectory(school string, policy *c.DirectoryPolicy,
 			}
 		}
 	}
+	// Keep category objects and course membership available to detail reads.
+	// Only the published filter options are suppressed.
+	if len(out.Policy.HiddenCategoryNames) > 0 {
+		if _, err = t.tx.ExecContext(t.ctx, `DELETE FROM catalog.projection_options
+ WHERE version=$1 AND owner_kind='course' AND kind='category' AND lower(btrim(name))=ANY($2::text[])`, out.Version, normalizedNames(out.Policy.HiddenCategoryNames)); err != nil {
+			return out, safe(err)
+		}
+	}
 	if err = t.validateProjection(school, &out); err != nil {
 		return out, err
 	}

@@ -81,6 +81,7 @@ scenario_tests:
     - directory_test.go#TestSummaryRelatedCourseAndTeacherPreview
     - content_test.go#TestPublicReadsRejectIncludeInactiveAndHideDeactivatedObjects
   CAT-DISPLAY-01:
+    - category_filter_test.go#TestDirectoryCategoryGroupingAndHiddenFiltersSurviveRebuild
     - display_policy_test.go#TestDisplayProjectionMigrationPreservesPublishedDirectoryAndRuntimeBoundary
     - display_policy_test.go#TestDirectoryDisplayRulesProjectsCountsAndEnrollmentOwnership
     - display_policy_test.go#TestDirectoryPolicyRejectsAmbiguousMappingsAndReadOnlyObjectFields
@@ -200,7 +201,8 @@ scenario_tests:
     - outbox_delivery_test.go#TestBoundedPruningHostAllowlistAndOperationalMetrics
   CAT-ACTIVITY-02:
     - activity_window_test.go#TestActivityWindowBeijingCalendar
-    - activity_window_test.go#TestDirectoryHeatAndViewsRollOverAtBeijingMidnight
+    - activity_window_test.go#TestDirectoryAllTimeHeatAndMidnightCursor
+    - activity_window_test.go#TestDirectoryPageOmitsWindowDays
   CAT-ACTIVITY-03:
     - postgres/activity_calendar_test.go#TestActivityCalendarMigrationRebinsViewsAndPreservesWritesAcrossRollback
     - postgres/activity_calendar_test.go#TestActivityCalendarPartialUTCDateUsesElapsedTime

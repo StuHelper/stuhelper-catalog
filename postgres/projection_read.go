@@ -116,6 +116,9 @@ func (t *transaction) projectedList(f c.Filter) ([]c.Object, error) {
 			}
 		}
 	}
+	if f.CategoryID != "" && f.Kind == "course" {
+		conditions = append(conditions, "v.category_id IN (SELECT id FROM catalog.projection_options WHERE version=o.version AND owner_kind='course' AND kind='category')")
+	}
 	if f.TeacherID != "" {
 		value := canonical(f.TeacherID)
 		if f.Kind == "teacher" {

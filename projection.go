@@ -37,6 +37,7 @@ type DirectoryPolicy struct {
 	CutoffSeason          string                 `json:"cutoff_season"`
 	ExcludedCourseNames   []string               `json:"excluded_course_names,omitempty"`
 	ExcludedCategoryNames []string               `json:"excluded_category_names,omitempty"`
+	HiddenCategoryNames   []string               `json:"hidden_category_names,omitempty"`
 	CategoryAliases       []CategoryAlias        `json:"category_aliases,omitempty"`
 	Sports                *SportsDirectoryPolicy `json:"sports,omitempty"`
 }

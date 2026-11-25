@@ -4,7 +4,6 @@ import (
 	c "github.com/StuHelper/stuhelper-catalog"
 	"slices"
 	"strings"
-	"time"
 )
 
 type directoryRanked struct {
@@ -49,7 +48,7 @@ func directoryRankCompare(a, b directoryRanked, order string) int {
 	}
 	return strings.Compare(a.candidate.ID, b.candidate.ID)
 }
-func (t *transaction) Directory(q c.DirectoryQuery, cursor c.DirectoryPosition, metrics []c.DirectoryMetric, config c.DirectoryConfig, from, until time.Time) (c.DirectoryResult, error) {
+func (t *transaction) Directory(q c.DirectoryQuery, cursor c.DirectoryPosition, metrics []c.DirectoryMetric, config c.DirectoryConfig) (c.DirectoryResult, error) {
 	if (q.Kind == "teacher" || q.TeacherID != "") && !t.requireTeacherDirectory {
 		return c.DirectoryResult{}, c.ErrUnavailable
 	}
@@ -84,7 +83,7 @@ func (t *transaction) Directory(q c.DirectoryQuery, cursor c.DirectoryPosition, 
 	for i := range metrics {
 		byID[metrics[i].ID] = &metrics[i]
 	}
-	views, err := t.directoryViews(q.Kind, q.SchoolID, from, until)
+	views, err := t.directoryViews(q.Kind, q.SchoolID)
 	if err != nil {
 		return c.DirectoryResult{}, err
 	}
@@ -139,7 +138,7 @@ func (t *transaction) Directory(q c.DirectoryQuery, cursor c.DirectoryPosition, 
 				}
 			}
 		}
-		heat := float64(views[candidate.ID])*config.ViewWeight + float64(metric.Favorites)*config.FavoriteWeight + float64(metric.RecentReviews)*config.ReviewWeight
+		heat := float64(views[candidate.ID])*config.ViewWeight + float64(metric.Favorites)*config.FavoriteWeight + float64(metric.ReviewCount)*config.ReviewWeight
 		rows = append(rows, directoryRanked{candidate, metric, heat, ranks[metric.Recommendation]})
 	}
 	slices.SortFunc(rows, func(a, b directoryRanked) int { return directoryRankCompare(a, b, q.Sort) })
@@ -220,8 +219,8 @@ func (t *transaction) Directory(q c.DirectoryQuery, cursor c.DirectoryPosition, 
 
 	return out, nil
 }
-func (t *transaction) directoryViews(kind, school string, from, until time.Time) (map[string]int64, error) {
-	rows, err := t.tx.QueryContext(t.ctx, `SELECT target_id,sum(first_count) FROM catalog.activity_buckets WHERE school_id=$1 AND kind=$2 AND day>=$3 AND day<$4 AND visible GROUP BY target_id LIMIT 100001`, school, kind, c.ActivityDate(from).Format(time.DateOnly), c.ActivityDate(until).Format(time.DateOnly))
+func (t *transaction) directoryViews(kind, school string) (map[string]int64, error) {
+	rows, err := t.tx.QueryContext(t.ctx, `SELECT target_id,sum(first_count) FROM catalog.activity_buckets WHERE school_id=$1 AND kind=$2 AND visible GROUP BY target_id LIMIT 100001`, school, kind)
 	if err != nil {
 		return nil, safe(err)
 	}

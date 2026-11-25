@@ -2,7 +2,7 @@
   "openapi": "3.0.3",
   "info": {
     "title": "StuHelper Catalog",
-    "version": "0.18.0"
+    "version": "0.19.0"
   },
   "servers": [
     {
@@ -2633,7 +2633,7 @@
             }
           },
           "409": {
-            "description": "The published directory version or the heat window changed. Restart from the first page.",
+            "description": "The published directory version changed. Restart from the first page.",
             "content": {
               "application/json": {
                 "schema": {
@@ -2803,7 +2803,7 @@
             }
           }
         ],
-        "description": "Current visible course/teacher directory, stable sort with ID tie-break and filter-bound cursor. Categories count distinct courses after all filters except category_id. Department groups respect all current filters. Classification filters apply to the same offering/class. Teacher rows and counts require T2 persisted marking; absent marker enforcement returns 503. Scores are read in bounded batches from owning modules, without per-row queries. Catalog membership is cached with transactional revision invalidation; ratings and heat are always current. 目录成员和分面来自同一持久投影版本，实时评分与热度按 ID 关联。游标绑定投影版本，目录重建或热门等含热度排序的窗口换日后，旧游标返回 409，应从第一页重新读取。 普通目录仅提供学校、院系、分类、性质、学期、课程和教师；term_course、class、assignment、schedule 仅供管理端或受信服务使用。"
+        "description": "Current visible course/teacher directory, stable sort with ID tie-break and filter-bound cursor. Categories count distinct courses after all filters except category_id. Department groups respect all current filters. Classification filters apply to the same offering/class. Teacher rows and counts require T2 persisted marking; absent marker enforcement returns 503. Scores are read in bounded batches from owning modules, without per-row queries. Catalog membership is cached with transactional revision invalidation; ratings and heat are always current. 目录成员和分面来自同一持久投影版本，实时评分与热度按 ID 关联。游标绑定投影版本，目录重建后，旧游标返回 409，应从第一页重新读取。 普通目录仅提供学校、院系、分类、性质、学期、课程和教师；term_course、class、assignment、schedule 仅供管理端或受信服务使用。"
       }
     },
     "/api/v1/catalog/me/recent-courses": {
@@ -7523,6 +7523,7 @@
             "maxItems": 5
           },
           "heat": {
+            "description": "Weighted all-time views, daily net favorites and currently visible reviews for this directory object.",
             "type": "number",
             "minimum": 0
           }
@@ -7576,12 +7577,6 @@
           "generated_at": {
             "type": "string",
             "format": "date-time"
-          },
-          "window_days": {
-            "type": "integer",
-            "minimum": 1,
-            "maximum": 366,
-            "description": "Number of Beijing calendar dates in the heat window (Asia/Shanghai, UTC+8), including today up to the time of the request. The default is 30."
           },
           "facet_total": {
             "type": "integer",
@@ -8361,7 +8356,8 @@
         "required": ["from", "to"],
         "properties": {
           "from": { "type": "string", "minLength": 1, "maxLength": 256 },
-          "to": { "type": "string", "minLength": 1, "maxLength": 256 }
+          "to": { "type": "string", "minLength": 1, "maxLength": 256 },
+          "retire_source": { "type": "boolean", "description": "Retire source IDs from the published directory without redirecting them to the target." }
         }
       },
       "SportsProject": {
@@ -8410,6 +8406,12 @@
             "items": { "type": "string", "minLength": 1, "maxLength": 256 }
           },
           "excluded_category_names": {
+            "type": "array",
+            "maxItems": 256,
+            "items": { "type": "string", "minLength": 1, "maxLength": 256 }
+          },
+          "hidden_category_names": {
+            "description": "Category filters omitted from this school directory. Courses and their source classifications remain available.",
             "type": "array",
             "maxItems": 256,
             "items": { "type": "string", "minLength": 1, "maxLength": 256 }
