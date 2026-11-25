@@ -9,15 +9,33 @@ type ReviewEnrollmentTransaction interface {
 }
 
 func (s *Service) ReviewEnrollments(ctx context.Context, p Principal, course, term, after string, limit int) ([]Enrollment, error) {
+	if limit < 1 || limit > 100 {
+		return nil, ErrInput
+	}
 	return withSchoolData(s, ctx, p, "", func(ctx context.Context, school string) ([]Enrollment, error) {
 		return s.readReviewEnrollments(ctx, p, school, course, term, after, limit)
+	})
+}
+
+// ReviewEnrollmentSnapshot reads the entire matching set from one refresh and
+// one enrollment query. A missing source or an oversized result is inconclusive.
+func (s *Service) ReviewEnrollmentSnapshot(ctx context.Context, p Principal, course, term string) ([]Enrollment, error) {
+	return withSchoolData(s, ctx, p, "", func(ctx context.Context, school string) ([]Enrollment, error) {
+		if s.EnrollmentSource == nil {
+			return nil, ErrUnavailable
+		}
+		rows, err := s.readReviewEnrollments(ctx, p, school, course, term, "", 1001)
+		if len(rows) > 1000 {
+			return nil, ErrUnavailable
+		}
+		return rows, err
 	})
 }
 func (s *Service) readReviewEnrollments(ctx context.Context, p Principal, school string, course, term, after string, limit int) ([]Enrollment, error) {
 	if p.Subject == "" {
 		return nil, ErrUnauthenticated
 	}
-	if !ValidID(course) || (term != "" && !ValidID(term)) || (after != "" && !ValidID(after)) || limit < 1 || limit > 100 {
+	if !ValidID(course) || (term != "" && !ValidID(term)) || (after != "" && !ValidID(after)) {
 		return nil, ErrInput
 	}
 	if err := s.refreshOwn(ctx, p, school); err != nil {
