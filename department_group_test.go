@@ -27,6 +27,10 @@ func TestUnassignedDepartmentIsExclusiveAcrossDirectoryFilters(t *testing.T) {
 	s.DirectoryMetrics = uiMetrics{rows: []c.DirectoryMetric{{ID: "unassigned", ReviewCount: 3, Recommendation: "unrated"}}}
 	repo := s.Repo.(*postgres.Repository)
 	repo.RequireTeacherDirectory = true
+	if _, err := s.RefreshTeachingDirectory(ctx, p, "school"); err != nil {
+		t.Fatal(err)
+	}
+	reader := c.Principal{Subject: "issuer:student"}
 	for _, projected := range []bool{false, true} {
 		if projected {
 			if err := s.SaveTermOrders(ctx, p, "school", []c.TermOrder{{ID: "term1", Year: 2025, Season: "spring"}, {ID: "term2", Year: 2025, Season: "autumn"}}); err != nil {
@@ -38,7 +42,7 @@ func TestUnassignedDepartmentIsExclusiveAcrossDirectoryFilters(t *testing.T) {
 			repo.RequireDirectoryProjection = true
 		}
 		q := c.DirectoryQuery{Filter: c.Filter{Kind: "course", Limit: 10}}
-		all, err := s.ReadDirectory(ctx, p, q)
+		all, err := s.ReadDirectory(ctx, reader, q)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -50,13 +54,13 @@ func TestUnassignedDepartmentIsExclusiveAcrossDirectoryFilters(t *testing.T) {
 			t.Fatalf("projected=%t unassigned facet %+v", projected, last)
 		}
 		q.DepartmentID = "@unassigned"
-		group, err := s.ReadDirectory(ctx, p, q)
+		group, err := s.ReadDirectory(ctx, reader, q)
 		if err != nil || group.Total != 1 || len(group.Items) != 1 || group.Items[0].Object.ID != "unassigned" || len(group.Items[0].Departments) != 0 {
 			t.Fatalf("projected=%t unassigned group total %d err %v", projected, group.Total, err)
 		}
 		q.DepartmentID = ""
 		q.TeacherID = "teacher"
-		filtered, err := s.ReadDirectory(ctx, p, q)
+		filtered, err := s.ReadDirectory(ctx, reader, q)
 		if err != nil || filtered.Total != 1 || len(filtered.DepartmentFacets) != 0 {
 			t.Fatalf("projected=%t teacher-filtered mixed course %d %+v %v", projected, filtered.Total, filtered.DepartmentFacets, err)
 		}
