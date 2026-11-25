@@ -117,10 +117,15 @@ func loadTeacherHomepageAllowlist(t Transaction, school string) (TeacherHomepage
 	if err != nil {
 		return list, err
 	}
+	return list.Effective(), nil
+}
+
+// Effective resolves a school's unconfigured policy for all homepage readers.
+func (list TeacherHomepageAllowlist) Effective() TeacherHomepageAllowlist {
 	if list.Revision == 0 {
 		list.Fields = defaultTeacherHomepageAllowlist()
 	}
-	return list, nil
+	return list
 }
 
 func (s *Service) ReadTeacherHomepageAllowlist(ctx context.Context, p Principal, school string) (TeacherHomepageAllowlist, error) {

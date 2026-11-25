@@ -101,6 +101,7 @@ func (t *transaction) checkImageObject(store c.TeacherImageObjects) (bool, error
 	}
 	var retained bool
 	const avatar = `SELECT EXISTS(SELECT 1 FROM catalog.teacher_homepage_photos WHERE photo_id=$1 AND data IS NULL
+ UNION ALL SELECT 1 FROM catalog.teacher_avatar_cache WHERE digest=$1 AND data IS NULL
  UNION ALL SELECT 1 FROM catalog.teacher_homepage_override_photos WHERE photo_id=$1 AND data IS NULL
  UNION ALL SELECT 1 FROM catalog.teacher_homepage_request_photos WHERE photo_id=$1 AND data IS NULL)`
 	query := avatar

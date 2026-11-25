@@ -54,6 +54,7 @@ type DirectoryMetricProvider interface {
 	Metrics(context.Context, Principal, string, string, time.Time, time.Time) ([]DirectoryMetric, error)
 }
 type DirectoryItem struct {
+	AvatarURL      string           `json:"avatar_url,omitempty"`
 	Object         Object           `json:"object"`
 	Departments    []Object         `json:"departments"`
 	Categories     []Object         `json:"categories"`

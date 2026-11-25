@@ -513,6 +513,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/catalog/objects/{id}/teacher-homepage/photos/{photo_id}/thumbnail": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description 每次核对当前教师、学校资格和主页照片展示权限。源照片摘要标识 128 像素居中裁剪的 JPEG 缩略图。生产通过短期 EdgeOne 签名地址分发。 */
+        get: operations["getTeacherDirectoryAvatar"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/catalog/objects/{id}/teacher-homepage/photos/{photo_id}": {
         parameters: {
             query?: never;
@@ -1069,6 +1086,8 @@ export interface components {
             review_count: number;
         };
         DirectoryItem: {
+            /** @description 教师当前可展示照片的缩略图地址。其他情况省略。 */
+            avatar_url?: string;
             object: components["schemas"]["Object"];
             departments: components["schemas"]["Object"][];
             categories: components["schemas"]["Object"][];
@@ -4678,6 +4697,94 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["Error"];
                 };
+            };
+            /** @description Required dependency unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    getTeacherDirectoryAvatar: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                /** @description teacher_homepage.photo.url 中的照片内容 SHA-256。 */
+                photo_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 128 × 128 JPEG，最多 32 KiB。 */
+            200: {
+                headers: {
+                    "Cache-Control"?: "private, no-store";
+                    "X-Content-Type-Options"?: "nosniff";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "image/jpeg": string;
+                };
+            };
+            /** @description Authorized private media redirect valid for 60 seconds */
+            302: {
+                headers: {
+                    Location: string;
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Invalid input */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Authentication required */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not permitted */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description 教师不可见、没有当前有效主页照片，或照片摘要与当前版本不符。 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Teacher image signature issuance limit exceeded */
+            429: {
+                headers: {
+                    /** @description Seconds until the next issuance window */
+                    "Retry-After": number;
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Required dependency unavailable */
             503: {

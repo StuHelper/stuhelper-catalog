@@ -19,6 +19,7 @@ var imageRelations = []struct {
 	{"teacher_homepage_photos", "photo_id", c.SitePortrait},
 	{"teacher_homepage_override_photos", "photo_id", c.OverridePortrait},
 	{"teacher_homepage_request_photos", "photo_id", c.RequestPortrait},
+	{"teacher_avatar_cache", "digest", c.DirectoryPortrait},
 	{"teacher_homepage_body_images", "image_id", c.BodyImageObject},
 }
 
