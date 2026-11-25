@@ -23,7 +23,7 @@ type uiMetrics struct {
 	err  error
 }
 
-func (m uiMetrics) Metrics(context.Context, c.Principal, string, string, time.Time, time.Time) ([]c.DirectoryMetric, error) {
+func (m uiMetrics) Metrics(context.Context, c.Principal, string, string) ([]c.DirectoryMetric, error) {
 	return m.rows, m.err
 }
 
@@ -130,11 +130,11 @@ func TestUIDirectoryFacetsSortingVisibilityAndPagination(t *testing.T) {
 	if _, err := s.RefreshTeachingDirectory(ctx, admin, "school"); err != nil {
 		t.Fatal(err)
 	}
-	s.DirectoryMetrics = uiMetrics{rows: []c.DirectoryMetric{{ID: "course", ReviewCount: 3, RecentReviews: 2, Favorites: 1, Recommendation: "recommended"}, {ID: "another", ReviewCount: 5, RecentReviews: 0, Favorites: 0, Recommendation: "strongly_recommended"}, {ID: "outside-school", ReviewCount: 100, Recommendation: "strongly_recommended"}}}
+	s.DirectoryMetrics = uiMetrics{rows: []c.DirectoryMetric{{ID: "course", ReviewCount: 3, Favorites: 4, Recommendation: "recommended"}, {ID: "another", ReviewCount: 5, Favorites: 0, Recommendation: "strongly_recommended"}, {ID: "outside-school", ReviewCount: 100, Recommendation: "strongly_recommended"}}}
 	p := c.Principal{Subject: "issuer:student"}
 	q := c.DirectoryQuery{Filter: c.Filter{Kind: "course", Limit: 1}, Sort: "hot"}
 	first, err := s.ReadDirectory(ctx, p, q)
-	if err != nil || first.Total != 2 || first.FacetTotal != 2 || len(first.Items) != 1 || first.Items[0].Object.ID != "course" || first.Items[0].Heat != 13 || first.Next == "" {
+	if err != nil || first.Total != 2 || first.FacetTotal != 2 || len(first.Items) != 1 || first.Items[0].Object.ID != "course" || first.Items[0].Heat != 27 || first.Next == "" {
 		t.Fatalf("hot: %+v %v", first, err)
 	}
 	if len(first.CategoryFacets) != 1 || first.CategoryFacets[0].Count != 2 || first.CategoryFacets[0].ReviewCount != 8 || len(first.DepartmentFacets) != 1 || first.DepartmentFacets[0].Count != 2 || first.DepartmentFacets[0].ReviewCount != 8 || len(first.NatureFacets) != 1 || first.NatureFacets[0].Count != 1 || first.NatureFacets[0].ReviewCount != 3 {
