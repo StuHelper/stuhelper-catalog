@@ -3,10 +3,6 @@ package catalog
 import "strings"
 
 func contactLabel(label string) bool {
-	switch teacherHomepageAliases[label] {
-	case "email", "phone", "office_location":
-		return true
-	}
 	for _, word := range []string{"联系", "电话", "邮箱", "地址", "办公地点", "contact", "phone", "email", "e-mail", "address", "office location"} {
 		if strings.Contains(label, word) {
 			return true

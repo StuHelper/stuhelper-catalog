@@ -8,6 +8,16 @@ func stripHomepageContactMarker(value string) string {
 	return strings.ReplaceAll(value, homepageContactMarker, "")
 }
 
+// Include all contact aliases when masking the default view. The rules for
+// suppressing unlisted source copies are evaluated earlier in the renderer.
+func maskedContactLabel(label string) bool {
+	switch teacherHomepageAliases[label] {
+	case "email", "phone", "office_location":
+		return true
+	}
+	return contactLabel(label)
+}
+
 // The default HTTP projection marks structured contacts and masks email addresses
 // in free text. Only the interactive read returns the current permitted originals.
 func maskHomepageContacts(profile *TeacherHomepage) bool {
@@ -24,7 +34,7 @@ func maskHomepageContacts(profile *TeacherHomepage) bool {
 		lines := strings.Split(result, "\n")
 		for i, line := range lines {
 			label := homepageLabelPrefix.FindStringSubmatch(line)
-			if label != nil && contactLabel(teacherHomepageLabelKey(label[1])) && strings.TrimSpace(line[len(label[0]):]) != "" {
+			if label != nil && maskedContactLabel(teacherHomepageLabelKey(label[1])) && strings.TrimSpace(line[len(label[0]):]) != "" {
 				lines[i] = label[0] + homepageContactMarker
 				masked = true
 			}
@@ -44,7 +54,7 @@ func maskHomepageContacts(profile *TeacherHomepage) bool {
 	}
 	for i := range profile.Fields {
 		f := &profile.Fields[i]
-		if contactLabel(teacherHomepageLabelKey(f.Label)) {
+		if maskedContactLabel(teacherHomepageLabelKey(f.Label)) {
 			masked = true
 			f.Value = homepageContactMarker
 		} else {
@@ -54,7 +64,7 @@ func maskHomepageContacts(profile *TeacherHomepage) bool {
 	}
 	for i := range profile.Sections {
 		s := &profile.Sections[i]
-		if contactLabel(teacherHomepageLabelKey(s.Title)) {
+		if maskedContactLabel(teacherHomepageLabelKey(s.Title)) {
 			masked = true
 			s.Text = homepageContactMarker
 		} else {
