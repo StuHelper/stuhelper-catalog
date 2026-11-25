@@ -31,6 +31,11 @@ type OwnSchedulePage struct {
 // MySchedule projects only active records owned by the authenticated account.
 // It never reads general directory details or another student's enrollment.
 func (s *Service) MySchedule(ctx context.Context, p Principal, term, after string, limit int) (OwnSchedulePage, error) {
+	return withSchoolData(s, ctx, p, "", func(ctx context.Context, school string) (OwnSchedulePage, error) {
+		return s.readMySchedule(ctx, p, school, term, after, limit)
+	})
+}
+func (s *Service) readMySchedule(ctx context.Context, p Principal, school string, term, after string, limit int) (OwnSchedulePage, error) {
 	out := OwnSchedulePage{Items: []OwnSchedule{}}
 	if p.Subject == "" {
 		return out, ErrUnauthenticated
@@ -38,10 +43,10 @@ func (s *Service) MySchedule(ctx context.Context, p Principal, term, after strin
 	if limit < 1 || limit > 100 || (term != "" && !ValidID(term)) || (after != "" && !ValidID(after)) {
 		return out, ErrInput
 	}
-	if err := s.refreshOwn(ctx, p); err != nil {
+	if err := s.refreshOwn(ctx, p, school); err != nil {
 		return out, err
 	}
-	return s.ownSchedulePage(ctx, p, "", term, after, limit, false)
+	return s.ownSchedulePage(ctx, p, school, term, after, limit, false)
 }
 
 func (s *Service) ownSchedulePage(ctx context.Context, p Principal, school, term, after string, limit int, probeExtra bool) (OwnSchedulePage, error) {

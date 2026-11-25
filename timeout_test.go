@@ -99,7 +99,7 @@ func TestExternalPortSubTimeoutsHTTPWriteBudgetAndRebuildLockTimeout(t *testing.
 
 		// 3. OwnSummaryAccess sub-timeout degrades MyNextClassDay to unavailable and bounds MyReviewCandidates.
 		wg.Go(func() {
-			sub := &c.Service{Repo: s.Repo, ReadAccess: s.ReadAccess, Clock: s.Clock, OwnSummaryAccess: blockingOwnSummaryAccess{}, EnrollmentSource: blockingEnrollmentSource{}}
+			sub := &c.Service{Repo: s.Repo, ReadAccess: s.ReadAccess, Clock: s.Clock, SchoolDataAccess: s.SchoolDataAccess, OwnSummaryAccess: blockingOwnSummaryAccess{}, EnrollmentSource: blockingEnrollmentSource{}}
 			parentCtx, cancel := context.WithTimeout(ctx, 7*time.Second)
 			defer cancel()
 			started := time.Now()
@@ -115,7 +115,7 @@ func TestExternalPortSubTimeoutsHTTPWriteBudgetAndRebuildLockTimeout(t *testing.
 
 		// 4. EnrollmentSource sub-timeout bounds own enrollment reads and degrades MyNextClassDay.
 		wg.Go(func() {
-			sub := &c.Service{Repo: s.Repo, ReadAccess: s.ReadAccess, Clock: s.Clock, OwnSummaryAccess: allowOwnSummaryAccess{}, EnrollmentSource: blockingEnrollmentSource{}}
+			sub := &c.Service{Repo: s.Repo, ReadAccess: s.ReadAccess, Clock: s.Clock, SchoolDataAccess: s.SchoolDataAccess, OwnSummaryAccess: allowOwnSummaryAccess{}, EnrollmentSource: blockingEnrollmentSource{}}
 			parentCtx, cancel := context.WithTimeout(ctx, 8*time.Second)
 			defer cancel()
 			started := time.Now()

@@ -32,7 +32,7 @@ type sourceMarker struct {
 	Result   ImportResult
 }
 
-func (s *Service) refreshOwn(ctx context.Context, p Principal) error {
+func (s *Service) refreshOwn(ctx context.Context, p Principal, school string) error {
 	if s.EnrollmentSource == nil {
 		return nil
 	}
@@ -47,7 +47,7 @@ func (s *Service) refreshOwn(ctx context.Context, p Principal) error {
 		}
 		return ErrUnavailable
 	}
-	if snapshot.Subject != p.Subject {
+	if snapshot.SchoolID != school || snapshot.Subject != p.Subject {
 		return ErrUnavailable
 	}
 	started = time.Now()

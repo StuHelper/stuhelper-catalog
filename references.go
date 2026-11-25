@@ -60,6 +60,11 @@ func (s *Service) ReferenceNames(ctx context.Context, ids []string) (References,
 	return out, e
 }
 func (s *Service) MyReferences(ctx context.Context, p Principal, ids []string) (References, error) {
+	return withSchoolData(s, ctx, p, "", func(ctx context.Context, school string) (References, error) {
+		return s.readMyReferences(ctx, p, school, ids)
+	})
+}
+func (s *Service) readMyReferences(ctx context.Context, p Principal, school string, ids []string) (References, error) {
 	if p.Subject == "" {
 		return References{}, ErrUnauthenticated
 	}
@@ -67,12 +72,12 @@ func (s *Service) MyReferences(ctx context.Context, p Principal, ids []string) (
 	if e != nil {
 		return References{}, e
 	}
-	if err := s.refreshOwn(ctx, p); err != nil {
+	if err := s.refreshOwn(ctx, p, school); err != nil {
 		return References{}, err
 	}
 	var out References
 	e = s.Repo.Transaction(ctx, func(tx Transaction) error {
-		owned, e := tx.OwnedReferences(p.Subject, ids)
+		owned, e := tx.OwnedReferences(p.Subject, school, ids)
 		if e != nil {
 			return e
 		}
