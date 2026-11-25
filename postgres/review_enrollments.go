@@ -19,29 +19,3 @@ func (t *transaction) ReviewEnrollments(subject, school, course, term, after str
  OR (term_key=(SELECT term_key FROM owned WHERE id=$5) AND id>$5)
  ORDER BY term_key DESC,id LIMIT $6`, subject, school, course, term, after, limit)
 }
-
-func (t *transaction) CourseTermTeachers(school, course, term string) ([]string, error) {
-	if _, err := t.projectionVersion(school); err != nil {
-		return nil, err
-	}
-	rows, err := t.tx.QueryContext(t.ctx, `SELECT DISTINCT o.id FROM catalog.projection_heads h
- JOIN catalog.projection_relations r ON r.version=h.version
- JOIN catalog.projection_objects o ON o.version=h.version AND o.id=r.teacher_id AND o.kind='teacher'
- WHERE h.school_id=$1 AND r.course_id=catalog.canonical($2) AND r.term_id=catalog.canonical($3) AND `+projectedVisible("o")+` ORDER BY o.id LIMIT 1001`, school, course, term)
-	if err != nil {
-		return nil, safe(err)
-	}
-	defer rows.Close()
-	ids := []string{}
-	for rows.Next() {
-		var id string
-		if err := rows.Scan(&id); err != nil {
-			return nil, safe(err)
-		}
-		ids = append(ids, id)
-	}
-	if len(ids) > 1000 {
-		return nil, c.ErrUnavailable
-	}
-	return ids, safe(rows.Err())
-}

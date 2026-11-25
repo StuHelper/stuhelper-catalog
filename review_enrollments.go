@@ -85,14 +85,24 @@ func (s *Service) CourseTermTeachers(ctx context.Context, course, term string) (
 		if target.Kind != "course" || period.Kind != "term" || target.SchoolID != period.SchoolID {
 			return ErrInput
 		}
-		port, ok := tx.(interface {
-			CourseTermTeachers(string, string, string) ([]string, error)
-		})
-		if !ok {
+		if target.CanonicalID != "" {
+			course = target.CanonicalID
+		}
+		if period.CanonicalID != "" {
+			term = period.CanonicalID
+		}
+		items, err := tx.List(Filter{Kind: "teacher", SchoolID: target.SchoolID, CourseID: course, TermID: term, Limit: 1000})
+		if err != nil {
+			return err
+		}
+		if len(items) > 1000 {
 			return ErrUnavailable
 		}
-		ids, e = port.CourseTermTeachers(target.SchoolID, target.ID, period.ID)
-		return e
+		ids = make([]string, 0, len(items))
+		for _, teacher := range items {
+			ids = append(ids, teacher.ID)
+		}
+		return nil
 	})
 	return ids, err
 }

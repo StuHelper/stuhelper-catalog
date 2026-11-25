@@ -3,6 +3,7 @@ package catalog_test
 import (
 	"context"
 	"errors"
+	"slices"
 	"testing"
 
 	c "github.com/StuHelper/stuhelper-catalog"
@@ -31,5 +32,21 @@ func TestMissingSchoolDataAuthorizationSkipsPersonalSources(t *testing.T) {
 	}
 	if source.reads != 0 {
 		t.Errorf("unauthorized calls to enrollment source: %d", source.reads)
+	}
+}
+
+func TestPublicTeacherFallbackUsesOnlyTheRequestedCourseAndTerm(t *testing.T) {
+	s, admin, seed := fixture(t)
+	ctx := context.Background()
+	if _, err := s.Import(ctx, admin, "course-teacher-fixture", seed); err != nil {
+		t.Fatal(err)
+	}
+	ids, err := s.CourseTermTeachers(ctx, "course", "term1")
+	if err != nil || !slices.Equal(ids, []string{"teacher", "teacher2"}) {
+		t.Fatal(ids, err)
+	}
+	ids, err = s.CourseTermTeachers(ctx, "course", "term2")
+	if err != nil || len(ids) != 0 {
+		t.Fatal(ids, err)
 	}
 }

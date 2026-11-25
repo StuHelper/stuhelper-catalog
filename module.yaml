@@ -47,6 +47,8 @@ capability_requires:
     - id: identity
       api: 1
   catalog.enrollments:
+    - id: verification
+      api: 1
     - id: identity
       api: 1
   catalog.maintain:
