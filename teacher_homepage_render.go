@@ -192,6 +192,7 @@ func (p homepagePresentation) redaction(source TeacherHomepage) homepageRedactio
 }
 
 func (r homepageRedaction) suppressValue(p homepagePresentation, source *TeacherHomepage, group, label, value string) {
+	value = stripHomepageContactMarker(value)
 	key := teacherHomepageSelectorKey(TeacherHomepageFieldSelector{Field: group, Label: label})
 	alias := teacherHomepageAliases[key.Label]
 	hard := p.hidden[group] || p.rules[key].Hidden || p.hidden[alias]
@@ -258,7 +259,7 @@ func (r homepageRedaction) suppressOverrideItem(p homepagePresentation, group, l
 }
 
 func (r homepageRedaction) add(field, value string, hard bool) {
-	value = homepageLineBreaks.Replace(strings.ReplaceAll(value, homepageContactMarker, ""))
+	value = homepageLineBreaks.Replace(stripHomepageContactMarker(value))
 	key := teacherHomepageLabelKey(value)
 	if key == "" {
 		return
@@ -316,7 +317,7 @@ func (r homepageRedaction) clean(value string, explicit bool) string {
 	if value == "" {
 		return ""
 	}
-	value = homepageLineBreaks.Replace(strings.ReplaceAll(value, homepageContactMarker, ""))
+	value = homepageLineBreaks.Replace(stripHomepageContactMarker(value))
 	lines := make([]string, 0, 1+strings.Count(value, "\n"))
 	for line := range strings.SplitSeq(value, "\n") {
 		original := line
@@ -488,7 +489,7 @@ func (p homepagePresentation) dynamicItem(key TeacherHomepageFieldSelector, item
 		policy := *redaction
 		policy.keepOrdinary = true
 		var addresses []string
-		for _, address := range homepageEmail.FindAllString(item.text, -1) {
+		for _, address := range homepageEmail.FindAllString(stripHomepageContactMarker(item.text), -1) {
 			if policy.clean(address, false) != "" && !slices.Contains(addresses, address) {
 				addresses = append(addresses, address)
 			}

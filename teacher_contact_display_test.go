@@ -17,6 +17,12 @@ func TestTeacherHomepageInlineContactMarker(t *testing.T) {
 	if !maskHomepageContacts(view) || view.Email != marker || view.Phone != marker || view.OfficeLocation != marker || view.Biography != "作者…写信给 "+marker+" 或 "+marker+"。\n联系方式："+marker || view.Fields[0].Value != marker || view.Sections[0].Text != marker {
 		t.Fatal("incorrect initial contact locations", view)
 	}
+	// Unlisted prose can publish explicit email addresses only. Strip a source
+	// marker before extraction as well, so a truncated address cannot escape.
+	unlisted := p.profile(&TeacherHomepage{Sections: []TeacherHomepageSection{{"未列栏目", "合成个人资料 lab" + marker + "group@example.org"}}}, "test")
+	if unlisted == nil || len(unlisted.Sections) != 1 || unlisted.Sections[0].Text != "labgroup@example.org" {
+		t.Fatal("unlisted email not normalized before extraction", unlisted)
+	}
 	empty := p.profile(&TeacherHomepage{Biography: "字" + marker + "面省略号…", Email: marker}, "test")
 	if maskHomepageContacts(empty) || empty.Email != "" || empty.Biography != "字面省略号…" {
 		t.Fatal("fabricated contact", empty)

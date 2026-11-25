@@ -4,6 +4,10 @@ import "strings"
 
 const homepageContactMarker = "\uE000"
 
+func stripHomepageContactMarker(value string) string {
+	return strings.ReplaceAll(value, homepageContactMarker, "")
+}
+
 // The default HTTP projection marks structured contacts and masks email addresses
 // in free text. Only the interactive read returns the current permitted originals.
 func maskHomepageContacts(profile *TeacherHomepage) bool {
