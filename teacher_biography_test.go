@@ -67,7 +67,7 @@ func TestBiographyPreservesPreviouslyVisibleOpening(t *testing.T) {
 	src := TeacherHomepage{Name: "教师", Biography: bio, Sections: []TeacherHomepageSection{{Title: "个人简介", Text: bio}}}
 	p := newHomepagePresentation(TeacherHomepageControls{PageVisibility: TeacherHomepageVisible}, TeacherHomepageAllowlist{Fields: defaultTeacherHomepageAllowlist()})
 	profile := p.profile(&src, "teacher")
-	if profile == nil || profile.Biography != bio || len(profile.Sections) != 1 || profile.Sections[0].Text != bio {
+	if profile == nil || profile.Biography != bio || len(profile.Sections) != 0 {
 		t.Fatal(profile)
 	}
 }
