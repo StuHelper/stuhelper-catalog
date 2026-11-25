@@ -20,6 +20,7 @@ type Service struct {
 	DirectoryConfig          DirectoryConfig
 	RecentResources          RecentResourceCounts
 	OwnSummaryAccess         OwnSummaryAccess
+	SchoolDataAccess         SchoolDataAccess
 	EnrollmentSource         EnrollmentSource
 	TeacherHomepageOwnership TeacherHomepageOwnership
 	TeacherSiteHosts         map[string][]string
@@ -366,6 +367,11 @@ func (s *Service) List(ctx context.Context, f Filter) (page Page, err error) {
 	return out, err
 }
 func (s *Service) MyEnrollments(ctx context.Context, p Principal, school, course, term, after string, limit int) ([]Enrollment, error) {
+	return withSchoolData(s, ctx, p, school, func(ctx context.Context, school string) ([]Enrollment, error) {
+		return s.readMyEnrollments(ctx, p, school, course, term, after, limit)
+	})
+}
+func (s *Service) readMyEnrollments(ctx context.Context, p Principal, school, course, term, after string, limit int) ([]Enrollment, error) {
 	if p.Subject == "" {
 		return nil, ErrForbidden
 	}
@@ -377,7 +383,7 @@ func (s *Service) MyEnrollments(ctx context.Context, p Principal, school, course
 			return nil, ErrInput
 		}
 	}
-	if err := s.refreshOwn(ctx, p); err != nil {
+	if err := s.refreshOwn(ctx, p, school); err != nil {
 		return nil, err
 	}
 	var out []Enrollment

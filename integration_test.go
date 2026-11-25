@@ -15,10 +15,16 @@ import (
 	"github.com/StuHelper/stuhelper-catalog/httpapi"
 )
 
+type fixtureSchoolData struct{}
+
+func (fixtureSchoolData) WithSchoolData(ctx context.Context, _ string, read func(context.Context, string) error) error {
+	return read(ctx, "school")
+}
+
 func fixture(t *testing.T) (*c.Service, c.Principal, c.Import) {
 	t.Helper()
 	repo, _ := database(t)
-	s := &c.Service{Repo: repo, ReadAccess: &readAccess{}}
+	s := &c.Service{Repo: repo, SchoolDataAccess: fixtureSchoolData{}, ReadAccess: &readAccess{}}
 	p := c.Principal{Subject: "issuer:admin", Schools: []string{"school"}, CanImport: true, CanMaintain: true}
 	object := func(id, kind string) c.Object {
 		return c.Object{ID: id, Kind: kind, SchoolID: "school", Name: id, Aliases: []string{}}

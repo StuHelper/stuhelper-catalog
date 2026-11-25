@@ -97,8 +97,17 @@ func isHistoricalEndedTerm(row OwnSchedule, now time.Time, latestStartedTermKey 
 // MyNextClassDay does not use cached enrollment rows without the current owner
 // source. The same source enforces authorization for MySchedule and Evidence.
 func (s *Service) MyNextClassDay(ctx context.Context, p Principal) (NextClassDay, error) {
+	out, err := withSchoolData(s, ctx, p, "", func(ctx context.Context, school string) (NextClassDay, error) {
+		return s.readMyNextClassDay(ctx, p, school)
+	})
+	if errors.Is(err, ErrForbidden) {
+		return NextClassDay{State: "unavailable", Reason: "enrollment_unavailable", Items: []NextLesson{}}, nil
+	}
+	return out, err
+}
+func (s *Service) readMyNextClassDay(ctx context.Context, p Principal, school string) (NextClassDay, error) {
 	out := NextClassDay{State: "unavailable", Reason: "enrollment_unavailable", Items: []NextLesson{}}
-	school, err := s.readScope(ctx, p, "")
+	_, err := s.readScope(ctx, p, school)
 	if err != nil {
 		return out, err
 	}
@@ -111,7 +120,7 @@ func (s *Service) MyNextClassDay(ctx context.Context, p Principal) (NextClassDay
 		}
 		return out, nil
 	}
-	if err := s.refreshOwn(ctx, p); err != nil {
+	if err := s.refreshOwn(ctx, p, school); err != nil {
 		if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
 			return NextClassDay{}, err
 		}
@@ -275,8 +284,13 @@ type OwnReviewCandidateTransaction interface {
 }
 
 func (s *Service) MyReviewCandidates(ctx context.Context, p Principal) (OwnReviewCandidates, error) {
+	return withSchoolData(s, ctx, p, "", func(ctx context.Context, school string) (OwnReviewCandidates, error) {
+		return s.readMyReviewCandidates(ctx, p, school)
+	})
+}
+func (s *Service) readMyReviewCandidates(ctx context.Context, p Principal, school string) (OwnReviewCandidates, error) {
 	out := OwnReviewCandidates{Owner: p.Subject, Items: []ReviewCourseCandidate{}}
-	school, err := s.readScope(ctx, p, "")
+	_, err := s.readScope(ctx, p, school)
 	if err != nil {
 		return out, err
 	}
@@ -286,7 +300,7 @@ func (s *Service) MyReviewCandidates(ctx context.Context, p Principal) (OwnRevie
 	if err := s.authorizeOwnSummary(ctx, p, school); err != nil {
 		return out, err
 	}
-	if err := s.refreshOwn(ctx, p); err != nil {
+	if err := s.refreshOwn(ctx, p, school); err != nil {
 		return out, err
 	}
 	out.SchoolID = school
