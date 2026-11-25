@@ -202,6 +202,22 @@ func (t *transaction) Directory(q c.DirectoryQuery, cursor c.DirectoryPosition, 
 		}
 		out.Rows = append(out.Rows, c.DirectoryRow{Item: item, Rank: row.rank})
 	}
+	if q.Kind == "teacher" && len(out.Rows) > 0 {
+		pageIDs := make([]string, 0, len(out.Rows))
+		for _, row := range out.Rows {
+			pageIDs = append(pageIDs, row.Item.Object.ID)
+		}
+		photos, err := t.directoryPhotos(q.SchoolID, pageIDs)
+		if err != nil {
+			return c.DirectoryResult{}, err
+		}
+		for i, row := range out.Rows {
+			if photo := photos[row.Item.Object.ID]; photo != nil {
+				out.Rows[i].Item.AvatarURL = photo.URL + "/thumbnail"
+			}
+		}
+	}
+
 	return out, nil
 }
 func (t *transaction) directoryViews(kind, school string, from, until time.Time) (map[string]int64, error) {

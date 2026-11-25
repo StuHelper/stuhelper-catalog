@@ -142,6 +142,8 @@ scenario_tests:
     - teacher_homepage_photo_upload_test.go#TestValidateTeacherHomepagePhotoUpload
     - httpapi/teacher_homepage_photo_test.go#TestWriteTeacherHomepagePhotoUsesPrivateSameOriginResponse
     - teacher_homepage_complaint_test.go#TestTeacherHomepageComplaintHideRevisionAndReplay
+    - teacher_image_cos_test.go#TestDirectoryAvatarEdgeCopyUsesOnlyCurrentHomepagePhoto
+    - teacher_directory_avatar_test.go#TestTeacherDirectoryAvatarUsesCurrentPhotoPermissions
   CAT-TEACHER-09:
     - teacher_homepage_capacity_postgres_test.go#TestTeacherHomepageControlsPostgresRejectsOverrideCapacity
     - teacher_homepage_controls_postgres_test.go#TestTeacherHomepageControlsPostgresAuditAndReplay

@@ -2,7 +2,7 @@
   "openapi": "3.0.3",
   "info": {
     "title": "StuHelper Catalog",
-    "version": "0.17.0"
+    "version": "0.18.0"
   },
   "servers": [
     {
@@ -3906,6 +3906,149 @@
         }
       }
     },
+    "/api/v1/catalog/objects/{id}/teacher-homepage/photos/{photo_id}/thumbnail": {
+      "get": {
+        "operationId": "getTeacherDirectoryAvatar",
+        "description": "每次核对当前教师、学校资格和主页照片展示权限。源照片摘要标识 128 像素居中裁剪的 JPEG 缩略图。生产通过短期 EdgeOne 签名地址分发。",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128,
+              "pattern": "^[A-Za-z0-9_.:-]+$"
+            }
+          },
+          {
+            "name": "photo_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 64,
+              "maxLength": 64,
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "description": "teacher_homepage.photo.url 中的照片内容 SHA-256。"
+          }
+        ],
+        "responses": {
+          "302": {
+            "description": "Authorized private media redirect valid for 60 seconds",
+            "headers": {
+              "Location": {
+                "required": true,
+                "schema": {
+                  "type": "string",
+                  "format": "uri"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Teacher image signature issuance limit exceeded",
+            "headers": {
+              "Retry-After": {
+                "required": true,
+                "description": "Seconds until the next issuance window",
+                "schema": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 60
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "128 × 128 JPEG，最多 32 KiB。",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "enum": [
+                    "private, no-store"
+                  ]
+                }
+              },
+              "X-Content-Type-Options": {
+                "schema": {
+                  "type": "string",
+                  "enum": [
+                    "nosniff"
+                  ]
+                }
+              }
+            },
+            "content": {
+              "image/jpeg": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not permitted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "教师不可见、没有当前有效主页照片，或照片摘要与当前版本不符。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Required dependency unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/catalog/objects/{id}/teacher-homepage/photos/{photo_id}": {
       "get": {
         "operationId": "getTeacherHomepagePhoto",
@@ -7348,6 +7491,7 @@
         "type": "object",
         "additionalProperties": false,
         "properties": {
+          "avatar_url": {"type": "string", "pattern": "^/api/v1/catalog/objects/[A-Za-z0-9_.:-]+/teacher-homepage/photos/[0-9a-f]{64}/thumbnail$", "description": "教师当前可展示照片的缩略图地址。其他情况省略。"},
           "object": {
             "$ref": "#/components/schemas/Object"
           },

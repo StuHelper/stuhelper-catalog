@@ -42,6 +42,8 @@ func object(k c.TeacherImageKey) (string, int, error) {
 	switch k.Kind {
 	case c.BodyImageObject:
 		return "body/" + k.Digest, c.TeacherHomepageMaxBodyImageBytes, nil
+	case c.DirectoryPortrait:
+		return "avatars/" + k.Digest, c.TeacherAvatarMaxBytes, nil
 	case c.SitePortrait, c.OverridePortrait, c.RequestPortrait:
 		return "avatars/" + k.Digest, c.TeacherHomepageMaxPhotoBytes, nil
 	default:

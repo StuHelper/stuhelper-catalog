@@ -63,3 +63,21 @@ func (h Handler) teacherHomepageRequestPhoto(w http.ResponseWriter, r *http.Requ
 	}
 	writeTeacherHomepagePhoto(w, r, photo)
 }
+
+func (h Handler) teacherDirectoryAvatar(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Cache-Control", "private, no-store")
+	p, ok := h.principal(w, r)
+	if !ok {
+		return
+	}
+	thumb, key, err := h.Service.ReadTeacherAvatar(r.Context(), p, r.PathValue("id"), r.PathValue("photo_id"), h.ImageRedirect == nil)
+	if err != nil {
+		respond(w, nil, err)
+		return
+	}
+	if h.ImageRedirect != nil {
+		h.redirectTeacherImage(w, r, p, key)
+		return
+	}
+	writeTeacherHomepagePhoto(w, r, thumb)
+}

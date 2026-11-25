@@ -36,6 +36,7 @@ func (r *Repository) CheckRuntime(ctx context.Context) error {
  FROM unnest(ARRAY['status','revision','resolved_at','data']) name)
  AND (SELECT bool_and(has_table_privilege(current_user,'catalog.'||name,'DELETE'))
  FROM unnest(ARRAY['teacher_homepage_sites','teacher_homepage_photos','teacher_homepage_teachers','teacher_homepage_override_photos']) name)
+ AND has_table_privilege(current_user,'catalog.teacher_avatar_cache','SELECT,INSERT,DELETE')
  AND has_table_privilege(current_user,'catalog.teacher_homepage_request_photos','SELECT')
  AND has_table_privilege(current_user,'catalog.teacher_homepage_request_photos','INSERT')
  AND (SELECT bool_and(has_table_privilege(current_user,'catalog.'||name,verb))

@@ -85,6 +85,35 @@ func (p homepagePresentation) photo() (bool, *TeacherHomepageFieldPhoto) {
 	return p.allowed[key], nil
 }
 
+func (p homepagePresentation) publishedPhoto(teacher string, source *TeacherHomepagePhoto) *TeacherHomepagePhoto {
+	var photo *TeacherHomepagePhoto
+	if allowed, override := p.photo(); allowed {
+		if override != nil {
+			photo = &TeacherHomepagePhoto{ID: override.ID, ContentType: override.ContentType, Width: override.Width, Height: override.Height}
+		} else if source != nil {
+			value := *source
+			photo = &value
+		}
+		if photo != nil {
+			photo.URL = "/api/v1/catalog/objects/" + url.PathEscape(teacher) + "/teacher-homepage/photos/" + photo.ID
+		}
+	}
+	return photo
+}
+
+// DirectoryTeacherAvatar applies the same final photo selection as the homepage
+// without loading biographies, contacts or image bytes into a directory page.
+func DirectoryTeacherAvatar(teacher string, controls TeacherHomepageControls, list TeacherHomepageAllowlist, matched bool, sourceID string) *TeacherHomepagePhoto {
+	if !matched && !controls.Independent {
+		return nil
+	}
+	var source *TeacherHomepagePhoto
+	if sourceID != "" {
+		source = &TeacherHomepagePhoto{ID: sourceID}
+	}
+	return newHomepagePresentation(controls, list).publishedPhoto(teacher, source)
+}
+
 var teacherHomepageAliases = map[string]string{
 	"姓名": "name", "name": "name",
 	"主要任职": "position", "职务": "position", "position": "position", "administrative position": "position",
@@ -559,17 +588,7 @@ func (p homepagePresentation) renderProfile(source *TeacherHomepage, teacher str
 		out.Biography = redaction.deduplicateVisibleBiography(out)
 	}
 	p.deduplicateSections(out, sections, placements)
-	if allowed, override := p.photo(); allowed {
-		if override != nil {
-			out.Photo = &TeacherHomepagePhoto{ID: override.ID, ContentType: override.ContentType, Width: override.Width, Height: override.Height}
-		} else if source.Photo != nil {
-			photo := *source.Photo
-			out.Photo = &photo
-		}
-		if photo := out.Photo; photo != nil {
-			photo.URL = "/api/v1/catalog/objects/" + url.PathEscape(teacher) + "/teacher-homepage/photos/" + photo.ID
-		}
-	}
+	out.Photo = p.publishedPhoto(teacher, source.Photo)
 	if len(out.Fields) == 0 && len(out.Sections) == 0 && len(out.Supervisors) == 0 && out.Photo == nil &&
 		!slices.ContainsFunc(teacherHomepageScalarFields, func(field string) bool { return *homepageScalar(out, field) != "" }) {
 		return nil
