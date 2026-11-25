@@ -1,7 +1,9 @@
 package catalog
 
 import (
+	"fmt"
 	"slices"
+	"strings"
 	"testing"
 )
 
@@ -34,7 +36,7 @@ func TestTeacherHomepageSectionContainment(t *testing.T) {
 		{"normalized", "方向 Ａ", []TeacherHomepageSection{{"Research interests", "方向  A"}}, nil, "方向 Ａ"},
 		{"longer section", "研究甲", []TeacherHomepageSection{{"研究方向", "研究甲\n项目乙"}}, []TeacherHomepageSection{{"研究方向", "研究甲\n项目乙"}}, ""},
 		{"multiple chunks", "研究甲", []TeacherHomepageSection{{"研究方向", "研究甲\n项目乙"}, {"研究方向", "研究甲"}, {"研究领域", "另一课题"}}, []TeacherHomepageSection{{"研究方向", "研究甲\n项目乙"}, {"研究领域", "另一课题"}}, ""},
-		{"partial", "研究甲\n课题乙", []TeacherHomepageSection{{"研究方向", "课题乙\n课题丙"}}, []TeacherHomepageSection{{"研究方向", "课题乙\n课题丙"}}, "研究甲\n课题乙"},
+		{"partial", "研究甲\n课题乙", []TeacherHomepageSection{{"研究方向", "课题乙\n课题丙"}}, []TeacherHomepageSection{{"研究方向", "课题丙"}}, "研究甲\n课题乙"},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			src := TeacherHomepage{Research: tc.research, Sections: tc.sections}
@@ -54,5 +56,42 @@ func TestTeacherHomepageSectionContainment(t *testing.T) {
 		if got.Research != manual || !slices.Equal(got.Sections, []TeacherHomepageSection{{"研究方向", manual}}) {
 			t.Fatal("approved section changed", got)
 		}
+	}
+}
+
+func TestTeacherHomepagePartialSectionLines(t *testing.T) {
+	p := newHomepagePresentation(TeacherHomepageControls{PageVisibility: TeacherHomepageVisible}, TeacherHomepageAllowlist{Fields: defaultTeacherHomepageAllowlist()})
+	section := TeacherHomepageFieldSelector{Field: "sections", Label: "个人简介"}
+	for _, tc := range []struct {
+		site            string
+		scalar, section int
+	}{{"1087", 92, 57}, {"1111", 112, 110}, {"1113", 32, 30}} {
+		t.Run(tc.site, func(t *testing.T) {
+			var bio, subset []string
+			for i := 0; i < tc.scalar; i++ {
+				line := fmt.Sprintf("合成研究经历 %03d", i)
+				bio = append(bio, line)
+				if i != 1 && len(subset) < tc.section {
+					subset = append(subset, line)
+				}
+			}
+			original := strings.Join(bio, "\n")
+			src := TeacherHomepage{Biography: original, Sections: []TeacherHomepageSection{{section.Label, strings.Join(subset, "\n")}}}
+			moves := homepageMediaPlacements{}
+			got := p.renderProfile(&src, "test", moves)
+			if got == nil || got.Biography != original || len(got.Sections) != 0 || moves[section].Field != "biography" {
+				t.Fatal("expected original biography, empty section removed and media moved")
+			}
+		})
+	}
+	src := TeacherHomepage{Biography: "研究 Ａ\n合成教师长期研究方向\n联络 a@example.org", Sections: []TeacherHomepageSection{{section.Label, "研究  A\nＲesearch  a\n研究 a\n另一条合成教师长期研究方向\n联络 b@example.org"}}}
+	moves := homepageMediaPlacements{}
+	got := p.renderProfile(&src, "test", moves)
+	want := "Ｒesearch  a\n研究 a\n另一条合成教师长期研究方向\n联络 b@example.org"
+	if got.Biography != src.Biography || !slices.Equal(got.Sections, []TeacherHomepageSection{{section.Label, want}}) || len(moves) != 0 {
+		t.Fatal("partial lines, unrelated spelling or media placement changed", got)
+	}
+	if !maskHomepageContacts(got) || got.Biography != "研究 Ａ\n合成教师长期研究方向\n联络 \uE000" || got.Sections[0].Text != strings.ReplaceAll(want, "b@example.org", "\uE000") {
+		t.Fatal("wrong marker position", got)
 	}
 }

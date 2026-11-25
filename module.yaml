@@ -130,6 +130,7 @@ scenario_tests:
   CAT-TEACHER-08:
     - teacher_contact_display_test.go#TestTeacherHomepageInlineContactMarker
     - teacher_homepage_duplicates_test.go#TestTeacherHomepageDuplicateSources
+    - teacher_homepage_duplicates_test.go#TestTeacherHomepagePartialSectionLines
     - teacher_homepage_duplicates_test.go#TestTeacherHomepageSectionContainment
     - teacher_display_test.go#TestTeacherDisplayContactRevealAndLinks
     - teacher_display_test.go#TestTeacherDisplayOnlyLiteralAddressesInUnlistedSection
