@@ -29,7 +29,10 @@ var activityCalendarSchema string
 //go:embed teacher_homepage_requests.sql
 var teacherHomepageRequestSchema string
 
-var Schema = baseSchema + "\n" + courseSearchSchema + "\n" + activityCalendarSchema + "\n" + teacherHomepageRequestSchema + "\n" + portraitExclusionSchema
+//go:embed department_order.sql
+var departmentOrderSchema string
+
+var Schema = baseSchema + "\n" + courseSearchSchema + "\n" + activityCalendarSchema + "\n" + teacherHomepageRequestSchema + "\n" + portraitExclusionSchema + "\n" + departmentOrderSchema
 
 type Repository struct {
 	// TeacherImageStorage overrides byte storage; nil uses the existing PostgreSQL rows.

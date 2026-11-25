@@ -260,6 +260,13 @@ func (t *transaction) RebuildDirectory(school string, policy *c.DirectoryPolicy,
 			slog.ErrorContext(t.ctx, "catalog projection build failed", "step", index+1, "reason", projectionErrorCode(e))
 			return out, safe(e)
 		}
+		if index == 0 {
+			// Department objects belong to the first build step. Assign their
+			// ranks before constructing facets and the cached default pages.
+			if _, err := t.tx.ExecContext(t.ctx, "SELECT catalog.rank_projection_departments($1)", out.Version); err != nil {
+				return out, safe(err)
+			}
+		}
 		if index == 6 {
 			if e := t.applyDisplayPolicy(school, &out); e != nil {
 				return out, e

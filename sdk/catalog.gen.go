@@ -1245,7 +1245,9 @@ type DirectoryItem struct {
 
 // DirectoryPage defines model for DirectoryPage.
 type DirectoryPage struct {
-	CategoryFacets   []DirectoryFacet `json:"category_facets"`
+	CategoryFacets []DirectoryFacet `json:"category_facets"`
+
+	// DepartmentFacets Departments in school code order: numeric official codes, B-prefixed numeric units, other codes, then missing codes. Ties use name and ID.
 	DepartmentFacets []DirectoryFacet `json:"department_facets"`
 
 	// FacetTotal Distinct objects after all filters except category_id / category_ids, for the All category badge.
@@ -1321,7 +1323,9 @@ type FilterOption struct {
 
 // FilterOptions defines model for FilterOptions.
 type FilterOptions struct {
-	Categories  []FilterOption    `json:"categories"`
+	Categories []FilterOption `json:"categories"`
+
+	// Departments Uses the same school department order as directory department_facets.
 	Departments []FilterOption    `json:"departments"`
 	Kind        FilterOptionsKind `json:"kind"`
 	Natures     []FilterOption    `json:"natures"`
