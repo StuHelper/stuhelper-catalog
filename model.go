@@ -177,7 +177,7 @@ type Transaction interface {
 	Timetable(string, string) (Timetable, error)
 	SaveTimetable(Timetable) error
 	OwnScheduleMeetings(string, []string, int) ([]EnrollmentMeeting, error)
-	OwnedReferences(subject string, ids []string) ([]string, error)
+	OwnedReferences(subject, school string, ids []string) ([]string, error)
 	ReferenceNames(ids []string) ([]Reference, error)
 	PublicObject(string) (Object, error)
 	ResolveIDs(string) ([]string, error)
