@@ -188,3 +188,32 @@ func checkBodyMediaStorage(t *testing.T, store c.TeacherImageStorage) {
 	homepageCall(t, h, http.MethodGet, mediaURL, homepageReader, "", "", http.StatusNotFound)
 	checkImage(http.StatusNotFound)
 }
+
+func TestHomepageMediaFollowsRetainedText(t *testing.T) {
+	s, principal, _, in := homepageFixtureWithImages(t, nil)
+	s.ReadAccess = &bodyMediaReadAccess{}
+	in = homepageNextSnapshot(in)
+	in.Version = 3
+	site := &in.Sites[0]
+	site.Profile.Biography = "合成经历"
+	site.Profile.Research = "教学研究"
+	site.Profile.Sections = []c.TeacherHomepageSection{{Title: "个人简介", Text: "合成经历"}, {Title: "研究方向", Text: "教学研究\n新增课题"}}
+	site.BodyMedia = []c.TeacherHomepageBodyMedia{
+		{Kind: "image", Field: "sections", Section: "个人简介", LinkURL: site.URL},
+		{Kind: "video", Field: "research", LinkURL: "https://media.example.org/course"},
+	}
+	publishTeacherHomepagePostgresSnapshot(t, s, principal, "deduplicated-media", in)
+	h := homepageHandler(s)
+	read := func() []c.TeacherHomepageMedium {
+		response := homepageCall(t, h, http.MethodGet, homepagePublic+"/media", homepageReader, "", "", http.StatusOK)
+		return homepageDecode[c.TeacherHomepageMediaView](t, response).Items
+	}
+	items := read()
+	if len(items) != 2 || items[0].Field != "biography" || items[0].Section != "" || items[0].URL != site.URL || items[1].Field != "sections" || items[1].Section != "研究方向" || items[1].URL != site.BodyMedia[1].LinkURL {
+		t.Fatalf("media placement: %+v", items)
+	}
+	homepageSet(t, h, 0, "visible", `[{"field":{"field":"sections","label":"个人简介"},"hidden":true}]`, "hide-original-section")
+	if items := read(); len(items) != 1 || items[0].URL != site.BodyMedia[1].LinkURL {
+		t.Fatalf("media after original section hidden: %+v", items)
+	}
+}

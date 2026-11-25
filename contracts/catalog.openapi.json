@@ -2,7 +2,7 @@
   "openapi": "3.0.3",
   "info": {
     "title": "StuHelper Catalog",
-    "version": "0.16.0"
+    "version": "0.17.0"
   },
   "servers": [
     {
@@ -9463,6 +9463,7 @@
         }
       },
       "TeacherHomepagePublicProfile": {
+        "description": "默认投影用单个 U+E000 标示每处被遮盖的联系方式，包括非空的 email、phone 和 office_location。客户端在原位置渲染“查看联系方式”。源文本中的 U+E000 在展示前移除。",
         "type": "object",
         "additionalProperties": false,
         "required": [
@@ -9745,7 +9746,7 @@
             "$ref": "#/components/schemas/TeacherHomepagePublicProfile"
           }
         },
-        "description": "应用白名单、个人控制与匹配状态后的教师主页。资料不可展示时省略 profile。"
+        "description": "应用白名单、个人控制与匹配状态后的教师主页。资料不可展示时省略 profile。默认投影在每处被遮盖的位置返回 U+E000。请求 reveal_contacts=true 后返回当前允许查看的原值，正文不含该标记。"
       },
       "TeacherHomepageSupervisor": {
         "type": "string",

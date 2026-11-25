@@ -259,12 +259,21 @@ func publishedTeacherHomepageMedia(t Transaction, teacher Object, imageID string
 		return nil, err
 	}
 	redaction := presentation.redaction(*source)
+	placements := homepageMediaPlacements{}
+	if imageID == "" {
+		presentation.directory, err = teacherDisplayDirectory(t, teacher)
+		if err != nil {
+			return nil, err
+		}
+		presentation.renderProfile(source, id, placements)
+	}
 	var visible []TeacherHomepageMedium
 	for _, item := range media {
 		if imageID != "" && (item.Image == nil || item.Image.ID != imageID) {
 			continue
 		}
 		if out, ok := presentation.renderMedium(item, id, &redaction); ok {
+			placements.place(&out)
 			visible = append(visible, out)
 			if imageID != "" {
 				break

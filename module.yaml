@@ -128,6 +128,9 @@ scenario_tests:
     - teacher_homepage_partial_test.go#TestHomepagePartialScopeAndReplay
     - teacher_homepage_postgres_test.go#TestTeacherHomepagePostgresRefreshPreservesDecisions
   CAT-TEACHER-08:
+    - teacher_contact_display_test.go#TestTeacherHomepageInlineContactMarker
+    - teacher_homepage_duplicates_test.go#TestTeacherHomepageDuplicateSources
+    - teacher_homepage_duplicates_test.go#TestTeacherHomepageSectionContainment
     - teacher_display_test.go#TestTeacherDisplayContactRevealAndLinks
     - teacher_display_test.go#TestTeacherDisplayOnlyLiteralAddressesInUnlistedSection
     - teacher_display_test.go#TestHomepageLabelPreservesProseAndSeparateLines
@@ -159,6 +162,7 @@ scenario_tests:
   CAT-TEACHER-13:
     - teacher_homepage_request_repository_test.go#TestTeacherHomepageRequestRetention
   CAT-TEACHER-14:
+    - teacher_homepage_media_postgres_test.go#TestHomepageMediaFollowsRetainedText
     - teacher_homepage_media_postgres_test.go#TestTeacherHomepageBodyMediaPostgresAuthorizationAndRevocation
   CAT-TEACHER-15:
     - teacher_homepage_gif_test.go#TestBodyGIFLimitsAndSanitizedExtensions

@@ -1756,6 +1756,7 @@ export interface components {
             /** @description 反馈给申请人的处理结论，去除首尾空白后须有内容。 */
             note: string;
         };
+        /** @description 默认投影用单个 U+E000 标示每处被遮盖的联系方式，包括非空的 email、phone 和 office_location。客户端在原位置渲染“查看联系方式”。源文本中的 U+E000 在展示前移除。 */
         TeacherHomepagePublicProfile: {
             /** @description 允许显示时提供的官网姓名。被隐藏或未获准时省略。 */
             name?: string;
@@ -1833,7 +1834,7 @@ export interface components {
         TeacherHomepageMediaView: {
             items: components["schemas"]["TeacherHomepageMedium"][];
         };
-        /** @description 应用白名单、个人控制与匹配状态后的教师主页。资料不可展示时省略 profile。 */
+        /** @description 应用白名单、个人控制与匹配状态后的教师主页。资料不可展示时省略 profile。默认投影在每处被遮盖的位置返回 U+E000。请求 reveal_contacts=true 后返回当前允许查看的原值，正文不含该标记。 */
         TeacherHomepagePublicView: {
             /** @description 普通响应有可按需查看的联系方式时返回 true。 */
             contacts_available?: boolean;
