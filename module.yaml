@@ -81,6 +81,7 @@ scenario_tests:
     - directory_test.go#TestSummaryRelatedCourseAndTeacherPreview
     - content_test.go#TestPublicReadsRejectIncludeInactiveAndHideDeactivatedObjects
   CAT-DISPLAY-01:
+    - department_order_test.go#TestDepartmentOrderInDirectoriesFiltersAndPages
     - category_filter_test.go#TestDirectoryCategoryGroupingAndHiddenFiltersSurviveRebuild
     - display_policy_test.go#TestDisplayProjectionMigrationPreservesPublishedDirectoryAndRuntimeBoundary
     - display_policy_test.go#TestDirectoryDisplayRulesProjectsCountsAndEnrollmentOwnership
