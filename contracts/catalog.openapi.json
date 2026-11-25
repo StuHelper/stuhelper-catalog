@@ -2,7 +2,7 @@
   "openapi": "3.0.3",
   "info": {
     "title": "StuHelper Catalog",
-    "version": "0.17.0"
+    "version": "0.18.0"
   },
   "servers": [
     {
@@ -3941,8 +3941,32 @@
           }
         ],
         "responses": {
-          "302": {"description": "Authorized private media redirect valid for 60 seconds", "headers": {"Location": {"required": true, "schema": {"type": "string", "format": "uri"}}}},
-          "429": {"description": "Teacher image signature issuance limit exceeded", "headers": {"Retry-After": {"required": true, "description": "Seconds until the next issuance window", "schema": {"type": "integer", "minimum": 1, "maximum": 60}}}},
+          "302": {
+            "description": "Authorized private media redirect valid for 60 seconds",
+            "headers": {
+              "Location": {
+                "required": true,
+                "schema": {
+                  "type": "string",
+                  "format": "uri"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Teacher image signature issuance limit exceeded",
+            "headers": {
+              "Retry-After": {
+                "required": true,
+                "description": "Seconds until the next issuance window",
+                "schema": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 60
+                }
+              }
+            }
+          },
           "200": {
             "description": "当前已验证的本地照片。总大小最多 2 MiB，每边最多 4096 像素，面积最多 8,388,608 像素。",
             "headers": {
@@ -4815,8 +4839,32 @@
           }
         ],
         "responses": {
-          "302": {"description": "Authorized private media redirect valid for 60 seconds", "headers": {"Location": {"required": true, "schema": {"type": "string", "format": "uri"}}}},
-          "429": {"description": "Teacher image signature issuance limit exceeded", "headers": {"Retry-After": {"required": true, "description": "Seconds until the next issuance window", "schema": {"type": "integer", "minimum": 1, "maximum": 60}}}},
+          "302": {
+            "description": "Authorized private media redirect valid for 60 seconds",
+            "headers": {
+              "Location": {
+                "required": true,
+                "schema": {
+                  "type": "string",
+                  "format": "uri"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Teacher image signature issuance limit exceeded",
+            "headers": {
+              "Retry-After": {
+                "required": true,
+                "description": "Seconds until the next issuance window",
+                "schema": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 60
+                }
+              }
+            }
+          },
           "200": {
             "description": "当前已验证的正文图片。最多 20 MiB，每边最多 8192 像素，总面积最多 16,777,216 像素。",
             "headers": {
@@ -4959,8 +5007,32 @@
           }
         ],
         "responses": {
-          "302": {"description": "Authorized private media redirect valid for 60 seconds", "headers": {"Location": {"required": true, "schema": {"type": "string", "format": "uri"}}}},
-          "429": {"description": "Teacher image signature issuance limit exceeded", "headers": {"Retry-After": {"required": true, "description": "Seconds until the next issuance window", "schema": {"type": "integer", "minimum": 1, "maximum": 60}}}},
+          "302": {
+            "description": "Authorized private media redirect valid for 60 seconds",
+            "headers": {
+              "Location": {
+                "required": true,
+                "schema": {
+                  "type": "string",
+                  "format": "uri"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Teacher image signature issuance limit exceeded",
+            "headers": {
+              "Retry-After": {
+                "required": true,
+                "description": "Seconds until the next issuance window",
+                "schema": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 60
+                }
+              }
+            }
+          },
           "200": {
             "description": "当前已验证的正文图片。最多 20 MiB，每边最多 8192 像素，总面积最多 16,777,216 像素。",
             "headers": {
@@ -6160,8 +6232,32 @@
           }
         ],
         "responses": {
-          "302": {"description": "Authorized private media redirect valid for 60 seconds", "headers": {"Location": {"required": true, "schema": {"type": "string", "format": "uri"}}}},
-          "429": {"description": "Teacher image signature issuance limit exceeded", "headers": {"Retry-After": {"required": true, "description": "Seconds until the next issuance window", "schema": {"type": "integer", "minimum": 1, "maximum": 60}}}},
+          "302": {
+            "description": "Authorized private media redirect valid for 60 seconds",
+            "headers": {
+              "Location": {
+                "required": true,
+                "schema": {
+                  "type": "string",
+                  "format": "uri"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Teacher image signature issuance limit exceeded",
+            "headers": {
+              "Retry-After": {
+                "required": true,
+                "description": "Seconds until the next issuance window",
+                "schema": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 60
+                }
+              }
+            }
+          },
           "200": {
             "description": "重新编码并去除来源元数据的申请头像。",
             "headers": {
@@ -6237,6 +6333,149 @@
           },
           "503": {
             "description": "unavailable。必要的认证、目录、审计或通知依赖暂不可用。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/catalog/objects/{id}/teacher-homepage/photos/{photo_id}/thumbnail": {
+      "get": {
+        "operationId": "getTeacherDirectoryAvatar",
+        "description": "每次核对当前教师、学校资格和主页照片展示权限。源照片摘要标识 128 像素居中裁剪的 JPEG 缩略图。生产通过短期 EdgeOne 签名地址分发。",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128,
+              "pattern": "^[A-Za-z0-9_.:-]+$"
+            }
+          },
+          {
+            "name": "photo_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 64,
+              "maxLength": 64,
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "description": "teacher_homepage.photo.url 中的照片内容 SHA-256。"
+          }
+        ],
+        "responses": {
+          "302": {
+            "description": "Authorized private media redirect valid for 60 seconds",
+            "headers": {
+              "Location": {
+                "required": true,
+                "schema": {
+                  "type": "string",
+                  "format": "uri"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Teacher image signature issuance limit exceeded",
+            "headers": {
+              "Retry-After": {
+                "required": true,
+                "description": "Seconds until the next issuance window",
+                "schema": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 60
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "128 × 128 JPEG，最多 32 KiB。",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "enum": [
+                    "private, no-store"
+                  ]
+                }
+              },
+              "X-Content-Type-Options": {
+                "schema": {
+                  "type": "string",
+                  "enum": [
+                    "nosniff"
+                  ]
+                }
+              }
+            },
+            "content": {
+              "image/jpeg": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not permitted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "教师不可见、没有当前有效主页照片，或照片摘要与当前版本不符。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Required dependency unavailable",
             "content": {
               "application/json": {
                 "schema": {
@@ -7381,6 +7620,11 @@
           "heat": {
             "type": "number",
             "minimum": 0
+          },
+          "avatar_url": {
+            "type": "string",
+            "pattern": "^/api/v1/catalog/objects/[A-Za-z0-9_.:-]+/teacher-homepage/photos/[0-9a-f]{64}/thumbnail$",
+            "description": "教师当前可展示照片的缩略图地址。其他情况省略。"
           }
         },
         "required": [
@@ -8214,69 +8458,137 @@
       "CategoryAlias": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["from", "to"],
+        "required": [
+          "from",
+          "to"
+        ],
         "properties": {
-          "from": { "type": "string", "minLength": 1, "maxLength": 256 },
-          "to": { "type": "string", "minLength": 1, "maxLength": 256 }
+          "from": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          },
+          "to": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          }
         }
       },
       "SportsProject": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["key", "name", "source_codes"],
+        "required": [
+          "key",
+          "name",
+          "source_codes"
+        ],
         "properties": {
-          "key": { "type": "string", "minLength": 1, "maxLength": 128 },
-          "name": { "type": "string", "minLength": 1, "maxLength": 256 },
+          "key": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          },
           "source_codes": {
             "type": "array",
             "minItems": 1,
             "maxItems": 256,
-            "items": { "type": "string", "minLength": 1, "maxLength": 64 }
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64
+            }
           }
         }
       },
       "SportsDirectoryPolicy": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["category_name", "projects"],
+        "required": [
+          "category_name",
+          "projects"
+        ],
         "properties": {
-          "category_name": { "type": "string", "minLength": 1, "maxLength": 256 },
+          "category_name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          },
           "course_names": {
             "type": "array",
             "maxItems": 256,
-            "items": { "type": "string", "minLength": 1, "maxLength": 256 }
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
+            }
           },
           "projects": {
             "type": "array",
             "maxItems": 256,
-            "items": { "$ref": "#/components/schemas/SportsProject" }
+            "items": {
+              "$ref": "#/components/schemas/SportsProject"
+            }
           }
         }
       },
       "DirectoryPolicy": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["cutoff_year", "cutoff_season"],
+        "required": [
+          "cutoff_year",
+          "cutoff_season"
+        ],
         "properties": {
-          "cutoff_year": { "type": "integer", "minimum": 1900, "maximum": 2200 },
-          "cutoff_season": { "type": "string", "enum": ["spring", "summer", "autumn"] },
+          "cutoff_year": {
+            "type": "integer",
+            "minimum": 1900,
+            "maximum": 2200
+          },
+          "cutoff_season": {
+            "type": "string",
+            "enum": [
+              "spring",
+              "summer",
+              "autumn"
+            ]
+          },
           "excluded_course_names": {
             "type": "array",
             "maxItems": 256,
-            "items": { "type": "string", "minLength": 1, "maxLength": 256 }
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
+            }
           },
           "excluded_category_names": {
             "type": "array",
             "maxItems": 256,
-            "items": { "type": "string", "minLength": 1, "maxLength": 256 }
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
+            }
           },
           "category_aliases": {
             "type": "array",
             "maxItems": 256,
-            "items": { "$ref": "#/components/schemas/CategoryAlias" }
+            "items": {
+              "$ref": "#/components/schemas/CategoryAlias"
+            }
           },
           "sports": {
-            "allOf": [{ "$ref": "#/components/schemas/SportsDirectoryPolicy" }],
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/SportsDirectoryPolicy"
+              }
+            ],
             "nullable": true
           }
         }
@@ -8307,44 +8619,150 @@
           "built_at"
         ],
         "properties": {
-          "excluded_courses": { "type": "integer", "format": "int64", "minimum": 0 },
-          "sports_projects": { "type": "integer", "format": "int64", "minimum": 0 },
-          "sports_source_courses": { "type": "integer", "format": "int64", "minimum": 0 },
-          "sports_classes": { "type": "integer", "format": "int64", "minimum": 0 },
-          "unresolved_sports_classes": { "type": "integer", "format": "int64", "minimum": 0 },
+          "excluded_courses": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "sports_projects": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "sports_source_courses": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "sports_classes": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "unresolved_sports_classes": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
           "sports_unresolved_reasons": {
             "type": "object",
-            "additionalProperties": { "type": "integer", "format": "int64", "minimum": 0 }
+            "additionalProperties": {
+              "type": "integer",
+              "format": "int64",
+              "minimum": 0
+            }
           },
-          "version": { "type": "integer", "format": "int64" },
-          "policy": { "$ref": "#/components/schemas/DirectoryPolicy" },
-          "objects": { "type": "integer", "format": "int64", "minimum": 0 },
-          "courses": { "type": "integer", "format": "int64", "minimum": 0 },
-          "teachers": { "type": "integer", "format": "int64", "minimum": 0 },
-          "variants": { "type": "integer", "format": "int64", "minimum": 0 },
-          "relations": { "type": "integer", "format": "int64", "minimum": 0 },
-          "teaching_history": { "type": "integer", "format": "int64", "minimum": 0 },
-          "summaries": { "type": "integer", "format": "int64", "minimum": 0 },
-          "documents": { "type": "integer", "format": "int64", "minimum": 0 },
-          "aliases": { "type": "integer", "format": "int64", "minimum": 0 },
-          "selections": { "type": "integer", "format": "int64", "minimum": 0 },
-          "rows": { "type": "integer", "format": "int64", "minimum": 0 },
-          "options": { "type": "integer", "format": "int64", "minimum": 0 },
-          "invalid_terms": { "type": "integer", "format": "int64", "minimum": 0 },
-          "bytes": { "type": "integer", "format": "int64", "minimum": 0 },
-          "storage_bytes": { "type": "integer", "format": "int64", "minimum": 0 },
-          "duration_ms": { "type": "integer", "format": "int64", "minimum": 0 },
-          "marks": { "$ref": "#/components/schemas/TeacherMarkCounts" },
-          "built_at": { "type": "string", "format": "date-time" }
+          "version": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "policy": {
+            "$ref": "#/components/schemas/DirectoryPolicy"
+          },
+          "objects": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "courses": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "teachers": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "variants": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "relations": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "teaching_history": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "summaries": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "documents": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "aliases": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "selections": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "rows": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "options": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "invalid_terms": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "bytes": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "storage_bytes": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "duration_ms": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "marks": {
+            "$ref": "#/components/schemas/TeacherMarkCounts"
+          },
+          "built_at": {
+            "type": "string",
+            "format": "date-time"
+          }
         }
       },
       "ProjectionFailure": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["reason", "failed_at"],
+        "required": [
+          "reason",
+          "failed_at"
+        ],
         "properties": {
-          "reason": { "type": "string" },
-          "failed_at": { "type": "string", "format": "date-time" }
+          "reason": {
+            "type": "string"
+          },
+          "failed_at": {
+            "type": "string",
+            "format": "date-time"
+          }
         }
       },
       "ProjectionRebuildRun": {
@@ -8363,23 +8781,61 @@
           "failure_reason"
         ],
         "properties": {
-          "id": { "type": "string" },
-          "school_id": { "type": "string" },
+          "id": {
+            "type": "string"
+          },
+          "school_id": {
+            "type": "string"
+          },
           "status": {
             "type": "string",
-            "enum": ["queued", "running", "succeeded", "failed", "timed_out"]
+            "enum": [
+              "queued",
+              "running",
+              "succeeded",
+              "failed",
+              "timed_out"
+            ]
           },
           "policy": {
-            "allOf": [{ "$ref": "#/components/schemas/DirectoryPolicy" }],
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/DirectoryPolicy"
+              }
+            ],
             "nullable": true
           },
-          "requested_at": { "type": "string", "format": "date-time" },
-          "started_at": { "type": "string", "format": "date-time", "nullable": true },
-          "finished_at": { "type": "string", "format": "date-time", "nullable": true },
-          "deadline_at": { "type": "string", "format": "date-time" },
-          "duration_ms": { "type": "integer", "format": "int64", "minimum": 0 },
-          "version": { "type": "integer", "format": "int64", "nullable": true },
-          "failure_reason": { "type": "string" }
+          "requested_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "started_at": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "finished_at": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "deadline_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "duration_ms": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "version": {
+            "type": "integer",
+            "format": "int64",
+            "nullable": true
+          },
+          "failure_reason": {
+            "type": "string"
+          }
         }
       },
       "DirectoryProjectionRebuildInput": {
@@ -8387,7 +8843,11 @@
         "additionalProperties": false,
         "properties": {
           "policy": {
-            "allOf": [{ "$ref": "#/components/schemas/DirectoryPolicy" }],
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/DirectoryPolicy"
+              }
+            ],
             "nullable": true
           }
         }
@@ -8406,21 +8866,47 @@
         ],
         "properties": {
           "published": {
-            "allOf": [{ "$ref": "#/components/schemas/ProjectionReport" }],
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ProjectionReport"
+              }
+            ],
             "nullable": true
           },
           "latest_failure": {
-            "allOf": [{ "$ref": "#/components/schemas/ProjectionFailure" }],
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ProjectionFailure"
+              }
+            ],
             "nullable": true
           },
           "latest_run": {
-            "allOf": [{ "$ref": "#/components/schemas/ProjectionRebuildRun" }],
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ProjectionRebuildRun"
+              }
+            ],
             "nullable": true
           },
-          "source_revision": { "type": "integer", "format": "int64", "minimum": 0 },
-          "published_revision": { "type": "integer", "format": "int64", "minimum": 0 },
-          "source_revision_lag": { "type": "integer", "format": "int64", "minimum": 0 },
-          "pending_rebuild": { "type": "boolean" }
+          "source_revision": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "published_revision": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "source_revision_lag": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "pending_rebuild": {
+            "type": "boolean"
+          }
         }
       },
       "TeacherHomepageField": {
