@@ -15,15 +15,24 @@ import (
 	"github.com/StuHelper/stuhelper-catalog/httpapi"
 )
 
-type fixtureSchoolData struct{}
+type fixtureSchoolData struct{ through int }
 
-func (fixtureSchoolData) WithSchoolData(ctx context.Context, _ string, read func(context.Context, string) error) error {
-	return read(ctx, "school")
+func (f fixtureSchoolData) WithSchoolData(ctx context.Context, _ string, read func(context.Context, c.SchoolDataScope) error) error {
+	through := f.through
+	if through == 0 {
+		through = 22003
+	}
+	return read(ctx, c.SchoolDataScope{SchoolID: "school", ThroughTermOrderKey: through})
 }
 
 func fixture(t *testing.T) (*c.Service, c.Principal, c.Import) {
 	t.Helper()
-	repo, _ := database(t)
+	repo, db := database(t)
+	if _, err := db.Exec(`INSERT INTO catalog.term_orders(school_id,id,sort_key,data) VALUES
+ ('school','term1',20263,'{"id":"term1","year":2026,"season":"autumn"}'),
+ ('school','term2',20271,'{"id":"term2","year":2027,"season":"spring"}')`); err != nil {
+		t.Fatal(err)
+	}
 	s := &c.Service{Repo: repo, SchoolDataAccess: fixtureSchoolData{}, ReadAccess: &readAccess{}}
 	p := c.Principal{Subject: "issuer:admin", Schools: []string{"school"}, CanImport: true, CanMaintain: true}
 	object := func(id, kind string) c.Object {

@@ -47,7 +47,7 @@ func TestEnrollmentAndTermOptionsUseStructuredOrder(t *testing.T) {
 		}
 		after = page[len(page)-1].ID
 	}
-	if !slices.Equal(ids, []string{"en-2", "en-4", "en-3", "en-1", "en-0"}) || !slices.Equal(keys, []int{20243, 20243, 20242, 20241, 0}) {
+	if !slices.Equal(ids, []string{"en-2", "en-4", "en-3", "en-1"}) || !slices.Equal(keys, []int{20243, 20243, 20242, 20241}) {
 		t.Fatal(ids, keys)
 	}
 	page, err := s.MyEnrollments(ctx, p, "", "", "", "other-user", 100)

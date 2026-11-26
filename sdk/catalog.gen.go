@@ -3321,12 +3321,12 @@ type ClientInterface interface {
 
 	// MyEnrollments performs a GET /api/v1/catalog/me/enrollments (the `MyEnrollments` operationId) request.
 	//
-	// 只返回当前用户的有效选课，按 term_order_key 倒序、选课 ID 升序。未知学期键为 0。after 绑定本人且须符合当前筛选，返回后续记录。 本人接口按认证账号归属读取，保留本人教学班引用与课表；不受普通目录教学班隐藏规则影响。.
+	// 只返回当前用户的有效选课，按 term_order_key 倒序、选课 ID 升序。未知学期不出现在个人查询中。after 绑定本人且须符合当前筛选，返回后续记录。 本人接口按认证账号归属读取，保留本人教学班引用与课表；不受普通目录教学班隐藏规则影响。 个人查询仅覆盖学校数据授权的截至学期及以前。超出范围的指定学期返回 403。.
 	MyEnrollments(ctx context.Context, params *MyEnrollmentsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// GetNextClassDay performs a GET /api/v1/catalog/me/next-class-day (the `GetNextClassDay` operationId) request.
 	//
-	// Uses the current owner enrollment source and a separate server-side permission to display enrollment summaries. Missing display permission or source authorization returns unavailable without course data.
+	// Uses the current owner enrollment source and a separate server-side permission to display enrollment summaries. Missing display permission or source authorization returns unavailable without course data. 个人来源仅覆盖授权截至学期及以前。
 	GetNextClassDay(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// ClearRecentCourses performs a DELETE /api/v1/catalog/me/recent-courses (the `ClearRecentCourses` operationId) request.
@@ -3346,17 +3346,17 @@ type ClientInterface interface {
 
 	// MyCatalogReferences performs a GET /api/v1/catalog/me/references (the `MyCatalogReferences` operationId) request.
 	//
-	// Login and ownership only. Returns names for IDs referenced by the caller own current or historical enrollment records; current content admission is not required. An unowned requested ID rejects the entire request with 404. At most 100 IDs. This response never includes biographies, scores, schedules or other public detail. 本人接口按认证账号归属读取，保留本人教学班引用与课表；不受普通目录教学班隐藏规则影响。
+	// Requires current school data authorization and ownership. Returns names for IDs referenced by the caller own current or historical enrollment records; current content admission is not required. An unowned requested ID rejects the entire request with 404. At most 100 IDs. This response never includes biographies, scores, schedules or other public detail. 本人接口按认证账号归属读取，保留本人教学班引用与课表；不受普通目录教学班隐藏规则影响。 仅能引用授权截至学期及以前的本人选课。
 	MyCatalogReferences(ctx context.Context, params *MyCatalogReferencesParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// MySchedule performs a GET /api/v1/catalog/me/schedule (the `MySchedule` operationId) request.
 	//
-	//  本人接口按认证账号归属读取，保留本人教学班引用与课表；不受普通目录教学班隐藏规则影响。.
+	//  本人接口按认证账号归属读取，保留本人教学班引用与课表；不受普通目录教学班隐藏规则影响。 个人查询仅覆盖学校数据授权的截至学期及以前。超出范围的指定学期返回 403。.
 	MySchedule(ctx context.Context, params *MyScheduleParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// MyCalendar performs a GET /api/v1/catalog/me/schedule/calendar (the `MyCalendar` operationId) request.
 	//
-	// Complete term export, at most 100 enrollments and 10000 occurrences; unavailable if exceeded. 422 schedule_incomplete when any meeting time, required period or timetable is missing, or local time is ambiguous/nonexistent. UTC DTSTART/DTEND correctly derived from IANA timezone. Stable UID per subject/term/class/meeting/week. No partial calendar.
+	// Complete term export, at most 100 enrollments and 10000 occurrences; unavailable if exceeded. 422 schedule_incomplete when any meeting time, required period or timetable is missing, or local time is ambiguous/nonexistent. UTC DTSTART/DTEND correctly derived from IANA timezone. Stable UID per subject/term/class/meeting/week. No partial calendar. 个人查询仅覆盖学校数据授权的截至学期及以前。超出范围的指定学期返回 403。
 	MyCalendar(ctx context.Context, params *MyCalendarParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// GetMyTeacherHomepageRequest performs a GET /api/v1/catalog/me/teacher-homepage/requests/{request_id} (the `GetMyTeacherHomepageRequest` operationId) request.
@@ -4100,7 +4100,7 @@ func (c *Client) PreviewImport(ctx context.Context, params *PreviewImportParams,
 
 // MyEnrollments performs a GET /api/v1/catalog/me/enrollments (the `MyEnrollments` operationId) request.
 //
-// 只返回当前用户的有效选课，按 term_order_key 倒序、选课 ID 升序。未知学期键为 0。after 绑定本人且须符合当前筛选，返回后续记录。 本人接口按认证账号归属读取，保留本人教学班引用与课表；不受普通目录教学班隐藏规则影响。.
+// 只返回当前用户的有效选课，按 term_order_key 倒序、选课 ID 升序。未知学期不出现在个人查询中。after 绑定本人且须符合当前筛选，返回后续记录。 本人接口按认证账号归属读取，保留本人教学班引用与课表；不受普通目录教学班隐藏规则影响。 个人查询仅覆盖学校数据授权的截至学期及以前。超出范围的指定学期返回 403。.
 func (c *Client) MyEnrollments(ctx context.Context, params *MyEnrollmentsParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewMyEnrollmentsRequest(c.Server, params)
 	if err != nil {
@@ -4115,7 +4115,7 @@ func (c *Client) MyEnrollments(ctx context.Context, params *MyEnrollmentsParams,
 
 // GetNextClassDay performs a GET /api/v1/catalog/me/next-class-day (the `GetNextClassDay` operationId) request.
 //
-// Uses the current owner enrollment source and a separate server-side permission to display enrollment summaries. Missing display permission or source authorization returns unavailable without course data.
+// Uses the current owner enrollment source and a separate server-side permission to display enrollment summaries. Missing display permission or source authorization returns unavailable without course data. 个人来源仅覆盖授权截至学期及以前。
 func (c *Client) GetNextClassDay(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewGetNextClassDayRequest(c.Server)
 	if err != nil {
@@ -4175,7 +4175,7 @@ func (c *Client) RecordRecentCourse(ctx context.Context, id string, reqEditors .
 
 // MyCatalogReferences performs a GET /api/v1/catalog/me/references (the `MyCatalogReferences` operationId) request.
 //
-// Login and ownership only. Returns names for IDs referenced by the caller own current or historical enrollment records; current content admission is not required. An unowned requested ID rejects the entire request with 404. At most 100 IDs. This response never includes biographies, scores, schedules or other public detail. 本人接口按认证账号归属读取，保留本人教学班引用与课表；不受普通目录教学班隐藏规则影响。
+// Requires current school data authorization and ownership. Returns names for IDs referenced by the caller own current or historical enrollment records; current content admission is not required. An unowned requested ID rejects the entire request with 404. At most 100 IDs. This response never includes biographies, scores, schedules or other public detail. 本人接口按认证账号归属读取，保留本人教学班引用与课表；不受普通目录教学班隐藏规则影响。 仅能引用授权截至学期及以前的本人选课。
 func (c *Client) MyCatalogReferences(ctx context.Context, params *MyCatalogReferencesParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewMyCatalogReferencesRequest(c.Server, params)
 	if err != nil {
@@ -4190,7 +4190,7 @@ func (c *Client) MyCatalogReferences(ctx context.Context, params *MyCatalogRefer
 
 // MySchedule performs a GET /api/v1/catalog/me/schedule (the `MySchedule` operationId) request.
 //
-//	本人接口按认证账号归属读取，保留本人教学班引用与课表；不受普通目录教学班隐藏规则影响。.
+//	本人接口按认证账号归属读取，保留本人教学班引用与课表；不受普通目录教学班隐藏规则影响。 个人查询仅覆盖学校数据授权的截至学期及以前。超出范围的指定学期返回 403。.
 func (c *Client) MySchedule(ctx context.Context, params *MyScheduleParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewMyScheduleRequest(c.Server, params)
 	if err != nil {
@@ -4205,7 +4205,7 @@ func (c *Client) MySchedule(ctx context.Context, params *MyScheduleParams, reqEd
 
 // MyCalendar performs a GET /api/v1/catalog/me/schedule/calendar (the `MyCalendar` operationId) request.
 //
-// Complete term export, at most 100 enrollments and 10000 occurrences; unavailable if exceeded. 422 schedule_incomplete when any meeting time, required period or timetable is missing, or local time is ambiguous/nonexistent. UTC DTSTART/DTEND correctly derived from IANA timezone. Stable UID per subject/term/class/meeting/week. No partial calendar.
+// Complete term export, at most 100 enrollments and 10000 occurrences; unavailable if exceeded. 422 schedule_incomplete when any meeting time, required period or timetable is missing, or local time is ambiguous/nonexistent. UTC DTSTART/DTEND correctly derived from IANA timezone. Stable UID per subject/term/class/meeting/week. No partial calendar. 个人查询仅覆盖学校数据授权的截至学期及以前。超出范围的指定学期返回 403。
 func (c *Client) MyCalendar(ctx context.Context, params *MyCalendarParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewMyCalendarRequest(c.Server, params)
 	if err != nil {
@@ -8356,14 +8356,14 @@ type ClientWithResponsesInterface interface {
 
 	// MyEnrollmentsWithResponse performs a GET /api/v1/catalog/me/enrollments (the `MyEnrollments` operationId) request.
 	//
-	// 只返回当前用户的有效选课，按 term_order_key 倒序、选课 ID 升序。未知学期键为 0。after 绑定本人且须符合当前筛选，返回后续记录。 本人接口按认证账号归属读取，保留本人教学班引用与课表；不受普通目录教学班隐藏规则影响。.
+	// 只返回当前用户的有效选课，按 term_order_key 倒序、选课 ID 升序。未知学期不出现在个人查询中。after 绑定本人且须符合当前筛选，返回后续记录。 本人接口按认证账号归属读取，保留本人教学班引用与课表；不受普通目录教学班隐藏规则影响。 个人查询仅覆盖学校数据授权的截至学期及以前。超出范围的指定学期返回 403。.
 	//
 	// Returns a wrapper object for the known response body format(s).
 	MyEnrollmentsWithResponse(ctx context.Context, params *MyEnrollmentsParams, reqEditors ...RequestEditorFn) (*MyEnrollmentsResponse, error)
 
 	// GetNextClassDayWithResponse performs a GET /api/v1/catalog/me/next-class-day (the `GetNextClassDay` operationId) request.
 	//
-	// Uses the current owner enrollment source and a separate server-side permission to display enrollment summaries. Missing display permission or source authorization returns unavailable without course data.
+	// Uses the current owner enrollment source and a separate server-side permission to display enrollment summaries. Missing display permission or source authorization returns unavailable without course data. 个人来源仅覆盖授权截至学期及以前。
 	//
 	// Returns a wrapper object for the known response body format(s).
 	GetNextClassDayWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*GetNextClassDayResponse, error)
@@ -8391,21 +8391,21 @@ type ClientWithResponsesInterface interface {
 
 	// MyCatalogReferencesWithResponse performs a GET /api/v1/catalog/me/references (the `MyCatalogReferences` operationId) request.
 	//
-	// Login and ownership only. Returns names for IDs referenced by the caller own current or historical enrollment records; current content admission is not required. An unowned requested ID rejects the entire request with 404. At most 100 IDs. This response never includes biographies, scores, schedules or other public detail. 本人接口按认证账号归属读取，保留本人教学班引用与课表；不受普通目录教学班隐藏规则影响。
+	// Requires current school data authorization and ownership. Returns names for IDs referenced by the caller own current or historical enrollment records; current content admission is not required. An unowned requested ID rejects the entire request with 404. At most 100 IDs. This response never includes biographies, scores, schedules or other public detail. 本人接口按认证账号归属读取，保留本人教学班引用与课表；不受普通目录教学班隐藏规则影响。 仅能引用授权截至学期及以前的本人选课。
 	//
 	// Returns a wrapper object for the known response body format(s).
 	MyCatalogReferencesWithResponse(ctx context.Context, params *MyCatalogReferencesParams, reqEditors ...RequestEditorFn) (*MyCatalogReferencesResponse, error)
 
 	// MyScheduleWithResponse performs a GET /api/v1/catalog/me/schedule (the `MySchedule` operationId) request.
 	//
-	//  本人接口按认证账号归属读取，保留本人教学班引用与课表；不受普通目录教学班隐藏规则影响。.
+	//  本人接口按认证账号归属读取，保留本人教学班引用与课表；不受普通目录教学班隐藏规则影响。 个人查询仅覆盖学校数据授权的截至学期及以前。超出范围的指定学期返回 403。.
 	//
 	// Returns a wrapper object for the known response body format(s).
 	MyScheduleWithResponse(ctx context.Context, params *MyScheduleParams, reqEditors ...RequestEditorFn) (*MyScheduleResponse, error)
 
 	// MyCalendarWithResponse performs a GET /api/v1/catalog/me/schedule/calendar (the `MyCalendar` operationId) request.
 	//
-	// Complete term export, at most 100 enrollments and 10000 occurrences; unavailable if exceeded. 422 schedule_incomplete when any meeting time, required period or timetable is missing, or local time is ambiguous/nonexistent. UTC DTSTART/DTEND correctly derived from IANA timezone. Stable UID per subject/term/class/meeting/week. No partial calendar.
+	// Complete term export, at most 100 enrollments and 10000 occurrences; unavailable if exceeded. 422 schedule_incomplete when any meeting time, required period or timetable is missing, or local time is ambiguous/nonexistent. UTC DTSTART/DTEND correctly derived from IANA timezone. Stable UID per subject/term/class/meeting/week. No partial calendar. 个人查询仅覆盖学校数据授权的截至学期及以前。超出范围的指定学期返回 403。
 	//
 	// Returns a wrapper object for the known response body format(s).
 	MyCalendarWithResponse(ctx context.Context, params *MyCalendarParams, reqEditors ...RequestEditorFn) (*MyCalendarResponse, error)
@@ -13699,7 +13699,7 @@ func (c *ClientWithResponses) PreviewImportWithResponse(ctx context.Context, par
 
 // MyEnrollmentsWithResponse performs a GET /api/v1/catalog/me/enrollments (the `MyEnrollments` operationId) request.
 //
-// 只返回当前用户的有效选课，按 term_order_key 倒序、选课 ID 升序。未知学期键为 0。after 绑定本人且须符合当前筛选，返回后续记录。 本人接口按认证账号归属读取，保留本人教学班引用与课表；不受普通目录教学班隐藏规则影响。.
+// 只返回当前用户的有效选课，按 term_order_key 倒序、选课 ID 升序。未知学期不出现在个人查询中。after 绑定本人且须符合当前筛选，返回后续记录。 本人接口按认证账号归属读取，保留本人教学班引用与课表；不受普通目录教学班隐藏规则影响。 个人查询仅覆盖学校数据授权的截至学期及以前。超出范围的指定学期返回 403。.
 //
 // Returns a wrapper object for the known response body format(s).
 func (c *ClientWithResponses) MyEnrollmentsWithResponse(ctx context.Context, params *MyEnrollmentsParams, reqEditors ...RequestEditorFn) (*MyEnrollmentsResponse, error) {
@@ -13712,7 +13712,7 @@ func (c *ClientWithResponses) MyEnrollmentsWithResponse(ctx context.Context, par
 
 // GetNextClassDayWithResponse performs a GET /api/v1/catalog/me/next-class-day (the `GetNextClassDay` operationId) request.
 //
-// Uses the current owner enrollment source and a separate server-side permission to display enrollment summaries. Missing display permission or source authorization returns unavailable without course data.
+// Uses the current owner enrollment source and a separate server-side permission to display enrollment summaries. Missing display permission or source authorization returns unavailable without course data. 个人来源仅覆盖授权截至学期及以前。
 //
 // Returns a wrapper object for the known response body format(s).
 func (c *ClientWithResponses) GetNextClassDayWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*GetNextClassDayResponse, error) {
@@ -13764,7 +13764,7 @@ func (c *ClientWithResponses) RecordRecentCourseWithResponse(ctx context.Context
 
 // MyCatalogReferencesWithResponse performs a GET /api/v1/catalog/me/references (the `MyCatalogReferences` operationId) request.
 //
-// Login and ownership only. Returns names for IDs referenced by the caller own current or historical enrollment records; current content admission is not required. An unowned requested ID rejects the entire request with 404. At most 100 IDs. This response never includes biographies, scores, schedules or other public detail. 本人接口按认证账号归属读取，保留本人教学班引用与课表；不受普通目录教学班隐藏规则影响。
+// Requires current school data authorization and ownership. Returns names for IDs referenced by the caller own current or historical enrollment records; current content admission is not required. An unowned requested ID rejects the entire request with 404. At most 100 IDs. This response never includes biographies, scores, schedules or other public detail. 本人接口按认证账号归属读取，保留本人教学班引用与课表；不受普通目录教学班隐藏规则影响。 仅能引用授权截至学期及以前的本人选课。
 //
 // Returns a wrapper object for the known response body format(s).
 func (c *ClientWithResponses) MyCatalogReferencesWithResponse(ctx context.Context, params *MyCatalogReferencesParams, reqEditors ...RequestEditorFn) (*MyCatalogReferencesResponse, error) {
@@ -13777,7 +13777,7 @@ func (c *ClientWithResponses) MyCatalogReferencesWithResponse(ctx context.Contex
 
 // MyScheduleWithResponse performs a GET /api/v1/catalog/me/schedule (the `MySchedule` operationId) request.
 //
-//	本人接口按认证账号归属读取，保留本人教学班引用与课表；不受普通目录教学班隐藏规则影响。.
+//	本人接口按认证账号归属读取，保留本人教学班引用与课表；不受普通目录教学班隐藏规则影响。 个人查询仅覆盖学校数据授权的截至学期及以前。超出范围的指定学期返回 403。.
 //
 // Returns a wrapper object for the known response body format(s).
 func (c *ClientWithResponses) MyScheduleWithResponse(ctx context.Context, params *MyScheduleParams, reqEditors ...RequestEditorFn) (*MyScheduleResponse, error) {
@@ -13790,7 +13790,7 @@ func (c *ClientWithResponses) MyScheduleWithResponse(ctx context.Context, params
 
 // MyCalendarWithResponse performs a GET /api/v1/catalog/me/schedule/calendar (the `MyCalendar` operationId) request.
 //
-// Complete term export, at most 100 enrollments and 10000 occurrences; unavailable if exceeded. 422 schedule_incomplete when any meeting time, required period or timetable is missing, or local time is ambiguous/nonexistent. UTC DTSTART/DTEND correctly derived from IANA timezone. Stable UID per subject/term/class/meeting/week. No partial calendar.
+// Complete term export, at most 100 enrollments and 10000 occurrences; unavailable if exceeded. 422 schedule_incomplete when any meeting time, required period or timetable is missing, or local time is ambiguous/nonexistent. UTC DTSTART/DTEND correctly derived from IANA timezone. Stable UID per subject/term/class/meeting/week. No partial calendar. 个人查询仅覆盖学校数据授权的截至学期及以前。超出范围的指定学期返回 403。
 //
 // Returns a wrapper object for the known response body format(s).
 func (c *ClientWithResponses) MyCalendarWithResponse(ctx context.Context, params *MyCalendarParams, reqEditors ...RequestEditorFn) (*MyCalendarResponse, error) {

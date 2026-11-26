@@ -8,14 +8,14 @@ import (
 // ReviewEnrollmentTransaction resolves a projected target from the requester's
 // original enrollment. The source course, term and class must all agree.
 type ReviewEnrollmentTransaction interface {
-	ReviewEnrollments(subject, school, course, term, after string, limit int) ([]Enrollment, error)
+	ReviewEnrollments(subject, school, course, term, after string, limit, through int) ([]Enrollment, error)
 }
 
 func (s *Service) ReviewEnrollments(ctx context.Context, p Principal, course, term, after string, limit int) ([]Enrollment, error) {
 	if limit < 1 || limit > 100 {
 		return nil, ErrInput
 	}
-	return withSchoolData(s, ctx, p, "", func(ctx context.Context, school string) ([]Enrollment, error) {
+	return withSchoolData(s, ctx, p, "", term, func(ctx context.Context, school string) ([]Enrollment, error) {
 		return s.readReviewEnrollments(ctx, p, school, course, term, after, limit)
 	})
 }
@@ -23,7 +23,7 @@ func (s *Service) ReviewEnrollments(ctx context.Context, p Principal, course, te
 // ReviewEnrollmentSnapshot reads the entire matching set from one refresh and
 // one enrollment query. A missing source or an oversized result is inconclusive.
 func (s *Service) ReviewEnrollmentSnapshot(ctx context.Context, p Principal, course, term string) ([]Enrollment, error) {
-	return withSchoolData(s, ctx, p, "", func(ctx context.Context, school string) ([]Enrollment, error) {
+	return withSchoolData(s, ctx, p, "", term, func(ctx context.Context, school string) ([]Enrollment, error) {
 		if s.EnrollmentSource == nil {
 			return nil, ErrUnavailable
 		}
@@ -57,14 +57,14 @@ func (s *Service) readReviewEnrollments(ctx context.Context, p Principal, school
 			return ErrNotFound
 		}
 		if target.CourseType != "sports_project" {
-			out, err = t.Enrollments(p.Subject, target.SchoolID, course, term, after, limit)
+			out, err = t.Enrollments(p.Subject, target.SchoolID, course, term, after, limit, enrollmentTermLimit(ctx))
 			return err
 		}
 		port, ok := t.(ReviewEnrollmentTransaction)
 		if !ok {
 			return ErrUnavailable
 		}
-		out, err = port.ReviewEnrollments(p.Subject, target.SchoolID, target.ID, term, after, limit)
+		out, err = port.ReviewEnrollments(p.Subject, target.SchoolID, target.ID, term, after, limit, enrollmentTermLimit(ctx))
 		return err
 	})
 	return out, err

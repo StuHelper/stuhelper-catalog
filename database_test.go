@@ -55,7 +55,7 @@ func database(t testing.TB) (*postgres.Repository, *sql.DB) {
 		t.Fatal(e)
 	}
 	runtime := dbcfg.Copy()
-	if _, e = migration.Exec(`GRANT EXECUTE ON FUNCTION catalog.analyze_directory_projection() TO ` + role); e != nil {
+	if _, e = migration.Exec(`GRANT EXECUTE ON FUNCTION catalog.analyze_directory_projection(), catalog.delete_own_enrollment_replay(text) TO ` + role); e != nil {
 		t.Fatal(e)
 	}
 	if _, e = migration.Exec(`GRANT USAGE ON ALL SEQUENCES IN SCHEMA catalog TO ` + role); e != nil {

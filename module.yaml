@@ -76,6 +76,10 @@ scenario_tests:
     - projection_test.go#TestReviewOfferingTermsUseCourseAndCutoff
   MC-SD-01:
     - school_data_test.go#TestMissingSchoolDataAuthorizationSkipsPersonalSources
+  MC-SD-02:
+    - school_data_test.go#TestPersonalEnrollmentQueriesRespectSchoolDataTermLimit
+  MC-SD-03:
+    - school_term_calendar_test.go#TestSchoolTermCalendarLocalBoundaryAndHolidays
   RET-12:
     - discovery_retention_test.go#TestDiscoveryRetentionRequiresSupersessionDeliveryAndNoHold
   CAT-IDENTITY-01:
