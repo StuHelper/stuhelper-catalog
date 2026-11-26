@@ -1934,6 +1934,7 @@ export interface operations {
                 department_id?: string;
                 category_id?: string;
                 nature_id?: string;
+                /** @description 已授权学校范围内的课程 ID。kind=term 时，仅返回该课程有开课记录的学期，按目录截止规则过滤并从新到旧排列。 */
                 course_id?: string;
                 term_id?: string;
                 teacher_id?: string;

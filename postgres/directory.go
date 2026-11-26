@@ -72,6 +72,10 @@ func (t *transaction) List(f catalog.Filter) ([]catalog.Object, error) {
  ELSE catalog.matches_query(o.data->'object',$4) END)
 
  AND ($5='' OR o.course_id IN (SELECT $5::text UNION SELECT alias_id FROM catalog.redirects WHERE canonical_id=$5) OR (o.kind='course' AND o.id=$5) OR parent_offering.course_id IN (SELECT $5::text UNION SELECT alias_id FROM catalog.redirects WHERE canonical_id=$5)
+   OR (o.kind='term' AND EXISTS(SELECT 1 FROM catalog.objects tc
+     WHERE tc.kind='term_course' AND tc.school_id=o.school_id AND catalog.canonical(tc.term_id)=o.id
+       AND tc.course_id IN (SELECT $5::text UNION SELECT alias_id FROM catalog.redirects WHERE canonical_id=$5)
+       AND NOT COALESCE((tc.data->'object'->>'inactive')::boolean,false)))
    OR (o.kind='teacher' AND EXISTS(SELECT 1 FROM catalog.objects a JOIN catalog.objects cl ON cl.id=a.class_id JOIN catalog.objects tc ON tc.id=cl.term_course_id
      WHERE a.kind='assignment' AND a.teacher_id IN (SELECT o.id::text UNION SELECT alias_id FROM catalog.redirects WHERE canonical_id=o.id) AND tc.course_id IN (SELECT $5::text UNION SELECT alias_id FROM catalog.redirects WHERE canonical_id=$5) AND ($7='' OR tc.term_id=$7))))
  AND (

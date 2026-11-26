@@ -1,6 +1,9 @@
 package catalog
 
-import "context"
+import (
+	"cmp"
+	"context"
+)
 
 // ReviewEnrollmentTransaction resolves a projected target from the requester's
 // original enrollment. The source course, term and class must all agree.
@@ -67,7 +70,33 @@ func (s *Service) readReviewEnrollments(ctx context.Context, p Principal, school
 	return out, err
 }
 
-// CourseTermTeachers reads only current public teaching relationships.
+const maxReviewCandidates = 1000
+
+// CourseOfferingTerms returns the current public offering terms in directory order.
+func (s *Service) CourseOfferingTerms(ctx context.Context, course string) ([]Object, error) {
+	if !ValidID(course) {
+		return nil, ErrInput
+	}
+	var terms []Object
+	err := s.Repo.Transaction(ctx, func(tx Transaction) error {
+		target, err := tx.PublicObject(course)
+		if err != nil {
+			return err
+		}
+		if target.Kind != "course" || target.Inactive {
+			return ErrNotFound
+		}
+		terms, err = tx.List(Filter{Kind: "term", SchoolID: target.SchoolID,
+			CourseID: cmp.Or(target.CanonicalID, target.ID), Limit: maxReviewCandidates})
+		return err
+	})
+	if len(terms) > maxReviewCandidates {
+		return nil, ErrUnavailable
+	}
+	return terms, err
+}
+
+// CourseTermTeachers reads current public teachers for a visible offering term.
 func (s *Service) CourseTermTeachers(ctx context.Context, course, term string) ([]string, error) {
 	if !ValidID(course) || !ValidID(term) {
 		return nil, ErrInput
@@ -82,20 +111,23 @@ func (s *Service) CourseTermTeachers(ctx context.Context, course, term string) (
 		if e != nil {
 			return e
 		}
-		if target.Kind != "course" || period.Kind != "term" || target.SchoolID != period.SchoolID {
+		if target.Kind != "course" || period.Kind != "term" || target.SchoolID != period.SchoolID || target.Inactive || period.Inactive {
 			return ErrInput
 		}
-		if target.CanonicalID != "" {
-			course = target.CanonicalID
-		}
-		if period.CanonicalID != "" {
-			term = period.CanonicalID
-		}
-		items, err := tx.List(Filter{Kind: "teacher", SchoolID: target.SchoolID, CourseID: course, TermID: term, Limit: 1000})
+		course = cmp.Or(target.CanonicalID, target.ID)
+		term = cmp.Or(period.CanonicalID, period.ID)
+		terms, err := tx.List(Filter{Kind: "term", SchoolID: target.SchoolID, CourseID: course, IDs: []string{term}, Limit: 1})
 		if err != nil {
 			return err
 		}
-		if len(items) > 1000 {
+		if len(terms) == 0 {
+			return ErrInput
+		}
+		items, err := tx.List(Filter{Kind: "teacher", SchoolID: target.SchoolID, CourseID: course, TermID: term, Limit: maxReviewCandidates})
+		if err != nil {
+			return err
+		}
+		if len(items) > maxReviewCandidates {
 			return ErrUnavailable
 		}
 		ids = make([]string, 0, len(items))
