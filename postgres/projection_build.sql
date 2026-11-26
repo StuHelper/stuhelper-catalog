@@ -54,18 +54,23 @@ WITH eligible_classes AS MATERIALIZED (
 ), class_inputs AS (
  SELECT id AS source_id,cl.* FROM eligible_classes cl
  UNION ALL SELECT r.alias_id,cl.* FROM eligible_classes cl JOIN catalog.redirects r ON r.canonical_id=cl.id
+), children AS NOT MATERIALIZED (
+ SELECT o.id,o.school_id,o.kind,o.name,o.public_data,o.source_class_id,te.id AS teaching_id
+ FROM projection_source o JOIN catalog.projection_objects te ON te.version=$2 AND te.id=o.teacher_id AND te.kind='teacher'
+ WHERE o.kind='assignment'
+ UNION ALL
+ SELECT o.id,o.school_id,o.kind,o.name,o.public_data,o.source_class_id,''::text
+ FROM projection_source o WHERE o.kind='schedule'
 )
 INSERT INTO catalog.projection_objects(version,id,school_id,kind,name,department_id,category_id,nature_id,course_id,term_id,term_course_id,class_id,teacher_id,term_key,visible,data)
 SELECT $2,o.id,o.school_id,o.kind,o.name,cl.department_id,cl.category_id,cl.nature_id,cl.course_id,cl.term_id,cl.term_course_id,cl.id,
- CASE WHEN o.kind='assignment' THEN te.id ELSE '' END,cl.term_key,true,
+ o.teaching_id,cl.term_key,true,
  CASE WHEN cl.sports THEN
   (o.public_data-'sports_project_code')||jsonb_build_object('course_id',cl.course_id,'term_course_id',cl.term_course_id,'category_id',cl.category_id)
  WHEN cl.category_remapped THEN o.public_data||jsonb_build_object('category_id',cl.category_id)
  ELSE o.public_data END
-FROM projection_source o
-JOIN class_inputs cl ON cl.source_id=o.source_class_id
-LEFT JOIN catalog.projection_objects te ON te.version=$2 AND te.id=o.teacher_id AND te.kind='teacher'
-WHERE o.kind IN('assignment','schedule') AND (o.kind='schedule' OR te.id IS NOT NULL);
+FROM children o JOIN class_inputs cl ON cl.source_id=o.source_class_id
+ORDER BY cl.course_id,cl.term_course_id,cl.id,o.kind,o.id;
 -- step
 UPDATE catalog.projection_objects te SET teaching=true
 WHERE te.version=$2 AND te.kind='teacher' AND EXISTS(SELECT 1 FROM catalog.projection_objects a
