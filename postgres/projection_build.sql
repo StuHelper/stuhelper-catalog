@@ -8,6 +8,12 @@ LEFT JOIN catalog.term_orders t ON t.id=o.id AND t.school_id=o.school_id
 LEFT JOIN catalog.teacher_directory td ON td.teacher_id=o.id AND td.school_id=o.school_id
 WHERE o.kind IN('school','department','category','nature','term','course','teacher');
 -- step
+WITH eligible_terms AS MATERIALIZED (
+ SELECT id,term_key FROM catalog.projection_objects WHERE version=$2 AND kind='term' AND term_key>=$3
+), term_inputs AS (
+ SELECT id AS source_id,id,term_key FROM eligible_terms
+ UNION ALL SELECT r.alias_id,t.id,t.term_key FROM eligible_terms t JOIN catalog.redirects r ON r.canonical_id=t.id
+)
 INSERT INTO catalog.projection_objects(version,id,school_id,kind,name,department_id,category_id,nature_id,course_id,term_id,term_key,visible,data)
 SELECT $2,o.id,o.school_id,o.kind,o.name,
  COALESCE(NULLIF(o.department_id,''),co.department_id),
@@ -16,7 +22,7 @@ SELECT $2,o.id,o.school_id,o.kind,o.name,
  o.public_data
 FROM projection_source o
 JOIN catalog.projection_objects co ON co.version=$2 AND co.id=o.course_id AND co.kind='course'
-JOIN catalog.projection_objects tm ON tm.version=$2 AND tm.id=o.term_id AND tm.kind='term' AND tm.term_key>=$3
+JOIN term_inputs tm ON tm.source_id=o.source_term_id
 WHERE o.kind='term_course';
 -- step
 UPDATE catalog.projection_objects co SET visible=true WHERE co.version=$2 AND co.kind='course'
@@ -39,17 +45,26 @@ FROM projection_source o
 JOIN catalog.projection_objects tc ON tc.version=$2 AND tc.id=o.term_course_id AND tc.kind='term_course'
 WHERE o.kind='class';
 -- step
+WITH eligible_classes AS MATERIALIZED (
+ SELECT cl.id,cl.department_id,cl.category_id,cl.nature_id,cl.course_id,cl.term_id,cl.term_course_id,cl.term_key,
+  cl.category_remapped,sports.class_id IS NOT NULL AS sports
+ FROM catalog.projection_objects cl LEFT JOIN catalog.projection_sports_classes sports
+ ON sports.version=cl.version AND sports.class_id=cl.id AND sports.reason=''
+ WHERE cl.version=$2 AND cl.kind='class'
+), class_inputs AS (
+ SELECT id AS source_id,cl.* FROM eligible_classes cl
+ UNION ALL SELECT r.alias_id,cl.* FROM eligible_classes cl JOIN catalog.redirects r ON r.canonical_id=cl.id
+)
 INSERT INTO catalog.projection_objects(version,id,school_id,kind,name,department_id,category_id,nature_id,course_id,term_id,term_course_id,class_id,teacher_id,term_key,visible,data)
 SELECT $2,o.id,o.school_id,o.kind,o.name,cl.department_id,cl.category_id,cl.nature_id,cl.course_id,cl.term_id,cl.term_course_id,cl.id,
  CASE WHEN o.kind='assignment' THEN te.id ELSE '' END,cl.term_key,true,
- CASE WHEN sports.class_id IS NOT NULL THEN
+ CASE WHEN cl.sports THEN
   (o.public_data-'sports_project_code')||jsonb_build_object('course_id',cl.course_id,'term_course_id',cl.term_course_id,'category_id',cl.category_id)
  WHEN cl.category_remapped THEN o.public_data||jsonb_build_object('category_id',cl.category_id)
  ELSE o.public_data END
 FROM projection_source o
-JOIN catalog.projection_objects cl ON cl.version=$2 AND cl.id=o.class_id AND cl.kind='class'
+JOIN class_inputs cl ON cl.source_id=o.source_class_id
 LEFT JOIN catalog.projection_objects te ON te.version=$2 AND te.id=o.teacher_id AND te.kind='teacher'
-LEFT JOIN catalog.projection_sports_classes sports ON sports.version=$2 AND sports.class_id=cl.id AND sports.reason=''
 WHERE o.kind IN('assignment','schedule') AND (o.kind='schedule' OR te.id IS NOT NULL);
 -- step
 UPDATE catalog.projection_objects te SET teaching=true
