@@ -97,7 +97,7 @@ func isHistoricalEndedTerm(row OwnSchedule, now time.Time, latestStartedTermKey 
 // MyNextClassDay does not use cached enrollment rows without the current owner
 // source. The same source enforces authorization for MySchedule and Evidence.
 func (s *Service) MyNextClassDay(ctx context.Context, p Principal) (NextClassDay, error) {
-	out, err := withSchoolData(s, ctx, p, "", func(ctx context.Context, school string) (NextClassDay, error) {
+	out, err := withSchoolData(s, ctx, p, "", "", func(ctx context.Context, school string) (NextClassDay, error) {
 		return s.readMyNextClassDay(ctx, p, school)
 	})
 	if errors.Is(err, ErrForbidden) {
@@ -280,11 +280,11 @@ type OwnReviewCandidates struct {
 	Items           []ReviewCourseCandidate
 }
 type OwnReviewCandidateTransaction interface {
-	OwnReviewCandidates(string, string) ([]ReviewCourseCandidate, error)
+	OwnReviewCandidates(owner, school string, through int) ([]ReviewCourseCandidate, error)
 }
 
 func (s *Service) MyReviewCandidates(ctx context.Context, p Principal) (OwnReviewCandidates, error) {
-	return withSchoolData(s, ctx, p, "", func(ctx context.Context, school string) (OwnReviewCandidates, error) {
+	return withSchoolData(s, ctx, p, "", "", func(ctx context.Context, school string) (OwnReviewCandidates, error) {
 		return s.readMyReviewCandidates(ctx, p, school)
 	})
 }
@@ -310,7 +310,7 @@ func (s *Service) readMyReviewCandidates(ctx context.Context, p Principal, schoo
 			return ErrUnavailable
 		}
 		var err error
-		out.Items, err = port.OwnReviewCandidates(p.Subject, school)
+		out.Items, err = port.OwnReviewCandidates(p.Subject, school, enrollmentTermLimit(ctx))
 		return err
 	})
 	return out, err

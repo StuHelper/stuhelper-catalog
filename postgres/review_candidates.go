@@ -2,7 +2,7 @@ package postgres
 
 import c "github.com/StuHelper/stuhelper-catalog"
 
-func (t *transaction) OwnReviewCandidates(owner, school string) ([]c.ReviewCourseCandidate, error) {
+func (t *transaction) OwnReviewCandidates(owner, school string, through int) ([]c.ReviewCourseCandidate, error) {
 	if t.projectionRead {
 		rows, err := list[c.ReviewCourseCandidate](t, `SELECT jsonb_build_object('course_id',co.id,'course_name',co.name,'term_id',tm.id,'term_name',tm.name)
  FROM catalog.enrollments en JOIN catalog.projection_heads h ON h.school_id=en.school_id
@@ -12,9 +12,10 @@ func (t *transaction) OwnReviewCandidates(owner, school string) ([]c.ReviewCours
  AND sport.source_course_id=COALESCE(ca.canonical_id,en.course_id) AND sport.term_id=COALESCE(ta.canonical_id,en.term_id) AND sport.reason=''
  JOIN catalog.projection_objects co ON co.version=h.version AND co.id=COALESCE(sport.project_id,ca.canonical_id,en.course_id) AND co.kind='course' AND co.visible
  JOIN catalog.projection_objects tm ON tm.version=h.version AND tm.id=COALESCE(ta.canonical_id,en.term_id) AND tm.kind='term' AND tm.visible
- WHERE en.subject=$1 AND en.school_id=$2 AND en.active
+ JOIN catalog.term_orders tr ON tr.id=catalog.canonical(en.term_id) AND tr.school_id=en.school_id
+ WHERE en.subject=$1 AND en.school_id=$2 AND en.active AND tr.sort_key BETWEEN 1 AND $3
  AND EXISTS(SELECT 1 FROM catalog.projection_variants v WHERE v.version=h.version AND v.course_id=co.id AND v.term_id=tm.id)
- GROUP BY co.id,co.name,tm.id,tm.name,tm.term_key ORDER BY tm.term_key DESC,co.id LIMIT 2001`, owner, school)
+ GROUP BY co.id,co.name,tm.id,tm.name,tm.term_key ORDER BY tm.term_key DESC,co.id LIMIT 2001`, owner, school, through)
 		if err == nil && len(rows) > 2000 {
 			return nil, c.ErrUnavailable
 		}
@@ -23,8 +24,9 @@ func (t *transaction) OwnReviewCandidates(owner, school string) ([]c.ReviewCours
 	rows, err := list[c.ReviewCourseCandidate](t, `SELECT DISTINCT jsonb_build_object('course_id',co.id,'course_name',co.name,'term_id',term.id,'term_name',term.name)
  FROM catalog.enrollments en JOIN catalog.objects co ON co.id=catalog.canonical(en.course_id) AND co.kind='course' AND co.school_id=en.school_id
  JOIN catalog.objects term ON term.id=catalog.canonical(en.term_id) AND term.kind='term' AND term.school_id=en.school_id
- WHERE en.subject=$1 AND en.school_id=$2 AND en.active AND NOT COALESCE((co.data->'object'->>'inactive')::boolean,false)
- AND NOT COALESCE((term.data->'object'->>'inactive')::boolean,false) LIMIT 2001`, owner, school)
+ JOIN catalog.term_orders tr ON tr.id=term.id AND tr.school_id=en.school_id
+ WHERE en.subject=$1 AND en.school_id=$2 AND en.active AND tr.sort_key BETWEEN 1 AND $3 AND NOT COALESCE((co.data->'object'->>'inactive')::boolean,false)
+ AND NOT COALESCE((term.data->'object'->>'inactive')::boolean,false) LIMIT 2001`, owner, school, through)
 	if err == nil && len(rows) > 2000 {
 		return nil, c.ErrUnavailable
 	}

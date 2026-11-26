@@ -175,9 +175,11 @@ type Transaction interface {
 	RecordView(string, Object, time.Time) (bool, error)
 	DiscoveryCurrent(string, []string) ([]DiscoveryDocument, error)
 	Timetable(string, string) (Timetable, error)
+	SchoolTermOrder(school, term string) (int, error)
+	SchoolTermPeriods(school string, limit int) ([]SchoolTermPeriod, error)
 	SaveTimetable(Timetable) error
-	OwnScheduleMeetings(string, []string, int) ([]EnrollmentMeeting, error)
-	OwnedReferences(subject, school string, ids []string) ([]string, error)
+	OwnScheduleMeetings(owner, school string, ids []string, limit, through int) ([]EnrollmentMeeting, error)
+	OwnedReferences(subject, school string, ids []string, through int) ([]string, error)
 	ReferenceNames(ids []string) ([]Reference, error)
 	PublicObject(string) (Object, error)
 	ResolveIDs(string) ([]string, error)
@@ -190,10 +192,10 @@ type Transaction interface {
 	Lookup([]string) ([]Object, error)
 	Summary(Object) (Summary, error)
 	HasAssignment(string, string) (bool, error)
-	ActiveSourceEnrollments(subject, school, source string, limit int) ([]Enrollment, error)
+	ActiveSourceEnrollments(subject, school, source string, limit, through int) ([]Enrollment, error)
 	Enrollment(string) (Enrollment, error)
 	SaveEnrollment(Enrollment) error
-	Enrollments(subject, school, course, term, after string, limit int) ([]Enrollment, error)
+	Enrollments(subject, school, course, term, after string, limit, through int) ([]Enrollment, error)
 	Replay(string) (Replay, error)
 	SaveReplay(string, Replay) error
 	Event(Event) error

@@ -206,8 +206,8 @@ func (t *transaction) Summary(object catalog.Object) (catalog.Summary, error) {
 	return out, nil
 }
 
-func (t *transaction) OwnScheduleMeetings(owner string, ids []string, limit int) ([]catalog.EnrollmentMeeting, error) {
-	return list[catalog.EnrollmentMeeting](t, ownScheduleMeetingsSQL, owner, ids, limit)
+func (t *transaction) OwnScheduleMeetings(owner, school string, ids []string, limit, through int) ([]catalog.EnrollmentMeeting, error) {
+	return list[catalog.EnrollmentMeeting](t, ownScheduleMeetingsSQL, owner, ids, limit, school, through)
 }
 
 // Resolve only the requested owner's classes before joining schedule rows.
@@ -215,8 +215,9 @@ func (t *transaction) OwnScheduleMeetings(owner string, ids []string, limit int)
 // avoids repeating a scan for duplicate classes under skewed statistics; the
 // class-id predicate remains indexable. Alias expansion preserves old links.
 const ownScheduleMeetingsSQL = `WITH owned AS MATERIALIZED (
- SELECT id,school_id,catalog.canonical(COALESCE(data->>'class_id','')) AS class_id
- FROM catalog.enrollments WHERE subject=$1 AND id=ANY($2::text[]) AND active
+ SELECT en.id,en.school_id,catalog.canonical(COALESCE(en.data->>'class_id','')) AS class_id
+ FROM catalog.enrollments en JOIN catalog.term_orders tr ON tr.id=catalog.canonical(en.term_id) AND tr.school_id=en.school_id
+ WHERE en.subject=$1 AND en.id=ANY($2::text[]) AND en.active AND en.school_id=$4 AND tr.sort_key BETWEEN 1 AND $5
 ), class_keys AS MATERIALIZED (
  SELECT id,school_id,class_id FROM owned WHERE class_id<>''
  UNION

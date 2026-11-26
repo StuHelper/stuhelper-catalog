@@ -378,7 +378,7 @@ func (s *Service) MyEnrollments(ctx context.Context, p Principal, school, course
 			return nil, ErrInput
 		}
 	}
-	return withSchoolData(s, ctx, p, school, func(ctx context.Context, school string) ([]Enrollment, error) {
+	return withSchoolData(s, ctx, p, school, term, func(ctx context.Context, school string) ([]Enrollment, error) {
 		return s.readMyEnrollments(ctx, p, school, course, term, after, limit)
 	})
 }
@@ -390,7 +390,7 @@ func (s *Service) readMyEnrollments(ctx context.Context, p Principal, school, co
 	started := time.Now()
 	err := s.Repo.Transaction(ctx, func(t Transaction) error {
 		var e error
-		out, e = t.Enrollments(p.Subject, school, course, term, after, limit)
+		out, e = t.Enrollments(p.Subject, school, course, term, after, limit, enrollmentTermLimit(ctx))
 		return e
 	})
 	s.observeOwn(ctx, "enrollments.read", started, err)
