@@ -32,6 +32,41 @@ type sourceMarker struct {
 	Result   ImportResult
 }
 
+type OwnedEnrollmentSource struct {
+	SchoolID string `json:"school_id"`
+	SourceID string `json:"source_id"`
+}
+
+type OwnerEnrollmentCleanup interface {
+	DeleteOwnerEnrollments(owner string) ([]OwnedEnrollmentSource, error)
+	DeleteEnrollmentReplay(key string) error
+}
+
+// DeleteOwnerEnrollments is used after account closure fences the owner in
+// Verification. It removes the account's cached rows and source replay markers.
+func (s *Service) DeleteOwnerEnrollments(ctx context.Context, owner string) error {
+	if owner == "" || len(owner) > 2740 {
+		return ErrInput
+	}
+	return s.Repo.Transaction(ctx, func(tx Transaction) error {
+		cleanup, ok := tx.(OwnerEnrollmentCleanup)
+		if !ok {
+			return ErrUnavailable
+		}
+		sources, err := cleanup.DeleteOwnerEnrollments(owner)
+		if err != nil {
+			return err
+		}
+		for _, source := range sources {
+			key := digest([]string{"own-source", owner, source.SchoolID, source.SourceID})
+			if err := cleanup.DeleteEnrollmentReplay(key); err != nil {
+				return err
+			}
+		}
+		return nil
+	})
+}
+
 func (s *Service) refreshOwn(ctx context.Context, p Principal, school string) error {
 	if s.EnrollmentSource == nil {
 		return nil
@@ -127,7 +162,7 @@ func (s *Service) ReplaceOwnEnrollments(ctx context.Context, p Principal, in Enr
 		if err != nil && !errors.Is(err, ErrNotFound) {
 			return err
 		}
-		old, err := tx.ActiveSourceEnrollments(in.Subject, in.SchoolID, in.SourceID, 2001)
+		old, err := tx.ActiveSourceEnrollments(in.Subject, in.SchoolID, in.SourceID, 2001, enrollmentTermLimit(ctx))
 		if err != nil {
 			return err
 		}

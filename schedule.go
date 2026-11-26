@@ -31,7 +31,7 @@ type OwnSchedulePage struct {
 // MySchedule projects only active records owned by the authenticated account.
 // It never reads general directory details or another student's enrollment.
 func (s *Service) MySchedule(ctx context.Context, p Principal, term, after string, limit int) (OwnSchedulePage, error) {
-	return withSchoolData(s, ctx, p, "", func(ctx context.Context, school string) (OwnSchedulePage, error) {
+	return withSchoolData(s, ctx, p, "", term, func(ctx context.Context, school string) (OwnSchedulePage, error) {
 		return s.readMySchedule(ctx, p, school, term, after, limit)
 	})
 }
@@ -57,7 +57,7 @@ func (s *Service) ownSchedulePage(ctx context.Context, p Principal, school, term
 	}
 	e := s.Repo.Transaction(ctx, func(tx Transaction) error {
 		started := time.Now()
-		rows, e := tx.Enrollments(p.Subject, school, "", term, after, queryLimit)
+		rows, e := tx.Enrollments(p.Subject, school, "", term, after, queryLimit, enrollmentTermLimit(ctx))
 		s.observeOwn(ctx, "schedule.enrollments", started, e)
 		if e != nil {
 			return e
@@ -92,7 +92,7 @@ func (s *Service) ownSchedulePage(ctx context.Context, p Principal, school, term
 			byName[v.ID] = v.Name
 		}
 		started = time.Now()
-		meetings, e := tx.OwnScheduleMeetings(p.Subject, ids, 1001)
+		meetings, e := tx.OwnScheduleMeetings(p.Subject, school, ids, 1001, enrollmentTermLimit(ctx))
 		s.observeOwn(ctx, "schedule.meetings", started, e)
 		if e != nil {
 			return e

@@ -2,14 +2,18 @@ package postgres
 
 import c "github.com/StuHelper/stuhelper-catalog"
 
-func (t *transaction) OwnedReferences(subject, school string, ids []string) ([]string, error) {
-	rows, e := t.tx.QueryContext(t.ctx, `SELECT requested.id FROM unnest($2::text[]) requested(id)
- WHERE EXISTS(SELECT 1 FROM catalog.enrollments en WHERE en.subject=$1 AND en.school_id=$3
- AND (requested.id IN (en.school_id,en.course_id,en.term_id,COALESCE(en.data->>'class_id','')) OR catalog.canonical(requested.id)=catalog.canonical(en.course_id)
- OR COALESCE(en.data->'teacher_ids','[]'::jsonb) ? requested.id)) OR EXISTS(SELECT 1 FROM catalog.enrollments en JOIN catalog.projection_heads h ON h.school_id=en.school_id
+func (t *transaction) OwnedReferences(subject, school string, ids []string, through int) ([]string, error) {
+	rows, e := t.tx.QueryContext(t.ctx, `WITH owned AS MATERIALIZED (
+ SELECT en.subject,en.school_id,en.course_id,en.term_id,en.data FROM catalog.enrollments en
+ JOIN catalog.term_orders tr ON tr.id=catalog.canonical(en.term_id) AND tr.school_id=en.school_id
+ WHERE en.subject=$1 AND en.school_id=$3 AND tr.sort_key BETWEEN 1 AND $4
+ ) SELECT requested.id FROM unnest($2::text[]) requested(id)
+ WHERE EXISTS(SELECT 1 FROM owned en WHERE
+ (requested.id IN (en.school_id,en.course_id,en.term_id,COALESCE(en.data->>'class_id','')) OR catalog.canonical(requested.id)=catalog.canonical(en.course_id)
+ OR COALESCE(en.data->'teacher_ids','[]'::jsonb) ? requested.id)) OR EXISTS(SELECT 1 FROM owned en JOIN catalog.projection_heads h ON h.school_id=en.school_id
  JOIN catalog.projection_sports_classes m ON m.version=h.version AND m.class_id=catalog.canonical(COALESCE(en.data->>'class_id',''))
  AND m.source_course_id=catalog.canonical(en.course_id) AND m.term_id=catalog.canonical(en.term_id) AND m.reason=''
- WHERE en.subject=$1 AND en.school_id=$3 AND m.project_id=requested.id) ORDER BY requested.id`, subject, ids, school)
+ WHERE m.project_id=requested.id) ORDER BY requested.id`, subject, ids, school, through)
 	if e != nil {
 		return nil, safe(e)
 	}

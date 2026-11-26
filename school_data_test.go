@@ -35,6 +35,53 @@ func TestMissingSchoolDataAuthorizationSkipsPersonalSources(t *testing.T) {
 	}
 }
 
+func TestPersonalEnrollmentQueriesRespectSchoolDataTermLimit(t *testing.T) {
+	s, admin, seed := fixture(t)
+	ctx := context.Background()
+	owner := c.Principal{Subject: seed.Enrollments[0].Subject}
+	future := seed.Enrollments[0]
+	future.ID, future.TermID, future.ClassID, future.TeacherIDs = "future", "term2", "", nil
+	seed.Enrollments = append(seed.Enrollments, future)
+	if _, err := s.Import(ctx, admin, "scoped", seed); err != nil {
+		t.Fatal(err)
+	}
+	s.SchoolDataAccess = fixtureSchoolData{through: 20263}
+	items, err := s.MyEnrollments(ctx, owner, "school", "", "", "", 100)
+	if err != nil || len(items) != 1 || items[0].ID != "enrollment" {
+		t.Fatal("personal list contained a later term", err)
+	}
+	page, err := s.MySchedule(ctx, owner, "", "", 100)
+	if err != nil || len(page.Items) != 1 || page.Items[0].Enrollment.TermID != "term1" {
+		t.Fatal("schedule contained a later term", err)
+	}
+	if _, err := s.MyReferences(ctx, owner, []string{"term2"}); !errors.Is(err, c.ErrNotFound) {
+		t.Fatal("personal references exposed a later term", err)
+	}
+	source := new(countedEnrollmentSource)
+	s.EnrollmentSource = source
+	for _, read := range []func() error{
+		func() error { _, err := s.MyEnrollments(ctx, owner, "school", "", "term2", "", 20); return err },
+		func() error { _, err := s.MySchedule(ctx, owner, "term2", "", 20); return err },
+		func() error { _, err := s.MyCalendar(ctx, owner, "term2"); return err },
+		func() error { _, err := s.ReviewEnrollmentSnapshot(ctx, owner, "course", "term2"); return err },
+	} {
+		if err := read(); !errors.Is(err, c.ErrForbidden) {
+			t.Fatalf("out-of-term request: %v", err)
+		}
+	}
+	if source.reads != 0 {
+		t.Fatal("out-of-term request read the personal source")
+	}
+	if err := s.DeleteOwnerEnrollments(ctx, owner.Subject); err != nil {
+		t.Fatal(err)
+	}
+	s.EnrollmentSource = nil
+	items, err = s.MyEnrollments(ctx, owner, "school", "", "", "", 100)
+	if err != nil || len(items) != 0 {
+		t.Fatal("owner enrollment projection survived closure", err)
+	}
+}
+
 func TestPublicTeacherFallbackUsesOnlyTheRequestedCourseAndTerm(t *testing.T) {
 	s, admin, seed := fixture(t)
 	ctx := context.Background()

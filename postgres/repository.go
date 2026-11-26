@@ -284,26 +284,40 @@ func (t *transaction) Enrollment(id string) (catalog.Enrollment, error) {
 	return read[catalog.Enrollment](t, `SELECT data FROM catalog.enrollments WHERE id=$1`, id)
 }
 
-func (t *transaction) ActiveSourceEnrollments(subject, school, source string, limit int) ([]catalog.Enrollment, error) {
-	return list[catalog.Enrollment](t, `SELECT data FROM catalog.enrollments WHERE subject=$1 AND school_id=$2 AND data->>'source_id'=$3 AND active ORDER BY id LIMIT $4`, subject, school, source, limit)
+func (t *transaction) ActiveSourceEnrollments(subject, school, source string, limit, through int) ([]catalog.Enrollment, error) {
+	return list[catalog.Enrollment](t, `SELECT en.data FROM catalog.enrollments en
+ LEFT JOIN catalog.term_orders tr ON tr.id=catalog.canonical(en.term_id) AND tr.school_id=en.school_id
+ WHERE en.subject=$1 AND en.school_id=$2 AND en.data->>'source_id'=$3 AND en.active
+ AND ($5=0 OR tr.sort_key BETWEEN 1 AND $5) ORDER BY en.id LIMIT $4`, subject, school, source, limit, through)
+}
+
+func (t *transaction) DeleteOwnerEnrollments(owner string) ([]catalog.OwnedEnrollmentSource, error) {
+	return list[catalog.OwnedEnrollmentSource](t, `WITH deleted AS (
+ DELETE FROM catalog.enrollments WHERE subject=$1 RETURNING school_id,data->>'source_id' AS source_id
+ ) SELECT jsonb_build_object('school_id',school_id,'source_id',source_id)
+ FROM deleted WHERE source_id IS NOT NULL AND source_id<>'' GROUP BY school_id,source_id`, owner)
+}
+
+func (t *transaction) DeleteEnrollmentReplay(key string) error {
+	_, err := t.tx.ExecContext(t.ctx, `DELETE FROM catalog.replays WHERE key=$1`, key)
+	return safe(err)
 }
 func (t *transaction) SaveEnrollment(v catalog.Enrollment) error {
 	return t.save(`INSERT INTO catalog.enrollments(id,subject,school_id,course_id,term_id,active,data) VALUES($1,$2,$3,$4,$5,$6,$7) ON CONFLICT(id) DO UPDATE SET course_id=excluded.course_id,term_id=excluded.term_id,active=excluded.active,data=excluded.data`, v, v.ID, v.Subject, v.SchoolID, v.CourseID, v.TermID, v.Active)
 }
-func (t *transaction) Enrollments(subject, school, course, term, after string, limit int) ([]catalog.Enrollment, error) {
-	// Resolve the cursor only inside the same owner's active filtered set. Unknown
-	// source terms sort last; IDs remain valid opaque cursors for old clients.
+func (t *transaction) Enrollments(subject, school, course, term, after string, limit, through int) ([]catalog.Enrollment, error) {
+	// Resolve the cursor inside the owner's authorized and filtered set.
 	return list[catalog.Enrollment](t, `WITH owned AS MATERIALIZED (
- SELECT e.*,COALESCE(tr.sort_key,0) AS term_order_key
- FROM catalog.enrollments e LEFT JOIN catalog.term_orders tr ON tr.id=catalog.canonical(e.term_id) AND tr.school_id=e.school_id
- WHERE e.subject=$1 AND e.active AND ($2='' OR e.school_id=$2)
- AND ($3='' OR catalog.canonical(e.course_id)=catalog.canonical($3)) AND ($4='' OR e.term_id=$4)
+ SELECT e.*,tr.sort_key AS term_order_key
+ FROM catalog.enrollments e JOIN catalog.term_orders tr ON tr.id=catalog.canonical(e.term_id) AND tr.school_id=e.school_id
+ WHERE e.subject=$1 AND e.active AND e.school_id=$2 AND tr.sort_key BETWEEN 1 AND $7
+ AND ($3='' OR catalog.canonical(e.course_id)=catalog.canonical($3)) AND ($4='' OR catalog.canonical(e.term_id)=catalog.canonical($4))
  ) SELECT data || jsonb_build_object('term_order_key',term_order_key,'course_id',catalog.canonical(course_id),
  'teacher_ids',(SELECT COALESCE(jsonb_agg(DISTINCT catalog.canonical(value)),'[]'::jsonb)
  FROM jsonb_array_elements_text(COALESCE(NULLIF(data->'teacher_ids','null'::jsonb),'[]'::jsonb))))
  FROM owned WHERE $5='' OR (term_order_key<(SELECT term_order_key FROM owned WHERE id=$5)
  OR (term_order_key=(SELECT term_order_key FROM owned WHERE id=$5) AND id>$5))
- ORDER BY term_order_key DESC,id LIMIT $6`, subject, school, course, term, after, limit)
+ ORDER BY term_order_key DESC,id LIMIT $6`, subject, school, course, term, after, limit, through)
 }
 
 func (t *transaction) Replay(key string) (catalog.Replay, error) {
