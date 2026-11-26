@@ -72,6 +72,8 @@ specifications:
   - docs/spec/my-courses.md
   - docs/spec/ui-data.md
 scenario_tests:
+  REVIEWUX-01:
+    - projection_test.go#TestReviewOfferingTermsUseCourseAndCutoff
   MC-SD-01:
     - school_data_test.go#TestMissingSchoolDataAuthorizationSkipsPersonalSources
   RET-12:

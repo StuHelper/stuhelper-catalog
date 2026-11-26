@@ -208,6 +208,49 @@ func TestDirectoryProjectionCutoffOrderingCountsAndAbsentOldCourses(t *testing.T
 	}
 }
 
+func TestReviewOfferingTermsUseCourseAndCutoff(t *testing.T) {
+	s, p, _, _ := projectionFixture(t)
+	ctx := context.Background()
+	now := time.Now()
+	objects := []c.Object{
+		{ID: "same-course-old-offering", Kind: "term_course", SchoolID: "school", Name: "Before cutoff", CourseID: "course", TermID: "a-old", Aliases: []string{}},
+		{ID: "same-course-unknown-offering", Kind: "term_course", SchoolID: "school", Name: "Unknown term", CourseID: "course", TermID: "unknown", Aliases: []string{}},
+		{ID: "other-course-offering", Kind: "term_course", SchoolID: "school", Name: "Only another course", CourseID: "old", TermID: "empty-term", Aliases: []string{}},
+	}
+	if _, err := s.Import(ctx, p, "review-offerings", c.Import{SchoolID: "school", SourceID: "synthetic-review", Revision: 1, FetchedAt: now, Objects: objects}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := s.RebuildDirectory(ctx, p, "school", nil); err != nil {
+		t.Fatal(err)
+	}
+	terms, err := s.CourseOfferingTerms(ctx, "course")
+	var got []string
+	for _, term := range terms {
+		if term.TermOrderKey < 20233 || term.Name == "" {
+			t.Fatalf("unusable term candidate: %+v", term)
+		}
+		got = append(got, term.ID)
+	}
+	if err != nil || !slices.Equal(got, []string{"a-autumn", "m-summer", "z-spring", "z-boundary"}) {
+		t.Fatal(got, err)
+	}
+	page, err := s.ReadList(ctx, p, c.Filter{Kind: "term", CourseID: "course", Limit: 100})
+	if err != nil || !slices.EqualFunc(page.Items, terms, func(a, b c.Object) bool { return a.ID == b.ID }) {
+		t.Fatal(page, err)
+	}
+	if _, err := s.CourseTermTeachers(ctx, "course", "empty-term"); !errors.Is(err, c.ErrInput) {
+		t.Fatal("another course's term was accepted", err)
+	}
+	teachers, err := s.CourseTermTeachers(ctx, "course", "z-boundary")
+	if err != nil || !slices.Equal(teachers, []string{"teacher"}) {
+		t.Fatal(teachers, err)
+	}
+	teachers, err = s.CourseTermTeachers(ctx, "course", "m-summer")
+	if err != nil || len(teachers) != 0 {
+		t.Fatal("an offering can have no teacher", teachers, err)
+	}
+}
+
 func TestDirectoryProjectionRebuildFailureKeepsVersionAndRecordsReason(t *testing.T) {
 	s, p, admin, first := projectionFixture(t)
 	ctx := context.Background()

@@ -2769,9 +2769,11 @@ type ListObjectsParams struct {
 	DepartmentId *string `form:"department_id,omitempty" json:"department_id,omitempty"`
 	CategoryId   *string `form:"category_id,omitempty" json:"category_id,omitempty"`
 	NatureId     *string `form:"nature_id,omitempty" json:"nature_id,omitempty"`
-	CourseId     *string `form:"course_id,omitempty" json:"course_id,omitempty"`
-	TermId       *string `form:"term_id,omitempty" json:"term_id,omitempty"`
-	TeacherId    *string `form:"teacher_id,omitempty" json:"teacher_id,omitempty"`
+
+	// CourseId 已授权学校范围内的课程 ID。kind=term 时，仅返回该课程有开课记录的学期，按目录截止规则过滤并从新到旧排列。
+	CourseId  *string `form:"course_id,omitempty" json:"course_id,omitempty"`
+	TermId    *string `form:"term_id,omitempty" json:"term_id,omitempty"`
+	TeacherId *string `form:"teacher_id,omitempty" json:"teacher_id,omitempty"`
 
 	// Q Trimmed literal case-insensitive name/alias search. For kind=school, numeric queries match the complete stored id/code exactly, or the last five digits of a ten-digit id/code. Numeric queries do not use substring matching.
 	Q     *string `form:"q,omitempty" json:"q,omitempty"`
