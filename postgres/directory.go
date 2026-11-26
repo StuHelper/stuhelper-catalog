@@ -58,6 +58,13 @@ func (t *transaction) List(f catalog.Filter) ([]catalog.Object, error) {
 		after = "o.department_sort_key>(SELECT prev.department_sort_key FROM catalog.objects prev WHERE prev.id=$3 AND prev.kind='department')"
 		order = "o.department_sort_key"
 	}
+	courseTermRelation := ""
+	if f.Kind == "term" && f.CourseID != "" {
+		courseTermRelation = ` OR EXISTS (SELECT 1 FROM catalog.objects tc
+		 WHERE tc.kind='term_course' AND tc.school_id=o.school_id AND catalog.canonical(tc.term_id)=o.id
+		   AND tc.course_id IN (SELECT $5::text UNION SELECT alias_id FROM catalog.redirects WHERE canonical_id=$5)
+		   AND NOT COALESCE((tc.data->'object'->>'inactive')::boolean,false))`
+	}
 	return list[catalog.Object](t, `SELECT catalog.public_object(o.data->'object') || CASE WHEN o.kind='term' THEN jsonb_build_object('term_order_key',COALESCE(tr.sort_key,0)) ELSE '{}'::jsonb END FROM catalog.objects o
  LEFT JOIN catalog.term_orders tr ON tr.id=o.id AND tr.school_id=o.school_id
  LEFT JOIN catalog.objects parent_class ON parent_class.id=o.class_id AND parent_class.kind='class'
@@ -71,11 +78,7 @@ func (t *transaction) List(f catalog.Filter) ([]catalog.Object, error) {
      OR (o.data->'object'->>'code' ~ '^[0-9]{10}$' AND right(o.data->'object'->>'code',5)=$4)))
  ELSE catalog.matches_query(o.data->'object',$4) END)
 
- AND ($5='' OR o.course_id IN (SELECT $5::text UNION SELECT alias_id FROM catalog.redirects WHERE canonical_id=$5) OR (o.kind='course' AND o.id=$5) OR parent_offering.course_id IN (SELECT $5::text UNION SELECT alias_id FROM catalog.redirects WHERE canonical_id=$5)
-   OR (o.kind='term' AND EXISTS(SELECT 1 FROM catalog.objects tc
-     WHERE tc.kind='term_course' AND tc.school_id=o.school_id AND catalog.canonical(tc.term_id)=o.id
-       AND tc.course_id IN (SELECT $5::text UNION SELECT alias_id FROM catalog.redirects WHERE canonical_id=$5)
-       AND NOT COALESCE((tc.data->'object'->>'inactive')::boolean,false)))
+ AND ($5='' OR o.course_id IN (SELECT $5::text UNION SELECT alias_id FROM catalog.redirects WHERE canonical_id=$5) OR (o.kind='course' AND o.id=$5) OR parent_offering.course_id IN (SELECT $5::text UNION SELECT alias_id FROM catalog.redirects WHERE canonical_id=$5)`+courseTermRelation+`
    OR (o.kind='teacher' AND EXISTS(SELECT 1 FROM catalog.objects a JOIN catalog.objects cl ON cl.id=a.class_id JOIN catalog.objects tc ON tc.id=cl.term_course_id
      WHERE a.kind='assignment' AND a.teacher_id IN (SELECT o.id::text UNION SELECT alias_id FROM catalog.redirects WHERE canonical_id=o.id) AND tc.course_id IN (SELECT $5::text UNION SELECT alias_id FROM catalog.redirects WHERE canonical_id=$5) AND ($7='' OR tc.term_id=$7))))
  AND (
