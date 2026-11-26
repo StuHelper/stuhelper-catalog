@@ -13,6 +13,9 @@ import (
 	c "github.com/StuHelper/stuhelper-catalog"
 )
 
+//go:embed projection_source.sql
+var projectionSourceSQL string
+
 //go:embed projection_build.sql
 var projectionBuildSQL string
 
@@ -253,6 +256,9 @@ func (t *transaction) RebuildDirectory(school string, policy *c.DirectoryPolicy,
 		stepStarted := time.Now()
 		step = strings.TrimSpace(step)
 		prefix := `WITH _projection_args AS (SELECT $1::text AS school,$2::bigint AS version,$3::integer AS cutoff) `
+		if strings.Contains(step, "FROM projection_source ") {
+			prefix += ", projection_source AS NOT MATERIALIZED (" + projectionSourceSQL + ") "
+		}
 		if strings.HasPrefix(step, "WITH ") {
 			step = "," + strings.TrimPrefix(step, "WITH ")
 		}
@@ -267,7 +273,14 @@ func (t *transaction) RebuildDirectory(school string, policy *c.DirectoryPolicy,
 				return out, safe(err)
 			}
 		}
-		if index == 6 {
+		// The child rows inherit the final class mapping. Apply school rules
+		// once to classes before materializing their assignments and schedules.
+		if index == 5 {
+			// Sports and category rules join against the classes just inserted.
+			// Analyze them before planning those joins, including on the first build.
+			if _, err := t.tx.ExecContext(t.ctx, `SELECT catalog.analyze_directory_projection()`); err != nil {
+				return out, safe(err)
+			}
 			if e := t.applyDisplayPolicy(school, &out); e != nil {
 				return out, e
 			}

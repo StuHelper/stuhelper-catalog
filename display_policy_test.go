@@ -51,6 +51,9 @@ func TestDirectoryDisplayRulesProjectsCountsAndEnrollmentOwnership(t *testing.T)
 		c.Object{ID: "no-teacher-class", Kind: "class", Name: "Synthetic unassigned", TermCourseID: "semester1-offering", CategoryID: "sports", SportsProjectCode: "swim"},
 		c.Object{ID: "sport-a", Kind: "assignment", Name: "Teaching", ClassID: "semester1-class", TeacherID: "sports-teacher-a"},
 		c.Object{ID: "sport-b", Kind: "assignment", Name: "Teaching", ClassID: "semester2-class", TeacherID: "sports-teacher-b"},
+		c.Object{ID: "sports-meeting", Kind: "schedule", Name: "Sports meeting", ClassID: "semester2-class"},
+		c.Object{ID: "language-meeting", Kind: "schedule", Name: "Language meeting", ClassID: "language-b-class"},
+		c.Object{ID: "excluded-meeting", Kind: "schedule", Name: "Excluded meeting", ClassID: "office-class"},
 		c.Object{ID: "sport-swim", Kind: "assignment", Name: "Teaching", ClassID: "swim-class", TeacherID: "sports-teacher-b"},
 		c.Object{ID: "sport-unknown", Kind: "assignment", Name: "Teaching", ClassID: "unknown-class", TeacherID: "sports-teacher-a"},
 	)
@@ -97,6 +100,23 @@ func TestDirectoryDisplayRulesProjectsCountsAndEnrollmentOwnership(t *testing.T)
 	offering, err := s.Get(ctx, c.SportsOfferingID(tt, "z-boundary"))
 	if err != nil || offering.CourseID != tt || offering.TermID != "z-boundary" {
 		t.Fatal(offering, err)
+	}
+	// Child rows keep both the stored display references and the public JSON
+	// produced by the school's category and sports policies.
+	for _, id := range []string{"sport-b", "sports-meeting"} {
+		var matches bool
+		if err := db.QueryRow(`SELECT course_id=$2 AND data->>'course_id'=$2 AND term_course_id=$3 AND data->>'term_course_id'=$3
+ AND category_id='sports' AND data->>'category_id'='sports' FROM catalog.projection_objects
+ WHERE version=(SELECT version FROM catalog.projection_heads WHERE school_id='school') AND id=$1`, id, tt, c.SportsOfferingID(tt, "z-boundary")).Scan(&matches); err != nil || !matches {
+			t.Fatalf("projected sports child %s: matches=%v err=%v", id, matches, err)
+		}
+	}
+	var language, excluded bool
+	if err := db.QueryRow(`WITH generation AS (SELECT version FROM catalog.projection_heads WHERE school_id='school')
+ SELECT EXISTS(SELECT 1 FROM catalog.projection_objects JOIN generation USING(version) WHERE id='language-meeting'
+ AND category_id='foreign' AND data->>'category_id'='foreign'),
+ EXISTS(SELECT 1 FROM catalog.projection_objects JOIN generation USING(version) WHERE id='excluded-meeting')`).Scan(&language, &excluded); err != nil || !language || excluded {
+		t.Fatalf("category inheritance: language=%v excluded=%v err=%v", language, excluded, err)
 	}
 	teachers, err := s.ReadList(ctx, p, c.Filter{Kind: "teacher", CourseID: tt, Limit: 100})
 	if err != nil || len(teachers.Items) != 2 {
