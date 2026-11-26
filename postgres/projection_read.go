@@ -111,6 +111,9 @@ func (t *transaction) projectedList(f c.Filter) ([]c.Object, error) {
 			conditions = append(conditions, "v."+field.column+"="+canonical(field.value))
 		}
 	}
+	if f.Kind == "term" && f.CourseID != "" {
+		conditions = append(conditions, "v.offering_id<>''")
+	}
 	for _, field := range []struct{ column, value string }{{"department_id", f.DepartmentID}, {"category_id", f.CategoryID}, {"nature_id", f.NatureID}} {
 		if field.value != "" {
 			value := canonical(field.value)
