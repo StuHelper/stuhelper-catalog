@@ -323,6 +323,10 @@ scenario_tests:
   CAT-PROJECTION-01:
     - projection_test.go#TestDirectoryProjectionCutoffOrderingCountsAndAbsentOldCourses
   CAT-PROJECTION-02:
+    - configured_projection_test.go#TestConfiguredProjectionResumesAndPublishesAtomically
+    - configured_projection_test.go#TestConfiguredBuildDoesNotLockSourceAndDiscardsStaleInput
+    - configured_projection_test.go#TestConfiguredProjectionOldFormatKeepsNamedDepartmentPagination
+    - configured_projection_test.go#TestConfiguredProjectionCanceledStatementDoesNotStopWriters
     - projection_test.go#TestDirectoryProjectionRebuildFailureKeepsVersionAndRecordsReason
   CAT-PROJECTION-03:
     - projection_test.go#TestDirectoryProjectionAutoRebuildAndCompleteImportBoundary
