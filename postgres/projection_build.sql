@@ -1,25 +1,29 @@
 INSERT INTO catalog.projection_objects(version,id,school_id,kind,name,department_id,category_id,nature_id,term_key,official,verified_homepage,data)
-SELECT $2,o.id,o.school_id,o.kind,o.name,catalog.canonical(o.department_id),catalog.canonical(o.category_id),catalog.canonical(o.nature_id),
- COALESCE(t.sort_key,0),COALESCE(td.official AND (td.homepage_manual OR (td.matched_name=o.name AND td.matched_department_id=o.department_id)),false),
+SELECT $2,o.id,o.school_id,o.kind,o.name,o.department_id,o.category_id,o.nature_id,
+ COALESCE(t.sort_key,0),COALESCE(td.official AND (td.homepage_manual OR (td.matched_name=o.name AND td.matched_department_id=o.source_department_id)),false),
  COALESCE(td.verified_homepage,false),
- catalog.public_object(o.data->'object')-'term_order_key'-'latest_term_id'
-FROM catalog.objects o LEFT JOIN catalog.term_orders t ON t.id=o.id AND t.school_id=o.school_id
+ o.public_data-'term_order_key'-'latest_term_id'
+FROM projection_source o
+LEFT JOIN catalog.term_orders t ON t.id=o.id AND t.school_id=o.school_id
 LEFT JOIN catalog.teacher_directory td ON td.teacher_id=o.id AND td.school_id=o.school_id
-WHERE o.school_id=$1 AND o.kind IN('school','department','category','nature','term','course','teacher')
-AND NOT COALESCE((o.data->'object'->>'inactive')::boolean,false)
-AND NOT EXISTS(SELECT 1 FROM catalog.redirects r WHERE r.alias_id=o.id);
+WHERE o.kind IN('school','department','category','nature','term','course','teacher');
 -- step
+WITH eligible_terms AS MATERIALIZED (
+ SELECT id,term_key FROM catalog.projection_objects WHERE version=$2 AND kind='term' AND term_key>=$3
+), term_inputs AS (
+ SELECT id AS source_id,id,term_key FROM eligible_terms
+ UNION ALL SELECT r.alias_id,t.id,t.term_key FROM eligible_terms t JOIN catalog.redirects r ON r.canonical_id=t.id
+)
 INSERT INTO catalog.projection_objects(version,id,school_id,kind,name,department_id,category_id,nature_id,course_id,term_id,term_key,visible,data)
 SELECT $2,o.id,o.school_id,o.kind,o.name,
- COALESCE(NULLIF(catalog.canonical(o.department_id),''),co.department_id),
- COALESCE(NULLIF(catalog.canonical(o.category_id),''),co.category_id),
- COALESCE(NULLIF(catalog.canonical(o.nature_id),''),co.nature_id),co.id,tm.id,tm.term_key,true,
- catalog.public_object(o.data->'object')
-FROM catalog.objects o
-JOIN catalog.projection_objects co ON co.version=$2 AND co.id=catalog.canonical(o.course_id) AND co.kind='course'
-JOIN catalog.projection_objects tm ON tm.version=$2 AND tm.id=catalog.canonical(o.term_id) AND tm.kind='term' AND tm.term_key>=$3
-WHERE o.school_id=$1 AND o.kind='term_course' AND NOT COALESCE((o.data->'object'->>'inactive')::boolean,false)
-AND NOT EXISTS(SELECT 1 FROM catalog.redirects r WHERE r.alias_id=o.id);
+ COALESCE(NULLIF(o.department_id,''),co.department_id),
+ COALESCE(NULLIF(o.category_id,''),co.category_id),
+ COALESCE(NULLIF(o.nature_id,''),co.nature_id),co.id,tm.id,tm.term_key,true,
+ o.public_data
+FROM projection_source o
+JOIN catalog.projection_objects co ON co.version=$2 AND co.id=o.course_id AND co.kind='course'
+JOIN term_inputs tm ON tm.source_id=o.source_term_id
+WHERE o.kind='term_course';
 -- step
 UPDATE catalog.projection_objects co SET visible=true WHERE co.version=$2 AND co.kind='course'
 AND EXISTS(SELECT 1 FROM catalog.projection_objects tc WHERE tc.version=$2 AND tc.kind='term_course' AND tc.course_id=co.id);
@@ -33,28 +37,41 @@ WHERE co.version=$2 AND co.id=latest.course_id AND co.kind='course';
 -- step
 INSERT INTO catalog.projection_objects(version,id,school_id,kind,name,department_id,category_id,nature_id,course_id,term_id,term_course_id,term_key,visible,data)
 SELECT $2,o.id,o.school_id,o.kind,o.name,
- COALESCE(NULLIF(catalog.canonical(o.department_id),''),tc.department_id),
- COALESCE(NULLIF(catalog.canonical(o.category_id),''),tc.category_id),
- COALESCE(NULLIF(catalog.canonical(o.nature_id),''),tc.nature_id),tc.course_id,tc.term_id,tc.id,tc.term_key,true,
- catalog.public_object(o.data->'object')
-FROM catalog.objects o JOIN catalog.projection_objects tc ON tc.version=$2 AND tc.id=catalog.canonical(o.term_course_id) AND tc.kind='term_course'
-WHERE o.school_id=$1 AND o.kind='class' AND NOT COALESCE((o.data->'object'->>'inactive')::boolean,false)
-AND NOT EXISTS(SELECT 1 FROM catalog.redirects r WHERE r.alias_id=o.id);
+ COALESCE(NULLIF(o.department_id,''),tc.department_id),
+ COALESCE(NULLIF(o.category_id,''),tc.category_id),
+ COALESCE(NULLIF(o.nature_id,''),tc.nature_id),tc.course_id,tc.term_id,tc.id,tc.term_key,true,
+ o.public_data
+FROM projection_source o
+JOIN catalog.projection_objects tc ON tc.version=$2 AND tc.id=o.term_course_id AND tc.kind='term_course'
+WHERE o.kind='class';
 -- step
+WITH eligible_classes AS MATERIALIZED (
+ SELECT cl.id,cl.department_id,cl.category_id,cl.nature_id,cl.course_id,cl.term_id,cl.term_course_id,cl.term_key,
+  cl.category_remapped,sports.class_id IS NOT NULL AS sports
+ FROM catalog.projection_objects cl LEFT JOIN catalog.projection_sports_classes sports
+ ON sports.version=cl.version AND sports.class_id=cl.id AND sports.reason=''
+ WHERE cl.version=$2 AND cl.kind='class'
+), class_inputs AS (
+ SELECT id AS source_id,cl.* FROM eligible_classes cl
+ UNION ALL SELECT r.alias_id,cl.* FROM eligible_classes cl JOIN catalog.redirects r ON r.canonical_id=cl.id
+)
 INSERT INTO catalog.projection_objects(version,id,school_id,kind,name,department_id,category_id,nature_id,course_id,term_id,term_course_id,class_id,teacher_id,term_key,visible,data)
 SELECT $2,o.id,o.school_id,o.kind,o.name,cl.department_id,cl.category_id,cl.nature_id,cl.course_id,cl.term_id,cl.term_course_id,cl.id,
- CASE WHEN o.kind='assignment' THEN te.id ELSE '' END,cl.term_key,true,catalog.public_object(o.data->'object')
-FROM catalog.objects o JOIN catalog.projection_objects cl ON cl.version=$2 AND cl.id=catalog.canonical(o.class_id) AND cl.kind='class'
-LEFT JOIN catalog.projection_objects te ON te.version=$2 AND te.id=catalog.canonical(o.teacher_id) AND te.kind='teacher'
-WHERE o.school_id=$1 AND o.kind IN('assignment','schedule') AND (o.kind='schedule' OR te.id IS NOT NULL)
-AND NOT COALESCE((o.data->'object'->>'inactive')::boolean,false)
-AND NOT EXISTS(SELECT 1 FROM catalog.redirects r WHERE r.alias_id=o.id);
+ CASE WHEN o.kind='assignment' THEN te.id ELSE '' END,cl.term_key,true,
+ CASE WHEN cl.sports THEN
+  (o.public_data-'sports_project_code')||jsonb_build_object('course_id',cl.course_id,'term_course_id',cl.term_course_id,'category_id',cl.category_id)
+ WHEN cl.category_remapped THEN o.public_data||jsonb_build_object('category_id',cl.category_id)
+ ELSE o.public_data END
+FROM projection_source o
+JOIN class_inputs cl ON cl.source_id=o.source_class_id
+LEFT JOIN catalog.projection_objects te ON te.version=$2 AND te.id=o.teacher_id AND te.kind='teacher'
+WHERE o.kind IN('assignment','schedule') AND (o.kind='schedule' OR te.id IS NOT NULL);
 -- step
-UPDATE catalog.projection_objects te SET teaching=EXISTS(SELECT 1 FROM catalog.projection_objects a
- WHERE a.version=$2 AND a.kind='assignment' AND a.teacher_id=te.id)
-WHERE te.version=$2 AND te.kind='teacher';
+UPDATE catalog.projection_objects te SET teaching=true
+WHERE te.version=$2 AND te.kind='teacher' AND EXISTS(SELECT 1 FROM catalog.projection_objects a
+ WHERE a.version=$2 AND a.kind='assignment' AND a.teacher_id=te.id);
 -- step
-UPDATE catalog.projection_objects SET visible=(teaching OR official OR verified_homepage) WHERE version=$2 AND kind='teacher';
+UPDATE catalog.projection_objects SET visible=true WHERE version=$2 AND kind='teacher' AND (teaching OR official OR verified_homepage);
 -- step
 INSERT INTO catalog.projection_variants(version,course_id,offering_id,class_id,term_id,term_key,department_id,category_id,nature_id,teacher_ids)
 SELECT $2,tc.course_id,tc.id,COALESCE(cl.id,''),tc.term_id,tc.term_key,
@@ -156,14 +173,27 @@ FROM catalog.projection_heads h JOIN catalog.projection_documents old ON old.ver
 JOIN catalog.projection_generations g ON g.version=$2
 WHERE h.school_id=$1 AND NOT EXISTS(SELECT 1 FROM catalog.projection_documents n WHERE n.version=$2 AND n.id=old.id);
 -- step
+WITH offerings AS MATERIALIZED (
+ SELECT tc.id,co.id AS course_id
+ FROM catalog.objects tc
+ LEFT JOIN catalog.redirects course_ref ON course_ref.alias_id=tc.course_id
+ JOIN catalog.projection_objects co ON co.version=$2 AND co.kind='course' AND co.visible
+  AND co.id=COALESCE(course_ref.canonical_id,tc.course_id)
+ WHERE tc.kind='term_course' AND tc.school_id=$1
+), classes AS MATERIALIZED (
+ SELECT cl.id,tc.course_id
+ FROM catalog.objects cl
+ LEFT JOIN catalog.redirects offering_ref ON offering_ref.alias_id=cl.term_course_id
+ JOIN offerings tc ON tc.id=COALESCE(offering_ref.canonical_id,cl.term_course_id)
+ WHERE cl.kind='class' AND cl.school_id=$1
+)
 INSERT INTO catalog.projection_teaching_history(version,teacher_id,course_id)
-SELECT DISTINCT $2,catalog.canonical(a.teacher_id),catalog.canonical(tc.course_id)
+SELECT DISTINCT $2,COALESCE(teacher_ref.canonical_id,a.teacher_id),cl.course_id
 FROM catalog.objects a
-JOIN catalog.objects cl ON cl.id=catalog.canonical(a.class_id) AND cl.kind='class' AND cl.school_id=a.school_id
-JOIN catalog.objects tc ON tc.id=catalog.canonical(cl.term_course_id) AND tc.kind='term_course' AND tc.school_id=a.school_id
-JOIN catalog.projection_objects co ON co.version=$2 AND co.kind='course' AND co.visible AND co.id=catalog.canonical(tc.course_id)
+LEFT JOIN catalog.redirects class_ref ON class_ref.alias_id=a.class_id
+LEFT JOIN catalog.redirects teacher_ref ON teacher_ref.alias_id=a.teacher_id
+JOIN classes cl ON cl.id=COALESCE(class_ref.canonical_id,a.class_id)
 WHERE a.kind='assignment' AND a.school_id=$1;
-
 -- step
 INSERT INTO catalog.projection_teaching_history(version,teacher_id,course_id)
 SELECT DISTINCT $2,r.teacher_id,r.course_id FROM catalog.projection_relations r

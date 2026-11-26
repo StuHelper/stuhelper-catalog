@@ -55,7 +55,7 @@ func (r *Repository) CheckRuntime(ctx context.Context) error {
 		if err != nil || !ready {
 			return catalog.ErrUnavailable
 		}
-		if err = r.DB.QueryRowContext(ctx, `SELECT has_function_privilege(current_user,'catalog.analyze_directory_projection()','EXECUTE') AND has_sequence_privilege(current_user,pg_get_serial_sequence('catalog.projection_rebuild_runs','position'),'USAGE')`).Scan(&ready); err != nil || !ready {
+		if err = r.DB.QueryRowContext(ctx, `SELECT has_column_privilege(current_user,'catalog.projection_generations','build_step','UPDATE') AND has_column_privilege(current_user,'catalog.projection_generations','format_version','SELECT') AND has_column_privilege(current_user,'catalog.projection_objects','category_remapped','INSERT') AND has_function_privilege(current_user,'catalog.analyze_directory_projection()','EXECUTE') AND has_sequence_privilege(current_user,pg_get_serial_sequence('catalog.projection_rebuild_runs','position'),'USAGE')`).Scan(&ready); err != nil || !ready {
 			return catalog.ErrUnavailable
 		}
 	}
