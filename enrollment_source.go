@@ -39,14 +39,19 @@ type OwnedEnrollmentSource struct {
 
 type OwnerEnrollmentCleanup interface {
 	DeleteOwnerEnrollments(owner string) ([]OwnedEnrollmentSource, error)
-	DeleteEnrollmentReplay(key string) error
+	DeleteEnrollmentReplay(owner, school, source string) error
 }
 
 // DeleteOwnerEnrollments is used after account closure fences the owner in
 // Verification. It removes the account's cached rows and source replay markers.
-func (s *Service) DeleteOwnerEnrollments(ctx context.Context, owner string) error {
+func (s *Service) DeleteOwnerEnrollments(ctx context.Context, owner string, knownSources ...OwnedEnrollmentSource) error {
 	if owner == "" || len(owner) > 2740 {
 		return ErrInput
+	}
+	for _, source := range knownSources {
+		if !ValidID(source.SchoolID) || !ValidID(source.SourceID) {
+			return ErrInput
+		}
 	}
 	return s.Repo.Transaction(ctx, func(tx Transaction) error {
 		cleanup, ok := tx.(OwnerEnrollmentCleanup)
@@ -57,9 +62,9 @@ func (s *Service) DeleteOwnerEnrollments(ctx context.Context, owner string) erro
 		if err != nil {
 			return err
 		}
-		for _, source := range sources {
-			key := digest([]string{"own-source", owner, source.SchoolID, source.SourceID})
-			if err := cleanup.DeleteEnrollmentReplay(key); err != nil {
+		// A complete empty snapshot has a replay marker but no enrollment rows.
+		for _, source := range append(sources, knownSources...) {
+			if err := cleanup.DeleteEnrollmentReplay(owner, source.SchoolID, source.SourceID); err != nil {
 				return err
 			}
 		}

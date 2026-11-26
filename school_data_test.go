@@ -5,6 +5,7 @@ import (
 	"errors"
 	"slices"
 	"testing"
+	"time"
 
 	c "github.com/StuHelper/stuhelper-catalog"
 )
@@ -79,6 +80,22 @@ func TestPersonalEnrollmentQueriesRespectSchoolDataTermLimit(t *testing.T) {
 	items, err = s.MyEnrollments(ctx, owner, "school", "", "", "", 100)
 	if err != nil || len(items) != 0 {
 		t.Fatal("owner enrollment projection survived closure", err)
+	}
+
+	empty := c.EnrollmentSnapshot{
+		Subject: owner.Subject, SchoolID: "school", SourceID: "replica", Version: "empty",
+		Revision: 1, FetchedAt: time.Now().UTC(),
+	}
+	first, err := s.ReplaceOwnEnrollments(ctx, admin, empty)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err = s.DeleteOwnerEnrollments(ctx, owner.Subject, c.OwnedEnrollmentSource{SchoolID: empty.SchoolID, SourceID: empty.SourceID}); err != nil {
+		t.Fatal(err)
+	}
+	after, err := s.ReplaceOwnEnrollments(ctx, admin, empty)
+	if err != nil || after.ID == first.ID {
+		t.Fatal("empty enrollment snapshot retained its replay after closure", err)
 	}
 }
 

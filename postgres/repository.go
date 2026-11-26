@@ -298,8 +298,13 @@ func (t *transaction) DeleteOwnerEnrollments(owner string) ([]catalog.OwnedEnrol
  FROM deleted WHERE source_id IS NOT NULL AND source_id<>'' GROUP BY school_id,source_id`, owner)
 }
 
-func (t *transaction) DeleteEnrollmentReplay(key string) error {
-	_, err := t.tx.ExecContext(t.ctx, `DELETE FROM catalog.replays WHERE key=$1`, key)
+func (t *transaction) DeleteEnrollmentReplay(owner, school, source string) error {
+	// Preserve the exact JSON encoding used by the existing replay digest.
+	material, err := json.Marshal([]string{"own-source", owner, school, source})
+	if err != nil {
+		return catalog.ErrUnavailable
+	}
+	_, err = t.tx.ExecContext(t.ctx, `SELECT catalog.delete_own_enrollment_replay($1)`, string(material))
 	return safe(err)
 }
 func (t *transaction) SaveEnrollment(v catalog.Enrollment) error {

@@ -46,6 +46,20 @@ CREATE INDEX IF NOT EXISTS catalog_enrollment_owner ON catalog.enrollments(subje
 CREATE TABLE IF NOT EXISTS catalog.replays(key text PRIMARY KEY, data jsonb NOT NULL, expires_at timestamptz);
 ALTER TABLE catalog.replays ADD COLUMN IF NOT EXISTS expires_at timestamptz;
 CREATE INDEX IF NOT EXISTS catalog_replays_expiry ON catalog.replays(expires_at,key) WHERE expires_at IS NOT NULL;
+CREATE OR REPLACE FUNCTION catalog.delete_own_enrollment_replay(p_material text) RETURNS void
+LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog AS $$
+DECLARE fields jsonb;
+BEGIN
+ IF p_material IS NULL OR octet_length(p_material)>20000 THEN RETURN; END IF;
+ fields:=p_material::jsonb;
+ IF jsonb_typeof(fields) IS DISTINCT FROM 'array' THEN RETURN; END IF;
+ IF jsonb_array_length(fields)<>4 OR fields->>0 IS DISTINCT FROM 'own-source'
+  OR jsonb_typeof(fields->1) IS DISTINCT FROM 'string'
+  OR jsonb_typeof(fields->2) IS DISTINCT FROM 'string'
+  OR jsonb_typeof(fields->3) IS DISTINCT FROM 'string' THEN RETURN; END IF;
+ DELETE FROM catalog.replays WHERE key=encode(sha256(convert_to(p_material,'UTF8')),'hex');
+END $$;
+REVOKE ALL ON FUNCTION catalog.delete_own_enrollment_replay(text) FROM PUBLIC;
 CREATE TABLE IF NOT EXISTS catalog.audit(
  id text PRIMARY KEY, data jsonb NOT NULL,
  reason text NOT NULL DEFAULT '', result text NOT NULL DEFAULT 'unknown' CHECK(result IN ('success','denied','failed','unknown')),
