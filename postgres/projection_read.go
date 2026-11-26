@@ -92,14 +92,14 @@ func (t *transaction) projectedList(f c.Filter) ([]c.Object, error) {
 		order = "o.term_key DESC,o.id"
 	}
 	if f.Kind == "department" {
-		order = "o.department_sort_order"
+		order = `COALESCE(o.department_sort_order,2147483647),o.name COLLATE "C",o.id`
 	}
 	if f.After != "" {
 		p := bind(f.After)
 		if f.Kind == "term" {
 			where = append(where, `(o.term_key<(SELECT term_key FROM catalog.projection_objects prev WHERE prev.version=o.version AND prev.id=`+p+`) OR (o.term_key=(SELECT term_key FROM catalog.projection_objects prev WHERE prev.version=o.version AND prev.id=`+p+`) AND o.id>`+p+`))`)
 		} else if f.Kind == "department" {
-			where = append(where, "o.department_sort_order>(SELECT prev.department_sort_order FROM catalog.projection_objects prev WHERE prev.version=o.version AND prev.id="+p+")")
+			where = append(where, `(COALESCE(o.department_sort_order,2147483647),o.name COLLATE "C",o.id)>(SELECT COALESCE(prev.department_sort_order,2147483647),prev.name COLLATE "C",prev.id FROM catalog.projection_objects prev WHERE prev.version=o.version AND prev.id=`+p+`)`)
 		} else {
 			where = append(where, "o.id>"+p)
 		}
@@ -147,7 +147,7 @@ func (t *transaction) projectedList(f c.Filter) ([]c.Object, error) {
 func (t *transaction) projectedFilterOptions(kind, school string) (c.FilterOptions, error) {
 	out, err := read[c.FilterOptions](t, `SELECT jsonb_build_object('kind',$2::text,
  'total',(g.report->>CASE WHEN $2='course' THEN 'courses' ELSE 'teachers' END)::bigint,
- 'departments',COALESCE((SELECT jsonb_agg(jsonb_build_object('id',opt.id,'name',opt.name,'count',opt.count) ORDER BY d.department_sort_order)
+ 'departments',COALESCE((SELECT jsonb_agg(jsonb_build_object('id',opt.id,'name',opt.name,'count',opt.count) ORDER BY d.department_sort_order NULLS LAST,d.name COLLATE "C",d.id)
  FROM catalog.projection_options opt JOIN catalog.projection_objects d ON d.version=opt.version AND d.id=opt.id AND d.kind='department'
  WHERE opt.version=h.version AND opt.owner_kind=$2 AND opt.kind='department'),'[]'::jsonb),
  'categories',COALESCE((SELECT jsonb_agg(jsonb_build_object('id',id,'name',name,'count',count) ORDER BY name COLLATE "C",id) FROM catalog.projection_options WHERE version=h.version AND owner_kind=$2 AND kind='category'),'[]'::jsonb),
