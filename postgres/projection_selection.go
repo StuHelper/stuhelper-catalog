@@ -72,7 +72,7 @@ func projectedSelectionQuery(q c.DirectoryQuery, version int64, useHomepageRevoc
  'category_facets',COALESCE((SELECT jsonb_agg(jsonb_build_object('id',o.id,'name',o.name,'count',COALESCE(cc.n,0),'review_count',0) ORDER BY o.name COLLATE "C",o.id)
  FROM catalog.projection_options o LEFT JOIN category_counts cc ON cc.category_id=o.id
  WHERE o.version=$1 AND o.owner_kind=$2 AND o.kind='category'),'[]'::jsonb),
- 'department_facets',COALESCE((SELECT jsonb_agg(jsonb_build_object('id',dc.department_id,'name',o.name,'count',dc.n,'review_count',0) ORDER BY o.department_sort_order)
+ 'department_facets',COALESCE((SELECT jsonb_agg(jsonb_build_object('id',dc.department_id,'name',o.name,'count',dc.n,'review_count',0) ORDER BY o.department_sort_order NULLS LAST,o.name COLLATE "C",o.id)
  FROM department_counts dc JOIN catalog.projection_objects o ON o.version=$1 AND o.kind='department' AND o.id=dc.department_id),'[]'::jsonb),
  'nature_facets',COALESCE((SELECT jsonb_agg(jsonb_build_object('id',nc.nature_id,'name',o.name,'count',nc.n,'review_count',0) ORDER BY o.name COLLATE "C",nc.nature_id)
  FROM nature_counts nc JOIN catalog.projection_objects o ON o.version=$1 AND o.kind='nature' AND o.id=nc.nature_id),'[]'::jsonb))`

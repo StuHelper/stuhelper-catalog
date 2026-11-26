@@ -13,6 +13,9 @@ import (
 	c "github.com/StuHelper/stuhelper-catalog"
 )
 
+//go:embed projection_source.sql
+var projectionSourceSQL string
+
 //go:embed projection_build.sql
 var projectionBuildSQL string
 
@@ -216,10 +219,8 @@ func (t *transaction) RebuildDirectory(school string, policy *c.DirectoryPolicy,
 	if !exists {
 		return out, c.ErrNotFound
 	}
-	if _, err = t.tx.ExecContext(t.ctx, `INSERT INTO catalog.term_orders(school_id,id,sort_key,data)
- SELECT school_id,id,0,jsonb_build_object('id',id,'year',0,'season','','reason','missing_term_order') FROM catalog.objects
- WHERE school_id=$1 AND kind='term' ON CONFLICT(id) DO NOTHING`, school); err != nil {
-		return out, safe(err)
+	if err = t.ensureMissingTermOrders(school); err != nil {
+		return out, err
 	}
 	out.Policy = c.DefaultDirectoryPolicy()
 	if policy == nil {
@@ -238,79 +239,130 @@ func (t *transaction) RebuildDirectory(school string, policy *c.DirectoryPolicy,
 	if !out.Policy.Valid() {
 		return out, c.ErrInput
 	}
+	if err = t.newProjectionGeneration(school, &out, at, nil, 0); err != nil {
+		return out, err
+	}
+	for index := range projectionSteps {
+		if err = t.buildProjectionStep(school, &out, index); err != nil {
+			return out, err
+		}
+	}
+	if err = t.prepareProjection(school, &out); err != nil {
+		return out, err
+	}
+	if err = t.pruneProjection(school, out.Version); err != nil {
+		return out, err
+	}
+	out.DurationMS = time.Since(started).Milliseconds()
+	if err = t.publishProjection(school, &out, at); err != nil {
+		return out, err
+	}
+	delete(t.projectionSchools, school)
+	return out, nil
+}
+
+const projectionFormat = 1
+
+var projectionSteps = strings.Split(projectionBuildSQL, "-- step\n")
+
+func (t *transaction) ensureMissingTermOrders(school string) (err error) {
+	if _, err = t.tx.ExecContext(t.ctx, `INSERT INTO catalog.term_orders(school_id,id,sort_key,data)
+ SELECT school_id,id,0,jsonb_build_object('id',id,'year',0,'season','','reason','missing_term_order') FROM catalog.objects
+ WHERE school_id=$1 AND kind='term' ON CONFLICT(id) DO NOTHING`, school); err != nil {
+		return safe(err)
+	}
+	return nil
+}
+
+func (t *transaction) newProjectionGeneration(school string, out *c.ProjectionReport, at time.Time, step *int, base int64) (err error) {
 	out.BuiltAt = at
 	if err = t.tx.QueryRowContext(t.ctx, `SELECT GREATEST($1::bigint,COALESCE(max(version),0)+1) FROM catalog.projection_generations`, at.UnixMilli()).Scan(&out.Version); err != nil {
-		return out, safe(err)
+		return safe(err)
 	}
 	raw, _ := json.Marshal(out.Policy)
-	if _, err = t.tx.ExecContext(t.ctx, `INSERT INTO catalog.projection_generations(version,school_id,policy,source_revision,built_at)
- SELECT $1,$2,$3::jsonb,revision,$4 FROM catalog.directory_revision WHERE singleton`, out.Version, school, string(raw), at); err != nil {
-		return out, safe(err)
+	if _, err = t.tx.ExecContext(t.ctx, `INSERT INTO catalog.projection_generations(version,school_id,policy,source_revision,built_at,format_version,build_step,build_base)
+ SELECT $1,$2,$3::jsonb,revision,$4,$5,$6,$7 FROM catalog.directory_revision WHERE singleton`, out.Version, school, string(raw), at, projectionFormat, step, base); err != nil {
+		return safe(err)
 	}
-	// The source lock is also acquired by every source/alias/marker mutation.
-	// Readers continue to use the old immutable version throughout this build.
-	for index, step := range strings.Split(projectionBuildSQL, "-- step\n") {
-		stepStarted := time.Now()
-		step = strings.TrimSpace(step)
-		prefix := `WITH _projection_args AS (SELECT $1::text AS school,$2::bigint AS version,$3::integer AS cutoff) `
-		if strings.HasPrefix(step, "WITH ") {
-			step = "," + strings.TrimPrefix(step, "WITH ")
-		}
-		if _, e := t.tx.ExecContext(t.ctx, prefix+step, school, out.Version, c.TermOrderKey(out.Policy.CutoffYear, out.Policy.CutoffSeason)); e != nil {
-			slog.ErrorContext(t.ctx, "catalog projection build failed", "step", index+1, "reason", projectionErrorCode(e))
-			return out, safe(e)
-		}
-		if index == 0 {
-			// Department objects belong to the first build step. Assign their
-			// ranks before constructing facets and the cached default pages.
-			if _, err := t.tx.ExecContext(t.ctx, "SELECT catalog.rank_projection_departments($1)", out.Version); err != nil {
-				return out, safe(err)
-			}
-		}
-		if index == 6 {
-			if e := t.applyDisplayPolicy(school, &out); e != nil {
-				return out, e
-			}
-		}
-		if duration := time.Since(stepStarted); duration > 300*time.Millisecond {
-			slog.InfoContext(t.ctx, "catalog projection build stage", "step", index+1, "duration_ms", duration.Milliseconds())
-		}
-		// New generation values have no statistics until this transaction builds
-		// them. Refresh after bulk phases to avoid repeated full-scan join plans.
-		switch index + 1 {
-		case 1, 2, 6, 7, 9, 12, 17:
-			if _, e := t.tx.ExecContext(t.ctx, `SELECT catalog.analyze_directory_projection()`); e != nil {
-				return out, safe(e)
-			}
+	return nil
+}
+
+func (t *transaction) buildProjectionStep(school string, out *c.ProjectionReport, index int) (err error) {
+	step := projectionSteps[index]
+	stepStarted := time.Now()
+	step = strings.TrimSpace(step)
+	prefix := `WITH _projection_args AS (SELECT $1::text AS school,$2::bigint AS version,$3::integer AS cutoff) `
+	if strings.Contains(step, "FROM projection_source ") {
+		prefix += ", projection_source AS NOT MATERIALIZED (" + projectionSourceSQL + ") "
+	}
+	if strings.HasPrefix(step, "WITH ") {
+		step = "," + strings.TrimPrefix(step, "WITH ")
+	}
+	if _, e := t.tx.ExecContext(t.ctx, prefix+step, school, out.Version, c.TermOrderKey(out.Policy.CutoffYear, out.Policy.CutoffSeason)); e != nil {
+		slog.ErrorContext(t.ctx, "catalog projection build failed", "step", index+1, "reason", projectionErrorCode(e))
+		return safe(e)
+	}
+	if index == 0 {
+		// Department objects belong to the first build step. Assign their
+		// ranks before constructing facets and the cached default pages.
+		if _, err := t.tx.ExecContext(t.ctx, "SELECT catalog.rank_projection_departments($1)", out.Version); err != nil {
+			return safe(err)
 		}
 	}
+	// The child rows inherit the final class mapping. Apply school rules
+	// once to classes before materializing their assignments and schedules.
+	if index == 5 {
+		// Sports and category rules join against the classes just inserted.
+		// Analyze them before planning those joins, including on the first build.
+		if _, err := t.tx.ExecContext(t.ctx, `SELECT catalog.analyze_directory_projection()`); err != nil {
+			return safe(err)
+		}
+		if e := t.applyDisplayPolicy(school, out); e != nil {
+			return e
+		}
+	}
+	if duration := time.Since(stepStarted); duration > 300*time.Millisecond {
+		slog.InfoContext(t.ctx, "catalog projection build stage", "step", index+1, "duration_ms", duration.Milliseconds())
+	}
+	// New generation values have no statistics until this transaction builds
+	// them. Refresh after bulk phases to avoid repeated full-scan join plans.
+	switch index + 1 {
+	case 1, 2, 6, 7, 9, 12, 17:
+		if _, e := t.tx.ExecContext(t.ctx, `SELECT catalog.analyze_directory_projection()`); e != nil {
+			return safe(e)
+		}
+	}
+	return nil
+}
+
+func (t *transaction) prepareProjection(school string, out *c.ProjectionReport) (err error) {
 	// Keep category objects and course membership available to detail reads.
 	// Only the published filter options are suppressed.
 	if len(out.Policy.HiddenCategoryNames) > 0 {
 		if _, err = t.tx.ExecContext(t.ctx, `DELETE FROM catalog.projection_options
  WHERE version=$1 AND owner_kind='course' AND kind='category' AND lower(btrim(name))=ANY($2::text[])`, out.Version, normalizedNames(out.Policy.HiddenCategoryNames)); err != nil {
-			return out, safe(err)
+			return safe(err)
 		}
 	}
-	if err = t.validateProjection(school, &out); err != nil {
-		return out, err
+	if err = t.validateProjection(school, out); err != nil {
+		return err
 	}
 	for _, kind := range []string{"course", "teacher"} {
 		query, args, e := projectedSelectionQuery(c.DirectoryQuery{Filter: c.Filter{Kind: kind, SchoolID: school}}, out.Version, false)
 		if e != nil {
-			return out, e
+			return e
 		}
 		if _, e = t.tx.ExecContext(t.ctx, `INSERT INTO catalog.projection_selections(version,kind,data) SELECT $1,$2,selected.data FROM (`+query+`) selected(data)`, args...); e != nil {
-			return out, safe(e)
+			return safe(e)
 		}
 	}
 	var selectionsValid bool
 	if err = t.tx.QueryRowContext(t.ctx, `SELECT count(*)=2 AND bool_and(octet_length(data::text)<=33554432)
  FROM catalog.projection_selections WHERE version=$1`, out.Version).Scan(&selectionsValid); err != nil {
-		return out, safe(err)
+		return safe(err)
 	}
 	if !selectionsValid {
-		return out, c.ErrUnavailable
+		return c.ErrUnavailable
 	}
 	if _, err = t.tx.ExecContext(t.ctx, `INSERT INTO catalog.projection_documents(version,id,data)
  SELECT $2,latest.id,latest.data || jsonb_build_object('revision',$2,'title','','visible',false,'code','','aliases','[]'::jsonb,'english_name','','former_codes','[]'::jsonb,'former_names','[]'::jsonb,'at',g.built_at)
@@ -320,7 +372,7 @@ func (t *transaction) RebuildDirectory(school string, policy *c.DirectoryPolicy,
    AND EXISTS (SELECT 1 FROM catalog.outbox e WHERE e.data->>'type'='catalog.discovery.v1' AND e.data->>'subject'=latest.id AND (e.data->'data'->>'visible')::boolean)
    AND (latest.data->>'visible')::boolean
    AND NOT EXISTS(SELECT 1 FROM catalog.projection_documents n WHERE n.version=$2 AND n.id=latest.id)`, school, out.Version); err != nil {
-		return out, safe(err)
+		return safe(err)
 	}
 	if err = t.tx.QueryRowContext(t.ctx, `SELECT
  (SELECT count(*) FROM catalog.projection_relations WHERE version=$1),
@@ -329,50 +381,67 @@ func (t *transaction) RebuildDirectory(school string, policy *c.DirectoryPolicy,
  (SELECT count(*) FROM catalog.projection_documents WHERE version=$1),
  (SELECT count(*) FROM catalog.projection_aliases WHERE version=$1),
  (SELECT count(*) FROM catalog.projection_selections WHERE version=$1)`, out.Version).Scan(&out.Relations, &out.TeachingHistory, &out.Summaries, &out.Documents, &out.Aliases, &out.Selections); err != nil {
-		return out, safe(err)
+		return safe(err)
 	}
 	out.Rows = out.SportsClasses + out.SportsSourceCourses + out.Objects + out.Variants + out.Relations + out.TeachingHistory + out.Options + out.Summaries + out.Documents + out.Aliases + out.Selections
+	var selectionBytes int64
+	if err = t.tx.QueryRowContext(t.ctx, `SELECT COALESCE(sum(pg_column_size(s)),0) FROM catalog.projection_selections s WHERE version=$1`, out.Version).Scan(&selectionBytes); err != nil {
+		return safe(err)
+	}
+	out.Bytes += selectionBytes
+	if err = t.tx.QueryRowContext(t.ctx, `SELECT sum(pg_total_relation_size(('catalog.'||name)::regclass)) FROM
+ unnest(ARRAY['projection_generations','projection_heads','projection_objects','projection_sports_sources','projection_sports_classes','projection_variants','projection_relations','projection_teaching_history','projection_options','projection_aliases','projection_summaries','projection_documents','projection_selections']) name`).Scan(&out.StorageBytes); err != nil {
+		return safe(err)
+	}
+	return nil
+}
+
+func (t *transaction) pruneProjection(school string, version int64) (err error) {
+	// Keep the candidate and the latest other published generation. Drafts
+	// have separate ownership and are invisible to published reads.
+	_, err = t.tx.ExecContext(t.ctx, `DELETE FROM catalog.projection_generations WHERE school_id=$1 AND build_step IS NULL
+ AND version<>$2 AND version NOT IN (SELECT version FROM catalog.projection_heads WHERE school_id=$1)`, school, version)
+	if err != nil {
+		return safe(err)
+	}
+	_, err = t.tx.ExecContext(t.ctx, `SELECT catalog.analyze_directory_projection()`)
+	return safe(err)
+}
+
+func (t *transaction) publishProjection(school string, out *c.ProjectionReport, at time.Time) (err error) {
+	if err = t.publishProjectionChanges(school, out, at); err != nil {
+		return err
+	}
+	return t.publishProjectionHead(school, out)
+}
+
+func (t *transaction) publishProjectionChanges(school string, out *c.ProjectionReport, at time.Time) (err error) {
 	if err = t.publishProjectionDocuments(school, out.Version, at); err != nil {
-		return out, err
+		return err
 	}
 	if err = t.syncProjectedActivityVisibility(school, out.Version, at); err != nil {
-		return out, err
+		return err
+	}
+	return nil
+}
+
+func (t *transaction) publishProjectionHead(school string, out *c.ProjectionReport) (err error) {
+	raw, err := json.Marshal(out.Policy)
+	if err != nil {
+		return c.ErrInput
 	}
 	if _, err = t.tx.ExecContext(t.ctx, `INSERT INTO catalog.projection_heads(school_id,version,policy) VALUES($1,$2,$3::jsonb)
  ON CONFLICT(school_id) DO UPDATE SET version=excluded.version,policy=excluded.policy`, school, out.Version, string(raw)); err != nil {
-		return out, safe(err)
+		return safe(err)
 	}
 	if t.projectionManagedCache == nil {
 		t.projectionManagedCache = map[string]bool{}
 	}
 	t.projectionManagedCache[school] = true
 	if _, err = t.tx.ExecContext(t.ctx, `DELETE FROM catalog.projection_failures WHERE school_id=$1`, school); err != nil {
-		return out, safe(err)
+		return safe(err)
 	}
-	// Keep the current and preceding complete generation. MVCC readers already
-	// using an older generation remain valid until their transaction ends.
-	if _, err = t.tx.ExecContext(t.ctx, `DELETE FROM catalog.projection_generations WHERE school_id=$1 AND version NOT IN
- (SELECT version FROM catalog.projection_generations WHERE school_id=$1 ORDER BY version DESC LIMIT 2)`, school); err != nil {
-		return out, safe(err)
-	}
-	delete(t.projectionSchools, school)
-	if _, err = t.tx.ExecContext(t.ctx, `SELECT catalog.analyze_directory_projection()`); err != nil {
-		return out, safe(err)
-	}
-	var selectionBytes int64
-	if err = t.tx.QueryRowContext(t.ctx, `SELECT COALESCE(sum(pg_column_size(s)),0) FROM catalog.projection_selections s WHERE version=$1`, out.Version).Scan(&selectionBytes); err != nil {
-		return out, safe(err)
-	}
-	out.Bytes += selectionBytes
-	if err = t.tx.QueryRowContext(t.ctx, `SELECT sum(pg_total_relation_size(('catalog.'||name)::regclass)) FROM
- unnest(ARRAY['projection_generations','projection_heads','projection_objects','projection_sports_sources','projection_sports_classes','projection_variants','projection_relations','projection_teaching_history','projection_options','projection_aliases','projection_summaries','projection_documents','projection_selections']) name`).Scan(&out.StorageBytes); err != nil {
-		return out, safe(err)
-	}
-	out.DurationMS = time.Since(started).Milliseconds()
-	if err = t.save(`UPDATE catalog.projection_generations SET report=$2 WHERE version=$1`, out, out.Version); err != nil {
-		return out, err
-	}
-	return out, nil
+	return t.save(`UPDATE catalog.projection_generations SET report=$2,build_step=NULL WHERE version=$1`, out, out.Version)
 }
 
 func projectionErrorCode(err error) string {

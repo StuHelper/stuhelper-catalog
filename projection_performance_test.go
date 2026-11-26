@@ -158,3 +158,44 @@ func TestDirectoryProjectionProductionScaleBeforeAfter(t *testing.T) {
 	}
 	t.Logf("projection_race_build=%t projection_benchmark=%s", projectionRaceBuild, raw)
 }
+
+// BenchmarkDirectoryProjectionRebuild measures publication of a complete
+// generation, including a school category rename and a previously published head.
+// The 557205-row source fixture and the term cutoff stay fixed between runs.
+func BenchmarkDirectoryProjectionRebuild(b *testing.B) {
+	repo, admin := database(b)
+	if _, err := admin.Exec(directoryScaleSeed); err != nil {
+		b.Fatal(err)
+	}
+	ctx := context.Background()
+	service := &c.Service{Repo: repo}
+	actor := c.Principal{Subject: "synthetic-projection-benchmark", Schools: []string{"school-000001"}, CanImport: true}
+	orders := make([]c.TermOrder, 0, 73)
+	for i := 1; i <= 73; i++ {
+		year := 2020
+		if i <= 3 {
+			year = 2024
+		}
+		orders = append(orders, c.TermOrder{ID: fmt.Sprintf("term-%06d", i), Year: year, Season: "spring"})
+	}
+	if err := service.SaveTermOrders(ctx, actor, "school-000001", orders); err != nil {
+		b.Fatal(err)
+	}
+	previous, err := service.RebuildDirectory(ctx, actor, "school-000001", nil)
+	if err != nil {
+		b.Fatal(err)
+	}
+	var name string
+	if err := admin.QueryRow("SELECT name FROM catalog.objects WHERE id='category-000001'").Scan(&name); err != nil {
+		b.Fatal(err)
+	}
+	policy := c.DefaultDirectoryPolicy()
+	policy.CategoryAliases = []c.CategoryAlias{{From: name, To: "Synthetic merged category", RetireSource: true}}
+	for b.Loop() {
+		report, err := service.RebuildDirectory(ctx, actor, "school-000001", &policy)
+		if err != nil || report.Courses != previous.Courses || report.Relations != previous.Relations || report.Version <= previous.Version {
+			b.Fatalf("rebuild: courses=%d relations=%d err=%v", report.Courses, report.Relations, err)
+		}
+		previous = report
+	}
+}

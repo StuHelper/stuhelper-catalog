@@ -12,7 +12,7 @@ import (
 	"testing"
 )
 
-func database(t *testing.T) (*postgres.Repository, *sql.DB) {
+func database(t testing.TB) (*postgres.Repository, *sql.DB) {
 	t.Helper()
 	dsn := os.Getenv("STUHELPER_CATALOG_TEST_DSN")
 	if dsn == "" {

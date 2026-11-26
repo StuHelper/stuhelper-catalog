@@ -57,7 +57,7 @@ func (r *Repository) projectedDiscoverySnapshot(ctx context.Context, cursor stri
 		}
 	} else {
 		var count int
-		if e = tx.QueryRowContext(ctx, `SELECT count(*) FROM catalog.projection_generations WHERE version=ANY($1::bigint[])`, state.Versions).Scan(&count); e != nil {
+		if e = tx.QueryRowContext(ctx, `SELECT count(*) FROM catalog.projection_generations WHERE build_step IS NULL AND version=ANY($1::bigint[])`, state.Versions).Scan(&count); e != nil {
 			return out, safe(e)
 		}
 		if count != len(state.Versions) {
