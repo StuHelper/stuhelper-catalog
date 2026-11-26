@@ -103,7 +103,7 @@ func (t *transaction) DirectoryProjectionStatus(school string, _ time.Time) (c.D
 	} else if !errors.Is(err, c.ErrNotFound) {
 		return out, err
 	}
-	if err := t.tx.QueryRowContext(t.ctx, `SELECT EXISTS(SELECT 1 FROM catalog.projection_pending WHERE school_id=$1) OR EXISTS(SELECT 1 FROM catalog.projection_rebuild_runs WHERE school_id=$1 AND status IN ('queued','running'))`, school).Scan(&out.PendingRebuild); err != nil {
+	if err := t.tx.QueryRowContext(t.ctx, `SELECT EXISTS(SELECT 1 FROM catalog.projection_generations WHERE school_id=$1 AND build_step IS NOT NULL) OR EXISTS(SELECT 1 FROM catalog.projection_pending WHERE school_id=$1) OR EXISTS(SELECT 1 FROM catalog.projection_rebuild_runs WHERE school_id=$1 AND status IN ('queued','running'))`, school).Scan(&out.PendingRebuild); err != nil {
 		return out, safe(err)
 	}
 	return out, nil
