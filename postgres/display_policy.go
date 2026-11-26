@@ -6,7 +6,6 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"log/slog"
-	"slices"
 	"strings"
 	"time"
 
@@ -29,9 +28,10 @@ func (t *transaction) applyDisplayPolicy(school string, report *c.ProjectionRepo
 	if len(p.ExcludedCourseNames)+len(p.ExcludedCategoryNames) > 0 {
 		if err := t.tx.QueryRowContext(t.ctx, `WITH excluded AS MATERIALIZED (
  SELECT co.id FROM catalog.projection_objects co WHERE co.version=$1 AND co.kind='course' AND
- (lower(btrim(co.name))=ANY($2::text[]) OR EXISTS(
- SELECT 1 FROM catalog.projection_objects v JOIN catalog.projection_objects ca ON ca.version=v.version AND ca.id=v.category_id AND ca.kind='category'
- WHERE v.version=co.version AND (v.id=co.id OR v.course_id=co.id) AND lower(btrim(ca.name))=ANY($3::text[])))
+ (lower(btrim(co.name))=ANY($2::text[]) OR co.id IN (
+ SELECT CASE WHEN v.kind='course' THEN v.id ELSE v.course_id END FROM catalog.projection_objects v
+ JOIN catalog.projection_objects ca ON ca.version=v.version AND ca.id=v.category_id AND ca.kind='category'
+ WHERE v.version=$1 AND lower(btrim(ca.name))=ANY($3::text[])))
  ), removed AS (DELETE FROM catalog.projection_objects o WHERE o.version=$1 AND (o.id IN(SELECT id FROM excluded) OR o.course_id IN(SELECT id FROM excluded)) RETURNING kind)
  SELECT count(*) FILTER(WHERE kind='course') FROM removed`, version, normalizedNames(p.ExcludedCourseNames), normalizedNames(p.ExcludedCategoryNames)).Scan(&report.ExcludedCourses); err != nil {
 			return safe(err)
@@ -100,20 +100,34 @@ func (t *transaction) applyCategoryAliases(school string, report *c.ProjectionRe
 			return err
 		}
 	}
-	keys := make([]string, 0, len(aliases))
-	for from := range aliases {
-		keys = append(keys, from)
+	if len(aliases) == 0 {
+		return nil
 	}
-	slices.Sort(keys)
-	for _, from := range keys {
-		to := aliases[from]
-		if _, err = t.tx.ExecContext(t.ctx, `UPDATE catalog.projection_objects SET category_id=$3,data=data||jsonb_build_object('category_id',$3::text) WHERE version=$1 AND category_id=$2`, report.Version, from, to); err != nil {
-			return safe(err)
-		}
+	// Valid policies have no chains. Remap all category IDs in one scan of
+	// the candidate generation, including same-name source duplicates.
+	mapping, err := json.Marshal(aliases)
+	if err != nil {
+		return c.ErrInput
+	}
+	_, err = t.tx.ExecContext(t.ctx, `UPDATE catalog.projection_objects o
+ SET category_id=m.value,category_remapped=(o.kind='class'),data=o.data||jsonb_build_object('category_id',m.value)
+ FROM jsonb_each_text($2::jsonb) m WHERE o.version=$1 AND o.category_id=m.key`, report.Version, string(mapping))
+	if err != nil {
+		return safe(err)
+	}
+	for from := range retired {
 		if retired[from] {
-			continue
+			delete(aliases, from)
 		}
-		if _, err = t.tx.ExecContext(t.ctx, `INSERT INTO catalog.projection_aliases(version,alias_id,canonical_id) VALUES($1,$2,$3)`, report.Version, from, to); err != nil {
+	}
+	if len(aliases) > 0 {
+		mapping, err = json.Marshal(aliases)
+		if err != nil {
+			return c.ErrInput
+		}
+		_, err = t.tx.ExecContext(t.ctx, `INSERT INTO catalog.projection_aliases(version,alias_id,canonical_id)
+ SELECT $1,key,value FROM jsonb_each_text($2::jsonb)`, report.Version, string(mapping))
+		if err != nil {
 			return safe(err)
 		}
 	}
