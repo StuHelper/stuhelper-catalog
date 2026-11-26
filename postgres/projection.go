@@ -13,6 +13,9 @@ import (
 	c "github.com/StuHelper/stuhelper-catalog"
 )
 
+//go:embed projection_source.sql
+var projectionSourceSQL string
+
 //go:embed projection_build.sql
 var projectionBuildSQL string
 
@@ -253,6 +256,9 @@ func (t *transaction) RebuildDirectory(school string, policy *c.DirectoryPolicy,
 		stepStarted := time.Now()
 		step = strings.TrimSpace(step)
 		prefix := `WITH _projection_args AS (SELECT $1::text AS school,$2::bigint AS version,$3::integer AS cutoff) `
+		if strings.Contains(step, "FROM projection_source ") {
+			prefix += ", projection_source AS NOT MATERIALIZED (" + projectionSourceSQL + ") "
+		}
 		if strings.HasPrefix(step, "WITH ") {
 			step = "," + strings.TrimPrefix(step, "WITH ")
 		}

@@ -1,7 +1,7 @@
 INSERT INTO catalog.projection_sports_sources(version,course_id)
 SELECT $1,co.id FROM catalog.projection_objects co WHERE co.version=$1 AND co.kind='course'
-AND (lower(btrim(co.name))=ANY($4::text[]) OR co.category_id=$3 OR EXISTS(
- SELECT 1 FROM catalog.projection_objects v WHERE v.version=$1 AND v.course_id=co.id AND v.category_id=$3));
+AND (lower(btrim(co.name))=ANY($4::text[]) OR co.category_id=$3 OR co.id IN (
+ SELECT v.course_id FROM catalog.projection_objects v WHERE v.version=$1 AND v.category_id=$3));
 -- step
 WITH codes AS (SELECT * FROM jsonb_to_recordset($5::jsonb) AS x(code text,id text,name text))
 INSERT INTO catalog.projection_sports_classes(version,class_id,source_course_id,term_id,project_id,offering_id,reason)
