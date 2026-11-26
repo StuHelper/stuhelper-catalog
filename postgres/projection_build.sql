@@ -41,10 +41,15 @@ WHERE o.kind='class';
 -- step
 INSERT INTO catalog.projection_objects(version,id,school_id,kind,name,department_id,category_id,nature_id,course_id,term_id,term_course_id,class_id,teacher_id,term_key,visible,data)
 SELECT $2,o.id,o.school_id,o.kind,o.name,cl.department_id,cl.category_id,cl.nature_id,cl.course_id,cl.term_id,cl.term_course_id,cl.id,
- CASE WHEN o.kind='assignment' THEN te.id ELSE '' END,cl.term_key,true,o.public_data
+ CASE WHEN o.kind='assignment' THEN te.id ELSE '' END,cl.term_key,true,
+ CASE WHEN sports.class_id IS NOT NULL THEN
+  (o.public_data-'sports_project_code')||jsonb_build_object('course_id',cl.course_id,'term_course_id',cl.term_course_id,'category_id',cl.category_id)
+ WHEN cl.category_remapped THEN o.public_data||jsonb_build_object('category_id',cl.category_id)
+ ELSE o.public_data END
 FROM projection_source o
 JOIN catalog.projection_objects cl ON cl.version=$2 AND cl.id=o.class_id AND cl.kind='class'
 LEFT JOIN catalog.projection_objects te ON te.version=$2 AND te.id=o.teacher_id AND te.kind='teacher'
+LEFT JOIN catalog.projection_sports_classes sports ON sports.version=$2 AND sports.class_id=cl.id AND sports.reason=''
 WHERE o.kind IN('assignment','schedule') AND (o.kind='schedule' OR te.id IS NOT NULL);
 -- step
 UPDATE catalog.projection_objects te SET teaching=true

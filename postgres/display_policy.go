@@ -110,7 +110,7 @@ func (t *transaction) applyCategoryAliases(school string, report *c.ProjectionRe
 		return c.ErrInput
 	}
 	_, err = t.tx.ExecContext(t.ctx, `UPDATE catalog.projection_objects o
- SET category_id=m.value,data=o.data||jsonb_build_object('category_id',m.value)
+ SET category_id=m.value,category_remapped=(o.kind='class'),data=o.data||jsonb_build_object('category_id',m.value)
  FROM jsonb_each_text($2::jsonb) m WHERE o.version=$1 AND o.category_id=m.key`, report.Version, string(mapping))
 	if err != nil {
 		return safe(err)

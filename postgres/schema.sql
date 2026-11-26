@@ -340,6 +340,7 @@ CREATE TABLE IF NOT EXISTS catalog.projection_objects (
  PRIMARY KEY(version,id)
 );
 ALTER TABLE catalog.projection_objects ADD COLUMN IF NOT EXISTS verified_homepage boolean NOT NULL DEFAULT false;
+ALTER TABLE catalog.projection_objects ADD COLUMN IF NOT EXISTS category_remapped boolean NOT NULL DEFAULT false;
 CREATE INDEX IF NOT EXISTS projection_objects_page ON catalog.projection_objects(version,kind,id) WHERE visible;
 CREATE INDEX IF NOT EXISTS projection_objects_terms ON catalog.projection_objects(version,kind,term_key DESC,id) WHERE visible;
 CREATE INDEX IF NOT EXISTS projection_objects_course ON catalog.projection_objects(version,course_id,kind,id);

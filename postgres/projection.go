@@ -273,7 +273,14 @@ func (t *transaction) RebuildDirectory(school string, policy *c.DirectoryPolicy,
 				return out, safe(err)
 			}
 		}
-		if index == 6 {
+		// The child rows inherit the final class mapping. Apply school rules
+		// once to classes before materializing their assignments and schedules.
+		if index == 5 {
+			// Sports and category rules join against the classes just inserted.
+			// Analyze them before planning those joins, including on the first build.
+			if _, err := t.tx.ExecContext(t.ctx, `SELECT catalog.analyze_directory_projection()`); err != nil {
+				return out, safe(err)
+			}
 			if e := t.applyDisplayPolicy(school, &out); e != nil {
 				return out, e
 			}
