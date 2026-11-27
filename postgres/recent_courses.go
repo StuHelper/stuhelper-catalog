@@ -40,7 +40,7 @@ func (t *transaction) SaveRecentCourse(owner string, object c.Object, now time.T
 
 func (t *transaction) RecentCourses(owner, school string, now time.Time) ([]c.RecentCourse, error) {
 	if t.projectionRead {
-		return list[c.RecentCourse](t, `SELECT jsonb_build_object('course',o.data,'visited_at',max(r.visited_at),'resource_count',NULL)
+		return list[c.RecentCourse](t, `SELECT jsonb_build_object('course',o.data || catalog.address_field(o.id),'visited_at',max(r.visited_at),'resource_count',NULL)
  FROM catalog.projection_heads h JOIN catalog.recent_courses r ON r.owner=$1 AND r.visited_at>$3
  LEFT JOIN catalog.projection_aliases a ON a.version=h.version AND a.alias_id=r.course_id
  JOIN catalog.projection_objects o ON o.version=h.version AND o.id=COALESCE(a.canonical_id,r.course_id) AND o.kind='course' AND o.visible
@@ -49,7 +49,7 @@ func (t *transaction) RecentCourses(owner, school string, now time.Time) ([]c.Re
 	return list[c.RecentCourse](t, `WITH recent AS (
  SELECT catalog.canonical(course_id) AS id,max(visited_at) AS visited_at FROM catalog.recent_courses
  WHERE owner=$1 AND visited_at>$3 GROUP BY catalog.canonical(course_id)
- ) SELECT jsonb_build_object('course',catalog.public_object(o.data->'object'),'visited_at',r.visited_at,'resource_count',NULL)
+ ) SELECT jsonb_build_object('course',(catalog.public_object(o.data->'object') || catalog.address_field(o.id)),'visited_at',r.visited_at,'resource_count',NULL)
  FROM recent r JOIN catalog.objects o ON o.id=r.id AND o.kind='course' AND o.school_id=$2
  WHERE NOT COALESCE((o.data->'object'->>'inactive')::boolean,false)
  ORDER BY r.visited_at DESC,o.id LIMIT 20`, owner, school, now.Add(-c.RecentCourseRetention))

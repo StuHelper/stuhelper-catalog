@@ -101,6 +101,10 @@ func TestActivityCalendarMigrationRebinsViewsAndPreservesWritesAcrossRollback(t 
 	if err := repo.DB.QueryRowContext(ctx, `SELECT current_user`).Scan(&runtimeRole); err != nil {
 		t.Fatal(err)
 	}
+	// Migration creates the address registry after the old runtime grants.
+	if _, err := owner.ExecContext(ctx, `GRANT SELECT ON catalog.addresses TO `+runtimeRole); err != nil {
+		t.Fatal(err)
+	}
 	if _, err := owner.ExecContext(ctx, `GRANT SELECT,UPDATE ON catalog.activity_calendar, catalog.activity_view_segments TO `+runtimeRole); err != nil {
 		t.Fatal(err)
 	}

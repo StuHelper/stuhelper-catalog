@@ -978,6 +978,24 @@ func (e UnmatchedTeacherSiteReason) Valid() bool {
 	}
 }
 
+// Defines values for ResolveCatalogAddressParamsKind.
+const (
+	ResolveCatalogAddressParamsKindCourse  ResolveCatalogAddressParamsKind = "course"
+	ResolveCatalogAddressParamsKindTeacher ResolveCatalogAddressParamsKind = "teacher"
+)
+
+// Valid indicates whether the value is a known member of the ResolveCatalogAddressParamsKind enum.
+func (e ResolveCatalogAddressParamsKind) Valid() bool {
+	switch e {
+	case ResolveCatalogAddressParamsKindCourse:
+		return true
+	case ResolveCatalogAddressParamsKindTeacher:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for ListTeacherHomepageRequestsParamsStatus.
 const (
 	ListTeacherHomepageRequestsParamsStatusAll      ListTeacherHomepageRequestsParamsStatus = "all"
@@ -1426,6 +1444,9 @@ type NextLesson struct {
 
 // NullableObject defines model for NullableObject.
 type NullableObject struct {
+	// AddressId Catalog 分配的当前公开路径段。课程和教师页面使用此字段。收藏、评价及模块引用继续使用内部 ID。
+	AddressId *string `json:"address_id,omitempty"`
+
 	// Aliases 保留的通用别名字段。学院曾用名继续使用；课程英文名、曾用课程号和曾用名分别使用独立字段。
 	Aliases     []string `json:"aliases"`
 	Biography   *string  `json:"biography,omitempty"`
@@ -1529,6 +1550,9 @@ type NullableTeacherRefreshRunTrigger string
 
 // Object defines model for Object.
 type Object struct {
+	// AddressId Catalog 分配的当前公开路径段。课程和教师页面使用此字段。收藏、评价及模块引用继续使用内部 ID。
+	AddressId *string `json:"address_id,omitempty"`
+
 	// Aliases 保留的通用别名字段。学院曾用名继续使用；课程英文名、曾用课程号和曾用名分别使用独立字段。
 	Aliases     []string `json:"aliases"`
 	Biography   *string  `json:"biography,omitempty"`
@@ -1732,6 +1756,8 @@ type Recommendation string
 
 // Reference defines model for Reference.
 type Reference struct {
+	// AddressId Catalog 分配的当前公开路径段。课程和教师页面使用此字段。收藏、评价及模块引用继续使用内部 ID。
+	AddressId   *string `json:"address_id,omitempty"`
 	CanonicalId *string `json:"canonical_id,omitempty"`
 	Id          string  `json:"id"`
 	Kind        string  `json:"kind"`
@@ -2542,6 +2568,9 @@ type UnmatchedTeacherSitePage struct {
 	Total        int64                  `json:"total"`
 }
 
+// ResolveCatalogAddressParamsKind defines parameters for ResolveCatalogAddress.
+type ResolveCatalogAddressParamsKind string
+
 // AdminListObjectsParams defines parameters for AdminListObjects.
 type AdminListObjectsParams struct {
 	Kind         *string `form:"kind,omitempty" json:"kind,omitempty"`
@@ -3100,6 +3129,11 @@ func WithRequestEditorFn(fn RequestEditorFn) ClientOption {
 // The interface specification for the client above.
 type ClientInterface interface {
 
+	// ResolveCatalogAddress performs a GET /api/v1/catalog/addresses/{kind}/{address} (the `ResolveCatalogAddress` operationId) request.
+	//
+	// 按当前学校和对象类型解析当前地址、旧地址或旧内部 ID。执行与对象详情相同的内容准入和目录可见性检查。object.address_id 为当前页面地址，object.canonical_id（缺省时为 object.id）用于业务引用。
+	ResolveCatalogAddress(ctx context.Context, kind ResolveCatalogAddressParamsKind, address string, reqEditors ...RequestEditorFn) (*http.Response, error)
+
 	// AdminListObjects performs a GET /api/v1/catalog/admin/objects (the `AdminListObjects` operationId) request.
 	//
 	// Requires current catalog maintenance permission for the object school. Independent of content admission; no student enrollment identities are returned. Term lists start at the platform first term, including when include_inactive is true.
@@ -3467,6 +3501,21 @@ type ClientInterface interface {
 	//
 	// 仅当前通过教师认证、并已关联该学校和目录教师的账号可提交。提交后进入管理员队列，处理结果通过站内通知告知本人。不含头像字节的申请正文最多 1 MiB。同一账号每分钟最多提交十条新申请。相同账号、教师、幂等键和请求重放返回原结果。.
 	SubmitTeacherHomepageRequest(ctx context.Context, id string, params *SubmitTeacherHomepageRequestParams, body SubmitTeacherHomepageRequestJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+}
+
+// ResolveCatalogAddress performs a GET /api/v1/catalog/addresses/{kind}/{address} (the `ResolveCatalogAddress` operationId) request.
+//
+// 按当前学校和对象类型解析当前地址、旧地址或旧内部 ID。执行与对象详情相同的内容准入和目录可见性检查。object.address_id 为当前页面地址，object.canonical_id（缺省时为 object.id）用于业务引用。
+func (c *Client) ResolveCatalogAddress(ctx context.Context, kind ResolveCatalogAddressParamsKind, address string, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewResolveCatalogAddressRequest(c.Server, kind, address)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
 }
 
 // AdminListObjects performs a GET /api/v1/catalog/admin/objects (the `AdminListObjects` operationId) request.
@@ -4555,6 +4604,47 @@ func (c *Client) SubmitTeacherHomepageRequest(ctx context.Context, id string, pa
 		return nil, err
 	}
 	return c.Client.Do(req)
+}
+
+// NewResolveCatalogAddressRequest constructs an http.Request for the ResolveCatalogAddress method
+func NewResolveCatalogAddressRequest(server string, kind ResolveCatalogAddressParamsKind, address string) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "kind", kind, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithOptions("simple", false, "address", address, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/catalog/addresses/%s/%s", pathParam0, pathParam1)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
 }
 
 // NewAdminListObjectsRequest constructs an http.Request for the AdminListObjects method
@@ -8075,6 +8165,13 @@ func WithBaseURL(baseURL string) ClientOption {
 // ClientWithResponsesInterface is the interface specification for the client with responses above.
 type ClientWithResponsesInterface interface {
 
+	// ResolveCatalogAddressWithResponse performs a GET /api/v1/catalog/addresses/{kind}/{address} (the `ResolveCatalogAddress` operationId) request.
+	//
+	// 按当前学校和对象类型解析当前地址、旧地址或旧内部 ID。执行与对象详情相同的内容准入和目录可见性检查。object.address_id 为当前页面地址，object.canonical_id（缺省时为 object.id）用于业务引用。
+	//
+	// Returns a wrapper object for the known response body format(s).
+	ResolveCatalogAddressWithResponse(ctx context.Context, kind ResolveCatalogAddressParamsKind, address string, reqEditors ...RequestEditorFn) (*ResolveCatalogAddressResponse, error)
+
 	// AdminListObjectsWithResponse performs a GET /api/v1/catalog/admin/objects (the `AdminListObjects` operationId) request.
 	//
 	// Requires current catalog maintenance permission for the object school. Independent of content admission; no student enrollment identities are returned. Term lists start at the platform first term, including when include_inactive is true.
@@ -8554,6 +8651,89 @@ type ClientWithResponsesInterface interface {
 	//
 	// 仅当前通过教师认证、并已关联该学校和目录教师的账号可提交。提交后进入管理员队列，处理结果通过站内通知告知本人。不含头像字节的申请正文最多 1 MiB。同一账号每分钟最多提交十条新申请。相同账号、教师、幂等键和请求重放返回原结果。.
 	SubmitTeacherHomepageRequestWithResponse(ctx context.Context, id string, params *SubmitTeacherHomepageRequestParams, body SubmitTeacherHomepageRequestJSONRequestBody, reqEditors ...RequestEditorFn) (*SubmitTeacherHomepageRequestResponse, error)
+}
+
+type ResolveCatalogAddressResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *Resolution
+	// JSON400 the response for an HTTP 400 `application/json` response
+	JSON400 *Error
+	// JSON401 the response for an HTTP 401 `application/json` response
+	JSON401 *Error
+	// JSON403 the response for an HTTP 403 `application/json` response
+	JSON403 *Error
+	// JSON404 the response for an HTTP 404 `application/json` response
+	JSON404 *Error
+	// JSON409 the response for an HTTP 409 `application/json` response
+	JSON409 *Error
+	// JSON503 the response for an HTTP 503 `application/json` response
+	JSON503 *Error
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r ResolveCatalogAddressResponse) GetJSON200() *Resolution {
+	return r.JSON200
+}
+
+// GetJSON400 returns the response for an HTTP 400 `application/json` response
+func (r ResolveCatalogAddressResponse) GetJSON400() *Error {
+	return r.JSON400
+}
+
+// GetJSON401 returns the response for an HTTP 401 `application/json` response
+func (r ResolveCatalogAddressResponse) GetJSON401() *Error {
+	return r.JSON401
+}
+
+// GetJSON403 returns the response for an HTTP 403 `application/json` response
+func (r ResolveCatalogAddressResponse) GetJSON403() *Error {
+	return r.JSON403
+}
+
+// GetJSON404 returns the response for an HTTP 404 `application/json` response
+func (r ResolveCatalogAddressResponse) GetJSON404() *Error {
+	return r.JSON404
+}
+
+// GetJSON409 returns the response for an HTTP 409 `application/json` response
+func (r ResolveCatalogAddressResponse) GetJSON409() *Error {
+	return r.JSON409
+}
+
+// GetJSON503 returns the response for an HTTP 503 `application/json` response
+func (r ResolveCatalogAddressResponse) GetJSON503() *Error {
+	return r.JSON503
+}
+
+// GetBody returns the raw response body bytes
+func (r ResolveCatalogAddressResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r ResolveCatalogAddressResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r ResolveCatalogAddressResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r ResolveCatalogAddressResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
 }
 
 type AdminListObjectsResponse struct {
@@ -13172,6 +13352,19 @@ func (r SubmitTeacherHomepageRequestResponse) ContentType() string {
 	return ""
 }
 
+// ResolveCatalogAddressWithResponse performs a GET /api/v1/catalog/addresses/{kind}/{address} (the `ResolveCatalogAddress` operationId) request.
+//
+// 按当前学校和对象类型解析当前地址、旧地址或旧内部 ID。执行与对象详情相同的内容准入和目录可见性检查。object.address_id 为当前页面地址，object.canonical_id（缺省时为 object.id）用于业务引用。
+//
+// Returns a wrapper object for the known response body format(s).
+func (c *ClientWithResponses) ResolveCatalogAddressWithResponse(ctx context.Context, kind ResolveCatalogAddressParamsKind, address string, reqEditors ...RequestEditorFn) (*ResolveCatalogAddressResponse, error) {
+	rsp, err := c.ResolveCatalogAddress(ctx, kind, address, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseResolveCatalogAddressResponse(rsp)
+}
+
 // AdminListObjectsWithResponse performs a GET /api/v1/catalog/admin/objects (the `AdminListObjects` operationId) request.
 //
 // Requires current catalog maintenance permission for the object school. Independent of content admission; no student enrollment identities are returned. Term lists start at the platform first term, including when include_inactive is true.
@@ -14082,6 +14275,74 @@ func (c *ClientWithResponses) SubmitTeacherHomepageRequestWithResponse(ctx conte
 		return nil, err
 	}
 	return ParseSubmitTeacherHomepageRequestResponse(rsp)
+}
+
+// ParseResolveCatalogAddressResponse parses an HTTP response from a ResolveCatalogAddressWithResponse call
+func ParseResolveCatalogAddressResponse(rsp *http.Response) (*ResolveCatalogAddressResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &ResolveCatalogAddressResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest Resolution
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 409:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON409 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON503 = &dest
+
+	}
+
+	return response, nil
 }
 
 // ParseAdminListObjectsResponse parses an HTTP response from a AdminListObjectsWithResponse call

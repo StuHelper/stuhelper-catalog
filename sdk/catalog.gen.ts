@@ -186,6 +186,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/catalog/addresses/{kind}/{address}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description 按当前学校和对象类型解析当前地址、旧地址或旧内部 ID。执行与对象详情相同的内容准入和目录可见性检查。object.address_id 为当前页面地址，object.canonical_id（缺省时为 object.id）用于业务引用。 */
+        get: operations["resolveCatalogAddress"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/catalog/objects/{id}/resolution": {
         parameters: {
             query?: never;
@@ -814,6 +831,8 @@ export interface components {
             code: string;
         };
         NullableObject: {
+            /** @description Catalog 分配的当前公开路径段。课程和教师页面使用此字段。收藏、评价及模块引用继续使用内部 ID。 */
+            readonly address_id?: string;
             id: string;
             /** @enum {string} */
             kind: "school" | "department" | "category" | "nature" | "term" | "course" | "teacher" | "term_course" | "class" | "assignment" | "schedule";
@@ -863,6 +882,8 @@ export interface components {
             readonly teacher_homepage?: components["schemas"]["TeacherHomepage"];
         } | null;
         Object: {
+            /** @description Catalog 分配的当前公开路径段。课程和教师页面使用此字段。收藏、评价及模块引用继续使用内部 ID。 */
+            readonly address_id?: string;
             id: string;
             /** @enum {string} */
             kind: "school" | "department" | "category" | "nature" | "term" | "course" | "teacher" | "term_course" | "class" | "assignment" | "schedule";
@@ -1022,6 +1043,8 @@ export interface components {
             changes: components["schemas"]["ImportChange"][];
         };
         Reference: {
+            /** @description Catalog 分配的当前公开路径段。课程和教师页面使用此字段。收藏、评价及模块引用继续使用内部 ID。 */
+            readonly address_id?: string;
             id: string;
             kind: string;
             name: string;
@@ -2877,6 +2900,83 @@ export interface operations {
                 };
             };
             /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Revision or idempotency conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Required dependency unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    resolveCatalogAddress: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                kind: "course" | "teacher";
+                address: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Resolution"];
+                };
+            };
+            /** @description Invalid input */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Authentication required */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not permitted */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description not_found：对象不存在、当前不可见，或 ID（含合并前别名）指向 term_course、class、assignment、schedule。 */
             404: {
                 headers: {
                     [name: string]: unknown;
