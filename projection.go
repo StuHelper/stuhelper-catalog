@@ -53,7 +53,15 @@ func FirstTermOrderKey() int {
 }
 
 func DefaultDirectoryPolicy() DirectoryPolicy {
-	return DirectoryPolicy{CutoffYear: firstTermYear, CutoffSeason: firstTermSeason}
+	return (DirectoryPolicy{}).WithDefaultCutoff()
+}
+
+// WithDefaultCutoff fills a missing cutoff while preserving explicit policy.
+func (p DirectoryPolicy) WithDefaultCutoff() DirectoryPolicy {
+	if p.CutoffYear == 0 && p.CutoffSeason == "" {
+		p.CutoffYear, p.CutoffSeason = firstTermYear, firstTermSeason
+	}
+	return p
 }
 
 type ProjectionReport struct {
