@@ -72,6 +72,11 @@ specifications:
   - docs/spec/my-courses.md
   - docs/spec/ui-data.md
 scenario_tests:
+  TERMFLOOR-01:
+    - term_order_test.go#TestEnrollmentAndTermOptionsUseStructuredOrder
+    - projection_test.go#TestReviewOfferingTermsUseCourseAndCutoff
+  TERMFLOOR-03:
+    - termfloor_timetable_test.go#TestTimetableFloorInventoryAndCleanupPostgres
   REVIEWUX-01:
     - projection_test.go#TestReviewOfferingTermsUseCourseAndCutoff
   MC-SD-01:

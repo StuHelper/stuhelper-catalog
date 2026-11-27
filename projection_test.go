@@ -47,7 +47,7 @@ func projectionFixture(t *testing.T) (*c.Service, c.Principal, *sql.DB, c.Projec
 		{ID: "invalid", Kind: "course", Name: "Invalid", DepartmentID: "dept"},
 		{ID: "teacher", Kind: "teacher", Name: "Teacher", DepartmentID: "dept"}, {ID: "legacy", Kind: "teacher", Name: "Legacy", DepartmentID: "dept"},
 		{ID: "official", Kind: "teacher", Name: "Official", DepartmentID: "dept"},
-		{ID: "a-old", Kind: "term", Name: "Unreliable display 2099 autumn"}, {ID: "z-boundary", Kind: "term", Name: "Cutoff"},
+		{ID: "pre-spring", Kind: "term", Name: "Spring 2023"}, {ID: "a-old", Kind: "term", Name: "Unreliable display 2099 autumn"}, {ID: "z-boundary", Kind: "term", Name: "Cutoff"},
 		{ID: "z-spring", Kind: "term", Name: "Spring"}, {ID: "m-summer", Kind: "term", Name: "Summer"}, {ID: "a-autumn", Kind: "term", Name: "Autumn"},
 		{ID: "unknown", Kind: "term", Name: "2028 Autumn guess"}, {ID: "empty-term", Kind: "term", Name: "No offerings"},
 		{ID: "offering", Kind: "term_course", Name: "Current offering", CourseID: "course", TermID: "z-boundary"},
@@ -68,7 +68,7 @@ func projectionFixture(t *testing.T) (*c.Service, c.Principal, *sql.DB, c.Projec
 	if _, err := s.Import(ctx, p, "seed", c.Import{SchoolID: "school", SourceID: "source", Revision: 1, FetchedAt: time.Now(), Objects: objects}); err != nil {
 		t.Fatal(err)
 	}
-	terms := []c.TermOrder{{ID: "a-old", Year: 2023, Season: "summer"}, {ID: "z-boundary", Year: 2023, Season: "autumn"}, {ID: "z-spring", Year: 2024, Season: "spring"},
+	terms := []c.TermOrder{{ID: "pre-spring", Year: 2023, Season: "spring"}, {ID: "a-old", Year: 2023, Season: "summer"}, {ID: "z-boundary", Year: 2023, Season: "autumn"}, {ID: "z-spring", Year: 2024, Season: "spring"},
 		{ID: "m-summer", Year: 2024, Season: "summer"}, {ID: "a-autumn", Year: 2024, Season: "autumn"}, {ID: "unknown", Reason: "invalid_term_code"}, {ID: "empty-term", Year: 2025, Season: "autumn"}}
 	if err := s.SaveTermOrders(ctx, p, "school", terms); err != nil {
 		t.Fatal(err)
@@ -213,8 +213,11 @@ func TestReviewOfferingTermsUseCourseAndCutoff(t *testing.T) {
 	ctx := context.Background()
 	now := time.Now()
 	objects := []c.Object{
+		{ID: "same-course-spring2023", Kind: "term_course", SchoolID: "school", Name: "Before cutoff spring", CourseID: "course", TermID: "pre-spring"},
 		{ID: "same-course-old-offering", Kind: "term_course", SchoolID: "school", Name: "Before cutoff", CourseID: "course", TermID: "a-old", Aliases: []string{}},
 		{ID: "same-course-unknown-offering", Kind: "term_course", SchoolID: "school", Name: "Unknown term", CourseID: "course", TermID: "unknown", Aliases: []string{}},
+		{ID: "historical-class", Kind: "class", SchoolID: "school", Name: "Historical class", TermCourseID: "same-course-old-offering"},
+		{ID: "historical-teaching", Kind: "assignment", SchoolID: "school", Name: "Historical teaching", ClassID: "historical-class", TeacherID: "official"},
 		{ID: "other-course-offering", Kind: "term_course", SchoolID: "school", Name: "Only another course", CourseID: "old", TermID: "empty-term", Aliases: []string{}},
 	}
 	if _, err := s.Import(ctx, p, "review-offerings", c.Import{SchoolID: "school", SourceID: "synthetic-review", Revision: 1, FetchedAt: now, Objects: objects}); err != nil {
@@ -237,6 +240,17 @@ func TestReviewOfferingTermsUseCourseAndCutoff(t *testing.T) {
 	page, err := s.ReadList(ctx, p, c.Filter{Kind: "term", CourseID: "course", Limit: 100})
 	if err != nil || !slices.EqualFunc(page.Items, terms, func(a, b c.Object) bool { return a.ID == b.ID }) {
 		t.Fatal(page, err)
+	}
+	for _, term := range []string{"pre-spring", "a-old"} {
+		if _, err := s.ReviewTerm(ctx, term); !errors.Is(err, c.ErrTermBeforeStart) {
+			t.Fatalf("pre-floor term %s returned %v", term, err)
+		}
+	}
+	for _, read := range []func(context.Context, c.Principal, c.Filter) (c.Page, error){s.ReadList, s.AdminList} {
+		filtered, err := read(ctx, p, c.Filter{Kind: "teacher", SchoolID: "school", CourseID: "course", Limit: 100})
+		if err != nil || len(filtered.Items) != 1 || filtered.Items[0].ID != "teacher" {
+			t.Fatal("course teacher filter includes historical-only teaching", filtered, err)
+		}
 	}
 	if _, err := s.CourseTermTeachers(ctx, "course", "empty-term"); !errors.Is(err, c.ErrInput) {
 		t.Fatal("another course's term was accepted", err)

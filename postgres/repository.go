@@ -288,7 +288,7 @@ func (t *transaction) ActiveSourceEnrollments(subject, school, source string, li
 	return list[catalog.Enrollment](t, `SELECT en.data FROM catalog.enrollments en
  LEFT JOIN catalog.term_orders tr ON tr.id=catalog.canonical(en.term_id) AND tr.school_id=en.school_id
  WHERE en.subject=$1 AND en.school_id=$2 AND en.data->>'source_id'=$3 AND en.active
- AND ($5=0 OR tr.sort_key BETWEEN 1 AND $5) ORDER BY en.id LIMIT $4`, subject, school, source, limit, through)
+ AND ($5=0 OR tr.sort_key BETWEEN $6 AND $5) ORDER BY en.id LIMIT $4`, subject, school, source, limit, through, catalog.FirstTermOrderKey())
 }
 
 func (t *transaction) DeleteOwnerEnrollments(owner string) ([]catalog.OwnedEnrollmentSource, error) {
@@ -315,14 +315,14 @@ func (t *transaction) Enrollments(subject, school, course, term, after string, l
 	return list[catalog.Enrollment](t, `WITH owned AS MATERIALIZED (
  SELECT e.*,tr.sort_key AS term_order_key
  FROM catalog.enrollments e JOIN catalog.term_orders tr ON tr.id=catalog.canonical(e.term_id) AND tr.school_id=e.school_id
- WHERE e.subject=$1 AND e.active AND e.school_id=$2 AND tr.sort_key BETWEEN 1 AND $7
+ WHERE e.subject=$1 AND e.active AND e.school_id=$2 AND tr.sort_key BETWEEN $8 AND $7
  AND ($3='' OR catalog.canonical(e.course_id)=catalog.canonical($3)) AND ($4='' OR catalog.canonical(e.term_id)=catalog.canonical($4))
  ) SELECT data || jsonb_build_object('term_order_key',term_order_key,'course_id',catalog.canonical(course_id),
  'teacher_ids',(SELECT COALESCE(jsonb_agg(DISTINCT catalog.canonical(value)),'[]'::jsonb)
  FROM jsonb_array_elements_text(COALESCE(NULLIF(data->'teacher_ids','null'::jsonb),'[]'::jsonb))))
  FROM owned WHERE $5='' OR (term_order_key<(SELECT term_order_key FROM owned WHERE id=$5)
  OR (term_order_key=(SELECT term_order_key FROM owned WHERE id=$5) AND id>$5))
- ORDER BY term_order_key DESC,id LIMIT $6`, subject, school, course, term, after, limit, through)
+ ORDER BY term_order_key DESC,id LIMIT $6`, subject, school, course, term, after, limit, through, catalog.FirstTermOrderKey())
 }
 
 func (t *transaction) Replay(key string) (catalog.Replay, error) {

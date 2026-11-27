@@ -70,7 +70,7 @@ func (s *Service) readPublicObject(ctx context.Context, p Principal, id string, 
 		if err != nil {
 			return err
 		}
-		if teachingDetail(object.Kind) || object.Inactive {
+		if teachingDetail(object.Kind) || object.Inactive || object.Kind == "term" && object.TermOrderKey < FirstTermOrderKey() {
 			return ErrNotFound
 		}
 		if object.SchoolID != school {
@@ -104,7 +104,7 @@ func (s *Service) ReadLookup(ctx context.Context, p Principal, ids []string) (Lo
 	}
 	visible := make([]Object, 0, len(out.Items))
 	for _, item := range out.Items {
-		if teachingDetail(item.Kind) || item.Inactive {
+		if teachingDetail(item.Kind) || item.Inactive || item.Kind == "term" && item.TermOrderKey < FirstTermOrderKey() {
 			out.MissingIDs = append(out.MissingIDs, item.ID)
 			continue
 		}

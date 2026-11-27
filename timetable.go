@@ -140,7 +140,17 @@ func (s *Service) GetTimetable(ctx context.Context, p Principal, school, term st
 	if !ValidID(school) || !ValidID(term) {
 		return out, ErrInput
 	}
-	e := s.Repo.Transaction(ctx, func(t Transaction) error { v, e := t.Timetable(school, term); out = v; return e })
+	e := s.Repo.Transaction(ctx, func(t Transaction) error {
+		order, err := t.SchoolTermOrder(school, term)
+		if err != nil {
+			return err
+		}
+		if order < FirstTermOrderKey() {
+			return ErrNotFound
+		}
+		out, err = t.Timetable(school, term)
+		return err
+	})
 	return out, e
 }
 func (s *Service) PutTimetable(ctx context.Context, p Principal, in Timetable) (Timetable, error) {
@@ -164,6 +174,13 @@ func (s *Service) PutTimetable(ctx context.Context, p Principal, in Timetable) (
 		}
 		if term.Object.Kind != "term" || term.Object.SchoolID != in.SchoolID {
 			return ErrInput
+		}
+		order, e := t.SchoolTermOrder(in.SchoolID, in.TermID)
+		if errors.Is(e, ErrNotFound) || e == nil && order < FirstTermOrderKey() {
+			return ErrInput
+		}
+		if e != nil {
+			return e
 		}
 		old, e := t.Timetable(in.SchoolID, in.TermID)
 		if e != nil && !errors.Is(e, ErrNotFound) {
