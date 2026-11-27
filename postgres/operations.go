@@ -10,7 +10,7 @@ func (t *transaction) PublicObject(id string) (c.Object, error) {
 	if t.projectionRead {
 		return t.projectedObject(id)
 	}
-	obj, err := read[c.Object](t, `SELECT catalog.public_object(o.data->'object') || CASE WHEN o.kind='term' THEN jsonb_build_object('term_order_key',COALESCE(tr.sort_key,0)) ELSE '{}'::jsonb END || CASE WHEN o.id<>$1 THEN jsonb_build_object('id',$1,'canonical_id',o.id) ELSE '{}'::jsonb END FROM catalog.objects o LEFT JOIN catalog.term_orders tr ON tr.id=o.id AND tr.school_id=o.school_id WHERE o.id=catalog.canonical($1)`+t.teacherVisibility("o"), id)
+	obj, err := read[c.Object](t, `SELECT (catalog.public_object(o.data->'object') || catalog.address_field(o.id)) || CASE WHEN o.kind='term' THEN jsonb_build_object('term_order_key',COALESCE(tr.sort_key,0)) ELSE '{}'::jsonb END || CASE WHEN o.id<>$1 THEN jsonb_build_object('id',$1,'canonical_id',o.id) ELSE '{}'::jsonb END FROM catalog.objects o LEFT JOIN catalog.term_orders tr ON tr.id=o.id AND tr.school_id=o.school_id WHERE o.id=catalog.canonical($1)`+t.teacherVisibility("o"), id)
 	if errors.Is(err, c.ErrNotFound) && c.TeacherMaintenanceRead(t.ctx) {
 		return t.maintenanceProjectedObject(id)
 	}
@@ -18,7 +18,7 @@ func (t *transaction) PublicObject(id string) (c.Object, error) {
 }
 
 func (t *transaction) maintenanceProjectedObject(id string) (c.Object, error) {
-	return read[c.Object](t, `SELECT o.data || CASE WHEN o.id<>$1 THEN jsonb_build_object('id',$1,'canonical_id',o.id) ELSE '{}'::jsonb END`+projectedObjectFrom+`
+	return read[c.Object](t, `SELECT o.data || catalog.address_field(o.id) || CASE WHEN o.id<>$1 THEN jsonb_build_object('id',$1,'canonical_id',o.id) ELSE '{}'::jsonb END`+projectedObjectFrom+`
  WHERE o.id=COALESCE((SELECT canonical_id FROM catalog.projection_aliases a WHERE a.version=h.version AND a.alias_id=$1),$1)
    AND NOT EXISTS(SELECT 1 FROM catalog.objects src WHERE src.id=o.id)`, id)
 }
@@ -155,4 +155,10 @@ func (t *transaction) MergeAliases(source, target, school string, at time.Time, 
 		}
 	}
 	return count, nil
+}
+
+func (t *transaction) AddressObjectID(school, kind, address string) (string, error) {
+	var id string
+	err := t.tx.QueryRowContext(t.ctx, `SELECT object_id FROM catalog.addresses WHERE school_id=$1 AND kind=$2 AND address=$3`, school, kind, address).Scan(&id)
+	return id, safe(err)
 }

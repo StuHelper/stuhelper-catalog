@@ -81,6 +81,10 @@ func TestDirectoryDisplayRulesProjectsCountsAndEnrollmentOwnership(t *testing.T)
 		t.Fatalf("report: %+v", report)
 	}
 	tt, swim := c.SportsProjectID("school", "table-tennis"), c.SportsProjectID("school", "swimming")
+	addressResult, err := s.ReadAddress(ctx, p, "course", "sport-table-tennis")
+	if err != nil || addressResult.Object.ID != tt || addressResult.Object.AddressID != "sport-table-tennis" {
+		t.Fatal(addressResult, err)
+	}
 	for _, id := range []string{"office", "office-category", "liberal-course", "elective-course", "semester1", "semester2", "unknown-class", "missing-class", "no-teacher-class", "semester1-offering"} {
 		if _, err := s.Read(ctx, p, id); !errors.Is(err, c.ErrNotFound) {
 			t.Fatalf("excluded detail %s: %v", id, err)

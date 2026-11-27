@@ -6,6 +6,7 @@ import (
 )
 
 type Reference struct {
+	AddressID   string `json:"address_id,omitempty"`
 	ID          string `json:"id"`
 	Kind        string `json:"kind"`
 	Name        string `json:"name"`

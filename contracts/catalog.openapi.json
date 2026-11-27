@@ -2,7 +2,7 @@
   "openapi": "3.0.3",
   "info": {
     "title": "StuHelper Catalog",
-    "version": "0.22.0"
+    "version": "0.23.0"
   },
   "servers": [
     {
@@ -1389,6 +1389,112 @@
             }
           }
         ]
+      }
+    },
+    "/api/v1/catalog/addresses/{kind}/{address}": {
+      "get": {
+        "operationId": "resolveCatalogAddress",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Resolution"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not permitted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "not_found：对象不存在、当前不可见，或 ID（含合并前别名）指向 term_course、class、assignment、schedule。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Revision or idempotency conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Required dependency unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "kind",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "course",
+                "teacher"
+              ]
+            }
+          },
+          {
+            "name": "address",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "maxLength": 140
+            }
+          }
+        ],
+        "description": "按当前学校和对象类型解析当前地址、旧地址或旧内部 ID。执行与对象详情相同的内容准入和目录可见性检查。object.address_id 为当前页面地址，object.canonical_id（缺省时为 object.id）用于业务引用。"
       }
     },
     "/api/v1/catalog/objects/{id}/resolution": {
@@ -6418,6 +6524,7 @@
         "nullable": true,
         "additionalProperties": false,
         "properties": {
+          "address_id": {"type": "string", "readOnly": true, "description": "Catalog 分配的当前公开路径段。课程和教师页面使用此字段。收藏、评价及模块引用继续使用内部 ID。"},
           "id": {
             "type": "string"
           },
@@ -6588,6 +6695,7 @@
         "type": "object",
         "additionalProperties": false,
         "properties": {
+          "address_id": {"type": "string", "readOnly": true, "description": "Catalog 分配的当前公开路径段。课程和教师页面使用此字段。收藏、评价及模块引用继续使用内部 ID。"},
           "id": {
             "type": "string"
           },
@@ -7217,6 +7325,7 @@
           "name"
         ],
         "properties": {
+          "address_id": {"type": "string", "readOnly": true, "description": "Catalog 分配的当前公开路径段。课程和教师页面使用此字段。收藏、评价及模块引用继续使用内部 ID。"},
           "id": {
             "type": "string"
           },

@@ -83,7 +83,7 @@ func directoryPageQuery(f catalog.Filter, prefixLimit int, requireTeacherDirecto
 	}
 
 	limit := bind(f.Limit + 1)
-	query := "SELECT catalog.public_object(o.data->'object') FROM catalog.objects o WHERE " + strings.Join(where, " AND ") + " ORDER BY o.id LIMIT " + limit
+	query := "SELECT (catalog.public_object(o.data->'object') || catalog.address_field(o.id)) FROM catalog.objects o WHERE " + strings.Join(where, " AND ") + " ORDER BY o.id LIMIT " + limit
 	if prefixLimit != 0 {
 		filters := append([]string(nil), where[len(baseWhere):]...)
 		if search != "" {
@@ -91,7 +91,7 @@ func directoryPageQuery(f catalog.Filter, prefixLimit int, requireTeacherDirecto
 		}
 		// LIMIT stays inside the subquery, before relational or literal checks.
 		// If this bounded prefix is insufficient, List executes the full query.
-		query = "SELECT catalog.public_object(o.data->'object') FROM (SELECT o.id,o.name,o.data,o.department_id,o.category_id,o.nature_id FROM catalog.objects o WHERE " + strings.Join(baseWhere, " AND ") + " ORDER BY o.id LIMIT " + fmt.Sprint(prefixLimit) + ") o WHERE " + strings.Join(filters, " AND ") + " ORDER BY o.id LIMIT " + limit
+		query = "SELECT (catalog.public_object(o.data->'object') || catalog.address_field(o.id)) FROM (SELECT o.id,o.name,o.data,o.department_id,o.category_id,o.nature_id FROM catalog.objects o WHERE " + strings.Join(baseWhere, " AND ") + " ORDER BY o.id LIMIT " + fmt.Sprint(prefixLimit) + ") o WHERE " + strings.Join(filters, " AND ") + " ORDER BY o.id LIMIT " + limit
 	}
 	return query, args
 }

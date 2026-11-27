@@ -19,6 +19,14 @@ func (h Handler) operationRoutes(m *http.ServeMux) {
 		out, err := h.Service.ApplyCourseIdentities(r.Context(), p, r.Header.Get("Idempotency-Key"), in)
 		respond(w, out, err)
 	})
+	m.HandleFunc("GET /api/v1/catalog/addresses/{kind}/{address}", func(w http.ResponseWriter, r *http.Request) {
+		p, ok := h.principal(w, r)
+		if !ok {
+			return
+		}
+		v, e := h.Service.ReadAddress(r.Context(), p, r.PathValue("kind"), r.PathValue("address"))
+		respond(w, v, e)
+	})
 	m.HandleFunc("GET /api/v1/catalog/objects/{id}/resolution", func(w http.ResponseWriter, r *http.Request) {
 		p, ok := h.principal(w, r)
 		if !ok {
