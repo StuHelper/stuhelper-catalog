@@ -89,6 +89,7 @@ func (t *transaction) projectedList(f c.Filter) ([]c.Object, error) {
 	}
 	order := "o.id"
 	if f.Kind == "term" {
+		where = append(where, "o.term_key>="+bind(c.FirstTermOrderKey()))
 		order = "o.term_key DESC,o.id"
 	}
 	if f.Kind == "department" {
@@ -111,8 +112,8 @@ func (t *transaction) projectedList(f c.Filter) ([]c.Object, error) {
 			conditions = append(conditions, "v."+field.column+"="+canonical(field.value))
 		}
 	}
-	if f.Kind == "term" && f.CourseID != "" {
-		conditions = append(conditions, "v.offering_id<>''")
+	if f.CourseID != "" && (f.Kind == "term" || f.Kind == "teacher") {
+		conditions = append(conditions, "v.offering_id<>''", "v.term_key>="+bind(c.FirstTermOrderKey()))
 	}
 	for _, field := range []struct{ column, value string }{{"department_id", f.DepartmentID}, {"category_id", f.CategoryID}, {"nature_id", f.NatureID}} {
 		if field.value != "" {

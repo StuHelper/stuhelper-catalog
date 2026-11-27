@@ -72,6 +72,11 @@ specifications:
   - docs/spec/my-courses.md
   - docs/spec/ui-data.md
 scenario_tests:
+  TERMFLOOR-01:
+    - term_order_test.go#TestEnrollmentAndTermOptionsUseStructuredOrder
+    - projection_test.go#TestReviewOfferingTermsUseCourseAndCutoff
+  TERMFLOOR-03:
+    - termfloor_timetable_test.go#TestTimetableFloorInventoryAndCleanupPostgres
   REVIEWUX-01:
     - projection_test.go#TestReviewOfferingTermsUseCourseAndCutoff
   MC-SD-01:
@@ -80,6 +85,7 @@ scenario_tests:
     - school_data_test.go#TestPersonalEnrollmentQueriesRespectSchoolDataTermLimit
   MC-SD-03:
     - school_term_calendar_test.go#TestSchoolTermCalendarLocalBoundaryAndHolidays
+    - school_term_calendar_test.go#TestSchoolTermCalendarUndatedTrailingTerms
   RET-12:
     - discovery_retention_test.go#TestDiscoveryRetentionRequiresSupersessionDeliveryAndNoHold
   CAT-IDENTITY-01:

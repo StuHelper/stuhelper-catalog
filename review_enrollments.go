@@ -3,6 +3,7 @@ package catalog
 import (
 	"cmp"
 	"context"
+	"errors"
 )
 
 // ReviewEnrollmentTransaction resolves a projected target from the requester's
@@ -71,6 +72,45 @@ func (s *Service) readReviewEnrollments(ctx context.Context, p Principal, school
 }
 
 const maxReviewCandidates = 1000
+
+var ErrTermBeforeStart = errors.New("term_before_start")
+
+// ReviewTerm resolves the trusted term reference used to validate review input.
+// Source order distinguishes an earlier term from a missing term, even when
+// the published directory already excludes the earlier term.
+func (s *Service) ReviewTerm(ctx context.Context, id string) (Object, error) {
+	if !ValidID(id) {
+		return Object{}, ErrInput
+	}
+	var result Object
+	err := s.Repo.Transaction(ctx, func(tx Transaction) error {
+		term, err := tx.PublicObject(id)
+		if errors.Is(err, ErrNotFound) {
+			record, readErr := tx.Object(id)
+			term, err = record.Object, readErr
+		}
+		if err != nil {
+			return err
+		}
+		if term.Kind != "term" {
+			return ErrNotFound
+		}
+		order, err := tx.SchoolTermOrder(term.SchoolID, term.ID)
+		if err != nil {
+			return err
+		}
+		if order > 0 && order < FirstTermOrderKey() {
+			return ErrTermBeforeStart
+		}
+		if order == 0 {
+			return ErrNotFound
+		}
+		term.TermOrderKey = order
+		result = term
+		return nil
+	})
+	return result, err
+}
 
 // CourseOfferingTerms returns the current public offering terms in directory order.
 func (s *Service) CourseOfferingTerms(ctx context.Context, course string) ([]Object, error) {

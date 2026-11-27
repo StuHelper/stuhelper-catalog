@@ -36,7 +36,7 @@ func withSchoolData[T any](s *Service, ctx context.Context, p Principal, school,
 		return zero, ErrForbidden
 	}
 	err := s.SchoolDataAccess.WithSchoolData(ctx, p.Subject, func(authorized context.Context, scope SchoolDataScope) error {
-		if !ValidID(scope.SchoolID) || school != "" && scope.SchoolID != school || scope.ThroughTermOrderKey < 19001 ||
+		if !ValidID(scope.SchoolID) || school != "" && scope.SchoolID != school || scope.ThroughTermOrderKey < FirstTermOrderKey() ||
 			scope.ThroughTermOrderKey > 22003 || scope.ThroughTermOrderKey%10 < 1 || scope.ThroughTermOrderKey%10 > 3 {
 			return ErrForbidden
 		}
@@ -46,7 +46,7 @@ func withSchoolData[T any](s *Service, ctx context.Context, p Principal, school,
 			}
 			if err := s.Repo.Transaction(authorized, func(tx Transaction) error {
 				order, err := tx.SchoolTermOrder(scope.SchoolID, term)
-				if errors.Is(err, ErrNotFound) || err == nil && (order <= 0 || order > scope.ThroughTermOrderKey) {
+				if errors.Is(err, ErrNotFound) || err == nil && (order < FirstTermOrderKey() || order > scope.ThroughTermOrderKey) {
 					return ErrForbidden
 				}
 				return err

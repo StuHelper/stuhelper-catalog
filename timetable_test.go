@@ -256,6 +256,9 @@ func TestTimetableTransactionNotificationAndMigration(t *testing.T) {
 	if _, e := s.Import(ctx, admin, "seed", in); e != nil {
 		t.Fatal(e)
 	}
+	if err := s.SaveTermOrders(ctx, admin, "school", []c.TermOrder{{ID: "term1", Year: 2026, Season: "autumn"}}); err != nil {
+		t.Fatal(err)
+	}
 	listener, e := repo.DB.Conn(ctx)
 	if e != nil {
 		t.Fatal(e)

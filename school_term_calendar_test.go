@@ -45,3 +45,25 @@ func TestSchoolTermCalendarLocalBoundaryAndHolidays(t *testing.T) {
 		t.Fatal("conflicting start dates were accepted", err)
 	}
 }
+
+func TestSchoolTermCalendarUndatedTrailingTerms(t *testing.T) {
+	periods := []SchoolTermPeriod{
+		{TermOrder: TermOrder{ID: "autumn26", Year: 2026, Season: "autumn"}, WeekOneStart: "2026-09-07", Timezone: "Asia/Shanghai"},
+		{TermOrder: TermOrder{ID: "spring27", Year: 2027, Season: "spring"}},
+		{TermOrder: TermOrder{ID: "summer27", Year: 2027, Season: "summer"}},
+	}
+	at := time.Date(2026, 11, 27, 6, 30, 0, 0, time.UTC)
+	got, err := schoolTermAt(periods, at)
+	if err != nil || got.ID != "autumn26" {
+		t.Fatalf("undated future terms yielded %q: %v", got.ID, err)
+	}
+	periods[0].WeekOneStart, periods[0].Timezone = "", ""
+	if _, err := schoolTermAt(periods, at); !errors.Is(err, ErrUnavailable) {
+		t.Fatalf("calendar without a dated start yielded %v", err)
+	}
+	periods[0].WeekOneStart, periods[0].Timezone = "2026-09-07", "Asia/Shanghai"
+	periods[1].Timezone = "Asia/Shanghai"
+	if _, err := schoolTermAt(periods, at); !errors.Is(err, ErrUnavailable) {
+		t.Fatalf("partially configured term yielded %v", err)
+	}
+}
