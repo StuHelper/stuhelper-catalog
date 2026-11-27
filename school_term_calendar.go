@@ -12,7 +12,8 @@ type SchoolTermPeriod struct {
 }
 
 // SchoolTermAt resolves only catalog calendar facts. A term starts at local
-// midnight on the first Monday and ends at the next term's first Monday.
+// midnight on the first Monday. Undated terms after the last known start do
+// not advance the term until another start is known.
 func (s *Service) SchoolTermAt(ctx context.Context, school string, at time.Time) (TermOrder, error) {
 	if !ValidID(school) || at.IsZero() {
 		return TermOrder{}, ErrInput
@@ -64,9 +65,9 @@ func schoolTermAt(periods []SchoolTermPeriod, at time.Time) (TermOrder, error) {
 			next = i
 		}
 	}
-	// A known term between the two date anchors needs its own start before we
-	// can tell which term contains the requested instant.
-	if chosen < 0 || next != chosen+1 {
+	// A term between two known starts needs its own start to resolve this
+	// interval. With no later anchor, the latest confirmed term is the limit.
+	if chosen < 0 || (next < len(periods) && next != chosen+1) {
 		return TermOrder{}, ErrUnavailable
 	}
 	return periods[chosen].TermOrder, nil

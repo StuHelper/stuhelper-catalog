@@ -80,6 +80,7 @@ scenario_tests:
     - school_data_test.go#TestPersonalEnrollmentQueriesRespectSchoolDataTermLimit
   MC-SD-03:
     - school_term_calendar_test.go#TestSchoolTermCalendarLocalBoundaryAndHolidays
+    - school_term_calendar_test.go#TestSchoolTermCalendarUndatedTrailingTerms
   RET-12:
     - discovery_retention_test.go#TestDiscoveryRetentionRequiresSupersessionDeliveryAndNoHold
   CAT-IDENTITY-01:
