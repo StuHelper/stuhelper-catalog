@@ -72,6 +72,8 @@ specifications:
   - docs/spec/my-courses.md
   - docs/spec/ui-data.md
 scenario_tests:
+  CAT-PROJECTION-07:
+    - directory_import_recovery_test.go#TestMaintenanceImportReplaysPagesAndMatchesEagerAliases
   TERMFLOOR-01:
     - term_order_test.go#TestEnrollmentAndTermOptionsUseStructuredOrder
     - projection_test.go#TestReviewOfferingTermsUseCourseAndCutoff

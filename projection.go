@@ -102,6 +102,33 @@ type DirectoryProjectionTransaction interface {
 	EndDirectoryImport(string, string, bool, time.Time) error
 }
 
+// CompletedDirectoryImport returns the current projection when its source is
+// up to date and the named full import is the latest completed import.
+func (s *Service) CompletedDirectoryImport(ctx context.Context, p Principal, school, batch string) (*ProjectionReport, error) {
+	if p.Subject == "" {
+		return nil, ErrUnauthenticated
+	}
+	if !p.CanImport || !allowed(p, school) {
+		return nil, ErrForbidden
+	}
+	if !ValidID(school) || !ValidKey(batch) {
+		return nil, ErrInput
+	}
+	var out *ProjectionReport
+	err := s.Repo.Transaction(ctx, func(t Transaction) error {
+		port, ok := t.(interface {
+			CompletedDirectoryImport(string, string) (*ProjectionReport, error)
+		})
+		if !ok {
+			return ErrUnavailable
+		}
+		var err error
+		out, err = port.CompletedDirectoryImport(school, batch)
+		return err
+	})
+	return out, err
+}
+
 type directoryBatchKey struct{}
 type directoryImportKey struct{}
 
