@@ -11,7 +11,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** @description 读取当前学校的可展示目录投影，当前内容权限在每次请求时检查。课程须在服务端截止学期（默认 2023 秋）及以后有开课记录。kind=term 仅返回截止学期及以后且有可见课程的学期，按 term_order_key 降序、ID 升序分页；前端保持返回顺序。其他类型按 ID 升序。 体育项目作为 kind=course 条目返回 course_type=sports_project。按项目 course_id 查询教师，筛选计数按项目去重。 普通目录仅提供学校、院系、分类、性质、学期、课程和教师；term_course、class、assignment、schedule 仅供管理端或受信服务使用。 kind=teacher&course_id=…、kind=course&teacher_id=… 和 kind=term 保持可用；授课事实只用于计算关联，不返回教学班。 */
+        /** @description 读取当前学校的可展示目录投影，当前内容权限在每次请求时检查。Catalog 持有平台起始学期（2023 年秋季）。课程须在目录截止学期及以后有开课记录，目录截止学期可进一步收窄。kind=term 仅返回范围内且有可见课程的学期，按 term_order_key 降序、ID 升序分页，前端保持返回顺序。其他类型按 ID 升序。 体育项目作为 kind=course 条目返回 course_type=sports_project。按项目 course_id 查询教师，筛选计数按项目去重。 普通目录仅提供学校、院系、分类、性质、学期、课程和教师；term_course、class、assignment、schedule 仅供管理端或受信服务使用。 kind=teacher&course_id=…、kind=course&teacher_id=… 和 kind=term 保持可用；授课事实只用于计算关联，不返回教学班。 */
         get: operations["listObjects"];
         put?: never;
         post?: never;
@@ -210,7 +210,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** @description Requires current catalog maintenance permission for the object school. Independent of content admission; no student enrollment identities are returned. */
+        /** @description Requires current catalog maintenance permission for the object school. Independent of content admission; no student enrollment identities are returned. Term lists start at the platform first term, including when include_inactive is true. */
         get: operations["adminListObjects"];
         put?: never;
         post?: never;
@@ -1934,7 +1934,7 @@ export interface operations {
                 department_id?: string;
                 category_id?: string;
                 nature_id?: string;
-                /** @description 已授权学校范围内的课程 ID。kind=term 时，仅返回该课程有开课记录的学期，按目录截止规则过滤并从新到旧排列。 */
+                /** @description 已授权学校范围内的课程 ID。kind=term 时仅返回该课程在平台起始学期及之后有开课记录的可见学期，与课程评价编辑器使用同一开课范围。kind=teacher 时仅返回对应开课记录的任课教师。 */
                 course_id?: string;
                 term_id?: string;
                 teacher_id?: string;

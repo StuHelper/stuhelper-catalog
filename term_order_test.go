@@ -18,7 +18,7 @@ import (
 func TestEnrollmentAndTermOptionsUseStructuredOrder(t *testing.T) {
 	s, p, _, _ := projectionFixture(t)
 	ctx := context.Background()
-	terms := []string{"unknown", "z-spring", "a-autumn", "m-summer", "a-autumn"}
+	terms := []string{"unknown", "z-spring", "a-autumn", "m-summer", "a-autumn", "pre-spring", "a-old", "z-boundary"}
 	in := c.Import{SchoolID: "school", SourceID: "enrollment-source", Revision: 1, FetchedAt: time.Now()}
 	for i, term := range terms {
 		in.Enrollments = append(in.Enrollments, c.Enrollment{ID: fmt.Sprintf("en-%d", i), Subject: p.Subject, SchoolID: "school", CourseID: "course", TermID: term, TeacherIDs: []string{}, Active: true})
@@ -47,7 +47,7 @@ func TestEnrollmentAndTermOptionsUseStructuredOrder(t *testing.T) {
 		}
 		after = page[len(page)-1].ID
 	}
-	if !slices.Equal(ids, []string{"en-2", "en-4", "en-3", "en-1"}) || !slices.Equal(keys, []int{20243, 20243, 20242, 20241}) {
+	if !slices.Equal(ids, []string{"en-2", "en-4", "en-3", "en-1", "en-7"}) || !slices.Equal(keys, []int{20243, 20243, 20242, 20241, 20233}) {
 		t.Fatal(ids, keys)
 	}
 	page, err := s.MyEnrollments(ctx, p, "", "", "", "other-user", 100)
@@ -90,7 +90,7 @@ func TestEnrollmentAndTermOptionsUseStructuredOrder(t *testing.T) {
 	}
 	s.Repo.(*cp.Repository).RequireDirectoryProjection = false
 	raw, err := s.ReadList(ctx, p, c.Filter{Kind: "term", SchoolID: "school", Limit: 100})
-	if err != nil || len(raw.Items) != 7 {
+	if err != nil || len(raw.Items) != 5 {
 		t.Fatal("raw terms", raw, err)
 	}
 	rawKeys := []int{}
@@ -101,8 +101,20 @@ func TestEnrollmentAndTermOptionsUseStructuredOrder(t *testing.T) {
 			t.Fatal("raw detail key", single, e)
 		}
 	}
-	if !slices.Equal(rawKeys, []int{20253, 20243, 20242, 20241, 20233, 20232, 0}) {
+	if !slices.Equal(rawKeys, []int{20253, 20243, 20242, 20241, 20233}) {
 		t.Fatal("raw term order", rawKeys)
+	}
+	admin, err := s.AdminList(ctx, p, c.Filter{Kind: "term", SchoolID: "school", Limit: 100, IncludeInactive: true})
+	if err != nil || !slices.EqualFunc(admin.Items, raw.Items, func(a, b c.Object) bool { return a.ID == b.ID }) {
+		t.Fatal("Admin terms differ from eligible school terms", admin, err)
+	}
+	for _, term := range []string{"pre-spring", "a-old"} {
+		if _, err := s.MyCalendar(ctx, p, term); !errors.Is(err, c.ErrForbidden) {
+			t.Fatal("calendar returned a pre-floor term", term, err)
+		}
+		if _, err := s.Read(ctx, p, term); !errors.Is(err, c.ErrNotFound) {
+			t.Fatal("public detail returned a pre-floor term", term, err)
+		}
 	}
 	if _, err = s.ReadList(ctx, c.Principal{}, c.Filter{Kind: "term", Limit: 20}); !errors.Is(err, c.ErrUnauthenticated) {
 		t.Fatal("anonymous terms", err)

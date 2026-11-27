@@ -42,8 +42,18 @@ type DirectoryPolicy struct {
 	Sports                *SportsDirectoryPolicy `json:"sports,omitempty"`
 }
 
+const (
+	firstTermYear   = 2023
+	firstTermSeason = "autumn"
+)
+
+// FirstTermOrderKey is the inclusive lower bound for platform term services.
+func FirstTermOrderKey() int {
+	return TermOrderKey(firstTermYear, firstTermSeason)
+}
+
 func DefaultDirectoryPolicy() DirectoryPolicy {
-	return DirectoryPolicy{CutoffYear: 2023, CutoffSeason: "autumn"}
+	return DirectoryPolicy{CutoffYear: firstTermYear, CutoffSeason: firstTermSeason}
 }
 
 type ProjectionReport struct {

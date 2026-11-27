@@ -71,7 +71,7 @@ func (t *transaction) List(f catalog.Filter) ([]catalog.Object, error) {
  LEFT JOIN catalog.redirects parent_redirect ON parent_redirect.alias_id=COALESCE(NULLIF(o.term_course_id,''),parent_class.term_course_id)
  LEFT JOIN catalog.objects parent_offering ON parent_offering.id=COALESCE(parent_redirect.canonical_id,NULLIF(o.term_course_id,''),parent_class.term_course_id) AND parent_offering.kind='term_course'
  WHERE o.kind=$1 AND NOT EXISTS(SELECT 1 FROM catalog.redirects redirect WHERE redirect.alias_id=o.id) AND ($14 OR NOT COALESCE((o.data->'object'->>'inactive')::boolean,false)) AND ($2='' OR o.school_id=$2) AND ($3='' OR `+after+`)
- AND ($15::text[] IS NULL OR o.id=ANY($15))
+ AND ($15::text[] IS NULL OR o.id=ANY($15)) AND (o.kind<>'term' OR tr.sort_key>=$16)
  AND ($4='' OR CASE WHEN o.kind='school' AND $4 ~ '^[0-9]+$' THEN
    o.id=$4 OR o.data->'object'->>'code'=$4
    OR (length($4)=5 AND ((o.id ~ '^[0-9]{10}$' AND right(o.id,5)=$4)
@@ -80,7 +80,9 @@ func (t *transaction) List(f catalog.Filter) ([]catalog.Object, error) {
 
  AND ($5='' OR o.course_id IN (SELECT $5::text UNION SELECT alias_id FROM catalog.redirects WHERE canonical_id=$5) OR (o.kind='course' AND o.id=$5) OR parent_offering.course_id IN (SELECT $5::text UNION SELECT alias_id FROM catalog.redirects WHERE canonical_id=$5)`+courseTermRelation+`
    OR (o.kind='teacher' AND EXISTS(SELECT 1 FROM catalog.objects a JOIN catalog.objects cl ON cl.id=a.class_id JOIN catalog.objects tc ON tc.id=cl.term_course_id
-     WHERE a.kind='assignment' AND a.teacher_id IN (SELECT o.id::text UNION SELECT alias_id FROM catalog.redirects WHERE canonical_id=o.id) AND tc.course_id IN (SELECT $5::text UNION SELECT alias_id FROM catalog.redirects WHERE canonical_id=$5) AND ($7='' OR tc.term_id=$7))))
+     JOIN catalog.term_orders offered ON offered.id=catalog.canonical(tc.term_id) AND offered.school_id=tc.school_id
+     WHERE offered.sort_key>=$16 AND NOT COALESCE((tc.data->'object'->>'inactive')::boolean,false) AND NOT COALESCE((cl.data->'object'->>'inactive')::boolean,false)
+     AND NOT COALESCE((a.data->'object'->>'inactive')::boolean,false) AND a.kind='assignment' AND a.teacher_id IN (SELECT o.id::text UNION SELECT alias_id FROM catalog.redirects WHERE canonical_id=o.id) AND tc.course_id IN (SELECT $5::text UNION SELECT alias_id FROM catalog.redirects WHERE canonical_id=$5) AND ($7='' OR catalog.canonical(tc.term_id)=catalog.canonical($7)))))
  AND (
   (o.kind='course' AND EXISTS(
    SELECT 1 FROM catalog.objects tc LEFT JOIN catalog.objects cl ON cl.term_course_id IN (SELECT tc.id::text WHERE NOT EXISTS(SELECT 1 FROM catalog.redirects WHERE alias_id=tc.id) UNION SELECT alias_id FROM catalog.redirects WHERE canonical_id=tc.id) AND cl.kind='class'
@@ -93,7 +95,9 @@ func (t *transaction) List(f catalog.Filter) ([]catalog.Object, error) {
   OR (o.kind<>'course' AND ($6='' OR o.department_id=$6) AND ($8='' OR o.category_id=$8) AND ($9='' OR o.nature_id=$9)
    AND ($7='' OR o.term_id=$7 OR (o.kind='term' AND o.id=$7) OR parent_offering.term_id=$7
      OR (o.kind='teacher' AND EXISTS(SELECT 1 FROM catalog.objects a JOIN catalog.objects cl ON cl.id=a.class_id JOIN catalog.objects tc ON tc.id=cl.term_course_id
-       WHERE a.kind='assignment' AND a.teacher_id IN (SELECT o.id::text UNION SELECT alias_id FROM catalog.redirects WHERE canonical_id=o.id) AND tc.term_id=$7 AND ($5='' OR tc.course_id IN (SELECT $5::text UNION SELECT alias_id FROM catalog.redirects WHERE canonical_id=$5)))))
+       JOIN catalog.term_orders offered ON offered.id=catalog.canonical(tc.term_id) AND offered.school_id=tc.school_id
+       WHERE offered.sort_key>=$16 AND NOT COALESCE((tc.data->'object'->>'inactive')::boolean,false) AND NOT COALESCE((cl.data->'object'->>'inactive')::boolean,false)
+       AND NOT COALESCE((a.data->'object'->>'inactive')::boolean,false) AND a.kind='assignment' AND a.teacher_id IN (SELECT o.id::text UNION SELECT alias_id FROM catalog.redirects WHERE canonical_id=o.id) AND catalog.canonical(tc.term_id)=catalog.canonical($7) AND ($5='' OR tc.course_id IN (SELECT $5::text UNION SELECT alias_id FROM catalog.redirects WHERE canonical_id=$5)))))
    AND ($10='' OR o.teacher_id IN (SELECT $10::text UNION SELECT alias_id FROM catalog.redirects WHERE canonical_id=$10) OR (o.kind='teacher' AND o.id=$10)
      OR EXISTS(SELECT 1 FROM catalog.objects a JOIN catalog.objects cl ON cl.id=a.class_id
        WHERE a.kind='assignment' AND a.teacher_id IN (SELECT $10::text UNION SELECT alias_id FROM catalog.redirects WHERE canonical_id=$10) AND ((o.kind='class' AND a.class_id IN (SELECT o.id::text UNION SELECT alias_id FROM catalog.redirects WHERE canonical_id=o.id)) OR (o.kind='schedule' AND a.class_id IN (SELECT o.class_id::text UNION SELECT alias_id FROM catalog.redirects WHERE canonical_id=o.class_id)) OR (o.kind='term_course' AND cl.term_course_id IN (SELECT o.id::text UNION SELECT alias_id FROM catalog.redirects WHERE canonical_id=o.id))))))
@@ -102,7 +106,7 @@ func (t *transaction) List(f catalog.Filter) ([]catalog.Object, error) {
    OR (o.kind='teacher' AND EXISTS(SELECT 1 FROM catalog.objects a JOIN catalog.objects cl ON cl.id=a.class_id WHERE a.kind='assignment' AND a.teacher_id IN (SELECT o.id::text UNION SELECT alias_id FROM catalog.redirects WHERE canonical_id=o.id) AND cl.term_course_id IN (SELECT $12::text UNION SELECT alias_id FROM catalog.redirects WHERE canonical_id=$12))))
  AND ($13='' OR o.class_id IN (SELECT $13::text UNION SELECT alias_id FROM catalog.redirects WHERE canonical_id=$13) OR o.id=$13
    OR (o.kind='teacher' AND EXISTS(SELECT 1 FROM catalog.objects a WHERE a.kind='assignment' AND a.teacher_id IN (SELECT o.id::text UNION SELECT alias_id FROM catalog.redirects WHERE canonical_id=o.id) AND a.class_id IN (SELECT $13::text UNION SELECT alias_id FROM catalog.redirects WHERE canonical_id=$13))))
- `+directoryCandidates(f)+t.teacherVisibility("o")+` ORDER BY `+order+` LIMIT $11`, f.Kind, f.SchoolID, f.After, f.Query, f.CourseID, f.DepartmentID, f.TermID, f.CategoryID, f.NatureID, f.TeacherID, f.Limit+1, f.TermCourseID, f.ClassID, f.IncludeInactive, f.IDs)
+ `+directoryCandidates(f)+t.teacherVisibility("o")+` ORDER BY `+order+` LIMIT $11`, f.Kind, f.SchoolID, f.After, f.Query, f.CourseID, f.DepartmentID, f.TermID, f.CategoryID, f.NatureID, f.TeacherID, f.Limit+1, f.TermCourseID, f.ClassID, f.IncludeInactive, f.IDs, catalog.FirstTermOrderKey())
 }
 
 func (t *transaction) Lookup(ids []string) ([]catalog.Object, error) {
@@ -207,7 +211,7 @@ func (t *transaction) Summary(object catalog.Object) (catalog.Summary, error) {
 }
 
 func (t *transaction) OwnScheduleMeetings(owner, school string, ids []string, limit, through int) ([]catalog.EnrollmentMeeting, error) {
-	return list[catalog.EnrollmentMeeting](t, ownScheduleMeetingsSQL, owner, ids, limit, school, through)
+	return list[catalog.EnrollmentMeeting](t, ownScheduleMeetingsSQL, owner, ids, limit, school, through, catalog.FirstTermOrderKey())
 }
 
 // Resolve only the requested owner's classes before joining schedule rows.
@@ -217,7 +221,7 @@ func (t *transaction) OwnScheduleMeetings(owner, school string, ids []string, li
 const ownScheduleMeetingsSQL = `WITH owned AS MATERIALIZED (
  SELECT en.id,en.school_id,catalog.canonical(COALESCE(en.data->>'class_id','')) AS class_id
  FROM catalog.enrollments en JOIN catalog.term_orders tr ON tr.id=catalog.canonical(en.term_id) AND tr.school_id=en.school_id
- WHERE en.subject=$1 AND en.id=ANY($2::text[]) AND en.active AND en.school_id=$4 AND tr.sort_key BETWEEN 1 AND $5
+ WHERE en.subject=$1 AND en.id=ANY($2::text[]) AND en.active AND en.school_id=$4 AND tr.sort_key BETWEEN $6 AND $5
 ), class_keys AS MATERIALIZED (
  SELECT id,school_id,class_id FROM owned WHERE class_id<>''
  UNION

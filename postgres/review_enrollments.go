@@ -11,12 +11,12 @@ func (t *transaction) ReviewEnrollments(subject, school, course, term, after str
  JOIN catalog.projection_objects cl ON cl.version=h.version AND cl.id=m.class_id AND cl.kind='class' AND cl.visible
  JOIN catalog.term_orders tr ON tr.id=catalog.canonical(en.term_id) AND tr.school_id=en.school_id
  JOIN catalog.projection_variants v ON v.version=h.version AND v.course_id=m.project_id AND v.class_id=m.class_id
- WHERE en.subject=$1 AND en.school_id=$2 AND en.active AND tr.sort_key BETWEEN 1 AND $7 AND m.project_id=$3 AND ($4='' OR m.term_id=catalog.canonical($4))
+ WHERE en.subject=$1 AND en.school_id=$2 AND en.active AND tr.sort_key BETWEEN $8 AND $7 AND m.project_id=$3 AND ($4='' OR m.term_id=catalog.canonical($4))
  ) SELECT data||jsonb_build_object('course_id',project_id,'term_order_key',term_key,'teacher_ids',
  (SELECT COALESCE(jsonb_agg(DISTINCT catalog.canonical(value)),'[]'::jsonb)
  FROM jsonb_array_elements_text(COALESCE(NULLIF(data->'teacher_ids','null'::jsonb),'[]'::jsonb))
  WHERE catalog.canonical(value)=ANY(teacher_ids)))
  FROM owned WHERE $5='' OR term_key<(SELECT term_key FROM owned WHERE id=$5)
  OR (term_key=(SELECT term_key FROM owned WHERE id=$5) AND id>$5)
- ORDER BY term_key DESC,id LIMIT $6`, subject, school, course, term, after, limit, through)
+ ORDER BY term_key DESC,id LIMIT $6`, subject, school, course, term, after, limit, through, c.FirstTermOrderKey())
 }

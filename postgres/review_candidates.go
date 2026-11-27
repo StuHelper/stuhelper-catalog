@@ -13,9 +13,9 @@ func (t *transaction) OwnReviewCandidates(owner, school string, through int) ([]
  JOIN catalog.projection_objects co ON co.version=h.version AND co.id=COALESCE(sport.project_id,ca.canonical_id,en.course_id) AND co.kind='course' AND co.visible
  JOIN catalog.projection_objects tm ON tm.version=h.version AND tm.id=COALESCE(ta.canonical_id,en.term_id) AND tm.kind='term' AND tm.visible
  JOIN catalog.term_orders tr ON tr.id=catalog.canonical(en.term_id) AND tr.school_id=en.school_id
- WHERE en.subject=$1 AND en.school_id=$2 AND en.active AND tr.sort_key BETWEEN 1 AND $3
+ WHERE en.subject=$1 AND en.school_id=$2 AND en.active AND tr.sort_key BETWEEN $4 AND $3
  AND EXISTS(SELECT 1 FROM catalog.projection_variants v WHERE v.version=h.version AND v.course_id=co.id AND v.term_id=tm.id)
- GROUP BY co.id,co.name,tm.id,tm.name,tm.term_key ORDER BY tm.term_key DESC,co.id LIMIT 2001`, owner, school, through)
+ GROUP BY co.id,co.name,tm.id,tm.name,tm.term_key ORDER BY tm.term_key DESC,co.id LIMIT 2001`, owner, school, through, c.FirstTermOrderKey())
 		if err == nil && len(rows) > 2000 {
 			return nil, c.ErrUnavailable
 		}
@@ -25,8 +25,8 @@ func (t *transaction) OwnReviewCandidates(owner, school string, through int) ([]
  FROM catalog.enrollments en JOIN catalog.objects co ON co.id=catalog.canonical(en.course_id) AND co.kind='course' AND co.school_id=en.school_id
  JOIN catalog.objects term ON term.id=catalog.canonical(en.term_id) AND term.kind='term' AND term.school_id=en.school_id
  JOIN catalog.term_orders tr ON tr.id=term.id AND tr.school_id=en.school_id
- WHERE en.subject=$1 AND en.school_id=$2 AND en.active AND tr.sort_key BETWEEN 1 AND $3 AND NOT COALESCE((co.data->'object'->>'inactive')::boolean,false)
- AND NOT COALESCE((term.data->'object'->>'inactive')::boolean,false) LIMIT 2001`, owner, school, through)
+ WHERE en.subject=$1 AND en.school_id=$2 AND en.active AND tr.sort_key BETWEEN $4 AND $3 AND NOT COALESCE((co.data->'object'->>'inactive')::boolean,false)
+ AND NOT COALESCE((term.data->'object'->>'inactive')::boolean,false) LIMIT 2001`, owner, school, through, c.FirstTermOrderKey())
 	if err == nil && len(rows) > 2000 {
 		return nil, c.ErrUnavailable
 	}

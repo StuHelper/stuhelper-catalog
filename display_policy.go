@@ -40,7 +40,7 @@ func policyNames(names []string, limit int) bool {
 	return true
 }
 func (p DirectoryPolicy) Valid() bool {
-	if TermOrderKey(p.CutoffYear, p.CutoffSeason) == 0 || !policyNames(p.ExcludedCourseNames, 256) || !policyNames(p.ExcludedCategoryNames, 256) || !policyNames(p.HiddenCategoryNames, 256) || len(p.CategoryAliases) > 256 {
+	if TermOrderKey(p.CutoffYear, p.CutoffSeason) < FirstTermOrderKey() || !policyNames(p.ExcludedCourseNames, 256) || !policyNames(p.ExcludedCategoryNames, 256) || !policyNames(p.HiddenCategoryNames, 256) || len(p.CategoryAliases) > 256 {
 		return false
 	}
 	aliases := map[string]string{}
