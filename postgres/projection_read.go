@@ -37,7 +37,7 @@ func (t *transaction) projectionVersionWithHomepageRevocations(school string) (v
 }
 
 func (t *transaction) projectedObject(id string) (c.Object, error) {
-	return read[c.Object](t, `SELECT o.data || CASE WHEN o.id<>$1 THEN jsonb_build_object('id',$1,'canonical_id',o.id) ELSE '{}'::jsonb END`+projectedObjectFrom+`
+	return read[c.Object](t, `SELECT o.data || catalog.address_field(o.id) || CASE WHEN o.id<>$1 THEN jsonb_build_object('id',$1,'canonical_id',o.id) ELSE '{}'::jsonb END`+projectedObjectFrom+`
  WHERE o.id=COALESCE((SELECT canonical_id FROM catalog.projection_aliases a WHERE a.version=h.version AND a.alias_id=$1),$1) AND `+projectedVisible("o"), id)
 }
 func (t *transaction) projectedLookup(ids []string, hidePendingRevocations bool) ([]c.Object, error) {
@@ -45,14 +45,14 @@ func (t *transaction) projectedLookup(ids []string, hidePendingRevocations bool)
 	if hidePendingRevocations {
 		visible = projectedVisible("o")
 	}
-	return list[c.Object](t, `SELECT o.data || CASE WHEN o.id<>requested.id THEN jsonb_build_object('id',requested.id,'canonical_id',o.id) ELSE '{}'::jsonb END
+	return list[c.Object](t, `SELECT o.data || catalog.address_field(o.id) || CASE WHEN o.id<>requested.id THEN jsonb_build_object('id',requested.id,'canonical_id',o.id) ELSE '{}'::jsonb END
  FROM catalog.projection_heads h CROSS JOIN unnest($1::text[]) requested(id)
  LEFT JOIN catalog.projection_aliases a ON a.version=h.version AND a.alias_id=requested.id
  JOIN catalog.projection_objects o ON o.version=h.version AND o.id=COALESCE(a.canonical_id,requested.id)
  WHERE `+visible+` ORDER BY requested.id`, ids)
 }
 func (t *transaction) projectedSummary(object c.Object) (c.Summary, error) {
-	return read[c.Summary](t, `SELECT s.data || jsonb_build_object('object',(s.data->'object') ||
+	return read[c.Summary](t, `SELECT s.data || jsonb_build_object('courses',catalog.address_refs(s.data->'courses'),'teachers',catalog.address_refs(s.data->'teachers')) || jsonb_build_object('object',(s.data->'object') || catalog.address_field(s.id) ||
  CASE WHEN s.id<>$2 THEN jsonb_build_object('id',$2,'canonical_id',s.id) ELSE '{}'::jsonb END)
  FROM catalog.projection_heads h LEFT JOIN catalog.projection_aliases a ON a.version=h.version AND a.alias_id=$2
  JOIN catalog.projection_summaries s ON s.version=h.version AND s.id=COALESCE(a.canonical_id,$2) WHERE h.school_id=$1`, object.SchoolID, object.ID)
@@ -145,7 +145,7 @@ func (t *transaction) projectedList(f c.Filter) ([]c.Object, error) {
 		}
 		where = append(where, `EXISTS(SELECT 1 FROM catalog.projection_variants v WHERE `+strings.Join(conditions, " AND ")+`)`)
 	}
-	return list[c.Object](t, "SELECT o.data"+projectedObjectFrom+" WHERE "+strings.Join(where, " AND ")+" ORDER BY "+order+" LIMIT "+bind(f.Limit+1), args...)
+	return list[c.Object](t, "SELECT o.data || catalog.address_field(o.id)"+projectedObjectFrom+" WHERE "+strings.Join(where, " AND ")+" ORDER BY "+order+" LIMIT "+bind(f.Limit+1), args...)
 }
 
 func (t *transaction) projectedFilterOptions(kind, school string) (c.FilterOptions, error) {

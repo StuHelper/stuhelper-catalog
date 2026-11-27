@@ -92,7 +92,7 @@ func validateObject(o Object, school string) error {
 	if !validSchedule(o.ScheduleTime) || (o.ScheduleTime != nil && o.Kind != "schedule") {
 		return ErrInput
 	}
-	if !ValidID(o.ID) || o.SchoolID != school || !slices.Contains(kinds, o.Kind) || strings.TrimSpace(o.Name) == "" || !validText(o.Name, 256) || !validText(o.Code, 128) || !validText(o.Biography, 8000) || !validText(o.TimeText, 1024) || !validText(o.Location, 512) || len(o.Aliases) > 50 {
+	if o.AddressID != "" || !ValidID(o.ID) || o.SchoolID != school || !slices.Contains(kinds, o.Kind) || strings.TrimSpace(o.Name) == "" || !validText(o.Name, 256) || !validText(o.Code, 128) || !validText(o.Biography, 8000) || !validText(o.TimeText, 1024) || !validText(o.Location, 512) || len(o.Aliases) > 50 {
 		return ErrInput
 	}
 	for _, v := range []string{o.DepartmentID, o.CategoryID, o.NatureID, o.CourseID, o.TermID, o.TermCourseID, o.ClassID, o.TeacherID} {

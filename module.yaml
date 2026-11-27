@@ -360,3 +360,6 @@ scenario_tests:
     - projection_test.go#TestDirectoryProjectionCutoffOrderingCountsAndAbsentOldCourses
   CAT-PROJECTION-05:
     - projection_performance_test.go#TestDirectoryProjectionProductionScaleBeforeAfter
+  CAT-ADDRESS-01:
+    - address_test.go#TestPublicAddressesKeepAliasesAndRequireAdmission
+    - address_test.go#TestAddressMigrationConcurrentTeacherReservations

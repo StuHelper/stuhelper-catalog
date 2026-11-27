@@ -35,7 +35,10 @@ var departmentOrderSchema string
 //go:embed configured_projection.sql
 var configuredProjectionSchema string
 
-var Schema = baseSchema + "\n" + courseSearchSchema + "\n" + activityCalendarSchema + "\n" + teacherHomepageRequestSchema + "\n" + portraitExclusionSchema + "\n" + departmentOrderSchema + "\n" + configuredProjectionSchema
+//go:embed addresses.sql
+var addressSchema string
+
+var Schema = baseSchema + "\n" + courseSearchSchema + "\n" + activityCalendarSchema + "\n" + teacherHomepageRequestSchema + "\n" + portraitExclusionSchema + "\n" + departmentOrderSchema + "\n" + configuredProjectionSchema + "\n" + addressSchema
 
 type Repository struct {
 	// TeacherImageStorage overrides byte storage; nil uses the existing PostgreSQL rows.

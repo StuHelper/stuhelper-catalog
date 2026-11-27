@@ -27,6 +27,7 @@ type Principal struct {
 	CanRefreshTeacherSites bool
 }
 type Object struct {
+	AddressID   string   `json:"address_id,omitempty"`
 	EnglishName string   `json:"english_name,omitempty"`
 	FormerCodes []string `json:"former_codes,omitempty"`
 	FormerNames []string `json:"former_names,omitempty"`
@@ -182,6 +183,7 @@ type Transaction interface {
 	OwnedReferences(subject, school string, ids []string, through int) ([]string, error)
 	ReferenceNames(ids []string) ([]Reference, error)
 	PublicObject(string) (Object, error)
+	AddressObjectID(school, kind, address string) (string, error)
 	ResolveIDs(string) ([]string, error)
 	MergeAliases(string, string, string, time.Time, string) (int, error)
 	Lock(string) error
