@@ -169,7 +169,7 @@ func validateImportBatch(in *Import, now time.Time) error {
 	return nil
 }
 
-func applyImportTx(t Transaction, p Principal, rk, h string, in Import, now time.Time) (ImportResult, error) {
+func applyImportTx(t Transaction, p Principal, rk, h string, in Import, now time.Time, deferAliases bool) (ImportResult, error) {
 	var out ImportResult
 	if in.PreviewToken != "" {
 		token, e := importToken(t, in)
@@ -264,8 +264,10 @@ func applyImportTx(t Transaction, p Principal, rk, h string, in Import, now time
 			return out, e
 		}
 	}
-	if _, e := t.MergeAliases("", "", in.SchoolID, now, "Canonical relation after import"); e != nil {
-		return out, e
+	if !deferAliases {
+		if _, e := t.MergeAliases("", "", in.SchoolID, now, "Canonical relation after import"); e != nil {
+			return out, e
+		}
 	}
 	if e := t.Event(Event{Result: "success", ID: rk, Subject: "import/" + rk, Type: "catalog.imported.v1", SchoolID: in.SchoolID, Actor: p.Subject, Revision: in.Revision, Time: now}); e != nil {
 		return out, e
@@ -279,6 +281,19 @@ func applyImportTx(t Transaction, p Principal, rk, h string, in Import, now time
 
 // Import commits a bounded page atomically. Omitted rows are never interpreted as deletions.
 func (s *Service) Import(ctx context.Context, p Principal, key string, in Import) (ImportResult, error) {
+	return s.importPage(ctx, p, key, in, false)
+}
+
+// ImportDirectoryPage participates in a fenced full directory import. The
+// caller must finish deferred alias reconciliation before rebuilding the projection.
+func (s *Service) ImportDirectoryPage(ctx context.Context, p Principal, key string, in Import) (ImportResult, error) {
+	if DirectoryImportID(ctx) == "" {
+		return ImportResult{}, ErrForbidden
+	}
+	return s.importPage(ctx, p, key, in, true)
+}
+
+func (s *Service) importPage(ctx context.Context, p Principal, key string, in Import, deferAliases bool) (ImportResult, error) {
 	ctx = teacherMaintenanceContext(ctx)
 	var out ImportResult
 	if !p.CanImport || !allowed(p, in.SchoolID) {
@@ -307,10 +322,25 @@ func (s *Service) Import(ctx context.Context, p Principal, key string, in Import
 			return e
 		}
 		var err error
-		out, err = applyImportTx(t, p, rk, h, in, now)
+		out, err = applyImportTx(t, p, rk, h, in, now, deferAliases)
 		return err
 	})
 	return out, err
+}
+
+// FinishDirectoryAliases reconciles natural relations once between page import
+// and the dependent directory refresh. Its writes use the same import fence.
+func (s *Service) FinishDirectoryAliases(ctx context.Context, p Principal, school string) error {
+	if DirectoryImportID(ctx) == "" || !p.CanImport || !allowed(p, school) {
+		return ErrForbidden
+	}
+	return s.Repo.Transaction(ctx, func(t Transaction) error {
+		if err := t.Lock(school); err != nil {
+			return err
+		}
+		_, err := t.MergeAliases("", "", school, s.now(), "Canonical relation after import")
+		return err
+	})
 }
 func (s *Service) Get(ctx context.Context, id string) (Object, error) {
 	var out Object
