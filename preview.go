@@ -211,7 +211,7 @@ func (s *Service) PreviewImport(ctx context.Context, p Principal, in Import) (Im
 			h := digest(withoutToken)
 			rk := digest([]string{p.Subject, "import", dryIn.SchoolID, "preview-" + out.PreviewToken})
 			dryIn.PreviewToken = out.PreviewToken
-			_, dryErr = applyImportTx(t, p, rk, h, dryIn, now)
+			_, dryErr = applyImportTx(t, p, rk, h, dryIn, now, false)
 		}
 		switch {
 		case dryErr == nil:

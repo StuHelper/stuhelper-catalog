@@ -46,6 +46,25 @@ func (t *transaction) DirectoryProjection(school string) (c.ProjectionReport, er
 	return read[c.ProjectionReport](t, `SELECT g.report FROM catalog.projection_heads h JOIN catalog.projection_generations g ON g.version=h.version WHERE h.school_id=$1`, school)
 }
 
+func (t *transaction) CompletedDirectoryImport(school, batch string) (*c.ProjectionReport, error) {
+	if err := t.Lock("projection-source:" + school); err != nil {
+		return nil, err
+	}
+	report, err := read[c.ProjectionReport](t, `SELECT g.report
+ FROM catalog.projection_imports i
+ JOIN catalog.projection_heads h ON h.school_id=i.school_id
+ JOIN catalog.projection_generations g ON g.version=h.version
+ JOIN catalog.directory_revision r ON r.singleton AND r.revision=g.source_revision
+ WHERE i.school_id=$1 AND i.batch=$2 AND i.state='complete'`, school, batch)
+	if errors.Is(err, c.ErrNotFound) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	return &report, nil
+}
+
 func (t *transaction) BeginDirectoryImport(school, batch, attempt string, at time.Time) error {
 	if err := t.Lock("projection-source:" + school); err != nil {
 		return err
