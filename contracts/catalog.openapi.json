@@ -6524,6 +6524,7 @@
         "nullable": true,
         "additionalProperties": false,
         "properties": {
+          "address_id": {"type": "string", "readOnly": true, "description": "Catalog 分配的当前公开路径段。课程和教师页面使用此字段。收藏、评价及模块引用继续使用内部 ID。"},
           "id": {
             "type": "string"
           },

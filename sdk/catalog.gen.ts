@@ -831,6 +831,8 @@ export interface components {
             code: string;
         };
         NullableObject: {
+            /** @description Catalog 分配的当前公开路径段。课程和教师页面使用此字段。收藏、评价及模块引用继续使用内部 ID。 */
+            readonly address_id?: string;
             id: string;
             /** @enum {string} */
             kind: "school" | "department" | "category" | "nature" | "term" | "course" | "teacher" | "term_course" | "class" | "assignment" | "schedule";

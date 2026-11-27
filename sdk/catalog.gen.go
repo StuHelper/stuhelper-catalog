@@ -1444,6 +1444,9 @@ type NextLesson struct {
 
 // NullableObject defines model for NullableObject.
 type NullableObject struct {
+	// AddressId Catalog 分配的当前公开路径段。课程和教师页面使用此字段。收藏、评价及模块引用继续使用内部 ID。
+	AddressId *string `json:"address_id,omitempty"`
+
 	// Aliases 保留的通用别名字段。学院曾用名继续使用；课程英文名、曾用课程号和曾用名分别使用独立字段。
 	Aliases     []string `json:"aliases"`
 	Biography   *string  `json:"biography,omitempty"`
